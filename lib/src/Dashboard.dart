@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'Profile.dart';
-import 'Settings.dart';
 
 class Dashboard extends StatelessWidget {
   const Dashboard({super.key});
@@ -19,25 +17,46 @@ class Dashboard extends StatelessWidget {
                 GestureDetector(
                   onTap: () {
                     Navigator.pushNamed(context, '/dashboard');
-                    print('Navigated to dashboard');
                   },
-                  child: Icon(Icons.dashboard),
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: Tooltip(
+                      message: 'Dashboard',
+                      child: Icon(
+                        Icons.dashboard,
+                      ),
+                    ),
+                  ),
                 ),
                 Spacer(),
                 GestureDetector(
                   onTap: () {
                     Navigator.pushNamed(context, '/profile');
-                    print('Navigated to profile page');
                   },
-                  child: Icon(Icons.person),
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: Tooltip(
+                      message: 'Profile',
+                      child: Icon(
+                        Icons.person,
+                      ),
+                    ),
+                  ),
                 ),
                 Spacer(),
                 GestureDetector(
                   onTap: () {
                     Navigator.pushNamed(context, '/settings');
-                    print('Navigated to settings page');
                   },
-                  child: Icon(Icons.settings), // Settings Icon
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: Tooltip(
+                      message: 'Settings',
+                      child: Icon(
+                        Icons.settings,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -52,10 +71,10 @@ class Dashboard extends StatelessWidget {
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  // Resumes Generated Card
+                  // Resumes Card
                   ResumeCard(),
                   SizedBox(width: MediaQuery.of(context).size.width * 0.05),
-                  // Cover Letters Generated Card
+                  // Cover Letters Card
                   CoverLetterCard(),
                 ],
               ),
@@ -72,11 +91,18 @@ class ResumeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.width * 0.1, maxHeight: MediaQuery.of(context).size.height * 0.25, minWidth: MediaQuery.of(context).size.width * 0.25, maxWidth: MediaQuery.of(context).size.width * 0.35),
+      constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.width * 0.1,
+          maxHeight: MediaQuery.of(context).size.height * 0.25,
+          minWidth: MediaQuery.of(context).size.width * 0.25,
+          maxWidth: MediaQuery.of(context).size.width * 0.35),
       child: Card(
         child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: <Widget>[
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
               Center(
                 child: Text(
                   'Resumes Generated',
@@ -91,7 +117,9 @@ class ResumeCard extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-            ])),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -102,11 +130,18 @@ class CoverLetterCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.width * 0.1, maxHeight: MediaQuery.of(context).size.height * 0.25, minWidth: MediaQuery.of(context).size.width * 0.25, maxWidth: MediaQuery.of(context).size.width * 0.35),
+      constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.width * 0.1,
+          maxHeight: MediaQuery.of(context).size.height * 0.25,
+          minWidth: MediaQuery.of(context).size.width * 0.25,
+          maxWidth: MediaQuery.of(context).size.width * 0.35),
       child: Card(
         child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: <Widget>[
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
               Center(
                 child: Text(
                   'Cover Letters Generated',
@@ -121,7 +156,9 @@ class CoverLetterCard extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-            ])),
+            ],
+          ),
+        ),
       ),
     );
   }
