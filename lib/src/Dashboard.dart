@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'GenResume.dart';
+import 'GenCoverLetter.dart';
 
 class Dashboard extends StatelessWidget {
   const Dashboard({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,10 +34,10 @@ class Dashboard extends StatelessWidget {
               Row(
                 children: <Widget>[
                   // Resumes Generated Card
-                  Expanded(child: ContentCard(title: 'Resumes Generated', value: '123', cardHeight: MediaQuery.of(context).size.height * 0.25, cardWidth: MediaQuery.of(context).size.width * 0.25)),
-                  SizedBox(width: MediaQuery.of(context).size.width * 0.1),
+                  ResumeCard(),
+                  SizedBox(width: MediaQuery.of(context).size.width * 0.05),
                   // Cover Letters Generated Card
-                  Expanded(child: ContentCard(title: 'Cover Letters Generated', value: '123', cardHeight: MediaQuery.of(context).size.height * 0.25, cardWidth: MediaQuery.of(context).size.width * 0.25)),
+                  CoverLetterCard(),
                 ],
               ),
             ],
@@ -47,55 +48,79 @@ class Dashboard extends StatelessWidget {
   }
 }
 
-/* ContentCard - A custom card widget to display content 
-
-*/
-class ContentCard extends StatelessWidget {
-  // Variables for the card
-  final String title;
-  final String value;
-  final double cardHeight;
-  final double cardWidth;
-  // Constructor for the card
-  const ContentCard({super.key, required this.title, required this.value, required this.cardHeight, required this.cardWidth});
+class ResumeCard extends StatelessWidget {
+  const ResumeCard({super.key});
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.width * 0.1, maxHeight: cardHeight, minWidth: MediaQuery.of(context).size.height * 0.1, maxWidth: cardWidth),
+      constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.width * 0.1, maxHeight: MediaQuery.of(context).size.height * 0.25, minWidth: MediaQuery.of(context).size.width * 0.25, maxWidth: MediaQuery.of(context).size.width * 0.35),
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              // Title of the card
+            padding: const EdgeInsets.all(16.0),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: <Widget>[
               Center(
                 child: Text(
-                  title,
+                  'Resumes Generated',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
               ),
-              // Value of the card
               Center(
                 child: Text(
-                  value,
+                  '123',
                   style: TextStyle(fontSize: 16),
                   textAlign: TextAlign.center,
                 ),
               ),
-              // Button widget
               SizedBox(
                 width: 50,
                 child: ElevatedButton(
-                  onPressed: () {},
-                  child: Text('Button Text'),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/genresume');
+                  },
+                  child: Text('Generate Resume'),
                 ),
               ),
-            ],
-          ),
-        ),
+            ])),
+      ),
+    );
+  }
+}
+
+class CoverLetterCard extends StatelessWidget {
+  const CoverLetterCard({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.width * 0.1, maxHeight: MediaQuery.of(context).size.height * 0.25, minWidth: MediaQuery.of(context).size.width * 0.25, maxWidth: MediaQuery.of(context).size.width * 0.35),
+      child: Card(
+        child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: <Widget>[
+              Center(
+                child: Text(
+                  'Resumes Generated',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Center(
+                child: Text(
+                  '123',
+                  style: TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              SizedBox(
+                width: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/gencoverletter');
+                  },
+                  child: Text('Generate Cover Letter'),
+                ),
+              ),
+            ])),
       ),
     );
   }
