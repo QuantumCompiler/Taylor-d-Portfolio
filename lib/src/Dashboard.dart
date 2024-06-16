@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'GenResume.dart';
-import 'GenCoverLetter.dart';
+import 'Profile.dart';
+import 'Settings.dart';
 
 class Dashboard extends StatelessWidget {
   const Dashboard({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // AppBar is the topmost part of the screen
       appBar: AppBar(),
       // Drawer for application navigation
       drawer: SizedBox(
@@ -16,10 +15,30 @@ class Dashboard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 30.0),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                Icon(Icons.home), // Home Icon
-                Icon(Icons.settings), // Settings Icon
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/dashboard');
+                    print('Navigated to dashboard');
+                  },
+                  child: Icon(Icons.dashboard),
+                ),
+                Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/profile');
+                    print('Navigated to profile page');
+                  },
+                  child: Icon(Icons.person),
+                ),
+                Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/settings');
+                    print('Navigated to settings page');
+                  },
+                  child: Icon(Icons.settings), // Settings Icon
+                ),
               ],
             ),
           ),
@@ -72,15 +91,6 @@ class ResumeCard extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-              SizedBox(
-                width: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/genresume');
-                  },
-                  child: Text('Generate Resume'),
-                ),
-              ),
             ])),
       ),
     );
@@ -99,7 +109,7 @@ class CoverLetterCard extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: <Widget>[
               Center(
                 child: Text(
-                  'Resumes Generated',
+                  'Cover Letters Generated',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
@@ -109,15 +119,6 @@ class CoverLetterCard extends StatelessWidget {
                   '123',
                   style: TextStyle(fontSize: 16),
                   textAlign: TextAlign.center,
-                ),
-              ),
-              SizedBox(
-                width: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/gencoverletter');
-                  },
-                  child: Text('Generate Cover Letter'),
                 ),
               ),
             ])),
