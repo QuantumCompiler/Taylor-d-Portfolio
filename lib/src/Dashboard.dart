@@ -14,9 +14,7 @@ class Dashboard extends StatelessWidget {
             child: Column(
               children: <Widget>[
                 GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, '/dashboard');
-                  },
+                  onTap: () => {},
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: Tooltip(

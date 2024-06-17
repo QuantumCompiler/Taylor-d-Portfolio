@@ -13,23 +13,28 @@ class ProfilePageState extends State<ProfilePage> {
   bool showProfileList = false;
   @override
   Widget build(BuildContext context) {
-    if (showProfileList) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: Padding(
-          padding: EdgeInsets.all(MediaQuery.of(context).size.height * 0.05),
-          child: LoadProfiles(context, setState, () => showProfileList = false),
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            if (!showNewProfile && !showProfileList) {
+              Navigator.pushNamed(context, '/dashboard');
+            } else {
+              Navigator.pushNamed(context, '/profile');
+            }
+          },
         ),
-      );
-    } else {
-      return Scaffold(
-        appBar: AppBar(),
-        body: Padding(
-          padding: EdgeInsets.all(MediaQuery.of(context).size.height * 0.05),
-          child: showNewProfile ? NewProfileForm(context, setState, () => showNewProfile = false) : BuildProfileCards(),
-        ),
-      );
-    }
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(MediaQuery.of(context).size.height * 0.05),
+        child: !showNewProfile && showProfileList
+            ? LoadProfiles(context, setState, () => showProfileList = false)
+            : showNewProfile && !showProfileList
+                ? NewProfileForm(context, setState, () => showNewProfile = false)
+                : BuildProfileCards(),
+      ),
+    );
   }
 
   Widget BuildProfileCards() {
@@ -106,30 +111,68 @@ class LoadProfileCard extends StatelessWidget {
 }
 
 Widget LoadProfiles(BuildContext context, Function state, Function toggleShow) {
-  return Center(
+  return SingleChildScrollView(
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: <Widget>[
-        Center(
-          child: Text('Load Recent Profiles'),
-        ),
-        Center(
-          child: ElevatedButton(
-            onPressed: () {
-              state(() {
-                toggleShow();
-              });
-            },
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+        FutureBuilder(
+          future: getApplicationCacheDirectory(),
+          builder: (BuildContext context, AsyncSnapshot<Directory> snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              final profiles = snapshot.data?.listSync().where((item) => item is Directory).map((item) => item as Directory).toList() ?? [];
+              profiles.sort((a, b) => a.path.split('/').last.compareTo(b.path.split('/').last));
+              if (profiles.isEmpty) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: <Widget>[
+                    Center(
+                      child: Text(
+                        'No Profiles Present',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: <Widget>[
+                    Center(
+                      child: Text(
+                        'Generated Profiles',
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: ClampingScrollPhysics(), // This allows the ListView to be scrollable inside the SingleChildScrollView
+                      itemCount: profiles.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        return ListTile(
+                          title: Text(profiles[index].path.split('/').last),
+                          onTap: () => {},
+                        );
+                      },
+                    )
+                  ],
+                );
+              }
+            } else {
+              return CircularProgressIndicator();
+            }
+          },
         ),
       ],
     ),
@@ -276,28 +319,9 @@ Widget NewProfileForm(BuildContext context, Function state, Function toggleShow)
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            // Cancel
-            ElevatedButton(
-              onPressed: () {
-                state(() {
-                  toggleShow();
-                });
-              },
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            SizedBox(width: 20),
             // Save Profile
             ElevatedButton(
               onPressed: () async {
-                // final directory = await getApplicationCacheDirectory();
-                // await File('${directory.path}/education.txt').writeAsString(eduController.text);
                 final profileName = TextEditingController();
                 await showDialog(
                   context: context,
@@ -371,6 +395,7 @@ Widget NewProfileForm(BuildContext context, Function state, Function toggleShow)
             ),
           ],
         ),
+        SizedBox(height: 20),
       ],
     ),
   );
