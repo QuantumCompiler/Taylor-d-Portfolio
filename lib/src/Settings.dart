@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 import 'Themes.dart';
 
 class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-
     return Scaffold(
       appBar: AppBar(),
       body: Center(

@@ -6,7 +6,6 @@ class Dashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),
-      // Drawer for application navigation
       drawer: SizedBox(
         width: MediaQuery.of(context).size.width * 0.15,
         child: Drawer(
@@ -64,17 +63,14 @@ class Dashboard extends StatelessWidget {
         ),
       ),
       body: Padding(
-        // Padding for the content
         padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.1, right: MediaQuery.of(context).size.width * 0.1),
         child: SingleChildScrollView(
           child: Column(
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  // Resumes Card
                   ResumeCard(),
                   SizedBox(width: MediaQuery.of(context).size.width * 0.05),
-                  // Cover Letters Card
                   CoverLetterCard(),
                 ],
               ),
