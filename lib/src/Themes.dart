@@ -21,6 +21,13 @@ class ThemeProvider with ChangeNotifier {
   }
 
   ThemeData get themeData {
-    return _isDarkTheme ? ThemeData.dark() : ThemeData.light();
+    return ThemeData(
+      brightness: _isDarkTheme ? Brightness.dark : Brightness.light,
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Color.fromARGB(255, 0, 213, 255) : Colors.white),
+            foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Color.fromARGB(255, 0, 213, 255) : Colors.white)),
+      ),
+    );
   }
 }

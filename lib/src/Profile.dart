@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -16,7 +18,7 @@ class ProfilePageState extends State<ProfilePage> {
         appBar: AppBar(),
         body: Padding(
           padding: EdgeInsets.all(MediaQuery.of(context).size.height * 0.05),
-          child: LoadProfiles(setState, () => showProfileList = false),
+          child: LoadProfiles(context, setState, () => showProfileList = false),
         ),
       );
     } else {
@@ -24,7 +26,7 @@ class ProfilePageState extends State<ProfilePage> {
         appBar: AppBar(),
         body: Padding(
           padding: EdgeInsets.all(MediaQuery.of(context).size.height * 0.05),
-          child: showNewProfile ? NewProfileForm(setState, () => showNewProfile = false) : BuildProfileCards(),
+          child: showNewProfile ? NewProfileForm(context, setState, () => showNewProfile = false) : BuildProfileCards(),
         ),
       );
     }
@@ -84,9 +86,6 @@ class LoadProfileCard extends StatelessWidget {
                   height: 40,
                   child: ElevatedButton(
                     onPressed: onLoadProfile,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromARGB(255, 0, 213, 255),
-                    ),
                     child: Text(
                       'Load Previous Profiles',
                       style: TextStyle(
@@ -106,7 +105,7 @@ class LoadProfileCard extends StatelessWidget {
   }
 }
 
-Widget LoadProfiles(Function state, Function toggleShow) {
+Widget LoadProfiles(BuildContext context, Function state, Function toggleShow) {
   return Center(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -122,7 +121,14 @@ Widget LoadProfiles(Function state, Function toggleShow) {
                 toggleShow();
               });
             },
-            child: Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
       ],
@@ -160,9 +166,6 @@ class NewProfileCard extends StatelessWidget {
                   height: 40,
                   child: ElevatedButton(
                     onPressed: onCreateNewProfile,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromARGB(255, 0, 213, 255),
-                    ),
                     child: Text(
                       'Create New Profile',
                       style: TextStyle(
@@ -182,24 +185,191 @@ class NewProfileCard extends StatelessWidget {
   }
 }
 
-Widget NewProfileForm(Function state, Function toggleShow) {
-  return Center(
+Widget NewProfileForm(BuildContext context, Function state, Function toggleShow) {
+  final eduController = TextEditingController();
+  final expController = TextEditingController();
+  final qualController = TextEditingController();
+  final projController = TextEditingController();
+  return SingleChildScrollView(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: <Widget>[
+        // Education
         Center(
-          child: Text('Form goes here'),
+          child: Text(
+            'Education',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
         Center(
-          child: ElevatedButton(
-            onPressed: () {
-              state(() {
-                toggleShow();
-              });
-            },
-            child: Text('Cancel'),
+          child: TextField(
+            controller: eduController,
+            keyboardType: TextInputType.multiline,
+            maxLines: 5,
           ),
+        ),
+        SizedBox(height: 20),
+        // Experience
+        Center(
+          child: Text(
+            'Experience',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        Center(
+          child: TextField(
+            controller: expController,
+            keyboardType: TextInputType.multiline,
+            maxLines: 5,
+          ),
+        ),
+        SizedBox(height: 20),
+        // Qualifications
+        Center(
+          child: Text(
+            'Qualifications / Skills',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        Center(
+          child: TextField(
+            controller: qualController,
+            keyboardType: TextInputType.multiline,
+            maxLines: 5,
+          ),
+        ),
+        SizedBox(height: 20),
+        // Projects
+        Center(
+          child: Text(
+            'Projects',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        Center(
+          child: TextField(
+            controller: projController,
+            keyboardType: TextInputType.multiline,
+            maxLines: 5,
+          ),
+        ),
+        SizedBox(height: 20),
+        // Buttons
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            // Cancel
+            ElevatedButton(
+              onPressed: () {
+                state(() {
+                  toggleShow();
+                });
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            SizedBox(width: 20),
+            // Save Profile
+            ElevatedButton(
+              onPressed: () async {
+                // final directory = await getApplicationCacheDirectory();
+                // await File('${directory.path}/education.txt').writeAsString(eduController.text);
+                final profileName = TextEditingController();
+                await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text('Enter Name Of Current Profile'),
+                      content: TextField(
+                        controller: profileName,
+                        decoration: InputDecoration(hintText: "Profile Name"),
+                      ),
+                      actions: <Widget>[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            ElevatedButton(
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                            SizedBox(width: 20),
+                            ElevatedButton(
+                              child: Text(
+                                'Save',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              onPressed: () async {
+                                final dir = await getApplicationCacheDirectory();
+                                final newProfileDir = Directory('${dir.path}/${profileName.text}');
+                                if (!newProfileDir.existsSync()) {
+                                  newProfileDir.createSync();
+                                  final eduFile = File('${newProfileDir.path}/education.txt');
+                                  final expFile = File('${newProfileDir.path}/experience.txt');
+                                  final qualFile = File('${newProfileDir.path}/qualifications.txt');
+                                  final projFile = File('${newProfileDir.path}/proj.txt');
+                                  await eduFile.writeAsString(eduController.text);
+                                  await expFile.writeAsString(expController.text);
+                                  await qualFile.writeAsString(qualController.text);
+                                  await projFile.writeAsString(projController.text);
+                                }
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+              child: Text(
+                'Save Profile',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     ),
