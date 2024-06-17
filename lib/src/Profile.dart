@@ -1,39 +1,62 @@
 import 'package:flutter/material.dart';
-import 'package:taylord_resume/src/Dashboard.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
+  @override
+  ProfilePageState createState() => ProfilePageState();
+}
+
+class ProfilePageState extends State<ProfilePage> {
+  bool showNewProfile = false;
+  bool showProfileList = false;
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: Padding(
-        padding: EdgeInsets.all(MediaQuery.of(context).size.height * 0.05),
-        child: Column(
-          children: [
-            // ElevatedButton(
-            //   onPressed: () {
-            //     // Code to load profile or edit profile
-            //   },
-            //   child: Text('Load Profile / Edit Profile'),
-            // ),
-            // SizedBox(height: 16.0),
-            // ElevatedButton(
-            //   onPressed: () {
-            //     // Code to create a new profile
-            //   },
-            //   child: Text('New Profile'),
-            // ),
-            LoadProfileCard(),
-            NewProfileCard(),
-          ],
+    if (showProfileList) {
+      // return LoadProfiles(setState, () => showProfileList = false);
+      return Scaffold(
+        appBar: AppBar(),
+        body: Padding(
+          padding: EdgeInsets.all(MediaQuery.of(context).size.height * 0.05),
+          child: LoadProfiles(setState, () => showProfileList = false),
         ),
-      ),
+      );
+    } else {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Padding(
+          padding: EdgeInsets.all(MediaQuery.of(context).size.height * 0.05),
+          child: showNewProfile ? NewProfileForm(setState, () => showNewProfile = false) : BuildProfileCards(),
+        ),
+      );
+    }
+  }
+
+  Widget BuildProfileCards() {
+    return Column(
+      children: [
+        LoadProfileCard(
+          key: UniqueKey(),
+          onLoadProfile: () {
+            setState(() {
+              showProfileList = true;
+            });
+          },
+        ),
+        NewProfileCard(
+          key: UniqueKey(),
+          onCreateNewProfile: () {
+            setState(() {
+              showNewProfile = true;
+            });
+          },
+        ),
+      ],
     );
   }
 }
 
 class LoadProfileCard extends StatelessWidget {
-  const LoadProfileCard({super.key});
+  final VoidCallback onLoadProfile;
+  const LoadProfileCard({required Key key, required this.onLoadProfile}) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
@@ -57,15 +80,15 @@ class LoadProfileCard extends StatelessWidget {
               ),
               Center(
                 child: SizedBox(
-                  width: 150,
+                  width: 250,
                   height: 40,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: onLoadProfile,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color.fromARGB(255, 0, 213, 255),
                     ),
                     child: Text(
-                      'Load',
+                      'Load Previous Profiles',
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 16,
@@ -83,8 +106,33 @@ class LoadProfileCard extends StatelessWidget {
   }
 }
 
+Widget LoadProfiles(Function state, Function toggleShow) {
+  return Center(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: <Widget>[
+        Center(
+          child: Text('Load Recent Profiles'),
+        ),
+        Center(
+          child: ElevatedButton(
+            onPressed: () {
+              state(() {
+                toggleShow();
+              });
+            },
+            child: Text('Cancel'),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class NewProfileCard extends StatelessWidget {
-  const NewProfileCard({super.key});
+  final VoidCallback onCreateNewProfile;
+  const NewProfileCard({required Key key, required this.onCreateNewProfile}) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
@@ -111,7 +159,7 @@ class NewProfileCard extends StatelessWidget {
                   width: 250,
                   height: 40,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: onCreateNewProfile,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color.fromARGB(255, 0, 213, 255),
                     ),
@@ -134,33 +182,26 @@ class NewProfileCard extends StatelessWidget {
   }
 }
 
-
-      // body: Padding(
-      //   padding: EdgeInsets.all(16.0),
-      //   child: Column(
-      //     children: [
-      //       TextField(
-      //         decoration: InputDecoration(
-      //           labelText: 'Name',
-      //         ),
-      //       ),
-      //       SizedBox(height: 16.0),
-      //       TextField(
-      //         decoration: InputDecoration(
-      //           labelText: 'Email',
-      //         ),
-      //       ),
-      //       SizedBox(height: 16.0),
-      //       TextField(
-      //         decoration: InputDecoration(
-      //           labelText: 'Phone',
-      //         ),
-      //       ),
-      //       SizedBox(height: 16.0),
-      //       ElevatedButton(
-      //         onPressed: () {},
-      //         child: Text('Submit'),
-      //       ),
-      //     ],
-      //   ),
-      // ),
+Widget NewProfileForm(Function state, Function toggleShow) {
+  return Center(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: <Widget>[
+        Center(
+          child: Text('Form goes here'),
+        ),
+        Center(
+          child: ElevatedButton(
+            onPressed: () {
+              state(() {
+                toggleShow();
+              });
+            },
+            child: Text('Cancel'),
+          ),
+        ),
+      ],
+    ),
+  );
+}
