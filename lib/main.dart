@@ -17,6 +17,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
@@ -26,9 +27,9 @@ class MyApp extends StatelessWidget {
           theme: themeProvider.themeData,
           routes: {
             '/dashboard': (context) => Dashboard(),
-            '/profile': (context) => ProfilePage(),
             '/loadProfile': (context) => LoadProfilePage(),
             '/newProfile': (context) => NewProfilePage(),
+            '/profile': (context) => ProfilePage(),
             '/settings': (context) => SettingsPage(),
           },
         );
