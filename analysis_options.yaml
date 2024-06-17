@@ -11,7 +11,6 @@ analyzer:
   errors:
     file_names: ignore
     non_constant_identifier_names: ignore
-    p ignorerefer_const_constructors: ignore
     prefer_const_constructors: ignore
     prefer_const_literals_to_create_immutables: ignore
 include: package:flutter_lints/flutter.yaml
