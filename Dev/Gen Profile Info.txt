@@ -1,3 +1,5 @@
-// Path To Temp Files In Dev
-
+// Cache directory 
 Directory Path: /Users/taylor/Library/Containers/com.example.taylordResume/Data/Library/Caches/com.example.taylordResume
+
+// Documents directory
+Directory Path: /Users/taylor/Library/Containers/com.example.taylordResume/Data/Documents
