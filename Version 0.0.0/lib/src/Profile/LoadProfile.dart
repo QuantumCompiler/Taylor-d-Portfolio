@@ -3,8 +3,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:taylord_resume/src/Profile/EditProfile.dart';
 import 'dart:io';
 
-import 'package:taylord_resume/src/Profile/ProfileFunctions.dart';
-
 class LoadProfilePage extends StatelessWidget {
   const LoadProfilePage({super.key});
   @override
