@@ -167,7 +167,6 @@ class NewProfilePage extends StatelessWidget {
                                     final profilesDir = Directory('${dir.path}/Profiles');
                                     if (!profilesDir.existsSync()) {
                                       profilesDir.createSync();
-                                      print('${profilesDir} has been created.');
                                     } else {
                                       final newProfileDir = Directory('${dir.path}/Profiles/${profileName.text}');
                                       if (!newProfileDir.existsSync()) {
@@ -180,9 +179,7 @@ class NewProfilePage extends StatelessWidget {
                                         await expFile.writeAsString(expController.text);
                                         await qualFile.writeAsString(qualController.text);
                                         await projFile.writeAsString(projController.text);
-                                      } else {
-                                        print('${profileName.text} already exists!');
-                                      }
+                                      } else {}
                                     }
                                     Navigator.of(context).pop();
                                   },
