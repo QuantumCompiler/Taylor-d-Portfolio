@@ -33,60 +33,7 @@ class SettingsPage extends StatelessWidget {
               ListTile(
                 title: Text('Delete All Profiles'),
                 onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: Text(
-                          'Delete All Profiles',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        content: Text('Are you sure you want to delete all profiles? This cannot be undone.'),
-                        actions: <Widget>[
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              ElevatedButton(
-                                onPressed: () {
-                                  DeleteAllProfiles();
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text(
-                                  'Yes',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 20),
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text(
-                                  'No',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                  // DeleteAllProfiles();
+                  DeleteAllProfiles(context);
                 },
               ),
             ],

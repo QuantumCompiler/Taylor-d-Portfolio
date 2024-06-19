@@ -31,3 +31,7 @@ class ThemeProvider with ChangeNotifier {
     );
   }
 }
+
+Color themeTextColor(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white;
+}
