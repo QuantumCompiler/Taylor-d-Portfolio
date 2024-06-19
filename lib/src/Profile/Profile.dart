@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../Themes/Themes.dart';
+import 'LoadProfile.dart';
+import 'NewProfile.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -11,113 +12,38 @@ class ProfilePage extends StatelessWidget {
           icon: Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pop();
+            Navigator.of(context).pop();
           },
         ),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: <Widget>[
-          Center(
-            child: LoadProfileCard(),
-          ),
-          Spacer(),
-          Center(
-            child: NewProfileCard(),
-          ),
-          SizedBox(height: 50)
-        ],
-      ),
-    );
-  }
-}
-
-class LoadProfileCard extends StatelessWidget {
-  const LoadProfileCard({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.4,
-        minWidth: MediaQuery.of(context).size.width * 0.65,
-      ),
-      child: Card(
-        child: Padding(
-          padding: EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                'Load Profiles',
-                style: TextStyle(
-                  color: themeTextColor(context),
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Spacer(),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/loadProfile');
-                },
-                child: Text(
-                  'Load Profiles',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-            ],
+        title: Text(
+          'Profile',
+          style: TextStyle(
+            fontSize: 24.0,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
-    );
-  }
-}
-
-class NewProfileCard extends StatelessWidget {
-  const NewProfileCard({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.4,
-        minWidth: MediaQuery.of(context).size.width * 0.65,
-      ),
-      child: Card(
-        child: Padding(
-          padding: EdgeInsets.all(10),
+      body: Center(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.6,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                'Create New Profile',
-                style: TextStyle(
-                  color: themeTextColor(context),
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Spacer(),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/newProfile');
+            children: [
+              SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+              // Create New Profile
+              ListTile(
+                title: Text('Create New Profile'),
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => NewProfilePage()));
                 },
-                child: Text(
-                  'Create New Profile',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
               ),
-              SizedBox(height: 10),
+              // Load Profiles
+              ListTile(
+                title: Text('Load Profiles'),
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => LoadProfilePage()));
+                },
+              ),
             ],
           ),
         ),

@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'src/Dashboard/Dashboard.dart';
-import 'src/Profile/LoadProfile.dart';
-import 'src/Profile/NewProfile.dart';
-import 'src/Profile/Profile.dart';
-import 'src/Settings/Settings.dart';
 import 'src/Themes/Themes.dart';
 
 void main() {
@@ -25,13 +21,6 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           home: Dashboard(),
           theme: themeProvider.themeData,
-          routes: {
-            '/dashboard': (context) => Dashboard(),
-            '/loadProfile': (context) => LoadProfilePage(),
-            '/newProfile': (context) => NewProfilePage(),
-            '/profile': (context) => ProfilePage(),
-            '/settings': (context) => SettingsPage(),
-          },
         );
       },
     );

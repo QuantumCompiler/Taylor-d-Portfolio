@@ -30,13 +30,6 @@ class ProfileControllers {
     required this.qualController,
     required this.projController,
   });
-
-  void dispose() {
-    eduController.dispose();
-    expController.dispose();
-    qualController.dispose();
-    projController.dispose();
-  }
 }
 
 /*  createNewProfile - Creates a new profile
@@ -221,7 +214,7 @@ Future<void> DeleteAllProfiles(BuildContext context) async {
                                   CircularProgressIndicator(),
                                   SizedBox(height: 20),
                                   Text(
-                                    'Deleting all profiles',
+                                    'Deleting all profiles...',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -301,13 +294,28 @@ Future<void> DeleteAllProfiles(BuildContext context) async {
   }
 }
 
+/*  LoadProfileData - Loads the profile data
+    Input:
+      profileName - String that represents the name of the profile
+    Algorithm:
+      * Get the application directory
+      * Get the profile directory
+      * Get the education, experience, qualifications, and projects files
+      * Read the text from the education, experience, qualifications, and projects files
+      * Return a ProfileData object with the profile name, education, experience, qualifications, and projects
+    Output:
+      Returns a ProfileData object with the profile name, education, experience, qualifications, and projects
+*/
 Future<ProfileData> LoadProfileData(String profileName) async {
+  // Directories
   final appDir = await getApplicationDocumentsDirectory();
   final profDir = Directory('${appDir.path}/Profiles/$profileName');
+  // Files
   final eduFile = File('${profDir.path}/education.txt');
   final expFile = File('${profDir.path}/experience.txt');
   final qualFile = File('${profDir.path}/qualifications.txt');
   final projFile = File('${profDir.path}/projects.txt');
+  // Contents of files
   final education = await eduFile.readAsString();
   final experience = await expFile.readAsString();
   final qualifications = await qualFile.readAsString();
@@ -359,7 +367,7 @@ List<Widget> profileEntry(BuildContext context, String title, TextEditingControl
         child: TextField(
           controller: controller,
           keyboardType: TextInputType.multiline,
-          maxLines: 5,
+          maxLines: 10,
           decoration: InputDecoration(hintText: hintText.isEmpty ? null : hintText),
         ),
       ),

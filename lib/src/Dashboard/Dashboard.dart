@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
+import '../Profile/Profile.dart';
+import '../Settings/Settings.dart';
 
 class Dashboard extends StatelessWidget {
   const Dashboard({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: Text(
+          'Dashboard',
+          style: TextStyle(
+            fontSize: 24.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       drawer: SizedBox(
         width: MediaQuery.of(context).size.width * 0.15,
         child: Drawer(
@@ -14,7 +24,9 @@ class Dashboard extends StatelessWidget {
             child: Column(
               children: <Widget>[
                 GestureDetector(
-                  onTap: () => {},
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: Tooltip(
@@ -28,7 +40,7 @@ class Dashboard extends StatelessWidget {
                 Spacer(),
                 GestureDetector(
                   onTap: () {
-                    Navigator.pushNamed(context, '/profile');
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
                   },
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
@@ -43,7 +55,7 @@ class Dashboard extends StatelessWidget {
                 Spacer(),
                 GestureDetector(
                   onTap: () {
-                    Navigator.pushNamed(context, '/settings');
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
                   },
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
@@ -60,20 +72,19 @@ class Dashboard extends StatelessWidget {
           ),
         ),
       ),
-      body: Padding(
-        padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.1, right: MediaQuery.of(context).size.width * 0.1),
-        child: SingleChildScrollView(
-          child: Column(
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  ResumeCard(),
-                  SizedBox(width: MediaQuery.of(context).size.width * 0.05),
-                  CoverLetterCard(),
-                ],
-              ),
-            ],
-          ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ResumeCard(),
+                SizedBox(width: MediaQuery.of(context).size.width * 0.05),
+                CoverLetterCard(),
+              ],
+            ),
+          ],
         ),
       ),
     );

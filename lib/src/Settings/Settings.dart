@@ -14,12 +14,20 @@ class SettingsPage extends StatelessWidget {
           icon: Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pop();
+            Navigator.of(context).pop();
           },
+        ),
+        title: Text(
+          'Settings',
+          style: TextStyle(
+            fontSize: 24.0,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: Center(
         child: Container(
-          width: 400,
+          width: MediaQuery.of(context).size.width * 0.6,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
