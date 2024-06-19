@@ -1,8 +1,156 @@
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:convert';
 import 'dart:io';
 import '../Themes/Themes.dart';
+
+class ProfileData {
+  final String profileName;
+  final String education;
+  final String experience;
+  final String projects;
+  final String qualifications;
+  ProfileData({
+    required this.profileName,
+    required this.education,
+    required this.experience,
+    required this.projects,
+    required this.qualifications,
+  });
+}
+
+class ProfileControllers {
+  final TextEditingController eduController;
+  final TextEditingController expController;
+  final TextEditingController qualController;
+  final TextEditingController projController;
+
+  ProfileControllers({
+    required this.eduController,
+    required this.expController,
+    required this.qualController,
+    required this.projController,
+  });
+
+  void dispose() {
+    eduController.dispose();
+    expController.dispose();
+    qualController.dispose();
+    projController.dispose();
+  }
+}
+
+/*  createNewProfile - Creates a new profile
+    Input:
+      context - BuildContext that represents the context of the widget
+      profName - TextEditingController that represents the controller for the profile name
+      edu - TextEditingController that represents the controller for the education field
+      exp - TextEditingController that represents the controller for the experience field
+      qual - TextEditingController that represents the controller for the qualifications field
+      proj - TextEditingController that represents the controller for the projects field
+    Algorithm:
+      * Create a new ProfileData object with the profile name, education, experience, qualifications, and projects
+      * Get the application directory
+      * Get the profile directory
+      * Check if the profile directory exists
+        * If it does not exist, create the profile directory
+        * If it exists, create the new profile directory
+          * Check if the new profile directory exists
+            * If it does not exist, create the new profile directory
+            * If it exists, display an alert dialog
+              * Title: Profile Already Exists
+              * Content: A profile with the name ${profileData.profileName} already exists. Please choose a different name or navigate to the Load Profiles page to edit the existing profile.
+      * If the profile directory exists
+        * Create the education, experience, qualifications, and projects files
+        * Show a dialog with a spinning icon while the files are being written
+        * Write the text from the education, experience, qualifications, and projects text fields to the respective files
+        * Close the dialog
+    Output:
+      Creates a new profile
+*/
+Future<void> createNewProfile(
+    BuildContext context, TextEditingController profName, TextEditingController edu, TextEditingController exp, TextEditingController qual, TextEditingController proj) async {
+  final profileData = ProfileData(profileName: profName.text, education: edu.text, experience: exp.text, projects: proj.text, qualifications: qual.text);
+  // Get the application directory
+  final dir = await getApplicationDocumentsDirectory();
+  // Get the profile directory
+  final profilesDir = Directory('${dir.path}/Profiles');
+  // Check if the profile directory exists
+  if (!profilesDir.existsSync()) {
+    profilesDir.createSync();
+  }
+  // Check if the profile directory exists
+  else {
+    // Create the new profile directory
+    final newProfileDir = Directory('${dir.path}/Profiles/${profileData.profileName}');
+    // Check if the new profile directory exists
+    if (!newProfileDir.existsSync()) {
+      // Create the new profile directory
+      newProfileDir.createSync();
+      // Create the education, experience, qualifications, and projects files
+      File eduFile = File('${newProfileDir.path}/education.txt');
+      File expFile = File('${newProfileDir.path}/experience.txt');
+      File projFile = File('${newProfileDir.path}/projects.txt');
+      File qualFile = File('${newProfileDir.path}/qualifications.txt');
+      await eduFile.writeAsString(profileData.education);
+      await expFile.writeAsString(profileData.experience);
+      await projFile.writeAsString(profileData.projects);
+      await qualFile.writeAsString(profileData.qualifications);
+      // Show a spinning icon while the files are being written
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 20),
+                  Text(
+                    'Writing files...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+      // Write the text from the education, experience, qualifications, and projects text fields to the respective files
+      await Future.delayed(Duration(seconds: 2));
+      // Close the dialog
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+    }
+    // If the new profile directory exists
+    else {
+      // Display an alert dialog
+      return showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            // Text of dialog
+            title: Text(
+              'Profile Already Exists',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            // Content of dialog
+            content: Text('A profile with the name ${profileData.profileName} already exists. Please choose a different name \nor navigate to the Load Profiles page to edit the existing profile.'),
+          );
+        },
+      );
+    }
+  }
+}
 
 /*  DeleteAllProfiles - Shows a dialog asking the user if they want to delete all profiles
     Input:
@@ -153,17 +301,19 @@ Future<void> DeleteAllProfiles(BuildContext context) async {
   }
 }
 
-// Future<void> ReadProfileData(String profile) async {
-//   final appDir = await getApplicationDocumentsDirectory();
-//   final profileDir = Directory('${appDir.path}/Profiles/$profile');
-//   final profileJSON = File('${profileDir.path}/data.json');
-//   if (await profileJSON.existsSync()) {
-//     final profileData = await profileJSON.readAsString();
-//     return jsonDecode(profileData);
-//   } else {
-//     throw Exception('Profile data not found');
-//   }
-// }
+Future<ProfileData> LoadProfileData(String profileName) async {
+  final appDir = await getApplicationDocumentsDirectory();
+  final profDir = Directory('${appDir.path}/Profiles/$profileName');
+  final eduFile = File('${profDir.path}/education.txt');
+  final expFile = File('${profDir.path}/experience.txt');
+  final qualFile = File('${profDir.path}/qualifications.txt');
+  final projFile = File('${profDir.path}/projects.txt');
+  final education = await eduFile.readAsString();
+  final experience = await expFile.readAsString();
+  final qualifications = await qualFile.readAsString();
+  final projects = await projFile.readAsString();
+  return ProfileData(profileName: profileName, education: education, experience: experience, projects: projects, qualifications: qualifications);
+}
 
 /* profileEntry - Returns a list of widgets for a profile entry
     Input:
@@ -210,119 +360,10 @@ List<Widget> profileEntry(BuildContext context, String title, TextEditingControl
           controller: controller,
           keyboardType: TextInputType.multiline,
           maxLines: 5,
-          decoration: InputDecoration(hintText: hintText),
+          decoration: InputDecoration(hintText: hintText.isEmpty ? null : hintText),
         ),
       ),
     ),
     SizedBox(height: 20),
   ];
-}
-
-/*  createNewProfile - Creates a new profile
-    Input:
-      context - BuildContext that represents the context of the widget
-      profName - TextEditingController that represents the controller for the profile name
-      edu - TextEditingController that represents the controller for the education field
-      exp - TextEditingController that represents the controller for the experience field
-      qual - TextEditingController that represents the controller for the qualifications field
-      proj - TextEditingController that represents the controller for the projects field
-    Algorithm:
-      * Get the application directory
-      * Get the profile directory
-      * Check if the profile directory exists
-        * If it does not exist, create the profile directory
-      * Check if the new profile directory exists
-        * If it does not exist, create the new profile directory
-        * Create the education, experience, qualifications, and projects files
-        * Display a loading dialog simulating that the files are being written
-      * If the new profile directory exists
-        * Display an alert dialog
-          * Title: Profile Already Exists
-          * Content: A profile with the name ${profName.text} already exists. Please choose a different name or navigate to the Load Profiles page to edit the existing profile.
-    Output:
-      Creates a new profile
-*/
-Future<void> createNewProfile(
-    BuildContext context, TextEditingController profName, TextEditingController edu, TextEditingController exp, TextEditingController qual, TextEditingController proj) async {
-  // Get the application directory
-  final dir = await getApplicationDocumentsDirectory();
-  // Get the profile directory
-  final profilesDir = Directory('${dir.path}/Profiles');
-  // Check if the profile directory exists
-  if (!profilesDir.existsSync()) {
-    profilesDir.createSync();
-  }
-  // Check if the profile directory exists
-  else {
-    // Create the new profile directory
-    final newProfileDir = Directory('${dir.path}/Profiles/${profName.text}');
-    // Check if the new profile directory exists
-    if (!newProfileDir.existsSync()) {
-      // Create the new profile directory
-      newProfileDir.createSync();
-      // Create the education, experience, qualifications, and projects files
-      final eduFile = File('${newProfileDir.path}/education.txt');
-      final expFile = File('${newProfileDir.path}/experience.txt');
-      final qualFile = File('${newProfileDir.path}/qualifications.txt');
-      final projFile = File('${newProfileDir.path}/proj.txt');
-      // Write the text from the education, experience, qualifications, and projects text fields to the respective files
-      await eduFile.writeAsString(edu.text);
-      await expFile.writeAsString(exp.text);
-      await qualFile.writeAsString(qual.text);
-      await projFile.writeAsString(proj.text);
-      // Show a spinning icon while the files are being written
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Dialog(
-            child: Container(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 20),
-                  Text(
-                    'Writing files...',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-      // Write the text from the education, experience, qualifications, and projects text fields to the respective files
-      await Future.delayed(Duration(seconds: 2));
-      // Close the dialog
-      Navigator.of(context).pop();
-      Navigator.of(context).pop();
-    }
-    // If the new profile directory exists
-    else {
-      // Display an alert dialog
-      return showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            // Text of dialog
-            title: Text(
-              'Profile Already Exists',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            // Content of dialog
-            content: Text('A profile with the name ${profName.text} already exists. Please choose a different name \nor navigate to the Load Profiles page to edit the existing profile.'),
-          );
-        },
-      );
-    }
-  }
 }

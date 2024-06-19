@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../Profile/ProfileFunctions.dart';
+import '../Profile/ProfileUtils.dart';
 import '../Themes/Themes.dart';
 
 class SettingsPage extends StatelessWidget {
