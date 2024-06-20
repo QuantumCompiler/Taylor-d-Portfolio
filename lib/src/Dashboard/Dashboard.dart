@@ -23,49 +23,25 @@ class Dashboard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 30.0),
             child: Column(
               children: <Widget>[
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
+                IconButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
                   },
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: Tooltip(
-                      message: 'Dashboard',
-                      child: Icon(
-                        Icons.dashboard,
-                      ),
-                    ),
-                  ),
+                  icon: Icon(Icons.dashboard),
                 ),
                 Spacer(),
-                GestureDetector(
-                  onTap: () {
+                IconButton(
+                  onPressed: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
                   },
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: Tooltip(
-                      message: 'Profile',
-                      child: Icon(
-                        Icons.person,
-                      ),
-                    ),
-                  ),
+                  icon: Icon(Icons.person),
                 ),
                 Spacer(),
-                GestureDetector(
-                  onTap: () {
+                IconButton(
+                  onPressed: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
                   },
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: Tooltip(
-                      message: 'Settings',
-                      child: Icon(
-                        Icons.settings,
-                      ),
-                    ),
-                  ),
+                  icon: Icon(Icons.settings),
                 ),
               ],
             ),
