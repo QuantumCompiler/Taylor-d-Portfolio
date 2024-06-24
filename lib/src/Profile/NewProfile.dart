@@ -53,11 +53,11 @@ import 'ProfileUtils.dart';
 */
 class NewProfilePage extends StatelessWidget {
   // Controllers
-  final profileName = TextEditingController();
   final eduController = TextEditingController();
   final expController = TextEditingController();
   final extController = TextEditingController();
   final honController = TextEditingController();
+  final profNameController = TextEditingController();
   final projController = TextEditingController();
   final qualController = TextEditingController();
   final refController = TextEditingController();
@@ -65,6 +65,16 @@ class NewProfilePage extends StatelessWidget {
   @override
   // Main Widget
   Widget build(BuildContext context) {
+    ProfileControllers controllers;
+    controllers = ProfileControllers(
+        eduController: eduController,
+        expController: expController,
+        extController: extController,
+        honController: honController,
+        profNameController: profNameController,
+        projController: projController,
+        qualController: qualController,
+        refController: refController);
     // Scaffold
     return Scaffold(
       appBar: AppBar(
@@ -91,19 +101,19 @@ class NewProfilePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
             // Education
-            ...profileEntry(context, 'Education', eduController, 'Enter education here.'),
+            ...ProfileEntry(context, 'Education', eduController, 'Enter education here.'),
             // Experience
-            ...profileEntry(context, 'Experience', expController, 'Enter experience here.'),
+            ...ProfileEntry(context, 'Experience', expController, 'Enter experience here.'),
             // Experience
-            ...profileEntry(context, 'Extracurricular', extController, 'Enter extracurricular here'),
+            ...ProfileEntry(context, 'Extracurricular', extController, 'Enter extracurricular here'),
             // Honors
-            ...profileEntry(context, 'Honors', honController, 'Enter honors here'),
+            ...ProfileEntry(context, 'Honors', honController, 'Enter honors here'),
             // Projects
-            ...profileEntry(context, 'Projects', projController, 'Enter projects here.'),
+            ...ProfileEntry(context, 'Projects', projController, 'Enter projects here.'),
             // Qualifications
-            ...profileEntry(context, 'Qualifications / Skills', qualController, 'Enter qualifications / skills here.'),
+            ...ProfileEntry(context, 'Qualifications / Skills', qualController, 'Enter qualifications / skills here.'),
             // References
-            ...profileEntry(context, 'References', refController, 'Enter references here.'),
+            ...ProfileEntry(context, 'References', refController, 'Enter references here.'),
           ],
         ),
       ),
@@ -131,7 +141,7 @@ class NewProfilePage extends StatelessWidget {
                         ),
                       ),
                       content: TextField(
-                        controller: profileName,
+                        controller: profNameController,
                         decoration: InputDecoration(hintText: "Profile Name"),
                       ),
                       actions: <Widget>[
@@ -166,7 +176,7 @@ class NewProfilePage extends StatelessWidget {
                                 ),
                               ),
                               onPressed: () async {
-                                createNewProfile(context, profileName, eduController, expController, extController, honController, projController, qualController, refController);
+                                CreateNewProfile(context, controllers);
                               },
                             ),
                           ],

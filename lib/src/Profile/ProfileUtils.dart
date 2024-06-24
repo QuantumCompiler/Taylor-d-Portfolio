@@ -28,8 +28,9 @@ class ProfileData {
 class ProfileControllers {
   final TextEditingController eduController;
   final TextEditingController expController;
-  final TextEditingController extraController;
+  final TextEditingController extController;
   final TextEditingController honController;
+  final TextEditingController profNameController;
   final TextEditingController projController;
   final TextEditingController qualController;
   final TextEditingController refController;
@@ -37,25 +38,18 @@ class ProfileControllers {
   ProfileControllers({
     required this.eduController,
     required this.expController,
-    required this.extraController,
+    required this.extController,
     required this.honController,
+    required this.profNameController,
     required this.projController,
     required this.qualController,
     required this.refController,
   });
 }
 
-/*  createNewProfile - Creates a new profile
+/*  CreateNewProfile - Creates a new profile
     Input:
       context - BuildContext that represents the context of the widget
-      profName - TextEditingController that represents the controller for the profile name
-      edu - TextEditingController that represents the controller for the education field
-      exp - TextEditingController that represents the controller for the experience field
-      ext - TextEditingController that represents the controller for the extra-curricular field
-      hon - TextEditingController that represents the controller for the honors field
-      proj - TextEditingController that represents the controller for the projects field
-      qual - TextEditingController that represents the controller for the qualifications field
-      ref - TextEditingController that represents the controller for the references field
     Algorithm:
       * Create a new ProfileData object with the profile name, education, experience, qualifications, and projects
       * Get the application directory
@@ -76,17 +70,16 @@ class ProfileControllers {
     Output:
       Creates a new profile
 */
-Future<void> createNewProfile(BuildContext context, TextEditingController profName, TextEditingController edu, TextEditingController exp, TextEditingController ext, TextEditingController hon,
-    TextEditingController proj, TextEditingController qual, TextEditingController ref) async {
+Future<void> CreateNewProfile(BuildContext context, ProfileControllers controllers) async {
   final profileData = ProfileData(
-    profileName: profName.text,
-    education: edu.text,
-    experience: exp.text,
-    extracurricular: ext.text,
-    honors: hon.text,
-    projects: proj.text,
-    qualifications: qual.text,
-    references: ref.text,
+    education: controllers.eduController.text,
+    experience: controllers.expController.text,
+    extracurricular: controllers.extController.text,
+    honors: controllers.honController.text,
+    profileName: controllers.profNameController.text,
+    projects: controllers.projController.text,
+    qualifications: controllers.qualController.text,
+    references: controllers.refController.text,
   );
   // Get the application directory
   final dir = await getApplicationDocumentsDirectory();
@@ -325,6 +318,38 @@ Future<void> DeleteAllProfiles(BuildContext context) async {
   }
 }
 
+/*  loadProfileControllers - Load profile data into controllers
+        Input:
+          profileName - String that represents the name of the profile
+        Algorithm:
+          * Load profile data
+          * Create controllers with info from profile data
+          * Return profile controllers with data
+        Output:
+          ProfileControllers
+  */
+Future<ProfileControllers> LoadProfileControllers(String profileName) async {
+  final profileData = await LoadProfileData(profileName);
+  final eduController = TextEditingController(text: profileData.education);
+  final expController = TextEditingController(text: profileData.experience);
+  final extController = TextEditingController(text: profileData.extracurricular);
+  final honController = TextEditingController(text: profileData.honors);
+  final profController = TextEditingController(text: profileData.profileName);
+  final projController = TextEditingController(text: profileData.projects);
+  final qualController = TextEditingController(text: profileData.qualifications);
+  final refController = TextEditingController(text: profileData.references);
+  return ProfileControllers(
+    eduController: eduController,
+    expController: expController,
+    extController: extController,
+    honController: honController,
+    profNameController: profController,
+    projController: projController,
+    qualController: qualController,
+    refController: refController,
+  );
+}
+
 /*  LoadProfileData - Loads the profile data
     Input:
       profileName - String that represents the name of the profile
@@ -357,9 +382,10 @@ Future<ProfileData> LoadProfileData(String profileName) async {
   final projects = await projFile.readAsString();
   final qualifications = await qualFile.readAsString();
   final references = await refFile.readAsString();
+  // Returns
   return ProfileData(
-      experience: experience,
       education: education,
+      experience: experience,
       extracurricular: extracurricular,
       honors: honors,
       profileName: profileName,
@@ -368,7 +394,7 @@ Future<ProfileData> LoadProfileData(String profileName) async {
       references: references);
 }
 
-/* profileEntry - Returns a list of widgets for a profile entry
+/* ProfileEntry - Returns a list of widgets for a profile entry
     Input:
       context - BuildContext that represents the context of the widget
       title - String that represents the title of the profile entry
@@ -391,7 +417,7 @@ Future<ProfileData> LoadProfileData(String profileName) async {
     Output:
       Returns a list of widgets that represent the profile entry
 */
-List<Widget> profileEntry(BuildContext context, String title, TextEditingController controller, String hintText) {
+List<Widget> ProfileEntry(BuildContext context, String title, TextEditingController controller, String hintText) {
   return [
     // Title of the profile entry
     Center(
@@ -419,4 +445,128 @@ List<Widget> profileEntry(BuildContext context, String title, TextEditingControl
     ),
     SizedBox(height: 20),
   ];
+}
+
+/*  OverWriteProfile - Shows a dialog asking the user if they want to overwrite the existing profile
+    Input:
+      context - BuildContext that represents the context of the widget
+      profileControllers - ProfileControllers that represents the controllers for the profile
+    Algorithm:
+      * Show an alert dialog
+        * Title: Overwrite Existing Profile
+        * Content: Are you sure you want to overwrite your existing profile? This cannot be undone.
+        * Actions:
+          * ElevatedButton
+            * OnPressed: Overwrite the existing profile
+            * Text: Yes
+          * SizedBox
+          * ElevatedButton
+            * OnPressed: Close the dialog
+            * Text: No
+    Output:
+      Overwrites the existing profile
+*/
+Future<void> OverWriteProfile(BuildContext context, ProfileControllers profileControllers) async {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(
+          'Overwrite Existing Profile',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: themeTextColor(context),
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text('Are you sure you want to overwrite your existing profile? This cannot be undone.'),
+        actions: <Widget>[
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  // Yes Button
+                  ElevatedButton(
+                    onPressed: () async {
+                      final dir = await getApplicationDocumentsDirectory();
+                      final profileDir = Directory('${dir.path}/Profiles/${profileControllers.profNameController.text}');
+                      final eduFile = File('${profileDir.path}/education.txt');
+                      final expFile = File('${profileDir.path}/experience.txt');
+                      final extFile = File('${profileDir.path}/extracurricular.txt');
+                      final honFile = File('${profileDir.path}/honors.txt');
+                      final projFile = File('${profileDir.path}/projects.txt');
+                      final qualFile = File('${profileDir.path}/qualifications.txt');
+                      final refFile = File('${profileDir.path}/references.txt');
+                      await eduFile.writeAsString(profileControllers.eduController.text);
+                      await expFile.writeAsString(profileControllers.expController.text);
+                      await extFile.writeAsString(profileControllers.extController.text);
+                      await honFile.writeAsString(profileControllers.honController.text);
+                      await projFile.writeAsString(profileControllers.projController.text);
+                      await qualFile.writeAsString(profileControllers.qualController.text);
+                      await refFile.writeAsString(profileControllers.refController.text);
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (BuildContext context) {
+                          return Dialog(
+                            child: Container(
+                              padding: EdgeInsets.all(20),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 20),
+                                  Text(
+                                    'Overwriting files...',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                      await Future.delayed(Duration(seconds: 2));
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(
+                      'Yes',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 20),
+                  // No Button
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(
+                      'No',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+    },
+  );
 }

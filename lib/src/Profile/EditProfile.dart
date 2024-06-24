@@ -62,40 +62,12 @@ class EditProfilePage extends StatelessWidget {
   // Profile Name
   final String profileName;
   const EditProfilePage({required this.profileName, super.key});
-  /*  loadProfileControllers - Load profile data into controllers
-        Input:
-          None
-        Algorithm:
-          * Load profile data
-        Output:
-          ProfileControllers
-  */
-  Future<ProfileControllers> loadProfileControllers() async {
-    final profileData = await LoadProfileData(profileName);
-    final eduController = TextEditingController(text: profileData.education);
-    final expController = TextEditingController(text: profileData.experience);
-    final extController = TextEditingController(text: profileData.extracurricular);
-    final honController = TextEditingController(text: profileData.honors);
-    final projController = TextEditingController(text: profileData.projects);
-    final qualController = TextEditingController(text: profileData.qualifications);
-    final refController = TextEditingController(text: profileData.references);
-    return ProfileControllers(
-      eduController: eduController,
-      expController: expController,
-      extraController: extController,
-      honController: honController,
-      projController: projController,
-      qualController: qualController,
-      refController: refController,
-    );
-  }
-
   @override
   // Main Widget
   Widget build(BuildContext context) {
     // Future Builder
     return FutureBuilder<ProfileControllers>(
-      future: loadProfileControllers(),
+      future: LoadProfileControllers(profileName),
       builder: (context, snapshot) {
         // If Connection State is Waiting
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -136,19 +108,19 @@ class EditProfilePage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   // Education
-                  ...profileEntry(context, 'Education', controllers.eduController, ''),
+                  ...ProfileEntry(context, 'Education', controllers.eduController, ''),
                   // Experience
-                  ...profileEntry(context, 'Experience', controllers.expController, ''),
+                  ...ProfileEntry(context, 'Experience', controllers.expController, ''),
                   // Extracurricular
-                  ...profileEntry(context, 'Extracurricular', controllers.extraController, ''),
+                  ...ProfileEntry(context, 'Extracurricular', controllers.extController, ''),
                   // Honors
-                  ...profileEntry(context, 'Honors', controllers.honController, ''),
+                  ...ProfileEntry(context, 'Honors', controllers.honController, ''),
                   // Projects
-                  ...profileEntry(context, 'Projects', controllers.projController, ''),
+                  ...ProfileEntry(context, 'Projects', controllers.projController, ''),
                   // Qualifications
-                  ...profileEntry(context, 'Qualifications / Skills', controllers.qualController, ''),
+                  ...ProfileEntry(context, 'Qualifications / Skills', controllers.qualController, ''),
                   // References
-                  ...profileEntry(context, 'References', controllers.refController, ''),
+                  ...ProfileEntry(context, 'References', controllers.refController, ''),
                 ],
               ),
             ),
@@ -162,7 +134,9 @@ class EditProfilePage extends StatelessWidget {
                 children: <Widget>[
                   // Save Button
                   ElevatedButton(
-                    onPressed: () => {},
+                    onPressed: () {
+                      OverWriteProfile(context, controllers);
+                    },
                     child: Text(
                       'Save',
                       style: TextStyle(
@@ -188,7 +162,9 @@ class EditProfilePage extends StatelessWidget {
                   SizedBox(width: 20),
                   // Cancel Button
                   ElevatedButton(
-                    onPressed: () => {},
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
                     child: Text(
                       'Cancel',
                       style: TextStyle(
