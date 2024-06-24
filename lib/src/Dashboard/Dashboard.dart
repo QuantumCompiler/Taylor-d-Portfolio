@@ -9,22 +9,22 @@ class Dashboard extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Dashboard',
+          dashboardTitle,
           style: TextStyle(
-            fontSize: 24.0,
+            fontSize: appBarTitle,
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
       drawer: SizedBox(
-        width: MediaQuery.of(context).size.width * 0.15,
+        width: MediaQuery.of(context).size.width * drawerWidth,
         child: Drawer(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 30.0),
+            padding: EdgeInsets.symmetric(vertical: drawerVerticalPadding),
             child: Column(
               children: <Widget>[
                 IconButton(
-                  tooltip: 'Dashboard',
+                  tooltip: dashboardToolTip,
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
@@ -32,23 +32,23 @@ class Dashboard extends StatelessWidget {
                 ),
                 Spacer(),
                 IconButton(
-                  tooltip: 'Profile',
+                  tooltip: profileToolTip,
                   onPressed: () {
                     // Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
                   },
                   icon: Icon(Icons.person),
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: standardSizedBoxHeight),
                 IconButton(
-                  tooltip: 'Job Description',
+                  tooltip: jobsToolTip,
                   onPressed: () => {},
                   icon: Icon(Icons.task),
                 ),
                 Spacer(),
                 IconButton(
-                  tooltip: 'Settings',
+                  tooltip: settingsToolTip,
                   onPressed: () {
-                    // Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
                   },
                   icon: Icon(Icons.settings),
                 ),
@@ -65,7 +65,9 @@ class Dashboard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 ResumeCard(),
-                SizedBox(width: MediaQuery.of(context).size.width * 0.05),
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * singleCardWidthBox,
+                ),
                 CoverLetterCard(),
               ],
             ),
@@ -82,22 +84,23 @@ class ResumeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: BoxConstraints(
-          minHeight: MediaQuery.of(context).size.width * 0.1,
-          maxHeight: MediaQuery.of(context).size.height * 0.25,
-          minWidth: MediaQuery.of(context).size.width * 0.25,
-          maxWidth: MediaQuery.of(context).size.width * 0.35),
+        maxHeight: MediaQuery.of(context).size.height * singleCardMinWidth,
+        minHeight: MediaQuery.of(context).size.width * singleCardMinHeight,
+        maxWidth: MediaQuery.of(context).size.width * singleCardMaxWidth,
+        minWidth: MediaQuery.of(context).size.width * singleCardMinWidth,
+      ),
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(singleCardPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Center(
                 child: Text(
-                  'Resumes Generated',
+                  resumesGenTitle,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: secondaryTitles,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
@@ -106,7 +109,9 @@ class ResumeCard extends StatelessWidget {
               Center(
                 child: Text(
                   '$resumesGenerated',
-                  style: TextStyle(fontSize: 16),
+                  style: TextStyle(
+                    fontSize: secondaryTitles,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -124,22 +129,23 @@ class CoverLetterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: BoxConstraints(
-          minHeight: MediaQuery.of(context).size.width * 0.1,
-          maxHeight: MediaQuery.of(context).size.height * 0.25,
-          minWidth: MediaQuery.of(context).size.width * 0.25,
-          maxWidth: MediaQuery.of(context).size.width * 0.35),
+        maxHeight: MediaQuery.of(context).size.height * singleCardMaxHeight,
+        minHeight: MediaQuery.of(context).size.height * singleCardMinHeight,
+        maxWidth: MediaQuery.of(context).size.width * singleCardMaxWidth,
+        minWidth: MediaQuery.of(context).size.width * singleCardMinWidth,
+      ),
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(singleCardPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Center(
                 child: Text(
-                  'Cover Letters Generated',
+                  coverLettersGenTitle,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: secondaryTitles,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
@@ -148,7 +154,9 @@ class CoverLetterCard extends StatelessWidget {
               Center(
                 child: Text(
                   '$coverLettersGenerated',
-                  style: TextStyle(fontSize: 16),
+                  style: TextStyle(
+                    fontSize: secondaryTitles,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
