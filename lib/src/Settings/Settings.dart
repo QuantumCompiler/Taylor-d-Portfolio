@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../Globals/Globals.dart';
 // import '../Profile/ProfileUtils.dart';
 import '../Themes/Themes.dart';
 
@@ -18,28 +19,32 @@ class SettingsPage extends StatelessWidget {
           },
         ),
         title: Text(
-          'Settings',
+          settingsTitle,
           style: TextStyle(
-            fontSize: 24.0,
+            fontSize: appBarTitle,
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
       body: Center(
         child: Container(
-          width: MediaQuery.of(context).size.width * 0.6,
+          width: MediaQuery.of(context).size.width * settingsTileContainerWidth,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               SwitchListTile(
-                title: Text('Dark Theme'),
+                title: Text(
+                  settingsCurrentTheme,
+                ),
                 value: themeProvider.isDarkTheme,
                 onChanged: (value) {
                   themeProvider.toggleTheme();
                 },
               ),
               ListTile(
-                title: Text('Delete All Profiles'),
+                title: Text(
+                  settingsDeleteAllProfiles,
+                ),
                 onTap: () {
                   // DeleteAllProfiles(context);
                 },
