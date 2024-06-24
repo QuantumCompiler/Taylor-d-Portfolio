@@ -84,6 +84,16 @@ class NewProfilePage extends StatelessWidget {
             Navigator.of(context).pop();
           },
         ),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.dashboard),
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
         title: Text(
           'Create New Profile',
           style: TextStyle(

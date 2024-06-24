@@ -93,6 +93,17 @@ class EditProfilePage extends StatelessWidget {
                   Navigator.of(context).pop();
                 },
               ),
+              actions: <Widget>[
+                IconButton(
+                  icon: Icon(Icons.dashboard),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
               title: Text(
                 profileName,
                 style: TextStyle(
@@ -107,6 +118,8 @@ class EditProfilePage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
+                  // Profile Name
+                  ...ProfileEntry(context, 'Profile Name', controllers.profNameController, '', lines: 1),
                   // Education
                   ...ProfileEntry(context, 'Education', controllers.eduController, ''),
                   // Experience

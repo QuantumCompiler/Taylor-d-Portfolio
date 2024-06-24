@@ -394,59 +394,6 @@ Future<ProfileData> LoadProfileData(String profileName) async {
       references: references);
 }
 
-/* ProfileEntry - Returns a list of widgets for a profile entry
-    Input:
-      context - BuildContext that represents the context of the widget
-      title - String that represents the title of the profile entry
-      controller - TextEditingController that represents the controller for the text field
-      hintText - String that represents the hint text for the text field
-    Algorithm:
-      * Return a list of widgets that represent the profile entry
-        * Center widget that contains a Text widget with the title
-          * Set the title of the current profile entry
-          * Set the style of the text widget
-        * SizedBox widget with a height of 20
-        * Center widget that contains a Container widget
-          * Set the width of the container to 80% of the screen width
-          * Set the child of the container to a TextField widget
-            * Set the controller of the text field to the controller parameter
-            * Set the keyboardType of the text field to multiline
-            * Set the maxLines of the text field to 5
-            * Set the decoration of the text field to an InputDecoration widget with the hintText parameter
-        * SizedBox widget with a height of 20
-    Output:
-      Returns a list of widgets that represent the profile entry
-*/
-List<Widget> ProfileEntry(BuildContext context, String title, TextEditingController controller, String hintText) {
-  return [
-    // Title of the profile entry
-    Center(
-      child: Text(
-        title,
-        style: TextStyle(
-          color: themeTextColor(context),
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ),
-    SizedBox(height: 20),
-    // Text field for the profile entry
-    Center(
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.8,
-        child: TextField(
-          controller: controller,
-          keyboardType: TextInputType.multiline,
-          maxLines: 10,
-          decoration: InputDecoration(hintText: hintText.isEmpty ? null : hintText),
-        ),
-      ),
-    ),
-    SizedBox(height: 20),
-  ];
-}
-
 /*  OverWriteProfile - Shows a dialog asking the user if they want to overwrite the existing profile
     Input:
       context - BuildContext that represents the context of the widget
@@ -494,6 +441,10 @@ Future<void> OverWriteProfile(BuildContext context, ProfileControllers profileCo
                     onPressed: () async {
                       final dir = await getApplicationDocumentsDirectory();
                       final profileDir = Directory('${dir.path}/Profiles/${profileControllers.profNameController.text}');
+                      if (await profileDir.exists()) {
+                        await profileDir.delete(recursive: true);
+                      }
+                      await profileDir.create(recursive: true);
                       final eduFile = File('${profileDir.path}/education.txt');
                       final expFile = File('${profileDir.path}/experience.txt');
                       final extFile = File('${profileDir.path}/extracurricular.txt');
@@ -569,4 +520,58 @@ Future<void> OverWriteProfile(BuildContext context, ProfileControllers profileCo
       );
     },
   );
+}
+
+/* ProfileEntry - Returns a list of widgets for a profile entry
+    Input:
+      context - BuildContext that represents the context of the widget
+      title - String that represents the title of the profile entry
+      controller - TextEditingController that represents the controller for the text field
+      hintText - String that represents the hint text for the text field
+      lines - Integer value that defines the number of lines for an entry (default is 10)
+    Algorithm:
+      * Return a list of widgets that represent the profile entry
+        * Center widget that contains a Text widget with the title
+          * Set the title of the current profile entry
+          * Set the style of the text widget
+        * SizedBox widget with a height of 20
+        * Center widget that contains a Container widget
+          * Set the width of the container to 80% of the screen width
+          * Set the child of the container to a TextField widget
+            * Set the controller of the text field to the controller parameter
+            * Set the keyboardType of the text field to multiline
+            * Set the maxLines of the text field to 5
+            * Set the decoration of the text field to an InputDecoration widget with the hintText parameter
+        * SizedBox widget with a height of 20
+    Output:
+      Returns a list of widgets that represent the profile entry
+*/
+List<Widget> ProfileEntry(BuildContext context, String title, TextEditingController controller, String hintText, {int? lines = 10}) {
+  return [
+    // Title of the profile entry
+    Center(
+      child: Text(
+        title,
+        style: TextStyle(
+          color: themeTextColor(context),
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ),
+    SizedBox(height: 20),
+    // Text field for the profile entry
+    Center(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: TextField(
+          controller: controller,
+          keyboardType: TextInputType.multiline,
+          maxLines: lines,
+          decoration: InputDecoration(hintText: hintText.isEmpty ? null : hintText),
+        ),
+      ),
+    ),
+    SizedBox(height: 20),
+  ];
 }
