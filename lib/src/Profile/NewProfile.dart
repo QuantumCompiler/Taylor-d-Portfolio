@@ -2,7 +2,57 @@ import 'package:flutter/material.dart';
 import '../Themes/Themes.dart';
 import 'ProfileUtils.dart';
 
+/*  NewProfilePage - Page for creating a new profile
+      Constructor - key: Key for widget identification
+      Main Widget - Scaffold
+        App Bar - Title: 'Create New Profile'
+        Body - SingleChildScrollView
+          Column
+            Profile Entry - Education
+              Title: 'Education'
+              Controller: eduController
+              Hint Text: 'Enter education here.'
+            Profile Entry - Experience
+              Title: 'Experience'
+              Controller: expController
+              Hint Text: 'Enter experience here.'
+            Profile Entry - Extracurricular
+              Title: 'Extracurricular'
+              Controller: extController
+              Hint Text: 'Enter extracurricular here.'
+            Profile Entry - Honors
+              Title: 'Honors'
+              Controller: honController
+              Hint Text: 'Enter honors here.'
+            Profile Entry - Projects
+              Title: 'Projects'
+              Controller: projController
+              Hint Text: 'Enter projects here.'
+            Profile Entry - Qualifications
+              Title: 'Qualifications / Skills'
+              Controller: qualController
+              Hint Text: 'Enter qualifications / skills here.'
+            Profile Entry - References
+              Title: 'References'
+              Controller: refController
+              Hint Text: 'Enter references here.'
+        Bottom Navigation Bar
+          Row
+            Save Profile - ElevatedButton
+              On Press: Show Dialog
+                Title: 'Enter Name Of Current Profile'
+                Content: TextField
+                  Controller: profileName
+                  Hint Text: 'Profile Name'
+                Actions
+                  Row
+                    Cancel - ElevatedButton
+                      On Press: Pop Dialog
+                    Save - ElevatedButton
+                      On Press: Create New Profile
+*/
 class NewProfilePage extends StatelessWidget {
+  // Controllers
   final profileName = TextEditingController();
   final eduController = TextEditingController();
   final expController = TextEditingController();
@@ -13,7 +63,9 @@ class NewProfilePage extends StatelessWidget {
   final refController = TextEditingController();
   NewProfilePage({super.key});
   @override
+  // Main Widget
   Widget build(BuildContext context) {
+    // Scaffold
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -31,7 +83,9 @@ class NewProfilePage extends StatelessWidget {
           ),
         ),
       ),
+      // Body
       body: SingleChildScrollView(
+        // Column
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -53,6 +107,7 @@ class NewProfilePage extends StatelessWidget {
           ],
         ),
       ),
+      // Bottom Navigation Bar
       bottomNavigationBar: BottomAppBar(
         color: Colors.transparent,
         child: Row(
@@ -62,9 +117,11 @@ class NewProfilePage extends StatelessWidget {
             // Save Profile
             ElevatedButton(
               onPressed: () async {
+                // Show Dialog
                 await showDialog(
                   context: context,
                   builder: (context) {
+                    // Alert Dialog
                     return AlertDialog(
                       title: Text(
                         'Enter Name Of Current Profile',
@@ -78,10 +135,12 @@ class NewProfilePage extends StatelessWidget {
                         decoration: InputDecoration(hintText: "Profile Name"),
                       ),
                       actions: <Widget>[
+                        // Row
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
+                            // Cancel Button
                             ElevatedButton(
                               child: Text(
                                 'Cancel',
@@ -96,6 +155,7 @@ class NewProfilePage extends StatelessWidget {
                               },
                             ),
                             SizedBox(width: 20),
+                            // Save Buttons
                             ElevatedButton(
                               child: Text(
                                 'Save',
