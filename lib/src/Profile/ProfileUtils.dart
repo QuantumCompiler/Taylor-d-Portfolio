@@ -4,31 +4,44 @@ import 'dart:io';
 import '../Themes/Themes.dart';
 
 class ProfileData {
-  final String profileName;
   final String education;
   final String experience;
+  final String extracurricular;
+  final String honors;
+  final String profileName;
   final String projects;
   final String qualifications;
+  final String references;
+
   ProfileData({
-    required this.profileName,
-    required this.education,
     required this.experience,
+    required this.education,
+    required this.extracurricular,
+    required this.honors,
+    required this.profileName,
     required this.projects,
     required this.qualifications,
+    required this.references,
   });
 }
 
 class ProfileControllers {
   final TextEditingController eduController;
   final TextEditingController expController;
-  final TextEditingController qualController;
+  final TextEditingController extraController;
+  final TextEditingController honController;
   final TextEditingController projController;
+  final TextEditingController qualController;
+  final TextEditingController refController;
 
   ProfileControllers({
     required this.eduController,
     required this.expController,
-    required this.qualController,
+    required this.extraController,
+    required this.honController,
     required this.projController,
+    required this.qualController,
+    required this.refController,
   });
 }
 
@@ -38,8 +51,11 @@ class ProfileControllers {
       profName - TextEditingController that represents the controller for the profile name
       edu - TextEditingController that represents the controller for the education field
       exp - TextEditingController that represents the controller for the experience field
-      qual - TextEditingController that represents the controller for the qualifications field
+      ext - TextEditingController that represents the controller for the extra-curricular field
+      hon - TextEditingController that represents the controller for the honors field
       proj - TextEditingController that represents the controller for the projects field
+      qual - TextEditingController that represents the controller for the qualifications field
+      ref - TextEditingController that represents the controller for the references field
     Algorithm:
       * Create a new ProfileData object with the profile name, education, experience, qualifications, and projects
       * Get the application directory
@@ -60,9 +76,18 @@ class ProfileControllers {
     Output:
       Creates a new profile
 */
-Future<void> createNewProfile(
-    BuildContext context, TextEditingController profName, TextEditingController edu, TextEditingController exp, TextEditingController qual, TextEditingController proj) async {
-  final profileData = ProfileData(profileName: profName.text, education: edu.text, experience: exp.text, projects: proj.text, qualifications: qual.text);
+Future<void> createNewProfile(BuildContext context, TextEditingController profName, TextEditingController edu, TextEditingController exp, TextEditingController ext, TextEditingController hon,
+    TextEditingController proj, TextEditingController qual, TextEditingController ref) async {
+  final profileData = ProfileData(
+    profileName: profName.text,
+    education: edu.text,
+    experience: exp.text,
+    extracurricular: ext.text,
+    honors: hon.text,
+    projects: proj.text,
+    qualifications: qual.text,
+    references: ref.text,
+  );
   // Get the application directory
   final dir = await getApplicationDocumentsDirectory();
   // Get the profile directory
@@ -82,12 +107,18 @@ Future<void> createNewProfile(
       // Create the education, experience, qualifications, and projects files
       File eduFile = File('${newProfileDir.path}/education.txt');
       File expFile = File('${newProfileDir.path}/experience.txt');
+      File extFile = File('${newProfileDir.path}/extracurricular.txt');
+      File honFile = File('${newProfileDir.path}/honors.txt');
       File projFile = File('${newProfileDir.path}/projects.txt');
       File qualFile = File('${newProfileDir.path}/qualifications.txt');
+      File refFile = File('${newProfileDir.path}/references.txt');
       await eduFile.writeAsString(profileData.education);
       await expFile.writeAsString(profileData.experience);
+      await extFile.writeAsString(profileData.extracurricular);
+      await honFile.writeAsString(profileData.honors);
       await projFile.writeAsString(profileData.projects);
       await qualFile.writeAsString(profileData.qualifications);
+      await refFile.writeAsString(profileData.references);
       // Show a spinning icon while the files are being written
       showDialog(
         context: context,
@@ -313,14 +344,28 @@ Future<ProfileData> LoadProfileData(String profileName) async {
   // Files
   final eduFile = File('${profDir.path}/education.txt');
   final expFile = File('${profDir.path}/experience.txt');
-  final qualFile = File('${profDir.path}/qualifications.txt');
+  final extFile = File('${profDir.path}/extracurricular.txt');
+  final honFile = File('${profDir.path}/honors.txt');
   final projFile = File('${profDir.path}/projects.txt');
+  final qualFile = File('${profDir.path}/qualifications.txt');
+  final refFile = File('${profDir.path}/references.txt');
   // Contents of files
   final education = await eduFile.readAsString();
   final experience = await expFile.readAsString();
-  final qualifications = await qualFile.readAsString();
+  final extracurricular = await extFile.readAsString();
+  final honors = await honFile.readAsString();
   final projects = await projFile.readAsString();
-  return ProfileData(profileName: profileName, education: education, experience: experience, projects: projects, qualifications: qualifications);
+  final qualifications = await qualFile.readAsString();
+  final references = await refFile.readAsString();
+  return ProfileData(
+      experience: experience,
+      education: education,
+      extracurricular: extracurricular,
+      honors: honors,
+      profileName: profileName,
+      projects: projects,
+      qualifications: qualifications,
+      references: references);
 }
 
 /* profileEntry - Returns a list of widgets for a profile entry

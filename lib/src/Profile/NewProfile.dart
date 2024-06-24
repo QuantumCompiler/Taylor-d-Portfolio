@@ -6,8 +6,11 @@ class NewProfilePage extends StatelessWidget {
   final profileName = TextEditingController();
   final eduController = TextEditingController();
   final expController = TextEditingController();
-  final qualController = TextEditingController();
+  final extController = TextEditingController();
+  final honController = TextEditingController();
   final projController = TextEditingController();
+  final qualController = TextEditingController();
+  final refController = TextEditingController();
   NewProfilePage({super.key});
   @override
   Widget build(BuildContext context) {
@@ -37,10 +40,16 @@ class NewProfilePage extends StatelessWidget {
             ...profileEntry(context, 'Education', eduController, 'Enter education here.'),
             // Experience
             ...profileEntry(context, 'Experience', expController, 'Enter experience here.'),
-            // Qualifications
-            ...profileEntry(context, 'Qualifications / Skills', qualController, 'Enter qualifications / skills here.'),
+            // Experience
+            ...profileEntry(context, 'Extracurricular', extController, 'Enter extracurricular here'),
+            // Honors
+            ...profileEntry(context, 'Honors', honController, 'Enter honors here'),
             // Projects
             ...profileEntry(context, 'Projects', projController, 'Enter projects here.'),
+            // Qualifications
+            ...profileEntry(context, 'Qualifications / Skills', qualController, 'Enter qualifications / skills here.'),
+            // References
+            ...profileEntry(context, 'References', refController, 'Enter references here.'),
           ],
         ),
       ),
@@ -97,7 +106,7 @@ class NewProfilePage extends StatelessWidget {
                                 ),
                               ),
                               onPressed: () async {
-                                createNewProfile(context, profileName, eduController, expController, qualController, projController);
+                                createNewProfile(context, profileName, eduController, expController, extController, honController, projController, qualController, refController);
                               },
                             ),
                           ],

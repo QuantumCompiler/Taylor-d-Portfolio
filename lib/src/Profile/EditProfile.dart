@@ -10,13 +10,19 @@ class EditProfilePage extends StatelessWidget {
     final profileData = await LoadProfileData(profileName);
     final eduController = TextEditingController(text: profileData.education);
     final expController = TextEditingController(text: profileData.experience);
-    final qualController = TextEditingController(text: profileData.qualifications);
+    final extController = TextEditingController(text: profileData.extracurricular);
+    final honController = TextEditingController(text: profileData.honors);
     final projController = TextEditingController(text: profileData.projects);
+    final qualController = TextEditingController(text: profileData.qualifications);
+    final refController = TextEditingController(text: profileData.references);
     return ProfileControllers(
       eduController: eduController,
       expController: expController,
-      qualController: qualController,
+      extraController: extController,
+      honController: honController,
       projController: projController,
+      qualController: qualController,
+      refController: refController,
     );
   }
 
@@ -42,7 +48,7 @@ class EditProfilePage extends StatelessWidget {
                 },
               ),
               title: Text(
-                '$profileName',
+                profileName,
                 style: TextStyle(
                   fontSize: 24.0,
                   fontWeight: FontWeight.bold,
@@ -56,8 +62,11 @@ class EditProfilePage extends StatelessWidget {
                 children: [
                   ...profileEntry(context, 'Education', controllers.eduController, ''),
                   ...profileEntry(context, 'Experience', controllers.expController, ''),
-                  ...profileEntry(context, 'Qualifications', controllers.qualController, ''),
+                  ...profileEntry(context, 'Extracurricular', controllers.extraController, ''),
+                  ...profileEntry(context, 'Honors', controllers.honController, ''),
                   ...profileEntry(context, 'Projects', controllers.projController, ''),
+                  ...profileEntry(context, 'Qualifications / Skills', controllers.qualController, ''),
+                  ...profileEntry(context, 'References', controllers.refController, ''),
                 ],
               ),
             ),
