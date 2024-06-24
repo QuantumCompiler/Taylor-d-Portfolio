@@ -24,6 +24,7 @@ class Dashboard extends StatelessWidget {
             child: Column(
               children: <Widget>[
                 IconButton(
+                  tooltip: 'Dashboard',
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
@@ -31,13 +32,21 @@ class Dashboard extends StatelessWidget {
                 ),
                 Spacer(),
                 IconButton(
+                  tooltip: 'Profile',
                   onPressed: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
                   },
                   icon: Icon(Icons.person),
                 ),
+                SizedBox(height: 20),
+                IconButton(
+                  tooltip: 'Job Description',
+                  onPressed: () => {},
+                  icon: Icon(Icons.task),
+                ),
                 Spacer(),
                 IconButton(
+                  tooltip: 'Settings',
                   onPressed: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
                   },
