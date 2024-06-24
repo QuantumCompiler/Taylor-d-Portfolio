@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../Profile/ProfileUtils.dart';
+// import '../Profile/ProfileUtils.dart';
 import '../Themes/Themes.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -41,7 +41,7 @@ class SettingsPage extends StatelessWidget {
               ListTile(
                 title: Text('Delete All Profiles'),
                 onTap: () {
-                  DeleteAllProfiles(context);
+                  // DeleteAllProfiles(context);
                 },
               ),
             ],
