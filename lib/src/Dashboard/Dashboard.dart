@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../Globals/Globals.dart';
 import '../Profile/Profile.dart';
 import '../Settings/Settings.dart';
 
@@ -96,13 +97,16 @@ class ResumeCard extends StatelessWidget {
               Center(
                 child: Text(
                   'Resumes Generated',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
               Center(
                 child: Text(
-                  '123',
+                  '$resumesGenerated',
                   style: TextStyle(fontSize: 16),
                   textAlign: TextAlign.center,
                 ),
@@ -135,13 +139,16 @@ class CoverLetterCard extends StatelessWidget {
               Center(
                 child: Text(
                   'Cover Letters Generated',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
               Center(
                 child: Text(
-                  '123',
+                  '$coverLettersGenerated',
                   style: TextStyle(fontSize: 16),
                   textAlign: TextAlign.center,
                 ),
