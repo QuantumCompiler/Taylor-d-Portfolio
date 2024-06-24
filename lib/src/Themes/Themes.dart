@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../Globals/Globals.dart';
 
 class ThemeProvider with ChangeNotifier {
   bool _isDarkTheme = false;
@@ -25,13 +26,14 @@ class ThemeProvider with ChangeNotifier {
       brightness: _isDarkTheme ? Brightness.dark : Brightness.light,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
-            backgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Color.fromARGB(255, 0, 213, 255) : Colors.white),
-            foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Color.fromARGB(255, 0, 213, 255) : Colors.white)),
+          backgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? cyanButtonColor : whiteButtonColor),
+          foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? cyanButtonColor : whiteButtonColor),
+        ),
       ),
     );
   }
 }
 
 Color themeTextColor(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white;
+  return Theme.of(context).brightness == Brightness.light ? blackTextColor : whiteTextColor;
 }
