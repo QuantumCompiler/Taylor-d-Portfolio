@@ -1,5 +1,6 @@
-import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 // Card Parameters
 double singleCardMaxHeight = 0.25;
@@ -18,6 +19,42 @@ Color whiteTextColor = Colors.white;
 // Dashboard Card Title Parameters
 String resumesGenTitle = 'Resumes Generated';
 String coverLettersGenTitle = 'Cover Letters Generated';
+
+// Directories
+String profilesDir = 'Profiles';
+
+// Application Directory
+Future<Directory> getAppDir() async {
+  return await getApplicationDocumentsDirectory();
+}
+
+// Cache Directory
+Future<Directory> getCacheDir() async {
+  return await getTemporaryDirectory();
+}
+
+Future<Directory> getProfilesDir() async {
+  final appDir = await getApplicationDocumentsDirectory();
+  final profilesDir = Directory('${appDir.path}/Profiles');
+  if (!profilesDir.existsSync()) {
+    profilesDir.createSync();
+  }
+  return profilesDir;
+}
+
+// Support Directory
+Future<Directory> getSupportDir() async {
+  return await getApplicationSupportDirectory();
+}
+
+// Create Profile Directory
+Future<void> createProfileDir() async {
+  Directory appDir = await getAppDir();
+  final profsDir = Directory('${appDir.path}/$profilesDir');
+  if (!profsDir.existsSync()) {
+    profsDir.createSync();
+  }
+}
 
 // Documents generated
 int resumesGenerated = 0;
