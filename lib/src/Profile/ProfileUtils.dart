@@ -5,10 +5,6 @@ import '../Themes/Themes.dart';
 
 // Profile Class
 class Profile {
-  // Boolean
-  bool init;
-  bool load;
-
   // Directories
   final Future<Directory> appDir = GetAppDir();
   final Future<Directory> cacheDir = GetCacheDir();
@@ -34,6 +30,15 @@ class Profile {
   late String referencesTitle;
   late String skillsTitle;
 
+  // Contents
+  late String education;
+  late String experience;
+  late String extracurricular;
+  late String honors;
+  late String projects;
+  late String references;
+  late String skills;
+
   // Controllers
   late TextEditingController eduCont;
   late TextEditingController expCont;
@@ -45,27 +50,22 @@ class Profile {
   late TextEditingController skillsCont;
 
   // Constructor
-  Profile({required this.init, required this.load}) {
-    // Initialization
-    if (init) {
-      // Initialize Titles
-      educationTitle = profileEduTitle;
-      experienceTitle = profileExpTitle;
-      extracurricularTitle = profileExtTitle;
-      honorsTitle = profileHonTitle;
-      projectsTitle = profileProjTitle;
-      referencesTitle = profileRefTitle;
-      skillsTitle = profileSkillsTitle;
-      // Initialize Controllers
-      eduCont = TextEditingController();
-      expCont = TextEditingController();
-      extCont = TextEditingController();
-      honCont = TextEditingController();
-      nameCont = TextEditingController();
-      projCont = TextEditingController();
-      refCont = TextEditingController();
-      skillsCont = TextEditingController();
-    }
+  Profile({this.name = ''}) {
+    educationTitle = profileEduTitle;
+    experienceTitle = profileExpTitle;
+    extracurricularTitle = profileExtTitle;
+    honorsTitle = profileHonTitle;
+    projectsTitle = profileProjTitle;
+    referencesTitle = profileRefTitle;
+    skillsTitle = profileSkillsTitle;
+    eduCont = TextEditingController();
+    expCont = TextEditingController();
+    extCont = TextEditingController();
+    honCont = TextEditingController();
+    nameCont = TextEditingController();
+    projCont = TextEditingController();
+    refCont = TextEditingController();
+    skillsCont = TextEditingController();
   }
 
   // Create New Profile
@@ -73,6 +73,50 @@ class Profile {
     setProfName(profName);
     setProfDir();
     setWriteNewFiles();
+  }
+
+  // Load Profile
+  Future<void> LoadProfileData() async {
+    final profsDirectory = await profsDir;
+    final currProf = Directory('${profsDirectory.path}/$name');
+    if (currProf.existsSync()) {
+      nameCont.text = name;
+    }
+    eduFile = File('${currProf.path}/$profileEduFile');
+    expFile = File('${currProf.path}/$profileExpFile');
+    extFile = File('${currProf.path}/$profileExtFile');
+    honFile = File('${currProf.path}/$profileHonFile');
+    projFile = File('${currProf.path}/$profileProjFile');
+    refFile = File('${currProf.path}/$profileRefFile');
+    skillsFile = File('${currProf.path}/$profileSkillsFile');
+    if (await eduFile.exists()) {
+      education = await eduFile.readAsString();
+      eduCont.text = education;
+    }
+    if (await expFile.exists()) {
+      experience = await expFile.readAsString();
+      expCont.text = experience;
+    }
+    if (await extFile.exists()) {
+      extracurricular = await extFile.readAsString();
+      extCont.text = extracurricular;
+    }
+    if (await honFile.exists()) {
+      honors = await honFile.readAsString();
+      honCont.text = honors;
+    }
+    if (await projFile.exists()) {
+      projects = await projFile.readAsString();
+      projCont.text = projects;
+    }
+    if (await refFile.exists()) {
+      references = await refFile.readAsString();
+      refCont.text = references;
+    }
+    if (await skillsFile.exists()) {
+      skills = await skillsFile.readAsString();
+      skillsCont.text = skills;
+    }
   }
 
   // Setters
