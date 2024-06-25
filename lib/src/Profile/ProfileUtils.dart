@@ -9,12 +9,21 @@ class Profile {
   bool init;
 
   // Directories
-  Future<Directory> appDir = getAppDir();
-  Future<Directory> cacheDir = getCacheDir();
-  Future<Directory> profsDir = getProfilesDir();
-  Future<Directory> supDir = getSupportDir();
+  final Future<Directory> appDir = GetAppDir();
+  final Future<Directory> cacheDir = GetCacheDir();
+  final Future<Directory> profsDir = GetProfilesDir();
+  final Future<Directory> supDir = GetSupportDir();
 
-  // Main Tiles
+  // Files
+  late File eduFile;
+  late File expFile;
+  late File extFile;
+  late File honFile;
+  late File projFile;
+  late File refFile;
+  late File skillsFile;
+
+  // Main Titles & Name
   late String educationTitle;
   late String experienceTitle;
   late String extracurricularTitle;
@@ -58,6 +67,13 @@ class Profile {
     }
   }
 
+  // Create New Profile
+  Future<void> CreateNewProfile(String profName) async {
+    setProfName(profName);
+    setProfDir();
+    setWriteNewFiles();
+  }
+
   // Setters
 
   // Set Profile Name
@@ -67,11 +83,28 @@ class Profile {
 
   // Set Profile Directory
   Future<void> setProfDir() async {
-    final profs = await profsDir;
-    final dir = Directory('${profs.path}/$name');
-    if (!dir.existsSync()) {
-      dir.createSync();
-    }
+    final parentDir = await profsDir;
+    CreateDir(parentDir, name);
+  }
+
+  // Set Write New Files
+  Future<void> setWriteNewFiles() async {
+    final dir = await profsDir;
+    final currDir = Directory('${dir.path}/$name');
+    eduFile = File('${currDir.path}/$profileEduFile');
+    expFile = File('${currDir.path}/$profileExpFile');
+    extFile = File('${currDir.path}/$profileExtFile');
+    honFile = File('${currDir.path}/$profileHonFile');
+    projFile = File('${currDir.path}/$profileProjFile');
+    refFile = File('${currDir.path}/$profileRefFile');
+    skillsFile = File('${currDir.path}/$profileSkillsFile');
+    WriteFile(dir, eduFile, eduCont.text);
+    WriteFile(dir, expFile, expCont.text);
+    WriteFile(dir, extFile, extCont.text);
+    WriteFile(dir, honFile, honCont.text);
+    WriteFile(dir, projFile, projCont.text);
+    WriteFile(dir, refFile, refCont.text);
+    WriteFile(dir, skillsFile, skillsCont.text);
   }
 }
 
