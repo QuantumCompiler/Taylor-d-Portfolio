@@ -27,7 +27,12 @@ class ThemeProvider with ChangeNotifier {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? cyanButtonColor : whiteButtonColor),
-          foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? cyanButtonColor : whiteButtonColor),
+          foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Colors.black : Colors.black),
+          textStyle: WidgetStateProperty.all<TextStyle>(
+            TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ),
     );
