@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+// Button Parameters
+double buttonTitle = 16;
+
 // Card Parameters
 double singleCardMaxHeight = 0.25;
 double singleCardMinHeight = 0.1;
@@ -33,6 +36,7 @@ Future<Directory> getCacheDir() async {
   return await getTemporaryDirectory();
 }
 
+// Profiles Directory
 Future<Directory> getProfilesDir() async {
   final appDir = await getApplicationDocumentsDirectory();
   final profilesDir = Directory('${appDir.path}/Profiles');
@@ -64,9 +68,31 @@ int coverLettersGenerated = 0;
 double drawerVerticalPadding = 25.0;
 double drawerWidth = 0.15;
 
+// Profile Parameters
+double profileTileContainerWidth = 0.6;
+double profileTitleSize = 24.0;
+double profileContainerWidth = 0.8;
+String profileCreateNew = 'Create New Profile';
+String profileLoad = 'Load Profiles';
+String profileEduTitle = 'Education';
+String profileEduHint = 'Enter education here.';
+String profileExpTitle = 'Experience';
+String profileExpHint = 'Enter experience here.';
+String profileExtTitle = 'Extracurricular';
+String profileExtHint = 'Enter extracurricular here.';
+String profileHonTitle = 'Honors';
+String profileHonHint = 'Enter honors here.';
+String profileProjTitle = 'Projects';
+String profileProjHint = 'Enter projects here.';
+String profileRefTitle = 'References';
+String profileRefHint = 'Enter references here.';
+String profileSkillsTitle = 'Skills';
+String profileSkillsHint = 'Enter skills here.';
+
 // Settings Parameters
 String settingsCurrentTheme = 'Switch Theme';
 String settingsDeleteAllProfiles = 'Delete All Profiles';
+double settingsTileContainerWidth = 0.6;
 
 // Size Box Parameters
 double standardSizedBoxHeight = 20;
@@ -76,11 +102,9 @@ double standardSizedBoxWidth = 20;
 double appBarTitle = 24.0;
 double secondaryTitles = 16.0;
 
-// Tile Parameters
-double settingsTileContainerWidth = 0.6;
-
 // Title Parameters
 String dashboardTitle = 'Dashboard';
+String profileTitle = 'Profile';
 String settingsTitle = 'Settings';
 
 // Tooltip Parameters
