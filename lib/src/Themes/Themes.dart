@@ -35,6 +35,12 @@ class ThemeProvider with ChangeNotifier {
           ),
         ),
       ),
+      appBarTheme: AppBarTheme(
+        color: Colors.transparent,
+      ),
+      bottomAppBarTheme: BottomAppBarTheme(
+        color: Colors.transparent,
+      ),
     );
   }
 }
