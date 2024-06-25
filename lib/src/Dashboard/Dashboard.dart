@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Globals/Globals.dart';
+import '../Profile/Profile.dart';
 import '../Settings/Settings.dart';
 
 class Dashboard extends StatelessWidget {
@@ -34,7 +35,7 @@ class Dashboard extends StatelessWidget {
                 IconButton(
                   tooltip: profileToolTip,
                   onPressed: () {
-                    // Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
                   },
                   icon: Icon(Icons.person),
                 ),
