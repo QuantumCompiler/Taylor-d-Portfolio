@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../Globals/Globals.dart';
-// import '../Profile/ProfileUtils.dart';
+import '../Profile/ProfileUtils.dart';
 import '../Themes/Themes.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -46,7 +46,52 @@ class SettingsPage extends StatelessWidget {
                   settingsDeleteAllProfiles,
                 ),
                 onTap: () {
-                  // DeleteAllProfiles(context);
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text(
+                          'Delete All Profiles',
+                          style: TextStyle(
+                            fontSize: appBarTitle,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        content: Text(
+                          'Would you like to delete all profiles? This cannot be undone.',
+                          textAlign: TextAlign.center,
+                        ),
+                        actions: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: Text(
+                                  'Cancel',
+                                ),
+                              ),
+                              SizedBox(width: standardSizedBoxWidth),
+                              ElevatedButton(
+                                onPressed: () {
+                                  DeleteAllProfiles();
+                                  Navigator.of(context).pop();
+                                },
+                                child: Text(
+                                  'Delete',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                  // DeleteAllProfiles();
                 },
               ),
             ],
