@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../Globals/Globals.dart';
 import 'ProfileUtils.dart';
@@ -100,8 +102,35 @@ class NewProfilePage extends StatelessWidget {
                             ElevatedButton(
                               child: Text('Save'),
                               onPressed: () async {
-                                // newProfile.setProfName(newProfile.nameCont.text);
-                                // CreateNewProfile(context, controllers);
+                                final dir = await newProfile.profsDir;
+                                final currDir = Directory('${dir.path}/${newProfile.nameCont.text}');
+                                if (!currDir.existsSync()) {
+                                  newProfile.CreateNewProfile(newProfile.nameCont.text);
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).pop();
+                                } else {
+                                  Navigator.of(context).pop();
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        title: Text(
+                                          'Profile Already Exists',
+                                          style: TextStyle(
+                                            fontSize: appBarTitle,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        content: Text(
+                                          'Please choose a different name for this profile.',
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      );
+                                    },
+                                  );
+                                  newProfile.nameCont.text = '';
+                                }
                               },
                             ),
                           ],
