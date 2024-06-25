@@ -2,10 +2,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
-// Button Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Button Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 double buttonTitle = 16;
 
-// Card Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Card Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 double singleCardMaxHeight = 0.25;
 double singleCardMinHeight = 0.1;
 double singleCardMaxWidth = 0.35;
@@ -13,31 +17,38 @@ double singleCardMinWidth = 0.25;
 double singleCardPadding = 16.0;
 double singleCardWidthBox = 0.05;
 
-// Colors
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Colors
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 Color cyanButtonColor = Color.fromARGB(255, 0, 213, 255);
 Color whiteButtonColor = Colors.white;
 Color blackTextColor = Colors.black;
 Color whiteTextColor = Colors.white;
 
-// Dashboard Card Title Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Dashboard Card Title Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 String resumesGenTitle = 'Resumes Generated';
 String coverLettersGenTitle = 'Cover Letters Generated';
 
-// Directories
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Directories
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+// Profiles Directory Name
 String profilesDir = 'Profiles';
 
 // Application Directory
-Future<Directory> getAppDir() async {
+Future<Directory> GetAppDir() async {
   return await getApplicationDocumentsDirectory();
 }
 
 // Cache Directory
-Future<Directory> getCacheDir() async {
+Future<Directory> GetCacheDir() async {
   return await getTemporaryDirectory();
 }
 
 // Profiles Directory
-Future<Directory> getProfilesDir() async {
+Future<Directory> GetProfilesDir() async {
   final appDir = await getApplicationDocumentsDirectory();
   final profilesDir = Directory('${appDir.path}/Profiles');
   if (!profilesDir.existsSync()) {
@@ -47,31 +58,51 @@ Future<Directory> getProfilesDir() async {
 }
 
 // Support Directory
-Future<Directory> getSupportDir() async {
+Future<Directory> GetSupportDir() async {
   return await getApplicationSupportDirectory();
 }
 
-// Create Profile Directory
-Future<void> createProfileDir() async {
-  Directory appDir = await getAppDir();
-  final profsDir = Directory('${appDir.path}/$profilesDir');
-  if (!profsDir.existsSync()) {
-    profsDir.createSync();
+// Create Directory
+Future<void> CreateDir(Directory parentDir, String dirName) async {
+  final dir = Directory('${parentDir.path}/$dirName');
+  if (!dir.existsSync()) {
+    dir.createSync();
   }
 }
 
-// Documents generated
+// Create Profile Directory
+Future<void> CreateProfileDir() async {
+  Directory appDir = await GetAppDir();
+  CreateDir(appDir, profilesDir);
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Documents Generated
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 int resumesGenerated = 0;
 int coverLettersGenerated = 0;
 
-// Drawer Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Drawer Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 double drawerVerticalPadding = 25.0;
 double drawerWidth = 0.15;
 
-// Profile Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Files
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+Future<void> WriteFile(Directory dir, File file, String contents) async {
+  await file.writeAsString(contents);
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Profile Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+// Sizes
 double profileTileContainerWidth = 0.6;
 double profileTitleSize = 24.0;
 double profileContainerWidth = 0.8;
+// Titles & Hints
 String profileCreateNew = 'Create New Profile';
 String profileLoad = 'Load Profiles';
 String profileEduTitle = 'Education';
@@ -88,26 +119,44 @@ String profileRefTitle = 'References';
 String profileRefHint = 'Enter references here.';
 String profileSkillsTitle = 'Skills';
 String profileSkillsHint = 'Enter skills here.';
+// File Names
+String profileEduFile = 'education.txt';
+String profileExpFile = 'experience.txt';
+String profileExtFile = 'extracurricular.txt';
+String profileHonFile = 'honors.txt';
+String profileProjFile = 'projects.txt';
+String profileRefFile = 'references.txt';
+String profileSkillsFile = 'skills.txt';
 
-// Settings Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Settings Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+double settingsTileContainerWidth = 0.6;
 String settingsCurrentTheme = 'Switch Theme';
 String settingsDeleteAllProfiles = 'Delete All Profiles';
-double settingsTileContainerWidth = 0.6;
 
-// Size Box Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Size Box Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 double standardSizedBoxHeight = 20;
 double standardSizedBoxWidth = 20;
 
-// Text Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Text Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 double appBarTitle = 24.0;
 double secondaryTitles = 16.0;
 
-// Title Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Title Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 String dashboardTitle = 'Dashboard';
 String profileTitle = 'Profile';
 String settingsTitle = 'Settings';
 
-// Tooltip Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Tooltip Parameters
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 String dashboardToolTip = 'Dashboard';
 String profileToolTip = 'Profile';
 String jobsToolTip = 'Job Description';
