@@ -126,6 +126,35 @@ class Profile {
     name = profName;
   }
 
+  // Set Overwrite Files
+  Future<void> setOverwriteFiles() async {
+    final dir = await profsDir;
+    final newName = nameCont.text;
+    final oldDir = Directory('${dir.path}/$name');
+    Directory newDir;
+    if (await oldDir.exists()) {
+      newDir = await oldDir.rename('${dir.path}/$newName');
+    } else {
+      newDir = Directory('${dir.path}/$newName');
+      await newDir.create();
+    }
+    name = newName;
+    eduFile = File('${newDir.path}/$profileEduFile');
+    expFile = File('${newDir.path}/$profileExpFile');
+    extFile = File('${newDir.path}/$profileExtFile');
+    honFile = File('${newDir.path}/$profileHonFile');
+    projFile = File('${newDir.path}/$profileProjFile');
+    refFile = File('${newDir.path}/$profileRefFile');
+    skillsFile = File('${newDir.path}/$profileSkillsFile');
+    WriteFile(dir, eduFile, eduCont.text);
+    WriteFile(dir, expFile, expCont.text);
+    WriteFile(dir, extFile, extCont.text);
+    WriteFile(dir, honFile, honCont.text);
+    WriteFile(dir, projFile, projCont.text);
+    WriteFile(dir, refFile, refCont.text);
+    WriteFile(dir, skillsFile, skillsCont.text);
+  }
+
   // Set Profile Directory
   Future<void> setProfDir() async {
     final parentDir = await profsDir;
@@ -150,6 +179,24 @@ class Profile {
     WriteFile(dir, projFile, projCont.text);
     WriteFile(dir, refFile, refCont.text);
     WriteFile(dir, skillsFile, skillsCont.text);
+  }
+}
+
+Future<void> DeleteAllProfiles() async {
+  final profilesDirectory = await GetProfilesDir();
+  final List<FileSystemEntity> profiles = profilesDirectory.listSync();
+  for (final profile in profiles) {
+    if (profile is Directory) {
+      await profile.delete(recursive: true);
+    }
+  }
+}
+
+Future<void> DeleteProfile(String profileName) async {
+  final profilesDirectory = await GetProfilesDir();
+  final profileDir = Directory('${profilesDirectory.path}/$profileName');
+  if (await profileDir.exists()) {
+    await profileDir.delete(recursive: true);
   }
 }
 
