@@ -1,2 +1,2 @@
-# Taylor'd Resume
+# Taylord Resume
 
