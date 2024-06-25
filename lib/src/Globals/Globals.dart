@@ -113,6 +113,7 @@ String profileExtTitle = 'Extracurricular';
 String profileExtHint = 'Enter extracurricular here.';
 String profileHonTitle = 'Honors';
 String profileHonHint = 'Enter honors here.';
+String profileNameTitle = 'Profile Name';
 String profileProjTitle = 'Projects';
 String profileProjHint = 'Enter projects here.';
 String profileRefTitle = 'References';
