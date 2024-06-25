@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../Globals/Globals.dart';
 import 'dart:io';
+import 'EditProfile.dart';
 import 'ProfileUtils.dart';
 
 class LoadProfilePage extends StatelessWidget {
@@ -44,7 +45,7 @@ class LoadProfilePage extends StatelessWidget {
                                 return ListTile(
                                   title: Text(profiles[index].path.split('/').last),
                                   onTap: () {
-                                    // Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfilePage(profileName: profiles[index].path.split('/').last)));
+                                    Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfilePage(profileName: profiles[index].path.split('/').last)));
                                   },
                                 );
                               },
