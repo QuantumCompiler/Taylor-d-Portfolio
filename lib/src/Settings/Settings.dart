@@ -14,8 +14,12 @@ class SettingsPage extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).pop();
+            if (isDesktop()) {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+            } else if (isMobile()) {
+              Navigator.of(context).pop();
+            }
           },
         ),
         title: Text(
@@ -67,31 +71,49 @@ class SettingsPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text(
-                                  'Cancel',
+                              if (isDesktop()) ...[
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text(
+                                    'Cancel',
+                                  ),
                                 ),
-                              ),
+                              ] else if (isMobile()) ...[
+                                IconButton(
+                                  icon: Icon(Icons.cancel),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ],
                               SizedBox(width: standardSizedBoxWidth),
-                              ElevatedButton(
-                                onPressed: () {
-                                  DeleteAllProfiles();
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text(
-                                  'Delete',
+                              if (isDesktop()) ...[
+                                ElevatedButton(
+                                  onPressed: () {
+                                    DeleteAllProfiles();
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text(
+                                    'Delete',
+                                  ),
                                 ),
-                              ),
+                              ] else if (isMobile()) ...[
+                                IconButton(
+                                  icon: Icon(Icons.save),
+                                  onPressed: () {
+                                    DeleteAllProfiles();
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ]
                             ],
                           ),
                         ],
                       );
                     },
                   );
-                  // DeleteAllProfiles();
                 },
               ),
             ],

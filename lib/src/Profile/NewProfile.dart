@@ -22,9 +22,14 @@ class NewProfilePage extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.dashboard),
             onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
+              if (isDesktop()) {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              } else if (isMobile()) {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              }
             },
           ),
         ],
@@ -67,81 +72,159 @@ class NewProfilePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             // Save Profile
-            ElevatedButton(
-              onPressed: () async {
-                // Show Dialog
-                await showDialog(
-                  context: context,
-                  builder: (context) {
-                    // Alert Dialog
-                    return AlertDialog(
-                      title: Text(
-                        'Enter Name Of Current Profile',
-                        style: TextStyle(
-                          fontSize: appBarTitle,
-                          fontWeight: FontWeight.bold,
+            if (isDesktop()) ...[
+              ElevatedButton(
+                onPressed: () async {
+                  // Show Dialog
+                  await showDialog(
+                    context: context,
+                    builder: (context) {
+                      // Alert Dialog
+                      return AlertDialog(
+                        title: Text(
+                          'Enter Name Of Current Profile',
+                          style: TextStyle(
+                            fontSize: appBarTitle,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      content: TextField(
-                        controller: newProfile.nameCont,
-                        decoration: InputDecoration(hintText: "Profile Name"),
-                      ),
-                      actions: <Widget>[
-                        // Row
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            ElevatedButton(
-                              child: Text('Cancel'),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                            SizedBox(width: 20),
-                            ElevatedButton(
-                              child: Text('Save'),
-                              onPressed: () async {
-                                final dir = await newProfile.profsDir;
-                                final currDir = Directory('${dir.path}/${newProfile.nameCont.text}');
-                                if (!currDir.existsSync()) {
-                                  newProfile.CreateNewProfile(newProfile.nameCont.text);
+                        content: TextField(
+                          controller: newProfile.nameCont,
+                          decoration: InputDecoration(hintText: "Profile Name"),
+                        ),
+                        actions: <Widget>[
+                          // Row
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              ElevatedButton(
+                                child: Text('Cancel'),
+                                onPressed: () {
                                   Navigator.of(context).pop();
-                                  Navigator.of(context).pop();
-                                } else {
-                                  Navigator.of(context).pop();
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return AlertDialog(
-                                        title: Text(
-                                          'Profile Already Exists',
-                                          style: TextStyle(
-                                            fontSize: appBarTitle,
-                                            fontWeight: FontWeight.bold,
+                                },
+                              ),
+                              SizedBox(width: 20),
+                              ElevatedButton(
+                                child: Text('Save'),
+                                onPressed: () async {
+                                  final dir = await newProfile.profsDir;
+                                  final currDir = Directory('${dir.path}/${newProfile.nameCont.text}');
+                                  if (!currDir.existsSync()) {
+                                    newProfile.CreateNewProfile(newProfile.nameCont.text);
+                                    Navigator.of(context).pop();
+                                    Navigator.of(context).pop();
+                                  } else {
+                                    Navigator.of(context).pop();
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title: Text(
+                                            'Profile Already Exists',
+                                            style: TextStyle(
+                                              fontSize: appBarTitle,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            textAlign: TextAlign.center,
                                           ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        content: Text(
-                                          'Please choose a different name for this profile.',
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      );
-                                    },
-                                  );
-                                  newProfile.nameCont.text = '';
-                                }
-                              },
-                            ),
-                          ],
+                                          content: Text(
+                                            'Please choose a different name for this profile.',
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        );
+                                      },
+                                    );
+                                    newProfile.nameCont.text = '';
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                child: Text('Save Profile'),
+              ),
+            ] else if (isMobile()) ...[
+              IconButton(
+                onPressed: () async {
+                  // Show Dialog
+                  await showDialog(
+                    context: context,
+                    builder: (context) {
+                      // Alert Dialog
+                      return AlertDialog(
+                        title: Text(
+                          'Enter Name Of Current Profile',
+                          style: TextStyle(
+                            fontSize: appBarTitle,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ],
-                    );
-                  },
-                );
-              },
-              child: Text('Save Profile'),
-            ),
+                        content: TextField(
+                          controller: newProfile.nameCont,
+                          decoration: InputDecoration(hintText: "Profile Name"),
+                        ),
+                        actions: <Widget>[
+                          // Row
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              IconButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                icon: Icon(Icons.cancel),
+                              ),
+                              SizedBox(width: 20),
+                              IconButton(
+                                icon: Icon(Icons.save),
+                                onPressed: () async {
+                                  final dir = await newProfile.profsDir;
+                                  final currDir = Directory('${dir.path}/${newProfile.nameCont.text}');
+                                  if (!currDir.existsSync()) {
+                                    newProfile.CreateNewProfile(newProfile.nameCont.text);
+                                    Navigator.of(context).pop();
+                                    Navigator.of(context).pop();
+                                  } else {
+                                    Navigator.of(context).pop();
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title: Text(
+                                            'Profile Already Exists',
+                                            style: TextStyle(
+                                              fontSize: appBarTitle,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          content: Text(
+                                            'Please choose a different name for this profile.',
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        );
+                                      },
+                                    );
+                                    newProfile.nameCont.text = '';
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                icon: Icon(Icons.save),
+              ),
+            ]
           ],
         ),
       ),

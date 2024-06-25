@@ -12,8 +12,12 @@ class ProfilePage extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).pop();
+            if (isDesktop()) {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+            } else if (isMobile()) {
+              Navigator.of(context).pop();
+            }
           },
         ),
         title: Text(

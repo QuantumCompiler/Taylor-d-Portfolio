@@ -17,47 +17,49 @@ class Dashboard extends StatelessWidget {
           ),
         ),
       ),
-      drawer: SizedBox(
-        width: MediaQuery.of(context).size.width * drawerWidth,
-        child: Drawer(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: drawerVerticalPadding),
-            child: Column(
-              children: <Widget>[
-                IconButton(
-                  tooltip: dashboardToolTip,
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  icon: Icon(Icons.dashboard),
+      drawer: isDesktop()
+          ? SizedBox(
+              width: MediaQuery.of(context).size.width * drawerWidth,
+              child: Drawer(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: drawerVerticalPadding),
+                  child: Column(
+                    children: <Widget>[
+                      IconButton(
+                        tooltip: dashboardToolTip,
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        icon: Icon(Icons.dashboard),
+                      ),
+                      Spacer(),
+                      IconButton(
+                        tooltip: profileToolTip,
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+                        },
+                        icon: Icon(Icons.person),
+                      ),
+                      Spacer(),
+                      IconButton(
+                        tooltip: jobsToolTip,
+                        onPressed: () => {},
+                        icon: Icon(Icons.task),
+                      ),
+                      Spacer(),
+                      IconButton(
+                        tooltip: settingsToolTip,
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                        },
+                        icon: Icon(Icons.settings),
+                      ),
+                    ],
+                  ),
                 ),
-                Spacer(),
-                IconButton(
-                  tooltip: profileToolTip,
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
-                  },
-                  icon: Icon(Icons.person),
-                ),
-                SizedBox(height: standardSizedBoxHeight),
-                IconButton(
-                  tooltip: jobsToolTip,
-                  onPressed: () => {},
-                  icon: Icon(Icons.task),
-                ),
-                Spacer(),
-                IconButton(
-                  tooltip: settingsToolTip,
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
-                  },
-                  icon: Icon(Icons.settings),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+              ),
+            )
+          : null,
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
@@ -75,6 +77,38 @@ class Dashboard extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: isMobile()
+          ? BottomAppBar(
+              color: Colors.transparent,
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => {},
+                    icon: Icon(Icons.dashboard),
+                  ),
+                  Spacer(),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+                    },
+                    icon: Icon(Icons.person),
+                  ),
+                  Spacer(),
+                  IconButton(
+                    onPressed: () => {},
+                    icon: Icon(Icons.task),
+                  ),
+                  Spacer(),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                    },
+                    icon: Icon(Icons.settings),
+                  ),
+                ],
+              ),
+            )
+          : null,
     );
   }
 }

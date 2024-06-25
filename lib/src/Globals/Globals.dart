@@ -3,6 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Booleans
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+// Is Desktop
+bool isDesktop() {
+  return (Platform.isMacOS || Platform.isLinux || Platform.isWindows);
+}
+
+// Is Mobile
+bool isMobile() {
+  return (Platform.isIOS || Platform.isAndroid);
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Button Parameters
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 double buttonTitle = 16;

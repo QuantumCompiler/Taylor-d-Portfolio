@@ -32,9 +32,14 @@ class LoadProfilePageState extends State<LoadProfilePage> {
                 IconButton(
                   icon: Icon(Icons.dashboard),
                   onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop();
+                    if (isDesktop()) {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pop();
+                    } else if (isMobile()) {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pop();
+                    }
                   },
                 ),
               ],

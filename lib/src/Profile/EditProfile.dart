@@ -23,10 +23,16 @@ class EditProfilePage extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.dashboard),
             onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
+              if (isDesktop()) {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              } else if (isMobile()) {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              }
             },
           ),
         ],
@@ -67,25 +73,48 @@ class EditProfilePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
-              onPressed: () {
-                prevProfile.setOverwriteFiles();
-                Navigator.of(context).pop();
-              },
-              child: Text('Overwrite'),
-            ),
-            SizedBox(width: standardSizedBoxWidth),
-            ElevatedButton(
-              onPressed: () => {},
-              child: Text('Set As Primary'),
-            ),
-            SizedBox(width: standardSizedBoxWidth),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
+            if (isDesktop()) ...[
+              ElevatedButton(
+                onPressed: () {
+                  prevProfile.setOverwriteFiles();
+                  Navigator.of(context).pop();
+                },
+                child: Text('Overwrite'),
+              ),
+              SizedBox(width: standardSizedBoxWidth),
+              ElevatedButton(
+                onPressed: () => {},
+                child: Text('Set As Primary'),
+              ),
+              SizedBox(width: standardSizedBoxWidth),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('Cancel'),
+              ),
+            ] else if (isMobile()) ...[
+              IconButton(
+                onPressed: () {
+                  prevProfile.setOverwriteFiles();
+                  Navigator.of(context).pop();
+                },
+                icon: Icon(Icons.save),
+              ),
+              SizedBox(width: standardSizedBoxWidth),
+              IconButton(
+                onPressed: () => {},
+                icon: Icon(Icons.check),
+              ),
+              SizedBox(width: standardSizedBoxWidth),
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                icon: Icon(Icons.cancel),
+              ),
+              SizedBox(width: standardSizedBoxWidth),
+            ]
           ],
         ),
       ),
