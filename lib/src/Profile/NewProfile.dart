@@ -9,7 +9,7 @@ class NewProfilePage extends StatelessWidget {
   const NewProfilePage({super.key});
   @override
   Widget build(BuildContext context) {
-    Profile newProfile = Profile(init: true);
+    Profile newProfile = Profile(init: true, load: false);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(

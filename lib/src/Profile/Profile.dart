@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Globals/Globals.dart';
+import 'LoadProfile.dart';
 import 'NewProfile.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -38,13 +39,12 @@ class ProfilePage extends StatelessWidget {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => NewProfilePage()));
                 },
               ),
-              // Load Profiles
               ListTile(
                 title: Text(
                   profileLoad,
                 ),
                 onTap: () {
-                  // Navigator.push(context, MaterialPageRoute(builder: (context) => LoadProfilePage()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => LoadProfilePage()));
                 },
               ),
             ],

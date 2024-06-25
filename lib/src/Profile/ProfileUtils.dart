@@ -7,6 +7,7 @@ import '../Themes/Themes.dart';
 class Profile {
   // Boolean
   bool init;
+  bool load;
 
   // Directories
   final Future<Directory> appDir = GetAppDir();
@@ -44,7 +45,7 @@ class Profile {
   late TextEditingController skillsCont;
 
   // Constructor
-  Profile({required this.init}) {
+  Profile({required this.init, required this.load}) {
     // Initialization
     if (init) {
       // Initialize Titles
@@ -134,4 +135,11 @@ List<Widget> ProfileEntry(BuildContext context, String title, TextEditingControl
     ),
     SizedBox(height: 20),
   ];
+}
+
+Future<List<Directory>> RetrieveSortedProfiles() async {
+  final profilesDir = await GetProfilesDir();
+  final profilesList = profilesDir.listSync().whereType<Directory>().toList();
+  profilesList.sort((a, b) => a.path.split('/').last.compareTo(b.path.split('/').last));
+  return profilesList;
 }
