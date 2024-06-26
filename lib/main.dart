@@ -17,6 +17,7 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
+    CreateJobsDir();
     CreateProfileDir();
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
