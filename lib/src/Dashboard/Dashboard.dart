@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Globals/Globals.dart';
+import '../Jobs/Jobs.dart';
 import '../Profile/Profile.dart';
 import '../Settings/Settings.dart';
 
@@ -43,7 +44,9 @@ class Dashboard extends StatelessWidget {
                       Spacer(),
                       IconButton(
                         tooltip: jobsToolTip,
-                        onPressed: () => {},
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => JobsPage()));
+                        },
                         icon: Icon(Icons.task),
                       ),
                       Spacer(),
