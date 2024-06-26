@@ -1,4 +1,4 @@
-package com.example.taylord_resume
+package com.vici.taylord_portfolio
 
 import io.flutter.embedding.android.FlutterActivity
 

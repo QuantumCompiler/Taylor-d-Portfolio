@@ -1,6 +1,6 @@
 {
-    "name": "taylord_resume",
-    "short_name": "taylord_resume",
+    "name": "taylord_portfolio",
+    "short_name": "taylord_portfolio",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

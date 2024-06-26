@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "taylord_resume" "\0"
+            VALUE "FileDescription", "taylord_portfolio" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "taylord_resume" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "taylord_resume.exe" "\0"
-            VALUE "ProductName", "taylord_resume" "\0"
+            VALUE "InternalName", "taylord_portfolio" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2024 com.vici. All rights reserved." "\0"
+            VALUE "OriginalFilename", "taylord_portfolio.exe" "\0"
+            VALUE "ProductName", "taylord_portfolio" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
