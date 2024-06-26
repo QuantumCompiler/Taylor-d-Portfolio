@@ -109,6 +109,17 @@ Future<void> WriteFile(Directory dir, File file, String contents) async {
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Jobs
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+// Sizes
+double jobTileContainerWidth = 0.6;
+double jobTileSize = 24.0;
+double jobContainerWidth = 0.8;
+// Titles & Hints
+String jobsCreateNew = 'Create A New Job';
+String jobsLoad = 'Load A Job';
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Profile Parameters
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 // Sizes
@@ -165,6 +176,7 @@ double secondaryTitles = 16.0;
 //  Title Parameters
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 String dashboardTitle = 'Dashboard';
+String jobsTitle = 'Jobs';
 String profileTitle = 'Profile';
 String settingsTitle = 'Settings';
 
@@ -173,5 +185,5 @@ String settingsTitle = 'Settings';
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 String dashboardToolTip = 'Dashboard';
 String profileToolTip = 'Profile';
-String jobsToolTip = 'Job Description';
+String jobsToolTip = 'Jobs';
 String settingsToolTip = 'Settings';
