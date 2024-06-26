@@ -47,8 +47,9 @@ String coverLettersGenTitle = 'Cover Letters Generated';
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Directories
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-// Profiles Directory Name
-String profilesDir = 'Profiles';
+// Directory Names
+String jobsMasterDir = 'Jobs';
+String profilesMasterDir = 'Profiles';
 
 // Application Directory
 Future<Directory> GetAppDir() async {
@@ -60,10 +61,20 @@ Future<Directory> GetCacheDir() async {
   return await getTemporaryDirectory();
 }
 
+// Jobs Directory
+Future<Directory> GetJobsDir() async {
+  final appDir = await getApplicationDocumentsDirectory();
+  final jobsDir = Directory('${appDir.path}/$jobsMasterDir');
+  if (!jobsDir.existsSync()) {
+    jobsDir.createSync();
+  }
+  return jobsDir;
+}
+
 // Profiles Directory
 Future<Directory> GetProfilesDir() async {
   final appDir = await getApplicationDocumentsDirectory();
-  final profilesDir = Directory('${appDir.path}/Profiles');
+  final profilesDir = Directory('${appDir.path}/$profilesMasterDir');
   if (!profilesDir.existsSync()) {
     profilesDir.createSync();
   }
@@ -86,7 +97,13 @@ Future<void> CreateDir(Directory parentDir, String dirName) async {
 // Create Profile Directory
 Future<void> CreateProfileDir() async {
   Directory appDir = await GetAppDir();
-  CreateDir(appDir, profilesDir);
+  CreateDir(appDir, profilesMasterDir);
+}
+
+// Create Jobs Directory
+Future<void> CreateJobsDir() async {
+  Directory appDir = await GetAppDir();
+  CreateDir(appDir, jobsMasterDir);
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
@@ -113,11 +130,24 @@ Future<void> WriteFile(Directory dir, File file, String contents) async {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 // Sizes
 double jobTileContainerWidth = 0.6;
-double jobTileSize = 24.0;
+double jobTitleSize = 24.0;
 double jobContainerWidth = 0.8;
 // Titles & Hints
 String jobsCreateNew = 'Create A New Job';
 String jobsLoad = 'Load A Job';
+String jobsDesTitle = 'Description';
+String jobsOtherTitle = 'Other';
+String jobsPosTitle = 'Position';
+String jobsQualsTitle = 'Qualifications';
+String jobsRoleTitle = 'Role';
+String jobsTasksTitle = 'Tasks';
+// File Names
+String jobsDesFile = 'description.txt';
+String jobsOtherFile = 'other.txt';
+String jobsPosFile = 'position.txt';
+String jobsQualsFile = 'qualifications.txt';
+String jobsRoleFile = 'role.txt';
+String jobsTasksFile = 'tasks.txt';
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Profile Parameters
