@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../Globals/Globals.dart';
 import 'dart:io';
-// import 'Editjob.dart';
+import 'EditJob.dart';
 import 'JobsUtils.dart';
 
 class LoadJobPage extends StatefulWidget {
@@ -119,16 +119,16 @@ class LoadJobPageState extends State<LoadJobPage> {
                                       },
                                     ),
                                     onTap: () {
-                                      // Navigator.push(
-                                      //   context,
-                                      //   MaterialPageRoute(
-                                      //     builder: (context) => EditProfilePage(profileName: profiles[index].path.split('/').last),
-                                      //   ),
-                                      // ).then(
-                                      //   (_) {
-                                      //     setState(() {});
-                                      //   },
-                                      // );
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => EditJobPage(jobName: jobs[index].path.split('/').last),
+                                        ),
+                                      ).then(
+                                        (_) {
+                                          setState(() {});
+                                        },
+                                      );
                                     },
                                   ),
                                 );
