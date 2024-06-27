@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../Globals/Globals.dart';
-import 'JobsUtils.dart';
+import '../../Globals/Globals.dart';
+import '../Utilities/JobUtils.dart';
 
 class EditJobPage extends StatelessWidget {
   // Job Name

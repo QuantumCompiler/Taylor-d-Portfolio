@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../Globals/Globals.dart';
-import 'JobsUtils.dart';
-import '../Themes/Themes.dart';
+import '../../Globals/Globals.dart';
+import '../../Themes/Themes.dart';
+import '../Utilities/JobUtils.dart';
 
 class NewJobPage extends StatelessWidget {
   const NewJobPage({super.key});

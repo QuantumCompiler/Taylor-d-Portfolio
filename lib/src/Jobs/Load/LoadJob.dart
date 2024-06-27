@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import '../Globals/Globals.dart';
 import 'dart:io';
-import 'EditJob.dart';
-import 'JobsUtils.dart';
+import 'package:flutter/material.dart';
+import '../../Globals/Globals.dart';
+import '../Edit/EditJob.dart';
+import '../Utilities/JobUtils.dart';
 
 class LoadJobPage extends StatefulWidget {
   const LoadJobPage({super.key});
