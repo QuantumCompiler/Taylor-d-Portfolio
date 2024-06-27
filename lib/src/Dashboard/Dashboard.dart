@@ -98,7 +98,9 @@ class Dashboard extends StatelessWidget {
                   ),
                   Spacer(),
                   IconButton(
-                    onPressed: () => {},
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => JobsPage()));
+                    },
                     icon: Icon(Icons.task),
                   ),
                   Spacer(),
