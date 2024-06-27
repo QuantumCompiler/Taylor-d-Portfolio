@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Globals/Globals.dart';
+import 'NewJob.dart';
 
 class JobsPage extends StatelessWidget {
   const JobsPage({super.key});
@@ -38,7 +39,7 @@ class JobsPage extends StatelessWidget {
                   jobsCreateNew,
                 ),
                 onTap: () {
-                  // Navigator.push(context, MaterialPageRoute(builder: (context) => NewProfilePage()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => NewJobPage()));
                 },
               ),
               ListTile(
