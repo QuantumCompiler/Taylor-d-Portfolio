@@ -1,5 +1,0 @@
-// Cache directory 
-Directory Path: /Users/taylor/Library/Containers/com.vici.taylordResume/Data/Library/Caches/com.vici.taylordResume
-
-// Documents directory
-Directory Path: /Users/taylor/Library/Containers/com.vici.taylordResume/Data/Documents
