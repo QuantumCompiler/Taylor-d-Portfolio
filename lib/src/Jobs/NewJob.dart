@@ -155,15 +155,15 @@ class NewJobPage extends StatelessWidget {
                       // Alert Dialog
                       return AlertDialog(
                         title: Text(
-                          'Enter Name Of Current Profile',
+                          'Enter Name Of Current Job',
                           style: TextStyle(
                             fontSize: appBarTitle,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         content: TextField(
-                          // controller: newProfile.nameCont,
-                          decoration: InputDecoration(hintText: "Profile Name"),
+                          controller: newJob.nameCont,
+                          decoration: InputDecoration(hintText: "Job Name"),
                         ),
                         actions: <Widget>[
                           // Row
