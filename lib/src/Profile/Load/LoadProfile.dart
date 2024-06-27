@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../Globals/Globals.dart';
+import '../../Globals/Globals.dart';
 import 'dart:io';
-import 'EditProfile.dart';
-import 'ProfileUtils.dart';
+import '../Edit/EditProfile.dart';
+import '../Utilities/ProfileUtils.dart';
 
 class LoadProfilePage extends StatefulWidget {
   const LoadProfilePage({super.key});

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../Globals/Globals.dart';
-import 'ProfileUtils.dart';
+import '../../Globals/Globals.dart';
+import '../Utilities/ProfileUtils.dart';
 
 class EditProfilePage extends StatelessWidget {
   // Profile Name

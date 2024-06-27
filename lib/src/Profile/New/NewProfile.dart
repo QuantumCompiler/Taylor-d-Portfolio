@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../Globals/Globals.dart';
-import 'ProfileUtils.dart';
-import '../Themes/Themes.dart';
+import '../../Globals/Globals.dart';
+import '../Utilities/ProfileUtils.dart';
+import '../../Themes/Themes.dart';
 
 class NewProfilePage extends StatelessWidget {
   const NewProfilePage({super.key});

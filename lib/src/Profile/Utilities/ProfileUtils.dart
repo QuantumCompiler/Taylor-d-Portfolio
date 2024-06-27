@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../Globals/Globals.dart';
-import '../Themes/Themes.dart';
+import '../../Globals/Globals.dart';
+import '../../Themes/Themes.dart';
 
 // Profile Class
 class Profile {
