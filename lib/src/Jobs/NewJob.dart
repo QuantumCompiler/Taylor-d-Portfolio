@@ -46,8 +46,6 @@ class NewJobPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            // late String name;
-            // late String tasksTitle;
             // Description
             ...JobEntry(context, jobsDesTitle, newJob.desCont, jobsDesHint),
             // Other
