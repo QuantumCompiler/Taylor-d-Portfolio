@@ -96,11 +96,6 @@ class EditJobPage extends StatelessWidget {
               ),
               SizedBox(width: standardSizedBoxWidth),
               IconButton(
-                onPressed: () => {},
-                icon: Icon(Icons.check),
-              ),
-              SizedBox(width: standardSizedBoxWidth),
-              IconButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
