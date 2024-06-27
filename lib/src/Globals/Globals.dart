@@ -133,14 +133,20 @@ double jobTileContainerWidth = 0.6;
 double jobTitleSize = 24.0;
 double jobContainerWidth = 0.8;
 // Titles & Hints
-String jobsCreateNew = 'Create A New Job';
+String jobsCreateNew = 'Create New Job';
 String jobsLoad = 'Load A Job';
 String jobsDesTitle = 'Description';
+String jobsDesHint = 'Enter job description here.';
 String jobsOtherTitle = 'Other';
+String jobsOtherHint = 'Enter other info here.';
 String jobsPosTitle = 'Position';
+String jobsPosHint = 'Enter position info here.';
 String jobsQualsTitle = 'Qualifications';
+String jobsQualsHint = 'Enter qualifications here.';
 String jobsRoleTitle = 'Role';
+String jobsRoleHint = 'Enter role info here.';
 String jobsTasksTitle = 'Tasks';
+String jobsTasksHint = 'Enter tasks info here.';
 // File Names
 String jobsDesFile = 'description.txt';
 String jobsOtherFile = 'other.txt';
