@@ -137,6 +137,7 @@ String jobsCreateNew = 'Create New Job';
 String jobsLoad = 'Load A Job';
 String jobsDesTitle = 'Description';
 String jobsDesHint = 'Enter job description here.';
+String jobsNameTitle = 'Job Name';
 String jobsOtherTitle = 'Other';
 String jobsOtherHint = 'Enter other info here.';
 String jobsPosTitle = 'Position';
