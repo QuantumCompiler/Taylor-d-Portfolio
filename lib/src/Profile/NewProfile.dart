@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import '../Globals/Globals.dart';
 import 'ProfileUtils.dart';
