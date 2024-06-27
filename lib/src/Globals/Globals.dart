@@ -21,16 +21,6 @@ bool isMobile() {
 double buttonTitle = 16;
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Card Parameters
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-double singleCardMaxHeight = 0.25;
-double singleCardMinHeight = 0.1;
-double singleCardMaxWidth = 0.35;
-double singleCardMinWidth = 0.25;
-double singleCardPadding = 16.0;
-double singleCardWidthBox = 0.05;
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Colors
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 Color cyanButtonColor = Color.fromARGB(255, 0, 213, 255);
@@ -115,8 +105,6 @@ int coverLettersGenerated = 0;
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Drawer Parameters
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-double drawerVerticalPadding = 25.0;
-double drawerWidth = 0.15;
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Files
@@ -205,15 +193,5 @@ double secondaryTitles = 16.0;
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Title Parameters
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-String dashboardTitle = 'Dashboard';
 String jobsTitle = 'Jobs';
 String profileTitle = 'Profile';
-String settingsTitle = 'Settings';
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Tooltip Parameters
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-String dashboardToolTip = 'Dashboard';
-String profileToolTip = 'Profile';
-String jobsToolTip = 'Jobs';
-String settingsToolTip = 'Settings';
