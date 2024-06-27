@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Globals/Globals.dart';
+import 'LoadJob.dart';
 import 'NewJob.dart';
 
 class JobsPage extends StatelessWidget {
@@ -47,7 +48,7 @@ class JobsPage extends StatelessWidget {
                   jobsLoad,
                 ),
                 onTap: () {
-                  // Navigator.push(context, MaterialPageRoute(builder: (context) => LoadProfilePage()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => LoadJobPage()));
                 },
               ),
             ],
