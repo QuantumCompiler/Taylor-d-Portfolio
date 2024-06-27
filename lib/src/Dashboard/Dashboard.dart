@@ -1,7 +1,7 @@
 // Imports
 import 'package:flutter/material.dart';
 import '../Globals/Globals.dart';
-import 'DashboardUtil.dart';
+import 'Context/DashboardContext.dart';
 
 /*  Dashboard - Page for the Dashboard in the application
       Constructor:

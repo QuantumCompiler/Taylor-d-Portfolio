@@ -1,9 +1,9 @@
 // Imports
 import 'package:flutter/material.dart';
-import '../Globals/Globals.dart';
-import '../Jobs/Jobs.dart';
-import '../Profile/Profile.dart';
-import '../Settings/Settings.dart';
+import '../../Globals/Globals.dart';
+import '../../Jobs/Job.dart';
+import '../../Profile/Profile.dart';
+import '../../Settings/Settings.dart';
 
 /*  Parameters
       appBarTitle: Double for the title of the app bar
