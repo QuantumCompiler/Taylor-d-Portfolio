@@ -1,9 +1,9 @@
 // Imports
 import 'package:flutter/material.dart';
-import '../Globals/Globals.dart';
-import '../Jobs/JobsUtils.dart';
-import '../Profile/ProfileUtils.dart';
-import '../Themes/Themes.dart';
+import '../../Globals/Globals.dart';
+import '../../Jobs/Utilities/JobUtils.dart';
+import '../../Profile/Utilities/ProfileUtils.dart';
+import '../../Themes/Themes.dart';
 
 /* Parameters
     settingsTileContainerWidth: Double for width of the settings tile container
