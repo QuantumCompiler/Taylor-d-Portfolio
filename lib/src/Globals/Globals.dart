@@ -191,13 +191,6 @@ String profileRefFile = 'references.txt';
 String profileSkillsFile = 'skills.txt';
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Settings Parameters
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-double settingsTileContainerWidth = 0.6;
-String settingsCurrentTheme = 'Switch Theme';
-String settingsDeleteAllProfiles = 'Delete All Profiles';
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Size Box Parameters
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 double standardSizedBoxHeight = 20;
