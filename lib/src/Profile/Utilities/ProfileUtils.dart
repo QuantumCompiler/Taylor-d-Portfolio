@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../Globals/ProfileGlobals.dart';
 import '../../Globals/Globals.dart';
 import '../../Themes/Themes.dart';
 
@@ -18,17 +19,17 @@ class Profile {
   late File honFile;
   late File projFile;
   late File refFile;
-  late File skillsFile;
+  late File skiFile;
 
   // Main Titles & Name
-  late String educationTitle;
-  late String experienceTitle;
-  late String extracurricularTitle;
-  late String honorsTitle;
+  late String eduTitle;
+  late String expTitle;
+  late String extTitle;
+  late String honTitle;
   late String name;
-  late String projectsTitle;
-  late String referencesTitle;
-  late String skillsTitle;
+  late String projTitle;
+  late String refTitle;
+  late String skiTitle;
 
   // Contents
   late String education;
@@ -51,13 +52,13 @@ class Profile {
 
   // Constructor
   Profile({this.name = ''}) {
-    educationTitle = profileEduTitle;
-    experienceTitle = profileExpTitle;
-    extracurricularTitle = profileExtTitle;
-    honorsTitle = profileHonTitle;
-    projectsTitle = profileProjTitle;
-    referencesTitle = profileRefTitle;
-    skillsTitle = profileSkillsTitle;
+    eduTitle = educationTitle;
+    expTitle = experienceTitle;
+    extTitle = extracurricularTitle;
+    honTitle = honorsTitle;
+    projTitle = projectsTitle;
+    refTitle = referencesTitle;
+    skiTitle = skillsTitle;
     eduCont = TextEditingController();
     expCont = TextEditingController();
     extCont = TextEditingController();
@@ -82,13 +83,13 @@ class Profile {
     if (currProf.existsSync()) {
       nameCont.text = name;
     }
-    eduFile = File('${currProf.path}/$profileEduFile');
-    expFile = File('${currProf.path}/$profileExpFile');
-    extFile = File('${currProf.path}/$profileExtFile');
-    honFile = File('${currProf.path}/$profileHonFile');
-    projFile = File('${currProf.path}/$profileProjFile');
-    refFile = File('${currProf.path}/$profileRefFile');
-    skillsFile = File('${currProf.path}/$profileSkillsFile');
+    eduFile = File('${currProf.path}/$educationFile');
+    expFile = File('${currProf.path}/$experienceFile');
+    extFile = File('${currProf.path}/$extracurricularFile');
+    honFile = File('${currProf.path}/$honorsFile');
+    projFile = File('${currProf.path}/$projectsFile');
+    refFile = File('${currProf.path}/$referencesFile');
+    skiFile = File('${currProf.path}/$skillsFile');
     if (await eduFile.exists()) {
       education = await eduFile.readAsString();
       eduCont.text = education;
@@ -113,8 +114,8 @@ class Profile {
       references = await refFile.readAsString();
       refCont.text = references;
     }
-    if (await skillsFile.exists()) {
-      skills = await skillsFile.readAsString();
+    if (await skiFile.exists()) {
+      skills = await skiFile.readAsString();
       skillsCont.text = skills;
     }
   }
@@ -139,20 +140,20 @@ class Profile {
       await newDir.create();
     }
     name = newName;
-    eduFile = File('${newDir.path}/$profileEduFile');
-    expFile = File('${newDir.path}/$profileExpFile');
-    extFile = File('${newDir.path}/$profileExtFile');
-    honFile = File('${newDir.path}/$profileHonFile');
-    projFile = File('${newDir.path}/$profileProjFile');
-    refFile = File('${newDir.path}/$profileRefFile');
-    skillsFile = File('${newDir.path}/$profileSkillsFile');
+    eduFile = File('${newDir.path}/$educationFile');
+    expFile = File('${newDir.path}/$experienceFile');
+    extFile = File('${newDir.path}/$extracurricularFile');
+    honFile = File('${newDir.path}/$honorsFile');
+    projFile = File('${newDir.path}/$projectsFile');
+    refFile = File('${newDir.path}/$referencesFile');
+    skiFile = File('${newDir.path}/$skillsFile');
     WriteFile(dir, eduFile, eduCont.text);
     WriteFile(dir, expFile, expCont.text);
     WriteFile(dir, extFile, extCont.text);
     WriteFile(dir, honFile, honCont.text);
     WriteFile(dir, projFile, projCont.text);
     WriteFile(dir, refFile, refCont.text);
-    WriteFile(dir, skillsFile, skillsCont.text);
+    WriteFile(dir, skiFile, skillsCont.text);
   }
 
   // Set Profile Directory
@@ -165,20 +166,20 @@ class Profile {
   Future<void> setWriteNewFiles() async {
     final dir = await profsDir;
     final currDir = Directory('${dir.path}/$name');
-    eduFile = File('${currDir.path}/$profileEduFile');
-    expFile = File('${currDir.path}/$profileExpFile');
-    extFile = File('${currDir.path}/$profileExtFile');
-    honFile = File('${currDir.path}/$profileHonFile');
-    projFile = File('${currDir.path}/$profileProjFile');
-    refFile = File('${currDir.path}/$profileRefFile');
-    skillsFile = File('${currDir.path}/$profileSkillsFile');
+    eduFile = File('${currDir.path}/$educationFile');
+    expFile = File('${currDir.path}/$experienceFile');
+    extFile = File('${currDir.path}/$extracurricularFile');
+    honFile = File('${currDir.path}/$honorsFile');
+    projFile = File('${currDir.path}/$projectsFile');
+    refFile = File('${currDir.path}/$referencesFile');
+    skiFile = File('${currDir.path}/$skillsFile');
     WriteFile(dir, eduFile, eduCont.text);
     WriteFile(dir, expFile, expCont.text);
     WriteFile(dir, extFile, extCont.text);
     WriteFile(dir, honFile, honCont.text);
     WriteFile(dir, projFile, projCont.text);
     WriteFile(dir, refFile, refCont.text);
-    WriteFile(dir, skillsFile, skillsCont.text);
+    WriteFile(dir, skiFile, skillsCont.text);
   }
 }
 

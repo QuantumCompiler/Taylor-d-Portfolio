@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../Globals/Globals.dart';
+import '../Globals/ProfileGlobals.dart';
 import '../Load/LoadProfile.dart';
 import '../New/NewProfile.dart';
+import '../../Globals/Globals.dart';
 
 /*  appBar - AppBar for the profile page
       Constructor:
@@ -54,7 +55,7 @@ Center profileContent(BuildContext context) {
           SizedBox(height: standardSizedBoxHeight),
           ListTile(
             title: Text(
-              profileCreateNew,
+              createNewProfilePrompt,
             ),
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => NewProfilePage()));
@@ -62,7 +63,7 @@ Center profileContent(BuildContext context) {
           ),
           ListTile(
             title: Text(
-              profileLoad,
+              loadProfilesTitle,
             ),
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => LoadProfilePage()));
