@@ -29,12 +29,6 @@ Color blackTextColor = Colors.black;
 Color whiteTextColor = Colors.white;
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Dashboard Card Title Parameters
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-String resumesGenTitle = 'Resumes Generated';
-String coverLettersGenTitle = 'Cover Letters Generated';
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Directories
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 // Directory Names
@@ -97,16 +91,6 @@ Future<void> CreateJobsDir() async {
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Documents Generated
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-int resumesGenerated = 0;
-int coverLettersGenerated = 0;
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Drawer Parameters
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Files
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 Future<void> WriteFile(Directory dir, File file, String contents) async {
@@ -145,40 +129,6 @@ String jobsRoleFile = 'role.txt';
 String jobsTasksFile = 'tasks.txt';
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Profile Parameters
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-// Sizes
-double profileTileContainerWidth = 0.6;
-double profileTitleSize = 24.0;
-double profileContainerWidth = 0.8;
-// Titles & Hints
-String profileCreateNew = 'Create New Profile';
-String profileLoad = 'Load Profiles';
-String profileEduTitle = 'Education';
-String profileEduHint = 'Enter education here.';
-String profileExpTitle = 'Experience';
-String profileExpHint = 'Enter experience here.';
-String profileExtTitle = 'Extracurricular';
-String profileExtHint = 'Enter extracurricular here.';
-String profileHonTitle = 'Honors';
-String profileHonHint = 'Enter honors here.';
-String profileNameTitle = 'Profile Name';
-String profileProjTitle = 'Projects';
-String profileProjHint = 'Enter projects here.';
-String profileRefTitle = 'References';
-String profileRefHint = 'Enter references here.';
-String profileSkillsTitle = 'Skills';
-String profileSkillsHint = 'Enter skills here.';
-// File Names
-String profileEduFile = 'education.txt';
-String profileExpFile = 'experience.txt';
-String profileExtFile = 'extracurricular.txt';
-String profileHonFile = 'honors.txt';
-String profileProjFile = 'projects.txt';
-String profileRefFile = 'references.txt';
-String profileSkillsFile = 'skills.txt';
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Size Box Parameters
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 double standardSizedBoxHeight = 20;
@@ -194,4 +144,4 @@ double secondaryTitles = 16.0;
 //  Title Parameters
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 String jobsTitle = 'Jobs';
-String profileTitle = 'Profile';
+
