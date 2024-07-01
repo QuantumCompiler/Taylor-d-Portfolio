@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../Globals/JobsGlobals.dart';
 import '../../Globals/Globals.dart';
 import '../../Themes/Themes.dart';
 
@@ -12,20 +13,20 @@ class Job {
 
   // Files
   late File desFile;
-  late File otherFile;
+  late File othFile;
   late File posFile;
-  late File qualsFile;
+  late File qualFile;
   late File roleFile;
-  late File tasksFile;
+  late File taskFile;
 
   // Main Titles & Name
-  late String descriptionTitle;
+  late String desTitle;
   late String name;
-  late String otherTitle;
-  late String positionTitle;
-  late String qualsTitle;
-  late String roleInfoTitle;
-  late String tasksTitle;
+  late String othTitle;
+  late String posTitle;
+  late String qualTitle;
+  late String roleTitle;
+  late String taskTitle;
 
   // Contents
   late String description;
@@ -46,12 +47,12 @@ class Job {
 
   // Constructor
   Job({this.name = ''}) {
-    descriptionTitle = jobsDesTitle;
-    otherTitle = jobsOtherTitle;
-    positionTitle = jobsPosTitle;
-    qualsTitle = jobsQualsTitle;
-    roleInfoTitle = jobsRoleTitle;
-    tasksTitle = jobsTasksTitle;
+    desTitle = descriptionTitle;
+    othTitle = otherTitle;
+    posTitle = positionTitle;
+    qualTitle = qualificationsTitle;
+    roleTitle = roleInfoTitle;
+    taskTitle = tasksTitle;
     desCont = TextEditingController();
     nameCont = TextEditingController();
     otherCont = TextEditingController();
@@ -75,34 +76,34 @@ class Job {
     if (currJob.existsSync()) {
       nameCont.text = name;
     }
-    desFile = File('${currJob.path}/$jobsDesFile');
-    otherFile = File('${currJob.path}/$jobsOtherFile');
-    posFile = File('${currJob.path}/$jobsPosFile');
-    qualsFile = File('${currJob.path}/$jobsQualsFile');
-    roleFile = File('${currJob.path}/$jobsRoleFile');
-    tasksFile = File('${currJob.path}/$jobsTasksFile');
+    desFile = File('${currJob.path}/$descriptionFile');
+    othFile = File('${currJob.path}/$otherFile');
+    posFile = File('${currJob.path}/$positionFile');
+    qualFile = File('${currJob.path}/$qualificationsFile');
+    roleFile = File('${currJob.path}/$roleInfoFile');
+    taskFile = File('${currJob.path}/$tasksFile');
     if (await desFile.existsSync()) {
       description = await desFile.readAsString();
       desCont.text = description;
     }
-    if (await otherFile.existsSync()) {
-      other = await otherFile.readAsString();
+    if (await othFile.existsSync()) {
+      other = await othFile.readAsString();
       otherCont.text = other;
     }
     if (await posFile.existsSync()) {
       position = await posFile.readAsString();
       posCont.text = position;
     }
-    if (await qualsFile.existsSync()) {
-      quals = await qualsFile.readAsString();
+    if (await qualFile.existsSync()) {
+      quals = await qualFile.readAsString();
       qualsCont.text = quals;
     }
     if (await roleFile.existsSync()) {
       roleInfo = await roleFile.readAsString();
       roleCont.text = roleInfo;
     }
-    if (await tasksFile.existsSync()) {
-      tasks = await tasksFile.readAsString();
+    if (await taskFile.existsSync()) {
+      tasks = await taskFile.readAsString();
       tasksCont.text = tasks;
     }
   }
@@ -127,18 +128,18 @@ class Job {
       await newDir.create();
     }
     name = newName;
-    desFile = File('${newDir.path}/$jobsDesFile');
-    otherFile = File('${newDir.path}/$jobsOtherFile');
-    posFile = File('${newDir.path}/$jobsPosFile');
-    qualsFile = File('${newDir.path}/$jobsQualsFile');
-    roleFile = File('${newDir.path}/$jobsRoleFile');
-    tasksFile = File('${newDir.path}/$jobsTasksFile');
+    desFile = File('${newDir.path}/$descriptionFile');
+    othFile = File('${newDir.path}/$otherFile');
+    posFile = File('${newDir.path}/$positionFile');
+    qualFile = File('${newDir.path}/$qualificationsFile');
+    roleFile = File('${newDir.path}/$roleInfoFile');
+    taskFile = File('${newDir.path}/$tasksFile');
     WriteFile(dir, desFile, desCont.text);
-    WriteFile(dir, otherFile, otherCont.text);
+    WriteFile(dir, othFile, otherCont.text);
     WriteFile(dir, posFile, posCont.text);
-    WriteFile(dir, qualsFile, qualsCont.text);
+    WriteFile(dir, qualFile, qualsCont.text);
     WriteFile(dir, roleFile, roleCont.text);
-    WriteFile(dir, tasksFile, tasksCont.text);
+    WriteFile(dir, taskFile, tasksCont.text);
   }
 
   // Set Job Directory
@@ -151,18 +152,18 @@ class Job {
   Future<void> setWriteNewFiles() async {
     final dir = await jobsDir;
     final currDir = Directory('${dir.path}/$name');
-    desFile = File('${currDir.path}/$jobsDesFile');
-    otherFile = File('${currDir.path}/$jobsOtherFile');
-    posFile = File('${currDir.path}/$jobsPosFile');
-    qualsFile = File('${currDir.path}/$jobsQualsFile');
-    roleFile = File('${currDir.path}/$jobsRoleFile');
-    tasksFile = File('${currDir.path}/$jobsTasksFile');
+    desFile = File('${currDir.path}/$descriptionFile');
+    othFile = File('${currDir.path}/$otherFile');
+    posFile = File('${currDir.path}/$positionFile');
+    qualFile = File('${currDir.path}/$qualificationsFile');
+    roleFile = File('${currDir.path}/$roleInfoFile');
+    taskFile = File('${currDir.path}/$tasksFile');
     WriteFile(dir, desFile, desCont.text);
-    WriteFile(dir, otherFile, otherCont.text);
+    WriteFile(dir, othFile, otherCont.text);
     WriteFile(dir, posFile, posCont.text);
-    WriteFile(dir, qualsFile, qualsCont.text);
+    WriteFile(dir, qualFile, qualsCont.text);
     WriteFile(dir, roleFile, roleCont.text);
-    WriteFile(dir, tasksFile, tasksCont.text);
+    WriteFile(dir, taskFile, tasksCont.text);
   }
 }
 

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../Globals/Globals.dart';
+import '../Globals/JobsGlobals.dart';
 import '../Load/LoadJob.dart';
 import '../New/NewJob.dart';
+import '../../Globals/Globals.dart';
 
 /*  appBar - AppBar for the jobs page
       Constructor:
@@ -54,7 +55,7 @@ Center jobsContent(BuildContext context) {
           SizedBox(height: standardSizedBoxHeight),
           ListTile(
             title: Text(
-              jobsCreateNew,
+              createNewJob,
             ),
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => NewJobPage()));
@@ -62,7 +63,7 @@ Center jobsContent(BuildContext context) {
           ),
           ListTile(
             title: Text(
-              jobsLoad,
+              loadJobs,
             ),
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => LoadJobPage()));
