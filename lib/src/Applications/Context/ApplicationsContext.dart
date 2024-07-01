@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// import '../API Test/API.dart';
 import '../New/NewApplication.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../../Globals/Globals.dart';
@@ -43,14 +42,6 @@ Center applicationsContent(BuildContext context) {
               Navigator.push(context, MaterialPageRoute(builder: (context) => NewApplicationPage()));
             },
           ),
-          // ListTile(
-          //   title: Text(
-          //     'Test OpenAI API',
-          //   ),
-          //   onTap: () {
-          //     Navigator.push(context, MaterialPageRoute(builder: (context) => EinsteinQuoteGenerator()));
-          //   },
-          // ),
         ],
       ),
     ),
