@@ -27,6 +27,7 @@ double singleCardWidthBox = 0.05;
 int resumesGenerated = 0;
 int coverLettersGenerated = 0;
 // Strings
+String applicationToolTip = 'Applications';
 String coverLettersGenTitle = 'Cover Letters Generated';
 String dashboardTitle = 'Dashboard';
 String dashboardToolTip = 'Dashboard';

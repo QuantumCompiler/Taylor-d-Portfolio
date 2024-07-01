@@ -259,6 +259,12 @@ SizedBox desktopDrawer(BuildContext context) {
             ),
             Spacer(),
             IconButton(
+              tooltip: applicationToolTip,
+              onPressed: () => {},
+              icon: Icon(Icons.library_add),
+            ),
+            Spacer(),
+            IconButton(
               tooltip: settingsToolTip,
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
