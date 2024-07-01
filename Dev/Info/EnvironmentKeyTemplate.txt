@@ -1,1 +1,1 @@
-OPENAI_API_KEY="Nice Try ')"
+OPENAI_API_KEY="Nice Try ;)"
