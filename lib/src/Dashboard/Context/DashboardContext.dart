@@ -244,11 +244,11 @@ SizedBox desktopDrawer(BuildContext context) {
             ),
             Spacer(),
             IconButton(
-              tooltip: profileToolTip,
+              tooltip: applicationToolTip,
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => ApplicationsPage()));
               },
-              icon: Icon(Icons.person),
+              icon: Icon(Icons.library_add),
             ),
             Spacer(),
             IconButton(
@@ -260,11 +260,11 @@ SizedBox desktopDrawer(BuildContext context) {
             ),
             Spacer(),
             IconButton(
-              tooltip: applicationToolTip,
+              tooltip: profileToolTip,
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => ApplicationsPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
               },
-              icon: Icon(Icons.library_add),
+              icon: Icon(Icons.person),
             ),
             Spacer(),
             IconButton(
@@ -308,10 +308,11 @@ BottomAppBar mobileNavbar(BuildContext context) {
         ),
         Spacer(),
         IconButton(
+          tooltip: applicationToolTip,
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ApplicationsPage()));
           },
-          icon: Icon(Icons.person),
+          icon: Icon(Icons.library_add),
         ),
         Spacer(),
         IconButton(
@@ -322,11 +323,10 @@ BottomAppBar mobileNavbar(BuildContext context) {
         ),
         Spacer(),
         IconButton(
-          tooltip: applicationToolTip,
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ApplicationsPage()));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
           },
-          icon: Icon(Icons.library_add),
+          icon: Icon(Icons.person),
         ),
         Spacer(),
         IconButton(
