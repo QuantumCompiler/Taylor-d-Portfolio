@@ -37,12 +37,39 @@ AppBar appBar(BuildContext context) {
   );
 }
 
-SingleChildScrollView newApplicationContent(BuildContext context) {
-  return SingleChildScrollView(
-    child: Column(
+BottomAppBar bottomAppBar(BuildContext context) {
+  return BottomAppBar(
+    color: Colors.transparent,
+    child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: <Widget>[],
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          onPressed: () => {},
+          child: Text(
+            'Clear',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(width: standardSizedBoxWidth),
+        ElevatedButton(
+          onPressed: () => {},
+          child: Text(
+            'Generate Application',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(width: standardSizedBoxWidth),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: Text(
+            'Cancel',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
     ),
   );
 }
