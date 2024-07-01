@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../Globals/SettingsGlobals.dart';
 import '../../Globals/Globals.dart';
 import '../../Jobs/Utilities/JobUtils.dart';
-import '../../Profile/Utilities/ProfileUtils.dart';
+import '../../Profiles/Utilities/ProfilesUtils.dart';
 import '../../Themes/Themes.dart';
 
 /*  appBar - App bar for the settings page
