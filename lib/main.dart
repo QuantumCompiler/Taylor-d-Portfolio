@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'src/Dashboard/Dashboard.dart';
 import 'src/Globals/Globals.dart';
 import 'src/Themes/Themes.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
+  CreateJobsDir();
+  CreateProfileDir();
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
@@ -17,8 +22,6 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
-    CreateJobsDir();
-    CreateProfileDir();
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
