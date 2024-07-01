@@ -146,8 +146,8 @@ Center loadProfileContent(BuildContext context, final profiles, Function state) 
                                     SizedBox(width: standardSizedBoxWidth),
                                     ElevatedButton(
                                       child: Text(deleteButton),
-                                      onPressed: () {
-                                        DeleteProfile(profiles[index].path.split('/').last);
+                                      onPressed: () async {
+                                        await DeleteProfile(profiles[index].path.split('/').last);
                                         Navigator.of(context).pop();
                                         state(() {});
                                       },

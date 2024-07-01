@@ -103,16 +103,16 @@ BottomAppBar bottomAppBar(BuildContext context, Profile newProfile) {
       children: <Widget>[
         // Save Profile
         if (isDesktop()) ...[
-          desktopButton(context, newProfile),
+          desktopRender(context, newProfile),
         ] else if (isMobile()) ...[
-          mobileIconButton(context, newProfile),
+          mobileRender(context, newProfile),
         ]
       ],
     ),
   );
 }
 
-/*  desktopButton - ElevatedButton for the desktop version of the new profile page
+/*  desktopRender - ElevatedButton for the desktop version of the new profile page
       Input:
         context: BuildContext of the page
         newProfile: Profile object of the new profile
@@ -122,14 +122,12 @@ BottomAppBar bottomAppBar(BuildContext context, Profile newProfile) {
       Output:
         Returns an ElevatedButton
 */
-ElevatedButton desktopButton(BuildContext context, Profile newProfile) {
+ElevatedButton desktopRender(BuildContext context, Profile newProfile) {
   return ElevatedButton(
     onPressed: () async {
-      // Show Dialog
       await showDialog(
         context: context,
         builder: (context) {
-          // Alert Dialog
           return AlertDialog(
             title: Text(
               enterProfileNamePrompt,
@@ -143,54 +141,7 @@ ElevatedButton desktopButton(BuildContext context, Profile newProfile) {
               decoration: InputDecoration(hintText: profileNameHint),
             ),
             actions: <Widget>[
-              // Row
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  ElevatedButton(
-                    child: Text(cancelButton),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  SizedBox(width: 20),
-                  ElevatedButton(
-                    child: Text(saveButton),
-                    onPressed: () async {
-                      final dir = await newProfile.profsDir;
-                      final currDir = Directory('${dir.path}/${newProfile.nameCont.text}');
-                      if (!currDir.existsSync()) {
-                        newProfile.CreateNewProfile(newProfile.nameCont.text);
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                      } else {
-                        Navigator.of(context).pop();
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: Text(
-                                profileAlreadyExists,
-                                style: TextStyle(
-                                  fontSize: appBarTitle,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              content: Text(
-                                chooseDifferentName,
-                                textAlign: TextAlign.center,
-                              ),
-                            );
-                          },
-                        );
-                        newProfile.nameCont.text = '';
-                      }
-                    },
-                  ),
-                ],
-              ),
+              desktopRow(context, newProfile),
             ],
           );
         },
@@ -200,7 +151,49 @@ ElevatedButton desktopButton(BuildContext context, Profile newProfile) {
   );
 }
 
-/*  mobileIconButton - IconButton for the mobile version of the new profile page
+/*  desktopRow - Row for the desktop version of the new profile page
+      Input:
+        context: BuildContext of the page
+        newProfile: Profile object of the new profile
+      Algorithm:
+          * Create two ElevatedButtons for the desktop version of the new profile page
+          * Modify the behavior of the ElevatedButtons based on the platform
+      Output:
+        Returns a Row for the desktop version of the new profile page
+*/
+Row desktopRow(BuildContext context, Profile newProfile) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: <Widget>[
+      ElevatedButton(
+        child: Text(cancelButton),
+        onPressed: () {
+          Navigator.of(context).pop();
+        },
+      ),
+      SizedBox(width: 20),
+      ElevatedButton(
+        child: Text(saveButton),
+        onPressed: () async {
+          final dir = await newProfile.profsDir;
+          final currDir = Directory('${dir.path}/${newProfile.nameCont.text}');
+          if (!currDir.existsSync()) {
+            newProfile.CreateNewProfile(newProfile.nameCont.text);
+            Navigator.of(context).pop();
+            Navigator.of(context).pop();
+          } else {
+            Navigator.of(context).pop();
+            profileAlreadyExist(context);
+            newProfile.nameCont.text = '';
+          }
+        },
+      ),
+    ],
+  );
+}
+
+/*  mobileRender - IconButton for the mobile version of the new profile page
       Input:
         context: BuildContext of the page
         newProfile: Profile object of the new profile
@@ -210,14 +203,12 @@ ElevatedButton desktopButton(BuildContext context, Profile newProfile) {
       Output:
         Returns an IconButton
 */
-IconButton mobileIconButton(BuildContext context, Profile newProfile) {
+IconButton mobileRender(BuildContext context, Profile newProfile) {
   return IconButton(
     onPressed: () async {
-      // Show Dialog
       await showDialog(
         context: context,
         builder: (context) {
-          // Alert Dialog
           return AlertDialog(
             title: Text(
               enterProfileNamePrompt,
@@ -231,59 +222,84 @@ IconButton mobileIconButton(BuildContext context, Profile newProfile) {
               decoration: InputDecoration(hintText: profileNameHint),
             ),
             actions: <Widget>[
-              // Row
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  IconButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    icon: Icon(Icons.cancel),
-                  ),
-                  SizedBox(width: 20),
-                  IconButton(
-                    icon: Icon(Icons.save),
-                    onPressed: () async {
-                      final dir = await newProfile.profsDir;
-                      final currDir = Directory('${dir.path}/${newProfile.nameCont.text}');
-                      if (!currDir.existsSync()) {
-                        newProfile.CreateNewProfile(newProfile.nameCont.text);
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                      } else {
-                        Navigator.of(context).pop();
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: Text(
-                                profileAlreadyExists,
-                                style: TextStyle(
-                                  fontSize: appBarTitle,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              content: Text(
-                                chooseDifferentName,
-                                textAlign: TextAlign.center,
-                              ),
-                            );
-                          },
-                        );
-                        newProfile.nameCont.text = '';
-                      }
-                    },
-                  ),
-                ],
-              ),
+              mobileButtons(context, newProfile),
             ],
           );
         },
       );
     },
     icon: Icon(Icons.save),
+  );
+}
+
+/*  mobileButtons - Row for the mobile version of the new profile page
+      Input:
+        context: BuildContext of the page
+        newProfile: Profile object of the new profile
+      Algorithm:
+          * Create two IconButtons for the mobile version of the new profile page
+          * Modify the behavior of the IconButtons based on the platform
+      Output:
+        Returns a Row for the mobile version of the new profile page
+*/
+Row mobileButtons(BuildContext context, Profile newProfile) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: <Widget>[
+      IconButton(
+        onPressed: () {
+          Navigator.of(context).pop();
+        },
+        icon: Icon(Icons.cancel),
+      ),
+      SizedBox(width: 20),
+      IconButton(
+        icon: Icon(Icons.save),
+        onPressed: () async {
+          final dir = await newProfile.profsDir;
+          final currDir = Directory('${dir.path}/${newProfile.nameCont.text}');
+          if (!currDir.existsSync()) {
+            newProfile.CreateNewProfile(newProfile.nameCont.text);
+            Navigator.of(context).pop();
+            Navigator.of(context).pop();
+          } else {
+            Navigator.of(context).pop();
+            profileAlreadyExist(context);
+            newProfile.nameCont.text = '';
+          }
+        },
+      ),
+    ],
+  );
+}
+
+/*  profileAlreadyExist - AlertDialog for when the profile already exists
+      Input:
+        context: BuildContext of the page
+      Algorithm:
+          * Show an AlertDialog to inform the user that the profile already exists
+      Output:
+        Returns an AlertDialog
+*/
+Future<dynamic> profileAlreadyExist(BuildContext context) async {
+  return showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text(
+          profileAlreadyExists,
+          style: TextStyle(
+            fontSize: appBarTitle,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          chooseDifferentName,
+          textAlign: TextAlign.center,
+        ),
+      );
+    },
   );
 }
