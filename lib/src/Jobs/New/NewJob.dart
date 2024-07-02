@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'Context/NewJobContext.dart';
+import '../Context/NewJobContext.dart';
 import '../Utilities/JobUtils.dart';
 
 class NewJobPage extends StatelessWidget {

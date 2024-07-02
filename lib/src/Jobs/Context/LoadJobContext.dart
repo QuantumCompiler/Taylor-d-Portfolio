@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../Edit/EditJob.dart';
-import '../../Globals/JobsGlobals.dart';
-import '../../Utilities/JobUtils.dart';
-import '../../../Globals/Globals.dart';
+import '../Edit/EditJob.dart';
+import '../Globals/JobsGlobals.dart';
+import '../Utilities/JobUtils.dart';
+import '../../Globals/Globals.dart';
 
 /*  appBar - AppBar for the load jobs page
       Input:
