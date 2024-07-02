@@ -120,26 +120,24 @@ class Job {
     final dir = await jobsDir;
     final newName = nameCont.text;
     final oldDir = Directory('${dir.path}/$name');
+    final existing = Directory('${dir.path}/$newName');
     Directory newDir;
-    if (await oldDir.existsSync()) {
+    if (oldDir.existsSync() && !existing.existsSync()) {
       newDir = await oldDir.rename('${dir.path}/$newName');
-    } else {
-      newDir = Directory('${dir.path}/$newName');
-      await newDir.create();
+      name = newName;
+      desFile = File('${newDir.path}/$descriptionFile');
+      othFile = File('${newDir.path}/$otherFile');
+      posFile = File('${newDir.path}/$positionFile');
+      qualFile = File('${newDir.path}/$qualificationsFile');
+      roleFile = File('${newDir.path}/$roleInfoFile');
+      taskFile = File('${newDir.path}/$tasksFile');
+      WriteFile(dir, desFile, desCont.text);
+      WriteFile(dir, othFile, otherCont.text);
+      WriteFile(dir, posFile, posCont.text);
+      WriteFile(dir, qualFile, qualsCont.text);
+      WriteFile(dir, roleFile, roleCont.text);
+      WriteFile(dir, taskFile, tasksCont.text);
     }
-    name = newName;
-    desFile = File('${newDir.path}/$descriptionFile');
-    othFile = File('${newDir.path}/$otherFile');
-    posFile = File('${newDir.path}/$positionFile');
-    qualFile = File('${newDir.path}/$qualificationsFile');
-    roleFile = File('${newDir.path}/$roleInfoFile');
-    taskFile = File('${newDir.path}/$tasksFile');
-    WriteFile(dir, desFile, desCont.text);
-    WriteFile(dir, othFile, otherCont.text);
-    WriteFile(dir, posFile, posCont.text);
-    WriteFile(dir, qualFile, qualsCont.text);
-    WriteFile(dir, roleFile, roleCont.text);
-    WriteFile(dir, taskFile, tasksCont.text);
   }
 
   // Set Job Directory
