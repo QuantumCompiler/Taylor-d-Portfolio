@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'Context/JobContext.dart';
+import '../Context/JobContext.dart';
 
 class JobsPage extends StatelessWidget {
   const JobsPage({super.key});
