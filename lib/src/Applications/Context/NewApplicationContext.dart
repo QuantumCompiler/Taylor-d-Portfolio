@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Utilities/ApplicationsUtils.dart';
+// import '../../Jobs/Edit/EditJob.dart';
 import '../../Globals/Globals.dart';
 import '../../Themes/Themes.dart';
 
@@ -38,7 +39,97 @@ AppBar appBar(BuildContext context) {
   );
 }
 
-BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, VoidCallback func) {
+SingleChildScrollView loadContent(BuildContext context, ApplicationContent content, Function state) {
+  return SingleChildScrollView(
+    child: Center(
+      child: Container(
+        width: MediaQuery.of(context).size.width * applicationsContainerWidth,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(height: standardSizedBoxHeight),
+            Text(
+              'Choose A Job To Apply To',
+              style: TextStyle(
+                color: themeTextColor(context),
+                fontSize: secondaryTitles,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: standardSizedBoxHeight),
+            Container(
+              width: MediaQuery.of(context).size.width * 0.8,
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: ListView.builder(
+                itemCount: content.jobs.length,
+                itemBuilder: (context, index) {
+                  return StatefulBuilder(
+                    builder: (BuildContext context, StateSetter setState) {
+                      final jobName = content.jobs[index].path.split('/').last;
+                      return MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: ListTile(
+                          title: Text(jobName),
+                          trailing: Checkbox(
+                            value: content.checkedProfiles.contains(jobName),
+                            onChanged: (bool? value) {
+                              content.updateBoxes(content.allProfiles, content.checkedProfiles, jobName, value, setState);
+                            },
+                          ),
+                          onTap: () => {},
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: standardSizedBoxHeight),
+            Text(
+              'Choose A Profile To Apply With',
+              style: TextStyle(
+                color: themeTextColor(context),
+                fontSize: secondaryTitles,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: standardSizedBoxHeight),
+            Container(
+              width: MediaQuery.of(context).size.width * 0.8,
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: ListView.builder(
+                itemCount: content.profiles.length,
+                itemBuilder: (context, index) {
+                  return StatefulBuilder(
+                    builder: (BuildContext context, StateSetter setState) {
+                      final jobName = content.profiles[index].path.split('/').last;
+                      return MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: ListTile(
+                          title: Text(jobName),
+                          trailing: Checkbox(
+                            value: content.checkedJobs.contains(jobName),
+                            onChanged: (bool? value) {
+                              content.updateBoxes(content.allJobs, content.checkedJobs, jobName, value, setState);
+                            },
+                          ),
+                          onTap: () => {},
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Function state) {
   return BottomAppBar(
     color: Colors.transparent,
     child: Row(
@@ -46,7 +137,9 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Void
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         ElevatedButton(
-          onPressed: func,
+          onPressed: () {
+            content.clearBoxes(content.checkedJobs, content.checkedProfiles, state);
+          },
           child: Text(
             'Clear',
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -54,9 +147,8 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Void
         ),
         SizedBox(width: standardSizedBoxWidth),
         ElevatedButton(
-          onPressed: () {
-            bool valid = verifyValidInput(content);
-            print(valid);
+          onPressed: () => {
+            // bool isValid = content.verifyBoxes();
           },
           child: Text(
             'Generate Application',

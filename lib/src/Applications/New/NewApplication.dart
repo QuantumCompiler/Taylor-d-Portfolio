@@ -21,29 +21,6 @@ class NewApplicationPageState extends State<NewApplicationPage> {
     futureData = Future.wait([RetrieveSortedJobs(), RetrieveSortedProfiles()]);
   }
 
-  void clearInputs() {
-    setState(() {
-      content.checkedJobs.updateAll((key, value) => false);
-      content.checkedProfiles.updateAll((key, value) => false);
-    });
-  }
-
-  Future<void> refreshData() async {
-    var newJobs = await RetrieveSortedJobs();
-    var newProfiles = await RetrieveSortedProfiles();
-
-    setState(() {
-      content.updateJobs(newJobs);
-      content.updateProfiles(newProfiles);
-    });
-  }
-
-  bool verifyValidInput(ApplicationContent content) {
-    bool jobValid = content.checkedJobs.values.contains(true);
-    bool profilesValid = content.checkedProfiles.values.contains(true);
-    return jobValid || profilesValid;
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<dynamic>>(
@@ -62,13 +39,13 @@ class NewApplicationPageState extends State<NewApplicationPage> {
           content = ApplicationContent(
             jobs: snapshot.data![0],
             profiles: snapshot.data![1],
-            checkedJobs: {},
-            checkedProfiles: {},
+            checkedJobs: [],
+            checkedProfiles: [],
           );
           return Scaffold(
             appBar: appBar(context),
-            body: ApplicationContentList(content: content, refreshData: refreshData),
-            bottomNavigationBar: bottomAppBar(context, content, clearInputs),
+            body: loadContent(context, content, setState),
+            bottomNavigationBar: bottomAppBar(context, content, setState),
           );
         } else {
           return Scaffold(
