@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../Themes/Themes.dart';
-import 'Context/SettingsContext.dart';
+import '../Context/SettingsContext.dart';
 
 /*  SettingsPage - Page for settings in the application
       Constructor:
