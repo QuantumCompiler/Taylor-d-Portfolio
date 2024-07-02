@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../Globals/ProfilesGlobals.dart';
-import '../../Utilities/ProfilesUtils.dart';
-import '../../../Globals/Globals.dart';
+import '../Globals/ProfilesGlobals.dart';
+import '../Utilities/ProfilesUtils.dart';
+import '../../Globals/Globals.dart';
 
 /*  appBar - AppBar for the edit profile page
       Input:

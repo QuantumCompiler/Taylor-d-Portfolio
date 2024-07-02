@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../Globals/ProfilesGlobals.dart';
-import '../../Utilities/ProfilesUtils.dart';
-import '../../../Globals/Globals.dart';
-import '../../../Themes/Themes.dart';
+import '../Globals/ProfilesGlobals.dart';
+import '../Utilities/ProfilesUtils.dart';
+import '../../Globals/Globals.dart';
+import '../../Themes/Themes.dart';
 
 /*  appBar - AppBar for the new profile page
       Input:

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'Context/EditProfilesContext.dart';
+import '../Context/EditProfilesContext.dart';
 import '../Utilities/ProfilesUtils.dart';
 
 class EditProfilePage extends StatelessWidget {
