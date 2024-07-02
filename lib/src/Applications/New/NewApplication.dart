@@ -28,12 +28,12 @@ class NewApplicationPageState extends State<NewApplicationPage> {
       builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
-            appBar: appBar(context),
+            appBar: appBar(context, setState),
             body: Center(child: CircularProgressIndicator()),
           );
         } else if (snapshot.hasError) {
           return Scaffold(
-            appBar: appBar(context),
+            appBar: appBar(context, setState),
           );
         } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
           content = ApplicationContent(
@@ -43,13 +43,13 @@ class NewApplicationPageState extends State<NewApplicationPage> {
             checkedProfiles: [],
           );
           return Scaffold(
-            appBar: appBar(context),
+            appBar: appBar(context, setState),
             body: loadContent(context, content, setState),
             bottomNavigationBar: bottomAppBar(context, content, setState),
           );
         } else {
           return Scaffold(
-            appBar: appBar(context),
+            appBar: appBar(context, setState),
           );
         }
       },

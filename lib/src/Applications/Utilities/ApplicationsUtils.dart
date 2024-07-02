@@ -1,5 +1,6 @@
 import 'dart:io';
-import 'package:path/path.dart' as p;
+import '../../Profiles/Utilities/ProfilesUtils.dart';
+import '../../Jobs/Utilities/JobUtils.dart';
 
 class ApplicationContent {
   List<Directory> jobs;
@@ -26,6 +27,23 @@ class ApplicationContent {
     });
   }
 
+  Future<void> refreshData() async {
+    jobs.clear();
+    allJobs.clear();
+    List<Directory> newJobs = await RetrieveSortedJobs();
+    List<String> newAllJobs = [];
+    for (int i = 0; i < newJobs.length; i++) {
+      newAllJobs.add(newJobs[i].path.split('/').last);
+    }
+    jobs = newJobs;
+    allJobs = newAllJobs;
+  }
+
+  // void updateData(List<Directory> newJobs, List<Directory> newProfiles) {
+  // updateJobs(newJobs);
+  // updateProfiles(newProfiles);
+  // }
+
   void updateBoxes(List<String> items, List<String> checks, String key, bool? value, Function setState) {
     setState(() {
       if (value == true && checks.isEmpty) {
@@ -36,31 +54,21 @@ class ApplicationContent {
     });
   }
 
+  void updateJobs(List<Directory> newJobs) async {
+    // newJobs = await RetrieveSortedJobs();
+    // print(newJobs);
+    // jobs = newJobs;
+    // allJobs = jobs.map((job) => job.path.split('/').last).toList();
+  }
+
+  // void updateProfiles(List<Directory> newProfiles) {
+  //   profiles = newProfiles;
+  //   allProfiles = profiles.map((profile) => profile.path.split('/').last).toList();
+  // }
+
   bool verifyBoxes() {
     bool jobsValid = checkedJobs.length == 1;
     bool profilesValid = checkedProfiles.length == 1;
     return jobsValid && profilesValid;
   }
-}
-
-bool isJob(ApplicationContent content, String name) {
-  for (int i = 0; i < content.jobs.length; i++) {
-    String jobPath = content.jobs[i].toString();
-    String jobName = p.basename(jobPath).trim().replaceAll("'", "");
-    if (jobName == name) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool isProfile(ApplicationContent content, String name) {
-  for (int i = 0; i < content.profiles.length; i++) {
-    String profilePath = content.profiles[i].toString();
-    String profileName = p.basename(profilePath).trim().replaceAll("'", "");
-    if (profileName == name) {
-      return true;
-    }
-  }
-  return false;
 }
