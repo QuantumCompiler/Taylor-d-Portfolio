@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'Context/NewApplicationContext.dart';
-import '../Content/ApplicationContent.dart';
+import '../Context/NewApplicationContext.dart';
 import '../Utilities/ApplicationsUtils.dart';
 import '../../Jobs/Utilities/JobUtils.dart';
 import '../../Profiles/Utilities/ProfilesUtils.dart';
