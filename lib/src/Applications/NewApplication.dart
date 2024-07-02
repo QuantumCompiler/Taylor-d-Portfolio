@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../Context/NewApplicationContext.dart';
 import '../Utilities/ApplicationsUtils.dart';
-import '../../Jobs/Utilities/JobUtils.dart';
-import '../../Profiles/Utilities/ProfilesUtils.dart';
+import '../Utilities/JobUtils.dart';
+import '../Utilities/ProfilesUtils.dart';
 
 class NewApplicationPage extends StatefulWidget {
   const NewApplicationPage({super.key});
