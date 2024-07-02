@@ -38,8 +38,8 @@ Center applicationsContent(BuildContext context) {
             title: Text(
               createNewApplicationTile,
             ),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => NewApplicationPage()));
+            onTap: () => {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => NewApplicationPage())),
             },
           ),
         ],
