@@ -12,44 +12,27 @@ class NewApplicationPage extends StatefulWidget {
 }
 
 class NewApplicationPageState extends State<NewApplicationPage> {
-  late Future<List<dynamic>> futureData;
-  late ApplicationContent content;
-
-  @override
-  void initState() {
-    super.initState();
-    futureData = Future.wait([RetrieveSortedJobs(), RetrieveSortedProfiles()]);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
-      future: futureData,
-      builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            appBar: appBar(context, setState),
-            body: Center(child: CircularProgressIndicator()),
-          );
-        } else if (snapshot.hasError) {
-          return Scaffold(
-            appBar: appBar(context, setState),
-          );
-        } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-          content = ApplicationContent(
-            jobs: snapshot.data![0],
-            profiles: snapshot.data![1],
-            checkedJobs: [],
-            checkedProfiles: [],
+    return FutureBuilder(
+      future: Future.wait([RetrieveSortedJobs(), RetrieveSortedProfiles()]),
+      builder: (BuildContext context, AsyncSnapshot<List<dynamic>> snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          final jobs = snapshot.data?[0] ?? [];
+          final profiles = snapshot.data?[1] ?? [];
+          ApplicationContent content = new ApplicationContent(
+            jobs: jobs,
+            profiles: profiles,
           );
           return Scaffold(
             appBar: appBar(context, setState),
-            body: loadContent(context, content, setState),
+            body: loadApplicationContent(context, content, setState),
             bottomNavigationBar: bottomAppBar(context, content, setState),
           );
         } else {
           return Scaffold(
             appBar: appBar(context, setState),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
       },
