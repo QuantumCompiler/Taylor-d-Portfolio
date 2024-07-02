@@ -132,28 +132,25 @@ class Profile {
     final dir = await profsDir;
     final newName = nameCont.text;
     final oldDir = Directory('${dir.path}/$name');
-    Directory newDir;
-    if (await oldDir.exists()) {
-      newDir = await oldDir.rename('${dir.path}/$newName');
-    } else {
-      newDir = Directory('${dir.path}/$newName');
-      await newDir.create();
+    final existing = Directory('${dir.path}/$newName');
+    if (oldDir.existsSync() && !existing.existsSync()) {
+      Directory newDir = await oldDir.rename('${dir.path}/$newName');
+      name = newName;
+      eduFile = File('${newDir.path}/$educationFile');
+      expFile = File('${newDir.path}/$experienceFile');
+      extFile = File('${newDir.path}/$extracurricularFile');
+      honFile = File('${newDir.path}/$honorsFile');
+      projFile = File('${newDir.path}/$projectsFile');
+      refFile = File('${newDir.path}/$referencesFile');
+      skiFile = File('${newDir.path}/$skillsFile');
+      WriteFile(dir, eduFile, eduCont.text);
+      WriteFile(dir, expFile, expCont.text);
+      WriteFile(dir, extFile, extCont.text);
+      WriteFile(dir, honFile, honCont.text);
+      WriteFile(dir, projFile, projCont.text);
+      WriteFile(dir, refFile, refCont.text);
+      WriteFile(dir, skiFile, skillsCont.text);
     }
-    name = newName;
-    eduFile = File('${newDir.path}/$educationFile');
-    expFile = File('${newDir.path}/$experienceFile');
-    extFile = File('${newDir.path}/$extracurricularFile');
-    honFile = File('${newDir.path}/$honorsFile');
-    projFile = File('${newDir.path}/$projectsFile');
-    refFile = File('${newDir.path}/$referencesFile');
-    skiFile = File('${newDir.path}/$skillsFile');
-    WriteFile(dir, eduFile, eduCont.text);
-    WriteFile(dir, expFile, expCont.text);
-    WriteFile(dir, extFile, extCont.text);
-    WriteFile(dir, honFile, honCont.text);
-    WriteFile(dir, projFile, projCont.text);
-    WriteFile(dir, refFile, refCont.text);
-    WriteFile(dir, skiFile, skillsCont.text);
   }
 
   // Set Profile Directory
