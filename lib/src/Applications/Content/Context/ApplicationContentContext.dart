@@ -1,25 +1,32 @@
 import 'package:flutter/material.dart';
-// import '../../Globals/ApplicationsGlobals.dart';
+import '../../Utilities/ApplicationsUtils.dart';
+import '../../../Dashboard/Dashboard.dart';
 import '../../../Globals/Globals.dart';
+import '../../../Jobs/Edit/EditJob.dart';
+import '../../../Profiles/Edit/EditProfile.dart';
 import '../../../Themes/Themes.dart';
 
-class JobListItem extends StatefulWidget {
-  final String jobName;
+class ApplicationListItem extends StatefulWidget {
+  final String name;
+  final ApplicationContent content;
   final bool isChecked;
   final Function(bool) onChanged;
+  final Function refreshData;
 
-  const JobListItem({
-    Key? key,
-    required this.jobName,
+  const ApplicationListItem({
+    super.key,
+    required this.name,
+    required this.content,
     required this.isChecked,
     required this.onChanged,
-  }) : super(key: key);
+    required this.refreshData,
+  });
 
   @override
-  JobListItemState createState() => JobListItemState();
+  ApplicationListItemState createState() => ApplicationListItemState();
 }
 
-class JobListItemState extends State<JobListItem> {
+class ApplicationListItemState extends State<ApplicationListItem> {
   late bool isChecked;
 
   @override
@@ -29,17 +36,38 @@ class JobListItemState extends State<JobListItem> {
   }
 
   @override
-  void didUpdateWidget(JobListItem oldWidget) {
+  void didUpdateWidget(ApplicationListItem oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isChecked != widget.isChecked) {
       isChecked = widget.isChecked;
     }
   }
 
+  Future<void> updateJobsAndProfiles() async {
+    await widget.refreshData();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(widget.jobName),
+      title: Text(widget.name),
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              if (isJob(widget.content, widget.name)) {
+                return EditJobPage(jobName: widget.name);
+              } else if (isProfile(widget.content, widget.name)) {
+                return EditProfilePage(profileName: widget.name);
+              } else {
+                return Dashboard();
+              }
+            },
+          ),
+        );
+        await updateJobsAndProfiles();
+      },
       trailing: Checkbox(
         value: isChecked,
         onChanged: (bool? value) {
@@ -55,14 +83,15 @@ class JobListItemState extends State<JobListItem> {
   }
 }
 
-SliverToBoxAdapter jobsBoxSliver(BuildContext context) {
+SliverToBoxAdapter boxSliver(BuildContext context, String title) {
   return SliverToBoxAdapter(
     child: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SizedBox(height: 20),
+        SizedBox(height: standardSizedBoxHeight),
         Text(
-          'Select Job To Use In Application',
+          title,
           style: TextStyle(
             color: themeTextColor(context),
             fontSize: secondaryTitles,
@@ -75,112 +104,23 @@ SliverToBoxAdapter jobsBoxSliver(BuildContext context) {
   );
 }
 
-SliverList jobsSliverList(List<dynamic> jobs, Map<String, bool> checkedJobs, Function(String, bool) onChanged) {
+SliverList sliverList(ApplicationContent content, List<dynamic> items, Map<String, bool> checkedItems, Function(Map<String, bool>, bool, String) onChanged, Function refreshData) {
   return SliverList(
     delegate: SliverChildBuilderDelegate(
       (context, index) {
-        final jobName = jobs[index].path.split('/').last;
-        checkedJobs.putIfAbsent(jobName, () => false);
-        return ProfileListItem(
-          profileName: jobName,
-          isChecked: checkedJobs[jobName]!,
+        final names = items[index].path.split('/').last;
+        checkedItems.putIfAbsent(names, () => false);
+        return ApplicationListItem(
+          content: content,
+          name: names,
+          isChecked: checkedItems[names]!,
           onChanged: (value) {
-            onChanged(jobName, value);
+            onChanged(checkedItems, value, names);
           },
+          refreshData: refreshData,
         );
       },
-      childCount: jobs.length,
-    ),
-  );
-}
-
-class ProfileListItem extends StatefulWidget {
-  final String profileName;
-  final bool isChecked;
-  final Function(bool) onChanged;
-
-  const ProfileListItem({
-    Key? key,
-    required this.profileName,
-    required this.isChecked,
-    required this.onChanged,
-  }) : super(key: key);
-
-  @override
-  ProfileListItemState createState() => ProfileListItemState();
-}
-
-class ProfileListItemState extends State<ProfileListItem> {
-  late bool isChecked;
-
-  @override
-  void initState() {
-    super.initState();
-    isChecked = widget.isChecked;
-  }
-
-  @override
-  void didUpdateWidget(ProfileListItem oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.isChecked != widget.isChecked) {
-      isChecked = widget.isChecked;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      title: Text(widget.profileName),
-      trailing: Checkbox(
-        value: isChecked,
-        onChanged: (bool? value) {
-          if (value != null) {
-            setState(() {
-              isChecked = value;
-            });
-            widget.onChanged(value);
-          }
-        },
-      ),
-    );
-  }
-}
-
-SliverToBoxAdapter profilesBoxSliver(BuildContext context) {
-  return SliverToBoxAdapter(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(height: 20),
-        Text(
-          'Select Profile To Use In Application',
-          style: TextStyle(
-            color: themeTextColor(context),
-            fontSize: secondaryTitles,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-      ],
-    ),
-  );
-}
-
-SliverList profilesSliverList(List<dynamic> profiles, Map<String, bool> checkedProfiles, Function(String, bool) onChanged) {
-  return SliverList(
-    delegate: SliverChildBuilderDelegate(
-      (context, index) {
-        final profileName = profiles[index].path.split('/').last;
-        checkedProfiles.putIfAbsent(profileName, () => false);
-        return ProfileListItem(
-          profileName: profileName,
-          isChecked: checkedProfiles[profileName]!,
-          onChanged: (value) {
-            onChanged(profileName, value);
-          },
-        );
-      },
-      childCount: profiles.length,
+      childCount: items.length,
     ),
   );
 }

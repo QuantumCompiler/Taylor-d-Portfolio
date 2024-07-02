@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../Globals/ApplicationsGlobals.dart';
+import '../../Utilities/ApplicationsUtils.dart';
 import '../../../Globals/Globals.dart';
 import '../../../Themes/Themes.dart';
 
@@ -37,7 +38,7 @@ AppBar appBar(BuildContext context) {
   );
 }
 
-BottomAppBar bottomAppBar(BuildContext context) {
+BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, VoidCallback func) {
   return BottomAppBar(
     color: Colors.transparent,
     child: Row(
@@ -45,7 +46,7 @@ BottomAppBar bottomAppBar(BuildContext context) {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         ElevatedButton(
-          onPressed: () => {},
+          onPressed: func,
           child: Text(
             'Clear',
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -53,7 +54,10 @@ BottomAppBar bottomAppBar(BuildContext context) {
         ),
         SizedBox(width: standardSizedBoxWidth),
         ElevatedButton(
-          onPressed: () => {},
+          onPressed: () {
+            bool valid = verifyValidInput(content);
+            print(valid);
+          },
           child: Text(
             'Generate Application',
             style: TextStyle(fontWeight: FontWeight.bold),

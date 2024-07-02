@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'Context/ApplicationContentContext.dart';
+import '../Globals/ApplicationsGlobals.dart';
+import '../Utilities/ApplicationsUtils.dart';
 
 class ApplicationContentList extends StatefulWidget {
-  final List<dynamic> jobs;
-  final List<dynamic> profiles;
+  final ApplicationContent content;
+  final Function refreshData;
 
   const ApplicationContentList({
     super.key,
-    required this.jobs,
-    required this.profiles,
+    required this.content,
+    required this.refreshData,
   });
 
   @override
@@ -16,8 +18,6 @@ class ApplicationContentList extends StatefulWidget {
 }
 
 class ApplicationContentListState extends State<ApplicationContentList> {
-  Map<String, bool> checkedJobs = {};
-  Map<String, bool> checkedProfiles = {};
   late ScrollController scrollController;
 
   @override
@@ -33,42 +33,36 @@ class ApplicationContentListState extends State<ApplicationContentList> {
   }
 
   void disableOthers(Map<String, bool> checkedItems, String selectedKey) {
-    checkedItems.forEach((key, value) {
-      if (key != selectedKey) {
-        checkedItems[key] = false;
-      }
-    });
+    checkedItems.forEach(
+      (key, value) {
+        if (key != selectedKey) {
+          checkedItems[key] = false;
+        }
+      },
+    );
   }
 
-  void updateCheckedProfiles(String profileName, bool value) {
-    setState(() {
-      disableOthers(checkedProfiles, profileName);
-      checkedProfiles[profileName] = value;
-    });
-  }
-
-  void updateCheckedJobs(String jobName, bool value) {
-    setState(() {
-      disableOthers(checkedJobs, jobName);
-      checkedJobs[jobName] = value;
-    });
+  void updateChecked(Map<String, bool> items, bool value, String key) {
+    setState(
+      () {
+        disableOthers(items, key);
+        items[key] = value;
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final jobs = widget.jobs;
-    final profiles = widget.profiles;
-
     return Center(
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.8,
+        width: MediaQuery.of(context).size.width * applicationsContainerWidth,
         child: CustomScrollView(
           controller: scrollController,
           slivers: [
-            jobsBoxSliver(context),
-            jobsSliverList(jobs, checkedJobs, updateCheckedJobs),
-            profilesBoxSliver(context),
-            profilesSliverList(profiles, checkedProfiles, updateCheckedProfiles),
+            boxSliver(context, 'Select Job To Use In Application'),
+            sliverList(widget.content, widget.content.jobs, widget.content.checkedJobs, updateChecked, widget.refreshData),
+            boxSliver(context, 'Select Profile To Use In Application'),
+            sliverList(widget.content, widget.content.profiles, widget.content.checkedProfiles, updateChecked, widget.refreshData)
           ],
         ),
       ),

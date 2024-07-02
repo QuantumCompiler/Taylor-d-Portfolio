@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'Context/NewApplicationContext.dart';
 import '../Content/ApplicationContent.dart';
+import '../Utilities/ApplicationsUtils.dart';
 import '../../Jobs/Utilities/JobUtils.dart';
 import '../../Profiles/Utilities/ProfilesUtils.dart';
 
@@ -13,11 +14,35 @@ class NewApplicationPage extends StatefulWidget {
 
 class NewApplicationPageState extends State<NewApplicationPage> {
   late Future<List<dynamic>> futureData;
+  late ApplicationContent content;
 
   @override
   void initState() {
     super.initState();
     futureData = Future.wait([RetrieveSortedJobs(), RetrieveSortedProfiles()]);
+  }
+
+  void clearInputs() {
+    setState(() {
+      content.checkedJobs.updateAll((key, value) => false);
+      content.checkedProfiles.updateAll((key, value) => false);
+    });
+  }
+
+  Future<void> refreshData() async {
+    var newJobs = await RetrieveSortedJobs();
+    var newProfiles = await RetrieveSortedProfiles();
+
+    setState(() {
+      content.updateJobs(newJobs);
+      content.updateProfiles(newProfiles);
+    });
+  }
+
+  bool verifyValidInput(ApplicationContent content) {
+    bool jobValid = content.checkedJobs.values.contains(true);
+    bool profilesValid = content.checkedProfiles.values.contains(true);
+    return jobValid || profilesValid;
   }
 
   @override
@@ -35,12 +60,16 @@ class NewApplicationPageState extends State<NewApplicationPage> {
             appBar: appBar(context),
           );
         } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-          final jobs = snapshot.data![0];
-          final profiles = snapshot.data![1];
+          content = ApplicationContent(
+            jobs: snapshot.data![0],
+            profiles: snapshot.data![1],
+            checkedJobs: {},
+            checkedProfiles: {},
+          );
           return Scaffold(
             appBar: appBar(context),
-            body: ApplicationContentList(jobs: jobs, profiles: profiles),
-            bottomNavigationBar: bottomAppBar(context),
+            body: ApplicationContentList(content: content, refreshData: refreshData),
+            bottomNavigationBar: bottomAppBar(context, content, clearInputs),
           );
         } else {
           return Scaffold(
