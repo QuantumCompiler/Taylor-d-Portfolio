@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Utilities/ApplicationsUtils.dart';
@@ -213,8 +214,12 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
         ),
         SizedBox(width: standardSizedBoxWidth),
         ElevatedButton(
-          onPressed: () {
-            // print(content.verifyBoxes());
+          onPressed: () async {
+            bool valid = content.verifyBoxes();
+            if (valid) {
+              List<String> names = content.getContent();
+              List<List<String>> appContent = await prepContent(names);
+            }
           },
           child: Text(
             'Generate Application',
