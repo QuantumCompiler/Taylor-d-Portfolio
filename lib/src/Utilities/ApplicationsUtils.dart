@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../Globals/Globals.dart';
 import '../Globals/JobsGlobals.dart';
 import '../Globals/ProfilesGlobals.dart';
@@ -51,6 +53,50 @@ class ApplicationContent {
     bool jobsValid = checkedJobs.length == 1;
     bool profilesValid = checkedProfiles.length == 1;
     return jobsValid && profilesValid;
+  }
+}
+
+class OpenAI {
+  final String apikey;
+  final String openAIModel;
+  final String systemRole;
+  final String userPrompt;
+  final int maxTokens;
+
+  OpenAI({
+    required this.apikey,
+    required this.openAIModel,
+    required this.systemRole,
+    required this.userPrompt,
+    required this.maxTokens,
+  });
+
+  Future<String> testPrompt() async {
+    const url = 'https://api.openai.com/v1/chat/completions';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $apikey',
+    };
+    final body = jsonEncode({
+      'model': openAIModel,
+      'messages': [
+        {'role': 'system', 'content': systemRole},
+        {'role': 'user', 'content': userPrompt}
+      ],
+      'max_tokens': maxTokens,
+    });
+
+    try {
+      final response = await http.post(Uri.parse(url), headers: headers, body: body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['choices'][0]['message']['content'].trim();
+      } else {
+        throw Exception('Failed to load data: ${response.statusCode} ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      throw Exception('Failed to load data: $e');
+    }
   }
 }
 
