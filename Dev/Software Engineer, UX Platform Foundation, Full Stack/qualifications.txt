@@ -1,0 +1,10 @@
+To be successful in this role you have:
+
+- 0-2+ years of experience with Java or a similar OO language
+- Passion for JavaScript and the Web as a platform, reusability, and componentization
+- Experience with data structures, algorithms, object-oriented design, design patterns, and performance/scale considerations
+- Experience with any of the modern UI frameworks like Angular, React or Vue
+- Analytical and design skills
+- Working knowledge and ability to use tools to assist with daily tasks (IDE, debugger, build tools, source control, ServiceNow instances, profilers, system administration/Unix tools)
+
+For positions in the Bay Area, we offer a base pay of $121,600 - $188,400, plus equity (when applicable), variable/incentive compensation and benefits. Sales positions generally offer a competitive On Target Earnings (OTE) incentive compensation structure. Please note that the base pay shown is a guideline, and individual total compensation will vary based on factors such as qualifications, skill level, competencies and work location. We also offer health plans, including flexible spending accounts, a 401(k) Plan with company match, ESPP, matching donations, a flexible time away plan and family leave programs (subject to eligibility requirements). Compensation is based on the geographic location in which the role is located, and is subject to change based on work location.

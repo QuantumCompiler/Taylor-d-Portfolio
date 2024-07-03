@@ -1,0 +1,6 @@
+What you get to do in this role:
+
+- Build high-quality, clean, scalable and reusable code by enforcing best practices around software engineering architecture and processes (Code Reviews, Unit testing, etc.)
+- Work with the product owners to understand detailed requirements and own your code from design, implementation, test automation and delivery of high-quality product to our users.
+- Design software that is simple to use to allow customers to extend and customize the functionality to meet their specific needs.
+- Help design and implement new products and features while also enhancing the existing product suite.
