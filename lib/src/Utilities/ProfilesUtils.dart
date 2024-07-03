@@ -133,24 +133,27 @@ class Profile {
     final newName = nameCont.text;
     final oldDir = Directory('${dir.path}/$name');
     final existing = Directory('${dir.path}/$newName');
+    Directory newDir;
     if (oldDir.existsSync() && !existing.existsSync()) {
-      Directory newDir = await oldDir.rename('${dir.path}/$newName');
+      newDir = await oldDir.rename('${dir.path}/$newName');
       name = newName;
-      eduFile = File('${newDir.path}/$educationFile');
-      expFile = File('${newDir.path}/$experienceFile');
-      extFile = File('${newDir.path}/$extracurricularFile');
-      honFile = File('${newDir.path}/$honorsFile');
-      projFile = File('${newDir.path}/$projectsFile');
-      refFile = File('${newDir.path}/$referencesFile');
-      skiFile = File('${newDir.path}/$skillsFile');
-      WriteFile(dir, eduFile, eduCont.text);
-      WriteFile(dir, expFile, expCont.text);
-      WriteFile(dir, extFile, extCont.text);
-      WriteFile(dir, honFile, honCont.text);
-      WriteFile(dir, projFile, projCont.text);
-      WriteFile(dir, refFile, refCont.text);
-      WriteFile(dir, skiFile, skillsCont.text);
+    } else {
+      newDir = oldDir;
     }
+    eduFile = File('${newDir.path}/$educationFile');
+    expFile = File('${newDir.path}/$experienceFile');
+    extFile = File('${newDir.path}/$extracurricularFile');
+    honFile = File('${newDir.path}/$honorsFile');
+    projFile = File('${newDir.path}/$projectsFile');
+    refFile = File('${newDir.path}/$referencesFile');
+    skiFile = File('${newDir.path}/$skillsFile');
+    await WriteFile(dir, eduFile, eduCont.text);
+    await WriteFile(dir, expFile, expCont.text);
+    await WriteFile(dir, extFile, extCont.text);
+    await WriteFile(dir, honFile, honCont.text);
+    await WriteFile(dir, projFile, projCont.text);
+    await WriteFile(dir, refFile, refCont.text);
+    await WriteFile(dir, skiFile, skillsCont.text);
   }
 
   // Set Profile Directory
