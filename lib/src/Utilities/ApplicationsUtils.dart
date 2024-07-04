@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/Globals.dart';
 import '../Globals/JobsGlobals.dart';
 import '../Globals/ProfilesGlobals.dart';
@@ -57,25 +59,24 @@ class ApplicationContent {
 }
 
 class OpenAI {
-  final String apikey;
+  static final String _apikey = dotenv.env[apiKey]!;
   final String openAIModel;
   final String systemRole;
   final String userPrompt;
   final int maxTokens;
 
   OpenAI({
-    required this.apikey,
     required this.openAIModel,
     required this.systemRole,
     required this.userPrompt,
     required this.maxTokens,
   });
 
-  Future<String> testPrompt() async {
+  Future<Map<String, dynamic>> testPrompt() async {
     const url = 'https://api.openai.com/v1/chat/completions';
     final headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $apikey',
+      'Authorization': 'Bearer $_apikey',
     };
     final body = jsonEncode({
       'model': openAIModel,
@@ -90,7 +91,9 @@ class OpenAI {
       final response = await http.post(Uri.parse(url), headers: headers, body: body);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['choices'][0]['message']['content'].trim();
+        String responseText = data['choices'][0]['message']['content'].trim();
+        Map<String, dynamic> jsonResponse = jsonDecode(responseText);
+        return jsonResponse;
       } else {
         throw Exception('Failed to load data: ${response.statusCode} ${response.reasonPhrase}');
       }
