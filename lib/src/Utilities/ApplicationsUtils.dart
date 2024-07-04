@@ -189,3 +189,30 @@ Future<List<List<String>>> prepContent(List<String> names) async {
   content.add(profContent);
   return content;
 }
+
+// Final jobContent = prepJobContent(...)
+prepJobContent(String des, String other, String pos, String quals, String role, String tasks) {
+  final ret = {
+    "Job Description:": des,
+    "Other Information:": other,
+    "Position Information:": pos,
+    "Qualifications Information:": quals,
+    "Role Information:": role,
+    "Tasks Information:": tasks,
+  };
+  return ret;
+}
+
+// Final profContent = prepProfContent(...)
+prepProfContent(String edu, String exp, String ext, String hon, String proj, String ref, String skills) {
+  final ret = {
+    "Education:": edu,
+    "Experience:": exp,
+    "Extracurricular:": ext,
+    "Honors:": hon,
+    "Projects:": proj,
+    "References:": ref,
+    "Skills:": skills,
+  };
+  return ret;
+}

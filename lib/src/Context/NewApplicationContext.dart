@@ -1,4 +1,4 @@
-// import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Utilities/ApplicationsUtils.dart';
@@ -217,8 +217,22 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
           onPressed: () async {
             bool valid = content.verifyBoxes();
             if (valid) {
-              // List<String> names = content.getContent();
-              // List<List<String>> appContent = await prepContent(names);
+              List<String> names = content.getContent();
+              List<List<String>> appContent = await prepContent(names);
+              final jobContent = prepJobContent(appContent[0][1], appContent[0][1], appContent[0][2], appContent[0][3], appContent[0][4], appContent[0][5]);
+              final profContent = prepProfContent(appContent[1][0], appContent[1][1], appContent[1][2], appContent[1][3], appContent[1][4], appContent[1][5], appContent[1][6]);
+              final call = OpenAI(
+                openAIModel: gpt_3_5_turbo,
+                systemRole: hiringManagerRole,
+                userPrompt: '$jobContentPrompt ${jsonEncode(jobContent)} $profContentPrompt ${jsonEncode(profContent)} $returnPrompt',
+                maxTokens: 500,
+              );
+              try {
+                Map<String, dynamic> result = await call.testPrompt();
+                print(result);
+              } catch (e) {
+                print('Error: $e');
+              }
             }
           },
           child: Text(
