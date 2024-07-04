@@ -1,5 +1,5 @@
+// import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Utilities/ApplicationsUtils.dart';
 import '../Jobs/EditJob.dart';
@@ -217,45 +217,8 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
           onPressed: () async {
             bool valid = content.verifyBoxes();
             if (valid) {
-              List<String> names = content.getContent();
-              List<List<String>> appContent = await prepContent(names);
-              // try {
-              //   OpenAI testPrompt = OpenAI(
-              //     apikey: dotenv.env[apiKey]!,
-              //     openAIModel: gpt_4o,
-              //     systemRole: '''You are interpreting information from a job posting and a resume and giving recommendations for what the applicant should put on their main resume.
-              //                 \n When interpreting the resume and comparing it to the job posting
-              //                 \n - Give the two schools, that the applicant should put on their resume. Format your recommendation in a list surrounded by brackets like this [].
-              //                 \n - Give the three jobs, that the applicant should put on their resume. Format your recommendation in a list surrounded by brackets like this [].
-              //                 \n - Give 10 mathematical skills, that the applicant should put on their resume. Format your recommendation in a list surrounded by brackets like this [].
-              //                 \n - Give 10 personal skills, that the applicant should put on their resume. Format your recommendation in a list surrounded by brackets like this [].
-              //                 \n - Give the framework(s), that the applicant should put on their resume. Format your recommendation in a list surrounded by brackets like this [].
-              //                 \n - Give 20 the programming skills, that the applicant should put on their resume. Format your recommendation in a list surrounded by brackets like this [].
-              //                 \n - Give 10 the scientific skills, that the applicant should put on their resume. Format your recommendation in a list surrounded by brackets like this [].
-              //                 \n - Give 3, that the applicant should put on their resume, and refer to them by name. that the applicant should put on their resume. Format your recommendation in a list surrounded by brackets like this [].
-              //                 ''',
-              //     userPrompt: '''Interpret the information first from the job posting:
-              //               \nJob Description: ${appContent[0][0]}
-              //               \nOther Info: ${appContent[0][1]}
-              //               \nPosition Info: ${appContent[0][2]}
-              //               \nQualifications / Skills Requirements: ${appContent[0][3]}
-              //               \nRole Information: ${appContent[0][4]}
-              //               \nTask Information: ${appContent[0][5]}
-              //               \nNow, interpret the applicants resume:
-              //               \nEducation: ${appContent[1][0]}
-              //               \nExperience: ${appContent[1][1]}
-              //               \nExtracurricular: ${appContent[1][2]}
-              //               \nHonors: ${appContent[1][3]}
-              //               \nProjects: ${appContent[1][4]}
-              //               \nSkills: ${appContent[1][6]}
-              //               ''',
-              //     maxTokens: 1000,
-              //   );
-              //   final test = await testPrompt.testPrompt();
-              //   print(test);
-              // } catch (e) {
-              //   print('Error: $e');
-              // }
+              // List<String> names = content.getContent();
+              // List<List<String>> appContent = await prepContent(names);
             }
           },
           child: Text(
