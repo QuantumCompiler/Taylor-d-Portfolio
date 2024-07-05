@@ -8,6 +8,7 @@ import 'src/Themes/Themes.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
+  CreateApplicationsDir();
   CreateJobsDir();
   CreateProfileDir();
   runApp(
