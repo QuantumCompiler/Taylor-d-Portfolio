@@ -53,3 +53,69 @@ Ensure each field contains only the recommended names or items as specified, wit
 }
 Make sure the response is a valid JSON object and nothing else. Only include the names of the schools, workplaces, and projects that you recommend. For experience and projects, strictly provide exactly 3 and 3 items respectively. For skills, frameworks, and languages, provide up to 15 items each if available, otherwise list only what is present in the portfolio.
 ''';
+
+final Map<String, dynamic> testOpenAIResults = {
+  "Education_Recommendations": ["The University Of Colorado At Boulder", "Colorado Mesa University"],
+  "Experience_Recommendations": ["Applied Materials", "University Of Oklahoma", "Mesa Lavender Farms"],
+  "Projects_Recommendations": ["Celestial Bodies In Space", "Formulator Pro", "RSA"],
+  "Math_Skills_Recommendations": [
+    "Computational Mathematics",
+    "Differential Equations",
+    "Fourier Analysis",
+    "Linear Algebra",
+    "Mathematical Modeling",
+    "Multivariate Calculus",
+    "Numerical Analysis",
+    "Probability Theory",
+    "Statistics",
+    "Tensor Analysis"
+  ],
+  "Personal_Skills_Recommendations": [
+    "Adaptability",
+    "Attention To Detail",
+    "Communication",
+    "Conflict Resolution",
+    "Critical Thinking",
+    "Decision Making",
+    "Leadership",
+    "Multitasking",
+    "Organization",
+    "Presentation Skills",
+    "Problem Solving",
+    "Project Management",
+    "Research Skills",
+    "Resourcefulness",
+    "Time Management"
+  ],
+  "Framework_Recommendations": ["ElectronJS", "Flutter", "Qt"],
+  "Programming_Languages_Recommendations": ["Python", "C/C++", "JavaScript", "Java", "Dart", "Assembly (x86)", "HTML", "CSS", "LATEX"],
+  "Programming_Skills_Recommendations": [
+    "Algorithms & Data Structures",
+    "Desktop & Mobile App Development",
+    "Documentation",
+    "Dynamic Programming",
+    "OOP Design",
+    "Quality Assurance",
+    "Scientific Programming",
+    "Software Design",
+    "Systems Level Development",
+    "Testing & Debugging",
+    "Unit Testing",
+    "Version Control",
+    "Web Development"
+  ],
+  "Scientific_Skills_Recommendations": [
+    "Computational Problem Solving",
+    "Data Analysis & Visualization",
+    "Error Analysis",
+    "Experimental Design",
+    "Laboratory Techniques",
+    "Literature Review",
+    "Plotting",
+    "Precision Measurement",
+    "Risk Assessment",
+    "Scientific Communication",
+    "Statistical Analysis",
+    "Technical Writing"
+  ]
+};
