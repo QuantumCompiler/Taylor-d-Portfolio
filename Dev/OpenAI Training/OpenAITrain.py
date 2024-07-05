@@ -1,47 +1,63 @@
-// Sizes
-double applicationsTileContainerWidth = 0.6;
-double applicationsTitleSize = 24.0;
-double applicationsContainerWidth = 0.8;
+import json
+import sys
+import os
 
-// Titles & Hints
-String applicationsTitle = 'Applications';
-String createNewApplicationTile = 'Create New Application';
-String newApplicationTitle = 'New Application';
+def read_file(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
 
-// API Key
-String apiKey = 'OPENAI_API_KEY';
+def escape_content(content):
+    return content.replace('\n', '\\n').replace('"', '\\"').replace("'", "\\'")
 
-// OpenAI Models
-String gpt_3_5_personal = 'ft:gpt-3.5-turbo-1106:personal::9hSa098j';
-String gpt_3_5_turbo = 'gpt-3.5-turbo';
-String gpt_3_5_turbo_0125 = 'gpt-3.5-turbo-0125';
-String gpt_3_5_turbo_1106 = 'gpt-3.5-turbo-1106';
-String gpt_3_5_turbo_16k = 'gpt-3.5-turbo-16k';
-String gpt_4 = 'gpt-4';
-String gpt_4_0125_preview = 'gpt-4-0125-preview';
-String gpt_4_0613 = 'gpt-4-0613';
-String gpt_4_1106_preview = 'gpt-4-1106-preview';
-String gpt_4_turbo = 'gpt-4-turbo';
-String gpt_4_turbo_2024_04_09 = 'gpt-4-turbo-2024-04-09';
-String gpt_4_turbo_turbo_preview = 'gpt-4-turbo-preview';
-String gpt_4o = 'gpt-4o';
-String gpt_4o_2024_05_13 = 'gpt-4o-2024-05-13';
+def main(job_posting_file, portfolio_file, output_file):
+    # Check if files have the correct .txt extension
+    if not job_posting_file.endswith('.txt') or not portfolio_file.endswith('.txt'):
+        print("Error: Both job posting and portfolio files must be .txt files.")
+        return
+    
+    # Read the job posting and portfolio from text files
+    job_posting = read_file(job_posting_file)
+    portfolio = read_file(portfolio_file)
 
-String hiringManagerRole = '''
-You are an assistant that is helping extract structured information from a job posting and portfolio. 
+    # Escape content for JSON
+    job_posting = escape_content(job_posting)
+    portfolio = escape_content(portfolio)
+
+    # Define the system message
+    system_message = '''
+You are an assistant that is helping extract structured information from a job posting and portfolio.
 You are to give recommendations to an applicant that will most likely help them get an interview for a position.
 You are going to achieve this by comparing the job content to the applicant's portfolio and then providing recommendations.
-''';
+'''
 
-String jobContentPrompt = '''Extract the following information from the job content, just digest it for now:''';
+    # Define the user prompt parts
+    user_prompt_part1 = '''Extract the following information from the job content, just digest it for now. It will be fed to you in this format:
+Job Description:
+Other Information:
+Qualifications Information:
+Role Information:
+Input:
+'''
 
-String profContentPrompt = '''Extract the following information from the user's portfolio, just digest it for now:''';
+    # Define the user portfolio prompt
+    user_portfolio_prompt = '''
+Extract the following information from the user's portfolio, just digest it for now. It will be fed to you in this format:
+Education:
+Experience:
+Projects:
+Skills:
+Input:
+'''
 
-String returnPrompt = '''
+    # Combine the prompts, job posting, and portfolio
+    user_prompt = f"{user_prompt_part1}\\n{job_posting}\\n{user_portfolio_prompt}\\n{portfolio}"
+
+    # Define the assistant response
+    assistant_response = '''
 Return the recommendations in the following JSON Format. 
 Ensure each field contains only the recommended names or items as specified, without any additional text or explanations. Capitalize every new word. Keep each recommendation short and concise (one to four words):
 {
-    "Education_Recommendations": ["School Name 1", "School Name 2"],
+    "Education_Recommendations": ["School Name 1", "School Name 2"]
     "Experience_Recommendations": ["Workplace 1", "Workplace 2", "Workplace 3"],
     "Projects_Recommendations": ["Project 1", "Project 2", "Project 3"],
     "Math_Skills_Recommendations": ["Math Skill 1", "Math Skill 2", "Math Skill 3", "Math Skill 4", "Math Skill 5", "Math Skill 6", "Math Skill 7", "Math Skill 8", "Math Skill 9", "Math Skill 10", "Math Skill 11", "Math Skill 12", "Math Skill 13", "Math Skill 14", "Math Skill 15"],
@@ -52,4 +68,37 @@ Ensure each field contains only the recommended names or items as specified, wit
     "Scientific_Skills_Recommendations": ["Scientific Skill 1", "Scientific Skill 2", "Scientific Skill 3", "Scientific Skill 4", "Scientific Skill 5", "Scientific Skill 6", "Scientific Skill 7", "Scientific Skill 8", "Scientific Skill 9", "Scientific Skill 10", "Scientific Skill 11", "Scientific Skill 12", "Scientific Skill 13", "Scientific Skill 14", "Scientific Skill 15"]
 }
 Make sure the response is a valid JSON object and nothing else. Only include the names of the schools, workplaces, and projects that you recommend. For experience and projects, strictly provide exactly 3 and 3 items respectively. For skills, frameworks, and languages, provide up to 15 items each if available, otherwise list only what is present in the portfolio.
-''';
+'''
+
+    # Create the JSONL entry
+    jsonl_entry = {
+        "messages": [
+            {
+                "role": "system",
+                "content": system_message.strip()
+            },
+            {
+                "role": "user",
+                "content": user_prompt.strip()
+            },
+            {
+                "role": "assistant",
+                "content": assistant_response.strip()
+            }
+        ]
+    }
+
+    # Convert to JSON string
+    jsonl_string = json.dumps(jsonl_entry)
+
+    # Write the JSONL entry to a file
+    with open(output_file, 'w') as jsonl_file:
+        jsonl_file.write(jsonl_string + '\n')
+
+    print(f"JSONL file '{output_file}' created successfully.")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 4:
+        print("Usage: python script.py <job_posting_file> <portfolio_file> <output_file>")
+    else:
+        main(sys.argv[1], sys.argv[2], sys.argv[3])

@@ -72,13 +72,13 @@ SingleChildScrollView editProfileContent(BuildContext context, Profile prevProfi
         // Experience
         ...ProfileEntry(context, experienceTitle, prevProfile.expCont, ''),
         // Extracurricular
-        ...ProfileEntry(context, extracurricularTitle, prevProfile.extCont, ''),
+        // ...ProfileEntry(context, extracurricularTitle, prevProfile.extCont, ''),
         // Honors
-        ...ProfileEntry(context, honorsTitle, prevProfile.honCont, ''),
+        // ...ProfileEntry(context, honorsTitle, prevProfile.honCont, ''),
         // Projects
         ...ProfileEntry(context, projectsTitle, prevProfile.projCont, ''),
         // References
-        ...ProfileEntry(context, referencesTitle, prevProfile.refCont, ''),
+        // ...ProfileEntry(context, referencesTitle, prevProfile.refCont, ''),
         // Skills
         ...ProfileEntry(context, skillsTitle, prevProfile.skillsCont, ''),
       ],

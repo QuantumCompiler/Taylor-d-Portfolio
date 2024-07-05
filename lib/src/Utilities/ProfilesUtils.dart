@@ -15,57 +15,39 @@ class Profile {
   // Files
   late File eduFile;
   late File expFile;
-  late File extFile;
-  late File honFile;
   late File projFile;
-  late File refFile;
   late File skiFile;
 
   // Main Titles & Name
   late String eduTitle;
   late String expTitle;
-  late String extTitle;
-  late String honTitle;
   late String name;
   late String projTitle;
-  late String refTitle;
   late String skiTitle;
 
   // Contents
   late String education;
   late String experience;
-  late String extracurricular;
-  late String honors;
   late String projects;
-  late String references;
   late String skills;
 
   // Controllers
   late TextEditingController eduCont;
   late TextEditingController expCont;
-  late TextEditingController extCont;
-  late TextEditingController honCont;
   late TextEditingController nameCont;
   late TextEditingController projCont;
-  late TextEditingController refCont;
   late TextEditingController skillsCont;
 
   // Constructor
   Profile({this.name = ''}) {
     eduTitle = educationTitle;
     expTitle = experienceTitle;
-    extTitle = extracurricularTitle;
-    honTitle = honorsTitle;
     projTitle = projectsTitle;
-    refTitle = referencesTitle;
     skiTitle = skillsTitle;
     eduCont = TextEditingController();
     expCont = TextEditingController();
-    extCont = TextEditingController();
-    honCont = TextEditingController();
     nameCont = TextEditingController();
     projCont = TextEditingController();
-    refCont = TextEditingController();
     skillsCont = TextEditingController();
   }
 
@@ -85,10 +67,7 @@ class Profile {
     }
     eduFile = File('${currProf.path}/$educationFile');
     expFile = File('${currProf.path}/$experienceFile');
-    extFile = File('${currProf.path}/$extracurricularFile');
-    honFile = File('${currProf.path}/$honorsFile');
     projFile = File('${currProf.path}/$projectsFile');
-    refFile = File('${currProf.path}/$referencesFile');
     skiFile = File('${currProf.path}/$skillsFile');
     if (await eduFile.exists()) {
       education = await eduFile.readAsString();
@@ -98,21 +77,9 @@ class Profile {
       experience = await expFile.readAsString();
       expCont.text = experience;
     }
-    if (await extFile.exists()) {
-      extracurricular = await extFile.readAsString();
-      extCont.text = extracurricular;
-    }
-    if (await honFile.exists()) {
-      honors = await honFile.readAsString();
-      honCont.text = honors;
-    }
     if (await projFile.exists()) {
       projects = await projFile.readAsString();
       projCont.text = projects;
-    }
-    if (await refFile.exists()) {
-      references = await refFile.readAsString();
-      refCont.text = references;
     }
     if (await skiFile.exists()) {
       skills = await skiFile.readAsString();
@@ -142,17 +109,11 @@ class Profile {
     }
     eduFile = File('${newDir.path}/$educationFile');
     expFile = File('${newDir.path}/$experienceFile');
-    extFile = File('${newDir.path}/$extracurricularFile');
-    honFile = File('${newDir.path}/$honorsFile');
     projFile = File('${newDir.path}/$projectsFile');
-    refFile = File('${newDir.path}/$referencesFile');
     skiFile = File('${newDir.path}/$skillsFile');
     await WriteFile(dir, eduFile, eduCont.text);
     await WriteFile(dir, expFile, expCont.text);
-    await WriteFile(dir, extFile, extCont.text);
-    await WriteFile(dir, honFile, honCont.text);
     await WriteFile(dir, projFile, projCont.text);
-    await WriteFile(dir, refFile, refCont.text);
     await WriteFile(dir, skiFile, skillsCont.text);
   }
 
@@ -168,17 +129,11 @@ class Profile {
     final currDir = Directory('${dir.path}/$name');
     eduFile = File('${currDir.path}/$educationFile');
     expFile = File('${currDir.path}/$experienceFile');
-    extFile = File('${currDir.path}/$extracurricularFile');
-    honFile = File('${currDir.path}/$honorsFile');
     projFile = File('${currDir.path}/$projectsFile');
-    refFile = File('${currDir.path}/$referencesFile');
     skiFile = File('${currDir.path}/$skillsFile');
     WriteFile(dir, eduFile, eduCont.text);
     WriteFile(dir, expFile, expCont.text);
-    WriteFile(dir, extFile, extCont.text);
-    WriteFile(dir, honFile, honCont.text);
     WriteFile(dir, projFile, projCont.text);
-    WriteFile(dir, refFile, refCont.text);
     WriteFile(dir, skiFile, skillsCont.text);
   }
 }

@@ -70,13 +70,13 @@ SingleChildScrollView newProfileContent(BuildContext context, Profile newProfile
         // Experience
         ...ProfileEntry(context, newProfile.expTitle, newProfile.expCont, experienceHint),
         // Extracurricular
-        ...ProfileEntry(context, newProfile.extTitle, newProfile.extCont, experienceHint),
+        // ...ProfileEntry(context, newProfile.extTitle, newProfile.extCont, experienceHint),
         // Honors
-        ...ProfileEntry(context, newProfile.honTitle, newProfile.honCont, honorsHint),
+        // ...ProfileEntry(context, newProfile.honTitle, newProfile.honCont, honorsHint),
         // Projects
         ...ProfileEntry(context, newProfile.projTitle, newProfile.projCont, projectsHint),
         // References
-        ...ProfileEntry(context, newProfile.refTitle, newProfile.refCont, referencesHint),
+        // ...ProfileEntry(context, newProfile.refTitle, newProfile.refCont, referencesHint),
         // Skills
         ...ProfileEntry(context, newProfile.skiTitle, newProfile.skillsCont, skillsHint),
       ],

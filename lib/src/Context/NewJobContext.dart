@@ -69,14 +69,10 @@ SingleChildScrollView newJobContent(BuildContext context, Job newJob) {
         ...JobEntry(context, descriptionTitle, newJob.desCont, descriptionHint),
         // Other
         ...JobEntry(context, otherTitle, newJob.otherCont, otherHint),
-        // Position
-        ...JobEntry(context, positionTitle, newJob.posCont, positionHint),
         // Qualifications
         ...JobEntry(context, qualificationsTitle, newJob.qualsCont, qualificationsHint),
         // Role
         ...JobEntry(context, roleInfoTitle, newJob.roleCont, roleInfoHint),
-        // Tasks
-        ...JobEntry(context, tasksTitle, newJob.tasksCont, tasksHint),
       ],
     ),
   );

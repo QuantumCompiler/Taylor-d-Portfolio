@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../Context/NewApplicationContext.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/Globals.dart';
 import '../Globals/JobsGlobals.dart';
@@ -60,19 +63,40 @@ class ApplicationContent {
 
 class OpenAI {
   static final String _apikey = dotenv.env[apiKey]!;
+  final ApplicationContent content;
   final String openAIModel;
-  final String systemRole;
-  final String userPrompt;
+  static String? _systemRole;
+  static String? _userPrompt;
   final int maxTokens;
 
   OpenAI({
+    required this.content,
     required this.openAIModel,
-    required this.systemRole,
-    required this.userPrompt,
     required this.maxTokens,
   });
 
-  Future<Map<String, dynamic>> testPrompt() async {
+  Future<void> prepRecPrompt() async {
+    List<String> names = content.getContent();
+    List<List<String>> appContent = await prepContent(names);
+    final jobContent = prepJobContent(
+      appContent[0][1],
+      appContent[0][1],
+      appContent[0][2],
+      appContent[0][3],
+    );
+    final profContent = prepProfContent(
+      appContent[1][0],
+      appContent[1][1],
+      appContent[1][2],
+      appContent[1][3],
+    );
+    String finalPrompt = "$jobContentPrompt ${jsonEncode(jobContent)}\\n$profContentPrompt ${jsonEncode(profContent)}\\n$returnPrompt";
+    _systemRole = hiringManagerRole;
+    _userPrompt = finalPrompt;
+  }
+
+  Future<Map<String, dynamic>> getRecs() async {
+    await prepRecPrompt();
     const url = 'https://api.openai.com/v1/chat/completions';
     final headers = {
       'Content-Type': 'application/json',
@@ -81,17 +105,17 @@ class OpenAI {
     final body = jsonEncode({
       'model': openAIModel,
       'messages': [
-        {'role': 'system', 'content': systemRole},
-        {'role': 'user', 'content': userPrompt}
+        {'role': 'system', 'content': _systemRole},
+        {'role': 'user', 'content': _userPrompt}
       ],
       'max_tokens': maxTokens,
     });
-
     try {
       final response = await http.post(Uri.parse(url), headers: headers, body: body);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         String responseText = data['choices'][0]['message']['content'].trim();
+        responseText = responseText.replaceAll('```json\n', '').replaceAll('```', '');
         Map<String, dynamic> jsonResponse = jsonDecode(responseText);
         return jsonResponse;
       } else {
@@ -109,16 +133,12 @@ Future<List<File>> getJobFiles(String name) async {
   final currJob = Directory('${jobsDir.path}/$name');
   File desFile = File('${currJob.path}/$descriptionFile');
   File othFile = File('${currJob.path}/$otherFile');
-  File posFile = File('${currJob.path}/$positionFile');
   File qualFile = File('${currJob.path}/$qualificationsFile');
   File roleFile = File('${currJob.path}/$roleInfoFile');
-  File taskFile = File('${currJob.path}/$tasksFile');
   files.add(desFile);
   files.add(othFile);
-  files.add(posFile);
   files.add(qualFile);
   files.add(roleFile);
-  files.add(taskFile);
   return files;
 }
 
@@ -126,16 +146,12 @@ Future<List<String>> convertJobDescToString(List<File> files) async {
   List<String> contents = [];
   String description = await files[0].readAsString();
   String other = await files[1].readAsString();
-  String position = await files[2].readAsString();
-  String qualifications = await files[3].readAsString();
-  String roleInfo = await files[4].readAsString();
-  String tasks = await files[5].readAsString();
+  String qualifications = await files[2].readAsString();
+  String roleInfo = await files[3].readAsString();
   contents.add(description);
   contents.add(other);
-  contents.add(position);
   contents.add(qualifications);
   contents.add(roleInfo);
-  contents.add(tasks);
   return contents;
 }
 
@@ -145,17 +161,11 @@ Future<List<File>> getProfileFiles(String name) async {
   final currProf = Directory('${profsDir.path}/$name');
   File eduFile = File('${currProf.path}/$educationFile');
   File expFile = File('${currProf.path}/$experienceFile');
-  File extFile = File('${currProf.path}/$extracurricularFile');
-  File honFile = File('${currProf.path}/$honorsFile');
   File projFile = File('${currProf.path}/$projectsFile');
-  File refFile = File('${currProf.path}/$referencesFile');
   File skiFile = File('${currProf.path}/$skillsFile');
   files.add(eduFile);
   files.add(expFile);
-  files.add(extFile);
-  files.add(honFile);
   files.add(projFile);
-  files.add(refFile);
   files.add(skiFile);
   return files;
 }
@@ -164,17 +174,11 @@ Future<List<String>> convertProfDescToString(List<File> files) async {
   List<String> contents = [];
   String education = await files[0].readAsString();
   String experience = await files[1].readAsString();
-  String extracurricular = await files[2].readAsString();
-  String honors = await files[3].readAsString();
-  String projects = await files[4].readAsString();
-  String references = await files[5].readAsString();
-  String skills = await files[6].readAsString();
+  String projects = await files[2].readAsString();
+  String skills = await files[3].readAsString();
   contents.add(education);
   contents.add(experience);
-  contents.add(extracurricular);
-  contents.add(honors);
   contents.add(projects);
-  contents.add(references);
   contents.add(skills);
   return contents;
 }
@@ -190,29 +194,41 @@ Future<List<List<String>>> prepContent(List<String> names) async {
   return content;
 }
 
-// Final jobContent = prepJobContent(...)
-prepJobContent(String des, String other, String pos, String quals, String role, String tasks) {
-  final ret = {
+String prepJobContent(String des, String other, String quals, String role) {
+  return jsonEncode({
     "Job Description:": des,
     "Other Information:": other,
-    "Position Information:": pos,
     "Qualifications Information:": quals,
     "Role Information:": role,
-    "Tasks Information:": tasks,
-  };
-  return ret;
+  });
 }
 
-// Final profContent = prepProfContent(...)
-prepProfContent(String edu, String exp, String ext, String hon, String proj, String ref, String skills) {
-  final ret = {
+String prepProfContent(String edu, String exp, String proj, String skills) {
+  return jsonEncode({
     "Education:": edu,
     "Experience:": exp,
-    "Extracurricular:": ext,
-    "Honors:": hon,
     "Projects:": proj,
-    "References:": ref,
     "Skills:": skills,
-  };
-  return ret;
+  });
+}
+
+Future<Map<String, dynamic>> getOpenAIRecs(BuildContext context, ApplicationContent content) async {
+  showLoadingDialog(context);
+  try {
+    final openAICall = OpenAI(
+      content: content,
+      openAIModel: gpt_4o,
+      maxTokens: 500,
+    );
+    Map<String, dynamic> result = await openAICall.getRecs();
+    Navigator.of(context).pop();
+    return result;
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error: $e');
+    }
+    rethrow;
+  } finally {
+    showProducedDialog(context);
+  }
 }

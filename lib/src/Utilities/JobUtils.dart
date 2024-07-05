@@ -14,52 +14,40 @@ class Job {
   // Files
   late File desFile;
   late File othFile;
-  late File posFile;
   late File qualFile;
   late File roleFile;
-  late File taskFile;
 
   // Main Titles & Name
   late String desTitle;
   late String name;
   late String othTitle;
-  late String posTitle;
   late String qualTitle;
   late String roleTitle;
-  late String taskTitle;
 
   // Contents
   late String description;
   late String other;
-  late String position;
   late String quals;
   late String roleInfo;
-  late String tasks;
 
   // Controllers
   late TextEditingController desCont;
   late TextEditingController nameCont;
   late TextEditingController otherCont;
-  late TextEditingController posCont;
   late TextEditingController qualsCont;
   late TextEditingController roleCont;
-  late TextEditingController tasksCont;
 
   // Constructor
   Job({this.name = ''}) {
     desTitle = descriptionTitle;
     othTitle = otherTitle;
-    posTitle = positionTitle;
     qualTitle = qualificationsTitle;
     roleTitle = roleInfoTitle;
-    taskTitle = tasksTitle;
     desCont = TextEditingController();
     nameCont = TextEditingController();
     otherCont = TextEditingController();
-    posCont = TextEditingController();
     qualsCont = TextEditingController();
     roleCont = TextEditingController();
-    tasksCont = TextEditingController();
   }
 
   // Create New Job
@@ -78,10 +66,8 @@ class Job {
     }
     desFile = File('${currJob.path}/$descriptionFile');
     othFile = File('${currJob.path}/$otherFile');
-    posFile = File('${currJob.path}/$positionFile');
     qualFile = File('${currJob.path}/$qualificationsFile');
     roleFile = File('${currJob.path}/$roleInfoFile');
-    taskFile = File('${currJob.path}/$tasksFile');
     if (await desFile.existsSync()) {
       description = await desFile.readAsString();
       desCont.text = description;
@@ -90,10 +76,6 @@ class Job {
       other = await othFile.readAsString();
       otherCont.text = other;
     }
-    if (await posFile.existsSync()) {
-      position = await posFile.readAsString();
-      posCont.text = position;
-    }
     if (await qualFile.existsSync()) {
       quals = await qualFile.readAsString();
       qualsCont.text = quals;
@@ -101,10 +83,6 @@ class Job {
     if (await roleFile.existsSync()) {
       roleInfo = await roleFile.readAsString();
       roleCont.text = roleInfo;
-    }
-    if (await taskFile.existsSync()) {
-      tasks = await taskFile.readAsString();
-      tasksCont.text = tasks;
     }
   }
 
@@ -130,16 +108,12 @@ class Job {
     }
     desFile = File('${newDir.path}/$descriptionFile');
     othFile = File('${newDir.path}/$otherFile');
-    posFile = File('${newDir.path}/$positionFile');
     qualFile = File('${newDir.path}/$qualificationsFile');
     roleFile = File('${newDir.path}/$roleInfoFile');
-    taskFile = File('${newDir.path}/$tasksFile');
     WriteFile(dir, desFile, desCont.text);
     WriteFile(dir, othFile, otherCont.text);
-    WriteFile(dir, posFile, posCont.text);
     WriteFile(dir, qualFile, qualsCont.text);
     WriteFile(dir, roleFile, roleCont.text);
-    WriteFile(dir, taskFile, tasksCont.text);
   }
 
   // Set Job Directory
@@ -154,16 +128,12 @@ class Job {
     final currDir = Directory('${dir.path}/$name');
     desFile = File('${currDir.path}/$descriptionFile');
     othFile = File('${currDir.path}/$otherFile');
-    posFile = File('${currDir.path}/$positionFile');
     qualFile = File('${currDir.path}/$qualificationsFile');
     roleFile = File('${currDir.path}/$roleInfoFile');
-    taskFile = File('${currDir.path}/$tasksFile');
     WriteFile(dir, desFile, desCont.text);
     WriteFile(dir, othFile, otherCont.text);
-    WriteFile(dir, posFile, posCont.text);
     WriteFile(dir, qualFile, qualsCont.text);
     WriteFile(dir, roleFile, roleCont.text);
-    WriteFile(dir, taskFile, tasksCont.text);
   }
 }
 

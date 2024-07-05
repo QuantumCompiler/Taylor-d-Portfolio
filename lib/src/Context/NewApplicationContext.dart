@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Utilities/ApplicationsUtils.dart';
@@ -217,21 +217,9 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
           onPressed: () async {
             bool valid = content.verifyBoxes();
             if (valid) {
-              List<String> names = content.getContent();
-              List<List<String>> appContent = await prepContent(names);
-              final jobContent = prepJobContent(appContent[0][1], appContent[0][1], appContent[0][2], appContent[0][3], appContent[0][4], appContent[0][5]);
-              final profContent = prepProfContent(appContent[1][0], appContent[1][1], appContent[1][2], appContent[1][3], appContent[1][4], appContent[1][5], appContent[1][6]);
-              final call = OpenAI(
-                openAIModel: gpt_3_5_turbo,
-                systemRole: hiringManagerRole,
-                userPrompt: '$jobContentPrompt ${jsonEncode(jobContent)} $profContentPrompt ${jsonEncode(profContent)} $returnPrompt',
-                maxTokens: 500,
-              );
-              try {
-                Map<String, dynamic> result = await call.testPrompt();
-                print(result);
-              } catch (e) {
-                print('Error: $e');
+              Map<String, dynamic> openAIRecs = await getOpenAIRecs(context, content);
+              if (kDebugMode) {
+                print(openAIRecs);
               }
             }
           },
@@ -253,4 +241,47 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
       ],
     ),
   );
+}
+
+void showLoadingDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text("Getting Recommendations..."),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+void showProducedDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (BuildContext context) {
+      return Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [SizedBox(width: 16), Text('Recommendations Produced.')],
+          ),
+        ),
+      );
+    },
+  );
+  Future.delayed(Duration(seconds: 2), () {
+    Navigator.of(context).pop();
+  });
 }
