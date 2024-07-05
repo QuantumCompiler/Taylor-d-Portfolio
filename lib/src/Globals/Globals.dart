@@ -32,6 +32,7 @@ Color whiteTextColor = Colors.white;
 //  Directories
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 // Directory Names
+String applicationsMasterDir = 'Applications';
 String jobsMasterDir = 'Jobs';
 String profilesMasterDir = 'Profiles';
 
@@ -43,6 +44,16 @@ Future<Directory> GetAppDir() async {
 // Cache Directory
 Future<Directory> GetCacheDir() async {
   return await getTemporaryDirectory();
+}
+
+// Applications Directory
+Future<Directory> GetApplicationsDir() async {
+  final appDir = await getApplicationDocumentsDirectory();
+  final applicationsDir = Directory('${appDir.path}/$applicationsMasterDir');
+  if (!applicationsDir.existsSync()) {
+    applicationsDir.create();
+  }
+  return applicationsDir;
 }
 
 // Jobs Directory
@@ -78,16 +89,22 @@ Future<void> CreateDir(Directory parentDir, String dirName) async {
   }
 }
 
-// Create Profile Directory
-Future<void> CreateProfileDir() async {
+// Create Applications Directory
+Future<void> CreateApplicationsDir() async {
   Directory appDir = await GetAppDir();
-  CreateDir(appDir, profilesMasterDir);
+  CreateDir(appDir, applicationsMasterDir);
 }
 
 // Create Jobs Directory
 Future<void> CreateJobsDir() async {
   Directory appDir = await GetAppDir();
   CreateDir(appDir, jobsMasterDir);
+}
+
+// Create Profile Directory
+Future<void> CreateProfileDir() async {
+  Directory appDir = await GetAppDir();
+  CreateDir(appDir, profilesMasterDir);
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
