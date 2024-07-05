@@ -4,7 +4,9 @@
         "ARGB",
         "curr",
         "dotenv",
+        "fram",
         "OPENAI",
+        "pers",
         "quals"
     ]
 }
