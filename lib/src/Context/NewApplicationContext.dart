@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../Applications/SaveNewApplication.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Utilities/ApplicationsUtils.dart';
 import '../Jobs/EditJob.dart';
@@ -221,6 +222,18 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
               if (kDebugMode) {
                 print(openAIRecs);
               }
+              // Map<String, dynamic> openAIRecs = testOpenAIResults;
+              Future.delayed(Duration(seconds: 3), () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SaveNewApplicationPage(
+                      openAIContent: openAIRecs,
+                      content: content,
+                    ),
+                  ),
+                );
+              });
             }
           },
           child: Text(
