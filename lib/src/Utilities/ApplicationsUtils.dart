@@ -9,6 +9,7 @@ import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/Globals.dart';
 import '../Globals/JobsGlobals.dart';
 import '../Globals/ProfilesGlobals.dart';
+import '../Themes/Themes.dart';
 
 class ApplicationContent {
   final jobs;
@@ -231,4 +232,32 @@ Future<Map<String, dynamic>> getOpenAIRecs(BuildContext context, ApplicationCont
   } finally {
     showProducedDialog(context);
   }
+}
+
+List<Widget> openAIEntry(BuildContext context, String title, TextEditingController controller, String hintText, {int? lines = 10}) {
+  return [
+    Center(
+      child: Text(
+        title,
+        style: TextStyle(
+          color: themeTextColor(context),
+          fontSize: secondaryTitles,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ),
+    SizedBox(height: standardSizedBoxHeight),
+    Center(
+      child: Container(
+        width: MediaQuery.of(context).size.width * jobContainerWidth,
+        child: TextField(
+          controller: controller,
+          keyboardType: TextInputType.multiline,
+          maxLines: lines,
+          decoration: InputDecoration(hintText: hintText.isEmpty ? null : hintText),
+        ),
+      ),
+    ),
+    SizedBox(height: 20),
+  ];
 }
