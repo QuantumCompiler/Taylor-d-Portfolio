@@ -1,12 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../Applications/SaveNewApplication.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Utilities/ApplicationsUtils.dart';
 import '../Jobs/EditJob.dart';
-import '../Utilities/JobUtils.dart';
 import '../Globals/Globals.dart';
-import '../Utilities/ProfilesUtils.dart';
 import '../Profiles/EditProfile.dart';
 import '../Themes/Themes.dart';
 

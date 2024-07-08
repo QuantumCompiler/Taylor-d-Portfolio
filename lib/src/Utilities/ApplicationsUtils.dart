@@ -315,39 +315,28 @@ Future<void> copyRecsToMainResumeLaTeX(List<TextEditingController> controllers) 
 }
 
 Future<void> compileResume(List<TextEditingController> controllers) async {
+  // Your existing code to prepare the LaTeX file
   await getSkillsRecs(controllers);
   await copyRecsToMainResumeLaTeX(controllers);
+
   Directory mainLaTeXDir = await GetLaTeXDir();
   Directory resumeDir = Directory('${mainLaTeXDir.path}/Main LaTeX/Resume/');
-  if (kDebugMode) {
-    print('Working Directory: ${resumeDir.path}');
-  }
-  String lualatexPath = '/Library/TeX/texbin/lualatex';
-  for (int i = 0; i < 3; i++) {
-    try {
-      ProcessResult result = await Process.run(
-        lualatexPath,
-        ['main.tex'],
-        workingDirectory: resumeDir.path,
-      );
+  File texFile = File('${resumeDir.path}/main.tex');
 
-      if (result.exitCode == 0) {
-        if (kDebugMode) {
-          print('Resume Compilation Successful on attempt ${i + 1}');
-          print('Output: ${result.stdout}');
-        }
-        break;
-      } else {
-        if (kDebugMode) {
-          print('Resume Compilation Failed on attempt ${i + 1}');
-          print('Error: ${result.stderr}');
-          print('Output: ${result.stdout}');
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Exception during compilation: $e');
-      }
+  var request = http.MultipartRequest('POST', Uri.parse('http://localhost:3000/compile'));
+  request.files.add(await http.MultipartFile.fromPath('file', texFile.path));
+
+  try {
+    var response = await request.send();
+    if (response.statusCode == 200) {
+      var bytes = await response.stream.toBytes();
+      File pdfFile = File('${resumeDir.path}/main.pdf');
+      await pdfFile.writeAsBytes(bytes);
+      print('Resume Compilation Successful');
+    } else {
+      print('Resume Compilation Failed');
     }
+  } catch (e) {
+    print('Exception during compilation: $e');
   }
 }
