@@ -4,6 +4,7 @@ import '../Globals/SettingsGlobals.dart';
 import '../Globals/Globals.dart';
 import '../Utilities/JobUtils.dart';
 import '../Utilities/ProfilesUtils.dart';
+import '../Utilities/SettingsUtilities.dart';
 import '../Themes/Themes.dart';
 
 /*  appBar - App bar for the settings page
@@ -57,6 +58,7 @@ Center bodyContent(BuildContext context, ThemeProvider theme) {
           switchTheme(theme),
           delJobs(context),
           delProfs(context),
+          setLatexDirectory(context),
         ],
       ),
     ),
@@ -141,6 +143,17 @@ ListTile delProfs(BuildContext context) {
           );
         },
       );
+    },
+  );
+}
+
+ListTile setLatexDirectory(BuildContext context) {
+  return ListTile(
+    title: Text(
+      'Upload Main LaTeX Directory',
+    ),
+    onTap: () async {
+      await pickAndCopy('Main LaTeX');
     },
   );
 }

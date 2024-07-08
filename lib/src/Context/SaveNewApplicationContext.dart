@@ -41,30 +41,7 @@ AppBar appBar(BuildContext context, Function state) {
   );
 }
 
-SingleChildScrollView loadContent(BuildContext context, ApplicationContent content, Map<String, dynamic> openAIContent, Function state) {
-  TextEditingController eduController = TextEditingController();
-  TextEditingController expController = TextEditingController();
-  TextEditingController projController = TextEditingController();
-  TextEditingController mathController = TextEditingController();
-  TextEditingController persController = TextEditingController();
-  TextEditingController framController = TextEditingController();
-  TextEditingController langController = TextEditingController();
-  TextEditingController progController = TextEditingController();
-  TextEditingController sciController = TextEditingController();
-
-  String joinList(dynamic list) {
-    return (list as List<dynamic>).map((e) => e.toString()).join(", ");
-  }
-
-  eduController.text = joinList(openAIContent["Education_Recommendations"]);
-  expController.text = joinList(openAIContent["Experience_Recommendations"]);
-  projController.text = joinList(openAIContent["Projects_Recommendations"]);
-  mathController.text = joinList(openAIContent["Math_Skills_Recommendations"]);
-  persController.text = joinList(openAIContent["Personal_Skills_Recommendations"]);
-  framController.text = joinList(openAIContent["Framework_Recommendations"]);
-  langController.text = joinList(openAIContent["Programming_Languages_Recommendations"]);
-  progController.text = joinList(openAIContent["Programming_Skills_Recommendations"]);
-  sciController.text = joinList(openAIContent["Scientific_Skills_Recommendations"]);
+SingleChildScrollView loadContent(BuildContext context, ApplicationContent content, List<TextEditingController> controllers, Function state) {
   return SingleChildScrollView(
     child: Center(
       child: Container(
@@ -83,27 +60,55 @@ SingleChildScrollView loadContent(BuildContext context, ApplicationContent conte
             ),
             SizedBox(height: standardSizedBoxHeight),
             // Education Recommendations
-            ...openAIEntry(context, 'Education Recommendations', eduController, 'No Recommendations Produced', lines: 3),
+            ...openAIEntry(context, 'Education Recommendations', controllers[0], 'No Recommendations Produced', lines: 3),
             // Experience Recommendations
-            ...openAIEntry(context, 'Experience Recommendations', expController, 'No Recommendations Produced', lines: 3),
+            ...openAIEntry(context, 'Experience Recommendations', controllers[1], 'No Recommendations Produced', lines: 3),
             // Project Recommendations
-            ...openAIEntry(context, 'Project Recommendations', projController, 'No Recommendations Produced', lines: 3),
+            ...openAIEntry(context, 'Project Recommendations', controllers[2], 'No Recommendations Produced', lines: 3),
             // Math Skills Recommendations
-            ...openAIEntry(context, 'Math Skills Recommendations', mathController, 'No Recommendations Produced', lines: 5),
+            ...openAIEntry(context, 'Math Skills Recommendations', controllers[3], 'No Recommendations Produced', lines: 5),
             // Personal Skills Recommendations
-            ...openAIEntry(context, 'Personal Skills Recommendations', persController, 'No Recommendations Produced', lines: 5),
+            ...openAIEntry(context, 'Personal Skills Recommendations', controllers[4], 'No Recommendations Produced', lines: 5),
             // Framework Recommendations
-            ...openAIEntry(context, 'Framework Recommendations', framController, 'No Recommendations Produced', lines: 5),
+            ...openAIEntry(context, 'Framework Recommendations', controllers[5], 'No Recommendations Produced', lines: 5),
             // Programming Language Recommendations
-            ...openAIEntry(context, 'Programming Language Recommendations', langController, 'No Recommendations Produced', lines: 5),
+            ...openAIEntry(context, 'Programming Language Recommendations', controllers[6], 'No Recommendations Produced', lines: 5),
             // Programming Skills Recommendations
-            ...openAIEntry(context, 'Programming Skills Recommendations', progController, 'No Recommendations Produced', lines: 5),
+            ...openAIEntry(context, 'Programming Skills Recommendations', controllers[7], 'No Recommendations Produced', lines: 5),
             // Scientific Skills Recommendations
-            ...openAIEntry(context, 'Scientific Skills Recommendations', sciController, 'No Recommendations Produced', lines: 5),
+            ...openAIEntry(context, 'Scientific Skills Recommendations', controllers[8], 'No Recommendations Produced', lines: 5),
             SizedBox(height: standardSizedBoxHeight),
           ],
         ),
       ),
+    ),
+  );
+}
+
+BottomAppBar bottomAppBar(BuildContext context, List<TextEditingController> controllers) {
+  return BottomAppBar(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          onPressed: () async {
+            await compileResume(controllers);
+          },
+          child: Text(
+            'Generate Resume',
+          ),
+        ),
+        SizedBox(width: standardSizedBoxWidth),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: Text(
+            'Cancel',
+          ),
+        ),
+      ],
     ),
   );
 }

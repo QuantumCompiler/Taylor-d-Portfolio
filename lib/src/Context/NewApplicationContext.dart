@@ -95,7 +95,7 @@ SingleChildScrollView loadApplicationContent(BuildContext context, ApplicationCo
                                   child: IconButton(
                                     icon: Icon(Icons.delete),
                                     onPressed: () async {
-                                      await DeleteJob(content.jobs[index].path.split('/').last);
+                                      // await DeleteJob(content.jobs[index].path.split('/').last);
                                       state(() {});
                                     },
                                   ),
@@ -163,7 +163,7 @@ SingleChildScrollView loadApplicationContent(BuildContext context, ApplicationCo
                                   child: IconButton(
                                     icon: Icon(Icons.delete),
                                     onPressed: () async {
-                                      await DeleteProfile(content.profiles[index].path.split('/').last);
+                                      // await DeleteProfile(content.profiles[index].path.split('/').last);
                                       state(() {});
                                     },
                                   ),
@@ -218,18 +218,18 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
           onPressed: () async {
             bool valid = content.verifyBoxes();
             if (valid) {
-              Map<String, dynamic> openAIRecs = await getOpenAIRecs(context, content);
-              if (kDebugMode) {
-                print(openAIRecs);
-              }
-              // Map<String, dynamic> openAIRecs = testOpenAIResults;
-              Future.delayed(Duration(seconds: 3), () {
+              // Map<String, dynamic> openAIRecs = await getOpenAIRecs(context, content);
+              // if (kDebugMode) {
+              //   print(openAIRecs);
+              // }
+              Map<String, dynamic> openAIRecs = testOpenAIResults;
+              Future.delayed(Duration(seconds: 0), () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => SaveNewApplicationPage(
                       openAIContent: openAIRecs,
-                      content: content,
+                      appContent: content,
                     ),
                   ),
                 );

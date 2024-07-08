@@ -38,20 +38,35 @@ String jobContentPrompt = '''Extract the following information from the job cont
 String profContentPrompt = '''Extract the following information from the user's portfolio, just digest it for now:''';
 
 String returnPrompt = '''
-Return the recommendations in the following JSON Format. 
-Ensure each field contains only the recommended names or items as specified, without any additional text or explanations. Capitalize every new word. Keep each recommendation short and concise (one to four words):
+Return the recommendations in the following JSON format. 
+Ensure each field contains only the recommended names or items as specified, without any additional text or explanations. Capitalize each word. Keep each recommendation short and concise (one to four words). Sort the recommendations in alphabetical order.
+
+Ensure there are exactly:
+  - 2 education recommendations (CU Boulder and Colorado Mesa University)
+  - 3 experience recommendations
+  - 4 project recommendations (Include Taylor'd Portfolio every time)
+  - 20 math skill recommendations
+  - 20 personal skill recommendations
+  - All frameworks from the portfolio
+  - All programming languages from the portfolio
+  - 20 programming skill recommendations
+  - 20 scientific skill recommendations
+
+If any category does not meet the required number of recommendations, fill in the remainder with relevant skills for the job posting.
+
+Format your response as a JSON object:
 {
-    "Education_Recommendations": ["School Name 1", "School Name 2"],
-    "Experience_Recommendations": ["Workplace 1", "Workplace 2", "Workplace 3"],
-    "Projects_Recommendations": ["Project 1", "Project 2", "Project 3"],
-    "Math_Skills_Recommendations": ["Math Skill 1", "Math Skill 2", "Math Skill 3", "Math Skill 4", "Math Skill 5", "Math Skill 6", "Math Skill 7", "Math Skill 8", "Math Skill 9", "Math Skill 10", "Math Skill 11", "Math Skill 12", "Math Skill 13", "Math Skill 14", "Math Skill 15"],
-    "Personal_Skills_Recommendations": ["Personal Skill 1", "Personal Skill 2", "Personal Skill 3", "Personal Skill 4", "Personal Skill 5", "Personal Skill 6", "Personal Skill 7", "Personal Skill 8", "Personal Skill 9", "Personal Skill 10", "Personal Skill 11", "Personal Skill 12", "Personal Skill 13", "Personal Skill 14", "Personal Skill 15"],
-    "Framework_Recommendations": ["Framework 1", "Framework 2", "Framework 3", "Framework 4", "Framework 5", "Framework 6", "Framework 7", "Framework 8", "Framework 9", "Framework 10"],
-    "Programming_Languages_Recommendations": ["Programming Language 1", "Programming Language 2", "Programming Language 3", "Programming Language 4", "Programming Language 5", "Programming Language 6", "Programming Language 7", "Programming Language 8", "Programming Language 9", "Programming Language 10"],
-    "Programming_Skills_Recommendations": ["Programming Skill 1", "Programming Skill 2", "Programming Skill 3", "Programming Skill 4", "Programming Skill 5", "Programming Skill 6", "Programming Skill 7", "Programming Skill 8", "Programming Skill 9", "Programming Skill 10", "Programming Skill 11", "Programming Skill 12", "Programming Skill 13", "Programming Skill 14", "Programming Skill 15"],
-    "Scientific_Skills_Recommendations": ["Scientific Skill 1", "Scientific Skill 2", "Scientific Skill 3", "Scientific Skill 4", "Scientific Skill 5", "Scientific Skill 6", "Scientific Skill 7", "Scientific Skill 8", "Scientific Skill 9", "Scientific Skill 10", "Scientific Skill 11", "Scientific Skill 12", "Scientific Skill 13", "Scientific Skill 14", "Scientific Skill 15"]
+    "Education_Recommendations": ["CU Boulder", "Colorado Mesa University"],
+    "Experience_Recommendations": ["Applied Materials", "University Of Oklahoma", "Mesa Lavender Farms"],
+    "Projects_Recommendations": ["Taylor'd Portfolio", "Project 2", "Project 3", "Project 4"],
+    "Math_Skills_Recommendations": ["Math Skill 1", "Math Skill 2", ..., "Math Skill 20"],
+    "Personal_Skills_Recommendations": ["Personal Skill 1", "Personal Skill 2", ..., "Personal Skill 20"],
+    "Framework_Recommendations": ["Framework 1", "Framework 2", ..., "Framework n"],
+    "Programming_Languages_Recommendations": ["Language 1", "Language 2", ..., "Language n"],
+    "Programming_Skills_Recommendations": ["Programming Skill 1", "Programming Skill 2", ..., "Programming Skill 20"],
+    "Scientific_Skills_Recommendations": ["Scientific Skill 1", "Scientific Skill 2", ..., "Scientific Skill 20"]
 }
-Make sure the response is a valid JSON object and nothing else. Only include the names of the schools, workplaces, and projects that you recommend. For experience and projects, strictly provide exactly 3 and 3 items respectively. For skills, frameworks, and languages, provide up to 15 items each if available, otherwise list only what is present in the portfolio.
+Ensure the response is a valid JSON object and nothing else.
 ''';
 
 final Map<String, dynamic> testOpenAIResults = {

@@ -9,6 +9,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -18,6 +20,8 @@ class MyApp extends StatelessWidget {
 }
 
 class PdfTextExtractorPage extends StatefulWidget {
+  const PdfTextExtractorPage({super.key});
+
   @override
   _PdfTextExtractorPageState createState() => _PdfTextExtractorPageState();
 }

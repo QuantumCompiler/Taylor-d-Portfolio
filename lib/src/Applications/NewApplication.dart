@@ -20,7 +20,7 @@ class NewApplicationPageState extends State<NewApplicationPage> {
         if (snapshot.connectionState == ConnectionState.done) {
           final jobs = snapshot.data?[0] ?? [];
           final profiles = snapshot.data?[1] ?? [];
-          ApplicationContent content = new ApplicationContent(
+          ApplicationContent content = ApplicationContent(
             jobs: jobs,
             profiles: profiles,
           );

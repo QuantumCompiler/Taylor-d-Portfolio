@@ -34,6 +34,7 @@ Color whiteTextColor = Colors.white;
 // Directory Names
 String applicationsMasterDir = 'Applications';
 String jobsMasterDir = 'Jobs';
+String latexMasterDir = 'LaTeX';
 String profilesMasterDir = 'Profiles';
 
 // Application Directory
@@ -64,6 +65,16 @@ Future<Directory> GetJobsDir() async {
     jobsDir.createSync();
   }
   return jobsDir;
+}
+
+// LaTeX Directory
+Future<Directory> GetLaTeXDir() async {
+  final appDir = await getApplicationDocumentsDirectory();
+  final latexDir = Directory('${appDir.path}/$latexMasterDir');
+  if (!latexDir.existsSync()) {
+    latexDir.createSync();
+  }
+  return latexDir;
 }
 
 // Profiles Directory
@@ -99,6 +110,12 @@ Future<void> CreateApplicationsDir() async {
 Future<void> CreateJobsDir() async {
   Directory appDir = await GetAppDir();
   CreateDir(appDir, jobsMasterDir);
+}
+
+// Create LaTeX Directory
+Future<void> CreateLaTeXDir() async {
+  Directory appDir = await GetAppDir();
+  CreateDir(appDir, latexMasterDir);
 }
 
 // Create Profile Directory

@@ -10,6 +10,7 @@ void main() async {
   await dotenv.load(fileName: '.env');
   CreateApplicationsDir();
   CreateJobsDir();
+  CreateLaTeXDir();
   CreateProfileDir();
   runApp(
     ChangeNotifierProvider(

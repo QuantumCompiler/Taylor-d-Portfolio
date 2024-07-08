@@ -219,7 +219,7 @@ Future<Map<String, dynamic>> getOpenAIRecs(BuildContext context, ApplicationCont
     final openAICall = OpenAI(
       content: content,
       openAIModel: gpt_4o,
-      maxTokens: 500,
+      maxTokens: 1000,
     );
     Map<String, dynamic> result = await openAICall.getRecs();
     Navigator.of(context).pop();
@@ -260,4 +260,94 @@ List<Widget> openAIEntry(BuildContext context, String title, TextEditingControll
     ),
     SizedBox(height: 20),
   ];
+}
+
+String escapeLatex(String input) {
+  return input.replaceAll('&', r'\&');
+}
+
+Future<void> getSkillsRecs(List<TextEditingController> controllers) async {
+  Directory appDir = await GetAppDir();
+  Directory temp = Directory('${appDir.path}/Temp');
+  if (temp.existsSync()) {
+    await temp.delete(recursive: true);
+  }
+  await temp.create();
+  File mathRecs = File('${temp.path}/Math.txt');
+  File persRecs = File('${temp.path}/Personal.txt');
+  File framRecs = File('${temp.path}/Frameworks.txt');
+  File langRecs = File('${temp.path}/Languages.txt');
+  File progRecs = File('${temp.path}/Programming.txt');
+  File sciRecs = File('${temp.path}/Scientific.txt');
+  WriteFile(temp, mathRecs, escapeLatex(controllers[3].text));
+  WriteFile(temp, persRecs, escapeLatex(controllers[4].text));
+  WriteFile(temp, framRecs, escapeLatex(controllers[5].text));
+  WriteFile(temp, langRecs, escapeLatex(controllers[6].text));
+  WriteFile(temp, progRecs, escapeLatex(controllers[7].text));
+  WriteFile(temp, sciRecs, escapeLatex(controllers[8].text));
+}
+
+Future<void> copyRecsToMainResumeLaTeX(List<TextEditingController> controllers) async {
+  Directory appDir = await GetAppDir();
+  Directory mainLaTeXDir = await GetLaTeXDir();
+  Directory tempDir = Directory('${appDir.path}/Temp/');
+  Directory resumeTxTDir = Directory('${mainLaTeXDir.path}/Main LaTeX/Resume/First Page/Qualifications/Txt/');
+  if (!(await tempDir.exists())) {
+    if (kDebugMode) {
+      print("Temp directory does not exist");
+    }
+    return;
+  }
+  if (!(await resumeTxTDir.exists())) {
+    await resumeTxTDir.create(recursive: true);
+  }
+  List<FileSystemEntity> tempEntities = tempDir.listSync();
+  for (FileSystemEntity entity in tempEntities) {
+    if (entity is File) {
+      String newPath = '${resumeTxTDir.path}/${entity.uri.pathSegments.last}';
+      File newFile = File(newPath);
+      await entity.copy(newFile.path);
+    }
+  }
+  if (kDebugMode) {
+    print("Files copied successfully.");
+  }
+}
+
+Future<void> compileResume(List<TextEditingController> controllers) async {
+  await getSkillsRecs(controllers);
+  await copyRecsToMainResumeLaTeX(controllers);
+  Directory mainLaTeXDir = await GetLaTeXDir();
+  Directory resumeDir = Directory('${mainLaTeXDir.path}/Main LaTeX/Resume/');
+  if (kDebugMode) {
+    print('Working Directory: ${resumeDir.path}');
+  }
+  String lualatexPath = '/Library/TeX/texbin/lualatex';
+  for (int i = 0; i < 3; i++) {
+    try {
+      ProcessResult result = await Process.run(
+        lualatexPath,
+        ['main.tex'],
+        workingDirectory: resumeDir.path,
+      );
+
+      if (result.exitCode == 0) {
+        if (kDebugMode) {
+          print('Resume Compilation Successful on attempt ${i + 1}');
+          print('Output: ${result.stdout}');
+        }
+        break;
+      } else {
+        if (kDebugMode) {
+          print('Resume Compilation Failed on attempt ${i + 1}');
+          print('Error: ${result.stderr}');
+          print('Output: ${result.stdout}');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Exception during compilation: $e');
+      }
+    }
+  }
 }

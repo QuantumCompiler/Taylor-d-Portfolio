@@ -68,19 +68,19 @@ class Job {
     othFile = File('${currJob.path}/$otherFile');
     qualFile = File('${currJob.path}/$qualificationsFile');
     roleFile = File('${currJob.path}/$roleInfoFile');
-    if (await desFile.existsSync()) {
+    if (desFile.existsSync()) {
       description = await desFile.readAsString();
       desCont.text = description;
     }
-    if (await othFile.existsSync()) {
+    if (othFile.existsSync()) {
       other = await othFile.readAsString();
       otherCont.text = other;
     }
-    if (await qualFile.existsSync()) {
+    if (qualFile.existsSync()) {
       quals = await qualFile.readAsString();
       qualsCont.text = quals;
     }
-    if (await roleFile.existsSync()) {
+    if (roleFile.existsSync()) {
       roleInfo = await roleFile.readAsString();
       roleCont.text = roleInfo;
     }
