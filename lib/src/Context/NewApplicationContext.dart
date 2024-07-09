@@ -217,7 +217,7 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
             if (valid) {
               // Map<String, dynamic> openAIRecs = await getOpenAIRecs(context, content);
               Map<String, dynamic> openAIRecs = testOpenAIResults;
-              Future.delayed(Duration(seconds: 3), () {
+              Future.delayed(Duration(seconds: 0), () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
