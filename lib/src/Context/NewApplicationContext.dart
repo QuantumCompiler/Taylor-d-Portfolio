@@ -216,11 +216,8 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
             bool valid = content.verifyBoxes();
             if (valid) {
               // Map<String, dynamic> openAIRecs = await getOpenAIRecs(context, content);
-              // if (kDebugMode) {
-              //   print(openAIRecs);
-              // }
               Map<String, dynamic> openAIRecs = testOpenAIResults;
-              Future.delayed(Duration(seconds: 0), () {
+              Future.delayed(Duration(seconds: 3), () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
