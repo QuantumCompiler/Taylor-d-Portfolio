@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
 import '../Context/NewApplicationContext.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/Globals.dart';
@@ -315,28 +317,68 @@ Future<void> copyRecsToMainResumeLaTeX(List<TextEditingController> controllers) 
 }
 
 Future<void> compileResume(List<TextEditingController> controllers) async {
-  // Your existing code to prepare the LaTeX file
   await getSkillsRecs(controllers);
   await copyRecsToMainResumeLaTeX(controllers);
 
   Directory mainLaTeXDir = await GetLaTeXDir();
   Directory resumeDir = Directory('${mainLaTeXDir.path}/Main LaTeX/Resume/');
-  File texFile = File('${resumeDir.path}/main.tex');
+  File resumeZip = await zipResume(resumeDir);
+  await uploadZipFile(resumeZip);
+}
 
-  var request = http.MultipartRequest('POST', Uri.parse('http://localhost:3000/compile'));
-  request.files.add(await http.MultipartFile.fromPath('file', texFile.path));
+Future<void> uploadZipFile(File zipFile) async {
+  var request = http.MultipartRequest('POST', Uri.parse('http://10.0.0.234:3000/compile'));
+  request.files.add(await http.MultipartFile.fromPath('file', zipFile.path));
+  var response = await request.send();
 
-  try {
-    var response = await request.send();
-    if (response.statusCode == 200) {
-      var bytes = await response.stream.toBytes();
-      File pdfFile = File('${resumeDir.path}/main.pdf');
-      await pdfFile.writeAsBytes(bytes);
-      print('Resume Compilation Successful');
-    } else {
-      print('Resume Compilation Failed');
+  if (response.statusCode == 200) {
+    var responseBody = await response.stream.toBytes();
+    Directory appDir = await GetAppDir();
+    String filePath = p.join("${appDir.path}/Temp", 'Return.zip');
+    File file = File(filePath);
+    await file.writeAsBytes(responseBody);
+    if (kDebugMode) {
+      print('File downloaded and saved successfully at $filePath');
     }
-  } catch (e) {
-    print('Exception during compilation: $e');
+    // You can unzip and use the file here
+  } else {
+    if (kDebugMode) {
+      print('File upload failed with status: ${response.statusCode}');
+    }
+    var responseBody = await response.stream.bytesToString();
+    if (kDebugMode) {
+      print('Response: $responseBody');
+    }
+  }
+}
+
+Future<File> zipResume(Directory masterDir) async {
+  Directory appDocDir = await GetAppDir();
+  Directory tempDir = Directory('${appDocDir.path}/Temp');
+  String zipFilePath = '${tempDir.path}/Resume.zip';
+  var encoder = ZipFileEncoder();
+  encoder.create(zipFilePath);
+  encoder.addDirectory(masterDir, includeDirName: false);
+  encoder.close();
+  if (kDebugMode) {
+    print("Resume zipped successfully at $zipFilePath");
+  }
+  cleanTempResume();
+  return File(zipFilePath);
+}
+
+Future<void> cleanTempResume() async {
+  Directory appDocDir = await GetAppDir();
+  Directory tempDir = Directory('${appDocDir.path}/Temp');
+  List<FileSystemEntity> tempEntities = tempDir.listSync();
+  for (FileSystemEntity entity in tempEntities) {
+    if (entity is File) {
+      if (p.extension(entity.path) == '.txt') {
+        entity.deleteSync();
+      }
+    }
+  }
+  if (kDebugMode) {
+    print('.txt files deleted successfully.');
   }
 }
