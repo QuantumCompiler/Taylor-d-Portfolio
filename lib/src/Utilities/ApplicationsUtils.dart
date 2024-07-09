@@ -327,7 +327,7 @@ Future<void> compileResume(List<TextEditingController> controllers) async {
 }
 
 Future<void> uploadZipFile(File zipFile) async {
-  var request = http.MultipartRequest('POST', Uri.parse('http://10.0.0.234:3000/compile'));
+  var request = http.MultipartRequest('POST', Uri.parse('http://82.180.161.189:3000/compile'));
   request.files.add(await http.MultipartFile.fromPath('file', zipFile.path));
   var response = await request.send();
 
