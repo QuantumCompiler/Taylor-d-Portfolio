@@ -27,7 +27,9 @@ class Application {
 
   // Files
   late File resumeZip;
+  late File resumePDF;
   late File cletterZip;
+  late File cletterPDF;
   late File eduRecFile;
   late File expRecFile;
   late File projRecFile;
@@ -79,22 +81,24 @@ class Application {
 
   // Create New Application
   Future<void> CreateNewApplication() async {
-    setAppDir();
-    setWriteNewFiles();
+    await setAppDir();
+    await setWriteRecFiles();
+    await setMoveZipFile('Return.zip', 'Copy.zip');
   }
 
   // Load Previous Application
-  Future<void> LoadJAppData() async {
+  Future<void> LoadAppData() async {
     final applicationsDir = await appsDir;
     final currApp = Directory('${applicationsDir.path}/$applicationName');
-    eduRecFile = File('${currApp.path}/EducationRec.txt');
-    expRecFile = File('${currApp.path}/ExperienceRec.txt');
-    projRecFile = File('${currApp.path}/ProjectsRec.txt');
-    mathRecFile = File('${currApp.path}/MathSkillsRec.txt');
-    framRecFile = File('${currApp.path}/FrameworkRec.txt');
-    langRecFile = File('${currApp.path}/ProgLangRec.txt');
-    progRecFile = File('${currApp.path}/ProgSkillsRec.txt');
-    sciRecFile = File('${currApp.path}/ScientificSkillsRec.txt');
+    eduRecFile = File('${currApp.path}/Recommendations/EducationRec.txt');
+    expRecFile = File('${currApp.path}/Recommendations/ExperienceRec.txt');
+    projRecFile = File('${currApp.path}/Recommendations/ProjectsRec.txt');
+    mathRecFile = File('${currApp.path}/Recommendations/MathSkillsRec.txt');
+    persRecFile = File('${currApp.path}/Recommendations/PersSkillsRec.txt');
+    framRecFile = File('${currApp.path}/Recommendations/FrameworkRec.txt');
+    langRecFile = File('${currApp.path}/Recommendations/ProgLangRec.txt');
+    progRecFile = File('${currApp.path}/Recommendations/ProgSkillsRec.txt');
+    sciRecFile = File('${currApp.path}/Recommendations/ScientificSkillsRec.txt');
     if (eduRecFile.existsSync()) {
       eduRecString = await eduRecFile.readAsString();
     }
@@ -106,6 +110,9 @@ class Application {
     }
     if (mathRecFile.existsSync()) {
       mathRecString = await mathRecFile.readAsString();
+    }
+    if (persRecFile.existsSync()) {
+      persRecString = await persRecFile.readAsString();
     }
     if (framRecFile.existsSync()) {
       framRecString = await framRecFile.readAsString();
@@ -126,29 +133,97 @@ class Application {
   // Set App Dir
   Future<void> setAppDir() async {
     final parentDir = await appsDir;
-    CreateDir(parentDir, applicationName);
+    Directory appNameDir = Directory('${(await appsDir).path}/$applicationName');
+    const String recs = 'Recommendations';
+    const String zips = 'Zip Files';
+    await CreateDir(parentDir, applicationName);
+    await CreateDir(appNameDir, recs);
+    await CreateDir(appNameDir, zips);
   }
 
-  // Set Write New Files
-  Future<void> setWriteNewFiles() async {
+  // Set Write Rec Files
+  Future<void> setWriteRecFiles() async {
     final dir = await appsDir;
     final currDir = Directory('${dir.path}/$applicationName');
-    eduRecFile = File('${currDir.path}/EducationRec.txt');
-    expRecFile = File('${currDir.path}/ExperienceRec.txt');
-    projRecFile = File('${currDir.path}/ProjectsRec.txt');
-    mathRecFile = File('${currDir.path}/MathSkillsRec.txt');
-    framRecFile = File('${currDir.path}/FrameworkRec.txt');
-    langRecFile = File('${currDir.path}/ProgLangRec.txt');
-    progRecFile = File('${currDir.path}/ProgSkillsRec.txt');
-    sciRecFile = File('${currDir.path}/ScientificSkillsRec.txt');
+    eduRecFile = File('${currDir.path}/Recommendations/EducationRec.txt');
+    expRecFile = File('${currDir.path}/Recommendations/ExperienceRec.txt');
+    projRecFile = File('${currDir.path}/Recommendations/ProjectsRec.txt');
+    mathRecFile = File('${currDir.path}/Recommendations/MathSkillsRec.txt');
+    persRecFile = File('${currDir.path}/Recommendations/PersSkillsRec.txt');
+    framRecFile = File('${currDir.path}/Recommendations/FrameworkRec.txt');
+    langRecFile = File('${currDir.path}/Recommendations/ProgLangRec.txt');
+    progRecFile = File('${currDir.path}/Recommendations/ProgSkillsRec.txt');
+    sciRecFile = File('${currDir.path}/Recommendations/ScientificSkillsRec.txt');
     WriteFile(dir, eduRecFile, eduRecCont.text);
     WriteFile(dir, expRecFile, expRecCont.text);
     WriteFile(dir, projRecFile, projRecCont.text);
     WriteFile(dir, mathRecFile, mathRecCont.text);
+    WriteFile(dir, persRecFile, persRecCont.text);
     WriteFile(dir, framRecFile, framRecCont.text);
     WriteFile(dir, langRecFile, langRecCont.text);
     WriteFile(dir, progRecFile, progRecCont.text);
     WriteFile(dir, sciRecFile, sciRecCont.text);
+  }
+
+  Future<void> setMoveZipFile(String zipFileName, String newZipName) async {
+    final masterAppDir = await appDir;
+    Directory tempDir = Directory('${masterAppDir.path}/Temp');
+    Directory appsMasterDir = await appsDir;
+    Directory currAppDir = Directory('${appsMasterDir.path}/$applicationName');
+    if (!await currAppDir.exists()) {
+      await currAppDir.create(recursive: true);
+    }
+    Directory currAppZipsDir = Directory('${currAppDir.path}/Zip Files');
+    if (!await currAppZipsDir.exists()) {
+      await currAppZipsDir.create(recursive: true);
+    }
+    final File tempZip = File('${tempDir.path}/$zipFileName');
+    await tempZip.copy('${currAppZipsDir.path}/$newZipName');
+    await tempZip.delete();
+    await extractZipFile('${currAppZipsDir.path}/$newZipName', newZipName.split('.').first);
+  }
+
+  Future<void> extractZipFile(String zipFilePath, String newFolderName) async {
+    final bytes = File(zipFilePath).readAsBytesSync();
+    final archive = ZipDecoder().decodeBytes(bytes);
+    final zipFileDir = p.dirname(zipFilePath);
+    final outputDir = Directory(p.join(zipFileDir, newFolderName));
+    if (!await outputDir.exists()) {
+      await outputDir.create(recursive: true);
+    }
+    for (final file in archive) {
+      final filePathSegments = p.split(file.name);
+      final adjustedFilePathSegments = filePathSegments.sublist(1);
+      final filename = p.joinAll([outputDir.path, ...adjustedFilePathSegments]);
+
+      if (file.isFile) {
+        final data = file.content as List<int>;
+        File(filename)
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(data);
+      } else {
+        Directory(filename).createSync(recursive: true);
+      }
+    }
+    final File oldZip = File(zipFilePath);
+    await oldZip.delete();
+    await zipDirectory(outputDir, zipFilePath);
+  }
+
+  Future<void> zipDirectory(Directory sourceDir, String zipFilePath) async {
+    final zipFile = File(zipFilePath);
+    final archive = Archive();
+    List<FileSystemEntity> entities = sourceDir.listSync(recursive: true);
+    for (FileSystemEntity entity in entities) {
+      if (entity is File) {
+        final filename = p.relative(entity.path, from: sourceDir.path);
+        final data = entity.readAsBytesSync();
+        archive.addFile(ArchiveFile(filename, data.length, data));
+      }
+    }
+    final bytes = ZipEncoder().encode(archive);
+    zipFile.writeAsBytesSync(bytes!);
+    sourceDir.deleteSync(recursive: true);
   }
 }
 
@@ -374,14 +449,14 @@ Future<Map<String, dynamic>> getOpenAIRecs(BuildContext context, ApplicationCont
     );
     Map<String, dynamic> result = await openAICall.getRecs();
     Navigator.of(context).pop();
+    await showProducedDialog(context);
     return result;
   } catch (e) {
     if (kDebugMode) {
       print('Error: $e');
     }
+    Navigator.of(context).pop();
     rethrow;
-  } finally {
-    showProducedDialog(context);
   }
 }
 
@@ -540,11 +615,23 @@ Future<void> cleanTempResume() async {
   }
 }
 
-Future<List<Directory>> RetrieveSortedApplications() async {
+Future<List<Application>> RetrieveSortedApplications() async {
   final appsDir = await GetApplicationsDir();
-  final appsList = appsDir.listSync().whereType<Directory>().toList();
-  appsList.sort((a, b) => a.path.split('/').last.compareTo(b.path.split('/').last));
-  return appsList;
+  List<Application> applications = [];
+  if (appsDir.existsSync()) {
+    for (var entity in appsDir.listSync()) {
+      if (entity is Directory) {
+        String appName = entity.path.split('/').last;
+        applications.add(Application(
+          applicationName: appName,
+          profileName: '',
+          controllers: List.generate(9, (index) => TextEditingController()),
+        ));
+      }
+    }
+  }
+  applications.sort((a, b) => a.applicationName.compareTo(b.applicationName));
+  return applications;
 }
 
 Future<void> CreateNewApplication(ApplicationContent content, List<TextEditingController> controllers) async {
