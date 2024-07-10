@@ -46,6 +46,7 @@ dependencies:
   syncfusion_flutter_pdf: ^26.1.40
   process_run: ^1.0.0+1
   archive: ^3.6.1
+  syncfusion_flutter_pdfviewer: ^26.1.41
 
 dev_dependencies:
   flutter_test:
