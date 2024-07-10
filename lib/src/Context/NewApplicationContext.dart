@@ -1,3 +1,4 @@
+// import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../Applications/SaveNewApplication.dart';
 import '../Globals/ApplicationsGlobals.dart';
@@ -258,12 +259,12 @@ void showLoadingDialog(BuildContext context) {
       return Dialog(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Row(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
               Text("Getting Recommendations..."),
+              SizedBox(width: standardSizedBoxHeight),
+              CircularProgressIndicator(),
             ],
           ),
         ),
