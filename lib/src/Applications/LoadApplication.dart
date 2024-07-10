@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../Context/LoadApplicationContext.dart';
 import '../Utilities/ApplicationsUtils.dart';
@@ -12,9 +11,9 @@ class LoadApplicationPage extends StatefulWidget {
 class LoadApplicationPageState extends State<LoadApplicationPage> {
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Directory>>(
+    return FutureBuilder<List<Application>>(
       future: RetrieveSortedApplications(),
-      builder: (BuildContext context, AsyncSnapshot<List<Directory>> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<List<Application>> snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           final apps = snapshot.data ?? [];
           return Scaffold(
