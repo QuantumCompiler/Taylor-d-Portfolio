@@ -12,7 +12,7 @@ CODE_SIGN_ENTITLEMENTS = Runner/Configs/Release.entitlements
 PRODUCT_NAME = Taylor’d Portfolio
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.vici.taylordResume
+PRODUCT_BUNDLE_IDENTIFIER = com.vici.taylordPortfolio
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2024 com.vici. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2024 com.vici All rights reserved.
