@@ -13,6 +13,155 @@ import '../Globals/JobsGlobals.dart';
 import '../Globals/ProfilesGlobals.dart';
 import '../Themes/Themes.dart';
 
+class Application {
+  // Directories
+  final Future<Directory> appDir = GetAppDir();
+  final Future<Directory> cacheDir = GetCacheDir();
+  final Future<Directory> appsDir = GetApplicationsDir();
+  final Future<Directory> supDir = GetSupportDir();
+
+  // Required Content
+  final String applicationName;
+  final String profileName;
+  final List<TextEditingController> controllers;
+
+  // Files
+  late File resumeZip;
+  late File cletterZip;
+  late File eduRecFile;
+  late File expRecFile;
+  late File projRecFile;
+  late File mathRecFile;
+  late File persRecFile;
+  late File framRecFile;
+  late File langRecFile;
+  late File progRecFile;
+  late File sciRecFile;
+
+  // Strings
+  late String eduRecString;
+  late String expRecString;
+  late String projRecString;
+  late String mathRecString;
+  late String persRecString;
+  late String framRecString;
+  late String langRecString;
+  late String progRecString;
+  late String sciRecString;
+
+  // Controllers
+  late TextEditingController eduRecCont;
+  late TextEditingController expRecCont;
+  late TextEditingController projRecCont;
+  late TextEditingController mathRecCont;
+  late TextEditingController persRecCont;
+  late TextEditingController framRecCont;
+  late TextEditingController langRecCont;
+  late TextEditingController progRecCont;
+  late TextEditingController sciRecCont;
+
+  // Constructor
+  Application({
+    required this.applicationName,
+    required this.profileName,
+    required this.controllers,
+  }) {
+    eduRecCont = controllers[0];
+    expRecCont = controllers[1];
+    projRecCont = controllers[2];
+    mathRecCont = controllers[3];
+    persRecCont = controllers[4];
+    framRecCont = controllers[5];
+    langRecCont = controllers[6];
+    progRecCont = controllers[7];
+    sciRecCont = controllers[8];
+  }
+
+  // Create New Application
+  Future<void> CreateNewApplication() async {
+    setAppDir();
+    setWriteNewFiles();
+  }
+
+  // Load Previous Application
+  Future<void> LoadJAppData() async {
+    final applicationsDir = await appsDir;
+    final currApp = Directory('${applicationsDir.path}/$applicationName');
+    eduRecFile = File('${currApp.path}/EducationRec.txt');
+    expRecFile = File('${currApp.path}/ExperienceRec.txt');
+    projRecFile = File('${currApp.path}/ProjectsRec.txt');
+    mathRecFile = File('${currApp.path}/MathSkillsRec.txt');
+    framRecFile = File('${currApp.path}/FrameworkRec.txt');
+    langRecFile = File('${currApp.path}/ProgLangRec.txt');
+    progRecFile = File('${currApp.path}/ProgSkillsRec.txt');
+    sciRecFile = File('${currApp.path}/ScientificSkillsRec.txt');
+    if (eduRecFile.existsSync()) {
+      eduRecString = await eduRecFile.readAsString();
+    }
+    if (expRecFile.existsSync()) {
+      expRecString = await expRecFile.readAsString();
+    }
+    if (projRecFile.existsSync()) {
+      projRecString = await projRecFile.readAsString();
+    }
+    if (mathRecFile.existsSync()) {
+      mathRecString = await mathRecFile.readAsString();
+    }
+    if (framRecFile.existsSync()) {
+      framRecString = await framRecFile.readAsString();
+    }
+    if (langRecFile.existsSync()) {
+      langRecString = await langRecFile.readAsString();
+    }
+    if (progRecFile.existsSync()) {
+      progRecString = await progRecFile.readAsString();
+    }
+    if (sciRecFile.existsSync()) {
+      sciRecString = await sciRecFile.readAsString();
+    }
+  }
+
+  // Setters
+
+  // Set App Dir
+  Future<void> setAppDir() async {
+    final parentDir = await appsDir;
+    CreateDir(parentDir, applicationName);
+  }
+
+  // Set Write New Files
+  Future<void> setWriteNewFiles() async {
+    final dir = await appsDir;
+    final currDir = Directory('${dir.path}/$applicationName');
+    eduRecFile = File('${currDir.path}/EducationRec.txt');
+    expRecFile = File('${currDir.path}/ExperienceRec.txt');
+    projRecFile = File('${currDir.path}/ProjectsRec.txt');
+    mathRecFile = File('${currDir.path}/MathSkillsRec.txt');
+    framRecFile = File('${currDir.path}/FrameworkRec.txt');
+    langRecFile = File('${currDir.path}/ProgLangRec.txt');
+    progRecFile = File('${currDir.path}/ProgSkillsRec.txt');
+    sciRecFile = File('${currDir.path}/ScientificSkillsRec.txt');
+    WriteFile(dir, eduRecFile, eduRecCont.text);
+    WriteFile(dir, expRecFile, expRecCont.text);
+    WriteFile(dir, projRecFile, projRecCont.text);
+    WriteFile(dir, mathRecFile, mathRecCont.text);
+    WriteFile(dir, framRecFile, framRecCont.text);
+    WriteFile(dir, langRecFile, langRecCont.text);
+    WriteFile(dir, progRecFile, progRecCont.text);
+    WriteFile(dir, sciRecFile, sciRecCont.text);
+  }
+}
+
+Future<void> DeleteAllApplications() async {
+  final appsDir = await GetApplicationsDir();
+  final List<FileSystemEntity> apps = appsDir.listSync();
+  for (final app in apps) {
+    if (app is Directory) {
+      app.deleteSync(recursive: true);
+    }
+  }
+}
+
 class ApplicationContent {
   final jobs;
   final profiles;
@@ -330,7 +479,6 @@ Future<void> uploadZipFile(File zipFile) async {
   var request = http.MultipartRequest('POST', Uri.parse('http://82.180.161.189:3000/compile'));
   request.files.add(await http.MultipartFile.fromPath('file', zipFile.path));
   var response = await request.send();
-
   if (response.statusCode == 200) {
     var responseBody = await response.stream.toBytes();
     Directory appDir = await GetAppDir();
@@ -340,7 +488,6 @@ Future<void> uploadZipFile(File zipFile) async {
     if (kDebugMode) {
       print('File downloaded and saved successfully at $filePath');
     }
-    // You can unzip and use the file here
   } else {
     if (kDebugMode) {
       print('File upload failed with status: ${response.statusCode}');
@@ -348,6 +495,16 @@ Future<void> uploadZipFile(File zipFile) async {
     var responseBody = await response.stream.bytesToString();
     if (kDebugMode) {
       print('Response: $responseBody');
+    }
+  }
+  try {
+    zipFile.deleteSync();
+    if (kDebugMode) {
+      print('Original file deleted successfully.');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('Unable to delete original file: $zipFile');
     }
   }
 }
@@ -381,4 +538,25 @@ Future<void> cleanTempResume() async {
   if (kDebugMode) {
     print('.txt files deleted successfully.');
   }
+}
+
+Future<List<Directory>> RetrieveSortedApplications() async {
+  final appsDir = await GetApplicationsDir();
+  final appsList = appsDir.listSync().whereType<Directory>().toList();
+  appsList.sort((a, b) => a.path.split('/').last.compareTo(b.path.split('/').last));
+  return appsList;
+}
+
+Future<void> CreateNewApplication(ApplicationContent content, List<TextEditingController> controllers) async {
+  Application newApp = new Application(
+    applicationName: content.checkedJobs[0].toString(),
+    profileName: content.checkedProfiles[0].toString(),
+    controllers: controllers,
+  );
+  Directory appsDir = await GetApplicationsDir();
+  Directory newDir = Directory('${appsDir.path}/${newApp.applicationName}');
+  if (newDir.existsSync()) {
+    newDir.deleteSync(recursive: true);
+  }
+  newApp.CreateNewApplication();
 }
