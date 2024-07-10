@@ -4,7 +4,7 @@ import '../Utilities/ApplicationsUtils.dart';
 import '../Globals/Globals.dart';
 import '../Themes/Themes.dart';
 
-AppBar appBar(BuildContext context, Function state) {
+AppBar appBar(BuildContext context, ApplicationContent content, Function state) {
   return AppBar(
     leading: IconButton(
       icon: Icon(Icons.arrow_back),
@@ -31,7 +31,7 @@ AppBar appBar(BuildContext context, Function state) {
       ),
     ],
     title: Text(
-      'Save New Application',
+      '${content.checkedJobs[0].toString()}',
       style: TextStyle(
         color: themeTextColor(context),
         fontSize: appBarTitle,
@@ -85,7 +85,7 @@ SingleChildScrollView loadContent(BuildContext context, ApplicationContent conte
   );
 }
 
-BottomAppBar bottomAppBar(BuildContext context, List<TextEditingController> controllers) {
+BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, List<TextEditingController> controllers) {
   return BottomAppBar(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -94,9 +94,10 @@ BottomAppBar bottomAppBar(BuildContext context, List<TextEditingController> cont
         ElevatedButton(
           onPressed: () async {
             await compileResume(controllers);
+            await CreateNewApplication(content, controllers);
           },
           child: Text(
-            'Generate Resume',
+            'Generate Portfolio',
           ),
         ),
         SizedBox(width: standardSizedBoxWidth),
