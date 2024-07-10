@@ -19,7 +19,9 @@ AppBar appBar(BuildContext context, Application prevApp) {
             Navigator.of(context).pop();
             Navigator.of(context).pop();
             Navigator.of(context).pop();
+            Navigator.of(context).pop();
           } else if (isMobile()) {
+            Navigator.of(context).pop();
             Navigator.of(context).pop();
             Navigator.of(context).pop();
             Navigator.of(context).pop();
