@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../Applications/LoadApplication.dart';
 import '../Applications/NewApplication.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/Globals.dart';
@@ -41,6 +42,12 @@ Center applicationsContent(BuildContext context) {
             onTap: () => {
               Navigator.push(context, MaterialPageRoute(builder: (context) => NewApplicationPage())),
             },
+          ),
+          ListTile(
+            title: Text(
+              'Load Applications',
+            ),
+            onTap: () => {Navigator.push(context, MaterialPageRoute(builder: (context) => LoadApplicationPage()))},
           ),
         ],
       ),
