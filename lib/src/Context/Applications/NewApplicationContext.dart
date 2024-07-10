@@ -1,6 +1,4 @@
 // import 'package:flutter/foundation.dart';
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import '../../Applications/SaveNewApplication.dart';
 import '../../Globals/ApplicationsGlobals.dart';
@@ -218,8 +216,8 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
           onPressed: () async {
             bool valid = content.verifyBoxes();
             if (valid) {
-              Map<String, dynamic> openAIRecs = testOpenAIResults;
-              // Map<String, dynamic> openAIRecs = await getOpenAIRecs(context, content);
+              // Map<String, dynamic> openAIRecs = testOpenAIResults;
+              Map<String, dynamic> openAIRecs = await getOpenAIRecs(context, content);
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -249,49 +247,4 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
       ],
     ),
   );
-}
-
-void showLoadingDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("Getting Recommendations..."),
-              SizedBox(width: standardSizedBoxHeight),
-              CircularProgressIndicator(),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
-Future<void> showProducedDialog(BuildContext context) async {
-  Timer? timer;
-  await showDialog(
-    context: context,
-    barrierDismissible: true,
-    builder: (BuildContext context) {
-      timer = Timer(Duration(seconds: 2), () {
-        Navigator.of(context).pop();
-      });
-      return Dialog(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [SizedBox(width: 16), Text('Recommendations Produced.')],
-          ),
-        ),
-      );
-    },
-  );
-  timer?.cancel();
 }
