@@ -53,9 +53,9 @@ class SaveNewApplicationPageState extends State<SaveNewApplicationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appBar(context, setState),
+      appBar: appBar(context, widget.appContent, setState),
       body: loadContent(context, widget.appContent, controllers, setState),
-      bottomNavigationBar: bottomAppBar(context, controllers),
+      bottomNavigationBar: bottomAppBar(context, widget.appContent, controllers),
     );
   }
 }
