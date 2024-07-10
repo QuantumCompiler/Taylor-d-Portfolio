@@ -93,7 +93,7 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, List
       children: [
         ElevatedButton(
           onPressed: () async {
-            await compileResume(controllers);
+            await compilePortfolio(context, controllers);
             await CreateNewApplication(content, controllers);
           },
           child: Text(
