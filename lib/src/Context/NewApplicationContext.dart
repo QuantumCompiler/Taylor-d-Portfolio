@@ -1,4 +1,6 @@
 // import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../Applications/SaveNewApplication.dart';
 import '../Globals/ApplicationsGlobals.dart';
@@ -216,19 +218,17 @@ BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Func
           onPressed: () async {
             bool valid = content.verifyBoxes();
             if (valid) {
-              // Map<String, dynamic> openAIRecs = await getOpenAIRecs(context, content);
               Map<String, dynamic> openAIRecs = testOpenAIResults;
-              Future.delayed(Duration(seconds: 0), () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SaveNewApplicationPage(
-                      openAIContent: openAIRecs,
-                      appContent: content,
-                    ),
+              // Map<String, dynamic> openAIRecs = await getOpenAIRecs(context, content);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SaveNewApplicationPage(
+                    openAIContent: openAIRecs,
+                    appContent: content,
                   ),
-                );
-              });
+                ),
+              );
             }
           },
           child: Text(
@@ -273,11 +273,15 @@ void showLoadingDialog(BuildContext context) {
   );
 }
 
-void showProducedDialog(BuildContext context) {
-  showDialog(
+Future<void> showProducedDialog(BuildContext context) async {
+  Timer? timer;
+  await showDialog(
     context: context,
     barrierDismissible: true,
     builder: (BuildContext context) {
+      timer = Timer(Duration(seconds: 2), () {
+        Navigator.of(context).pop();
+      });
       return Dialog(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -289,7 +293,5 @@ void showProducedDialog(BuildContext context) {
       );
     },
   );
-  Future.delayed(Duration(seconds: 2), () {
-    Navigator.of(context).pop();
-  });
+  timer?.cancel();
 }
