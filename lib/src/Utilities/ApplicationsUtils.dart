@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:archive/archive_io.dart';
@@ -6,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
-import '../Context/Applications/NewApplicationContext.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/Globals.dart';
 import '../Globals/JobsGlobals.dart';
@@ -83,8 +83,7 @@ class Application {
   Future<void> CreateNewApplication() async {
     await setAppDir();
     await setWriteRecFiles();
-    // await relocateZip('Zip Files', 'Temp', 'Return.zip', 'Copy.zip', true);
-    // await setExtractPDF('Copy.zip');
+    await finDoc('Resume');
   }
 
   // Load Previous Application
@@ -168,84 +167,82 @@ class Application {
     WriteFile(dir, sciRecFile, sciRecCont.text);
   }
 
-  // Future<void> relocateZip(String targetSubDir, String origDir, String zipFileName, String newZipName, bool delete) async {
-  //   final masterAppDir = await appDir;
-  //   Directory sourceDir = Directory('${masterAppDir.path}/$origDir');
-  //   Directory appsMasterDir = await appsDir;
-  //   Directory currAppDir = Directory('${appsMasterDir.path}/$applicationName');
-  //   Directory currAppSubDir = Directory('${currAppDir.path}/$targetSubDir');
-  //   if (!await currAppSubDir.exists()) {
-  //     await currAppSubDir.create(recursive: true);
-  //   }
-  //   final File sourceZip = File('${sourceDir.path}/$zipFileName');
-  //   await sourceZip.copy('${currAppSubDir.path}/$newZipName');
-  //   await unzipFile('${currAppSubDir.path}/$newZipName', '${currAppSubDir.path}/', true);
-  //   Directory copiedDir = Directory('${currAppSubDir.path}/${zipFileName.split('.').first}');
-  //   await copiedDir.rename('${currAppSubDir.path}/${newZipName.split('.').first}');
-  //   await zipDirectory('${currAppSubDir.path}/${newZipName.split('.').first}', currAppSubDir.path, true);
-  //   if (delete) {
-  //     await sourceZip.delete();
-  //   }
-  // }
+  Future<void> moveAndDelZip(String sourceSubDir, String targetSubDir, String zipName, bool deleteSrc) async {
+    final masterAppDir = await appDir;
+    Directory sourceDir = Directory('${masterAppDir.path}/$sourceSubDir');
+    Directory targetDir = Directory('${masterAppDir.path}/$targetSubDir');
+    final File sourceZip = File('${sourceDir.path}/$zipName');
+    await sourceZip.copy('${targetDir.path}/$zipName');
+    if (deleteSrc) {
+      await sourceZip.delete();
+    }
+  }
 
-  // Future<void> unzipFile(String zipFilePath, String newFolderName, bool delete) async {
-  //   final bytes = File(zipFilePath).readAsBytesSync();
-  //   final archive = ZipDecoder().decodeBytes(bytes);
-  //   final zipFileDir = p.dirname(zipFilePath);
-  //   final outputDir = Directory(p.join(zipFileDir, newFolderName));
-  //   if (!await outputDir.exists()) {
-  //     await outputDir.create(recursive: true);
-  //   }
-  //   for (final file in archive) {
-  //     final filename = p.join(outputDir.path, file.name);
-  //     if (file.isFile) {
-  //       final data = file.content as List<int>;
-  //       File(filename)
-  //         ..createSync(recursive: true)
-  //         ..writeAsBytesSync(data);
-  //     } else {
-  //       Directory(filename).createSync(recursive: true);
-  //     }
-  //   }
-  //   if (delete) {
-  //     final File oldZip = File(zipFilePath);
-  //     await oldZip.delete();
-  //   }
-  // }
+  Future<void> unzipFile(String sourceSubDir, String targetSubDir, String zipName, bool deleteSrc) async {
+    final masterAppDir = await appDir;
+    Directory sourceDir = Directory('${masterAppDir.path}/$sourceSubDir/$zipName');
+    Directory targetDir = Directory('${masterAppDir.path}/$targetSubDir');
+    final bytes = File(sourceDir.path).readAsBytesSync();
+    final archive = ZipDecoder().decodeBytes(bytes);
+    for (final file in archive) {
+      final filename = p.join(targetDir.path, file.name);
+      if (file.isFile) {
+        final data = file.content as List<int>;
+        File(filename)
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(data);
+      } else {
+        Directory(filename).createSync(recursive: true);
+      }
+    }
+    if (deleteSrc) {
+      final File oldZip = File(sourceDir.path);
+      await oldZip.delete();
+    }
+  }
 
-  // Future<void> zipDirectory(String source, String targetDirectoryPath, bool delete) async {
-  //   final targetDirectory = Directory(targetDirectoryPath);
-  //   if (!targetDirectory.existsSync()) {
-  //     targetDirectory.createSync(recursive: true);
-  //   }
-  //   final sourceDirName = p.basename(source);
-  //   final zipFilePath = p.join(targetDirectoryPath, '$sourceDirName.zip');
-  //   final zipFile = File(zipFilePath);
-  //   final archive = Archive();
-  //   Directory sourceDir = Directory(source);
-  //   List<FileSystemEntity> entities = sourceDir.listSync(recursive: true);
-  //   for (FileSystemEntity entity in entities) {
-  //     if (entity is File) {
-  //       final filename = p.relative(entity.path, from: sourceDir.path);
-  //       final data = entity.readAsBytesSync();
-  //       archive.addFile(ArchiveFile(filename, data.length, data));
-  //     }
-  //   }
-  //   final bytes = ZipEncoder().encode(archive);
-  //   zipFile.writeAsBytesSync(bytes!);
-  //   if (delete) {
-  //     sourceDir.deleteSync(recursive: true);
-  //   }
-  // }
+  Future<void> renameAndZipDir(String sourceSubDir, String newName, bool rename) async {
+    final masterAppDir = await appDir;
+    Directory originalDir = Directory('${masterAppDir.path}/$sourceSubDir/');
+    String finalDirPath = originalDir.path;
+    Directory dirToDelete = originalDir;
+    if (rename) {
+      var newPath = '${originalDir.parent.path}/$newName';
+      await originalDir.rename(newPath);
+      finalDirPath = newPath;
+      dirToDelete = Directory(newPath);
+    }
+    final zipFilePath = '${finalDirPath.trimRight()}.zip';
+    final zipFile = File(zipFilePath);
+    final archive = Archive();
+    List<FileSystemEntity> entities = Directory(finalDirPath).listSync(recursive: true);
+    for (FileSystemEntity entity in entities) {
+      if (entity is File) {
+        final filename = p.relative(entity.path, from: finalDirPath);
+        final data = entity.readAsBytesSync();
+        archive.addFile(ArchiveFile(filename, data.length, data));
+      }
+    }
+    final bytes = ZipEncoder().encode(archive);
+    if (bytes != null) {
+      zipFile.writeAsBytesSync(bytes);
+    }
+    await dirToDelete.delete(recursive: true);
+  }
 
-  // Future<void> setExtractPDF(String origZipName) async {
-  //   Directory applicationsMasterDir = await appDir;
-  //   Directory currAppFinDir = Directory('${applicationsMasterDir.path}/Applications/$applicationName/Finished Documents');
-  //   if (!await currAppFinDir.exists()) {
-  //     await currAppFinDir.create(recursive: true);
-  //   }
-  //   await relocateZip('Finished Documents', 'Zip Files', origZipName, origZipName, false);
-  // }
+  Future<void> finDoc(String newDirName) async {
+    await moveAndDelZip('Temp', 'Applications/$applicationName/Zip Files/', 'Return.zip', true);
+    await unzipFile('Applications/$applicationName/Zip Files/', 'Applications/$applicationName/Zip Files/', 'Return.zip', true);
+    await renameAndZipDir('Applications/$applicationName/Zip Files/Return', newDirName, true);
+    await moveAndDelZip('Applications/$applicationName/Zip Files/', 'Applications/$applicationName/Finished Documents/', '$newDirName.zip', false);
+    await unzipFile('Applications/$applicationName/Finished Documents/', 'Applications/$applicationName/Finished Documents/$newDirName', '$newDirName.zip', true);
+  }
+
+  Future<String> retrievePDFDir(String subDir, String pdfFileName) async {
+    final masterAppsDir = await appsDir;
+    final pdfFilePath = '${masterAppsDir.path}/$applicationName/Finished Documents/$subDir/$pdfFileName';
+    return pdfFilePath;
+  }
 }
 
 Future<void> DeleteAllApplications() async {
@@ -461,7 +458,7 @@ String prepProfContent(String edu, String exp, String proj, String skills) {
 }
 
 Future<Map<String, dynamic>> getOpenAIRecs(BuildContext context, ApplicationContent content) async {
-  showLoadingDialog(context);
+  showLoadingDialog(context, 'Getting OpenAI Recommendations...');
   try {
     final openAICall = OpenAI(
       content: content,
@@ -470,7 +467,7 @@ Future<Map<String, dynamic>> getOpenAIRecs(BuildContext context, ApplicationCont
     );
     Map<String, dynamic> result = await openAICall.getRecs();
     Navigator.of(context).pop();
-    await showProducedDialog(context);
+    await showProducedDialog(context, 'Open AI Recommendations Produced!');
     return result;
   } catch (e) {
     if (kDebugMode) {
@@ -558,14 +555,22 @@ Future<void> copyRecsToMainResumeLaTeX(List<TextEditingController> controllers) 
   }
 }
 
-Future<void> compileResume(List<TextEditingController> controllers) async {
+Future<void> compilePortfolio(BuildContext context, List<TextEditingController> controllers) async {
+  showLoadingDialog(context, 'Compiling Portfolio');
   await getSkillsRecs(controllers);
   await copyRecsToMainResumeLaTeX(controllers);
-
   Directory mainLaTeXDir = await GetLaTeXDir();
   Directory resumeDir = Directory('${mainLaTeXDir.path}/Main LaTeX/Resume/');
   File resumeZip = await zipResume(resumeDir);
-  await uploadZipFile(resumeZip);
+  try {
+    await uploadZipFile(resumeZip);
+    Navigator.of(context).pop();
+    await showProducedDialog(context, 'Portfolio Compiled Successfully.');
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error: $e');
+    }
+  }
 }
 
 Future<void> uploadZipFile(File zipFile) async {
@@ -638,4 +643,49 @@ Future<void> CreateNewApplication(ApplicationContent content, List<TextEditingCo
     newDir.deleteSync(recursive: true);
   }
   newApp.CreateNewApplication();
+}
+
+void showLoadingDialog(BuildContext context, String content) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(content),
+              SizedBox(width: standardSizedBoxHeight),
+              CircularProgressIndicator(),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+Future<void> showProducedDialog(BuildContext context, String content) async {
+  Timer? timer;
+  await showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (BuildContext context) {
+      timer = Timer(Duration(seconds: 2), () {
+        Navigator.of(context).pop();
+      });
+      return Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [SizedBox(width: 16), Text(content)],
+          ),
+        ),
+      );
+    },
+  );
+  timer?.cancel();
 }
