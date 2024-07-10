@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/Globals.dart';
-import '../Utilities/ApplicationsUtils.dart';
+// import '../Utilities/ApplicationsUtils.dart';
 // import '../Jobs/EditJob.dart';
 
 AppBar appBar(BuildContext context, final apps, Function state) {
