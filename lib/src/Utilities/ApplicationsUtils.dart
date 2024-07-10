@@ -83,7 +83,8 @@ class Application {
   Future<void> CreateNewApplication() async {
     await setAppDir();
     await setWriteRecFiles();
-    await setMoveZipFile('Return.zip', 'Copy.zip');
+    // await relocateZip('Zip Files', 'Temp', 'Return.zip', 'Copy.zip', true);
+    // await setExtractPDF('Copy.zip');
   }
 
   // Load Previous Application
@@ -136,9 +137,11 @@ class Application {
     Directory appNameDir = Directory('${(await appsDir).path}/$applicationName');
     const String recs = 'Recommendations';
     const String zips = 'Zip Files';
+    const String docs = 'Finished Documents';
     await CreateDir(parentDir, applicationName);
     await CreateDir(appNameDir, recs);
     await CreateDir(appNameDir, zips);
+    await CreateDir(appNameDir, docs);
   }
 
   // Set Write Rec Files
@@ -165,66 +168,84 @@ class Application {
     WriteFile(dir, sciRecFile, sciRecCont.text);
   }
 
-  Future<void> setMoveZipFile(String zipFileName, String newZipName) async {
-    final masterAppDir = await appDir;
-    Directory tempDir = Directory('${masterAppDir.path}/Temp');
-    Directory appsMasterDir = await appsDir;
-    Directory currAppDir = Directory('${appsMasterDir.path}/$applicationName');
-    if (!await currAppDir.exists()) {
-      await currAppDir.create(recursive: true);
-    }
-    Directory currAppZipsDir = Directory('${currAppDir.path}/Zip Files');
-    if (!await currAppZipsDir.exists()) {
-      await currAppZipsDir.create(recursive: true);
-    }
-    final File tempZip = File('${tempDir.path}/$zipFileName');
-    await tempZip.copy('${currAppZipsDir.path}/$newZipName');
-    await tempZip.delete();
-    await extractZipFile('${currAppZipsDir.path}/$newZipName', newZipName.split('.').first);
-  }
+  // Future<void> relocateZip(String targetSubDir, String origDir, String zipFileName, String newZipName, bool delete) async {
+  //   final masterAppDir = await appDir;
+  //   Directory sourceDir = Directory('${masterAppDir.path}/$origDir');
+  //   Directory appsMasterDir = await appsDir;
+  //   Directory currAppDir = Directory('${appsMasterDir.path}/$applicationName');
+  //   Directory currAppSubDir = Directory('${currAppDir.path}/$targetSubDir');
+  //   if (!await currAppSubDir.exists()) {
+  //     await currAppSubDir.create(recursive: true);
+  //   }
+  //   final File sourceZip = File('${sourceDir.path}/$zipFileName');
+  //   await sourceZip.copy('${currAppSubDir.path}/$newZipName');
+  //   await unzipFile('${currAppSubDir.path}/$newZipName', '${currAppSubDir.path}/', true);
+  //   Directory copiedDir = Directory('${currAppSubDir.path}/${zipFileName.split('.').first}');
+  //   await copiedDir.rename('${currAppSubDir.path}/${newZipName.split('.').first}');
+  //   await zipDirectory('${currAppSubDir.path}/${newZipName.split('.').first}', currAppSubDir.path, true);
+  //   if (delete) {
+  //     await sourceZip.delete();
+  //   }
+  // }
 
-  Future<void> extractZipFile(String zipFilePath, String newFolderName) async {
-    final bytes = File(zipFilePath).readAsBytesSync();
-    final archive = ZipDecoder().decodeBytes(bytes);
-    final zipFileDir = p.dirname(zipFilePath);
-    final outputDir = Directory(p.join(zipFileDir, newFolderName));
-    if (!await outputDir.exists()) {
-      await outputDir.create(recursive: true);
-    }
-    for (final file in archive) {
-      final filePathSegments = p.split(file.name);
-      final adjustedFilePathSegments = filePathSegments.sublist(1);
-      final filename = p.joinAll([outputDir.path, ...adjustedFilePathSegments]);
+  // Future<void> unzipFile(String zipFilePath, String newFolderName, bool delete) async {
+  //   final bytes = File(zipFilePath).readAsBytesSync();
+  //   final archive = ZipDecoder().decodeBytes(bytes);
+  //   final zipFileDir = p.dirname(zipFilePath);
+  //   final outputDir = Directory(p.join(zipFileDir, newFolderName));
+  //   if (!await outputDir.exists()) {
+  //     await outputDir.create(recursive: true);
+  //   }
+  //   for (final file in archive) {
+  //     final filename = p.join(outputDir.path, file.name);
+  //     if (file.isFile) {
+  //       final data = file.content as List<int>;
+  //       File(filename)
+  //         ..createSync(recursive: true)
+  //         ..writeAsBytesSync(data);
+  //     } else {
+  //       Directory(filename).createSync(recursive: true);
+  //     }
+  //   }
+  //   if (delete) {
+  //     final File oldZip = File(zipFilePath);
+  //     await oldZip.delete();
+  //   }
+  // }
 
-      if (file.isFile) {
-        final data = file.content as List<int>;
-        File(filename)
-          ..createSync(recursive: true)
-          ..writeAsBytesSync(data);
-      } else {
-        Directory(filename).createSync(recursive: true);
-      }
-    }
-    final File oldZip = File(zipFilePath);
-    await oldZip.delete();
-    await zipDirectory(outputDir, zipFilePath);
-  }
+  // Future<void> zipDirectory(String source, String targetDirectoryPath, bool delete) async {
+  //   final targetDirectory = Directory(targetDirectoryPath);
+  //   if (!targetDirectory.existsSync()) {
+  //     targetDirectory.createSync(recursive: true);
+  //   }
+  //   final sourceDirName = p.basename(source);
+  //   final zipFilePath = p.join(targetDirectoryPath, '$sourceDirName.zip');
+  //   final zipFile = File(zipFilePath);
+  //   final archive = Archive();
+  //   Directory sourceDir = Directory(source);
+  //   List<FileSystemEntity> entities = sourceDir.listSync(recursive: true);
+  //   for (FileSystemEntity entity in entities) {
+  //     if (entity is File) {
+  //       final filename = p.relative(entity.path, from: sourceDir.path);
+  //       final data = entity.readAsBytesSync();
+  //       archive.addFile(ArchiveFile(filename, data.length, data));
+  //     }
+  //   }
+  //   final bytes = ZipEncoder().encode(archive);
+  //   zipFile.writeAsBytesSync(bytes!);
+  //   if (delete) {
+  //     sourceDir.deleteSync(recursive: true);
+  //   }
+  // }
 
-  Future<void> zipDirectory(Directory sourceDir, String zipFilePath) async {
-    final zipFile = File(zipFilePath);
-    final archive = Archive();
-    List<FileSystemEntity> entities = sourceDir.listSync(recursive: true);
-    for (FileSystemEntity entity in entities) {
-      if (entity is File) {
-        final filename = p.relative(entity.path, from: sourceDir.path);
-        final data = entity.readAsBytesSync();
-        archive.addFile(ArchiveFile(filename, data.length, data));
-      }
-    }
-    final bytes = ZipEncoder().encode(archive);
-    zipFile.writeAsBytesSync(bytes!);
-    sourceDir.deleteSync(recursive: true);
-  }
+  // Future<void> setExtractPDF(String origZipName) async {
+  //   Directory applicationsMasterDir = await appDir;
+  //   Directory currAppFinDir = Directory('${applicationsMasterDir.path}/Applications/$applicationName/Finished Documents');
+  //   if (!await currAppFinDir.exists()) {
+  //     await currAppFinDir.create(recursive: true);
+  //   }
+  //   await relocateZip('Finished Documents', 'Zip Files', origZipName, origZipName, false);
+  // }
 }
 
 Future<void> DeleteAllApplications() async {
@@ -535,9 +556,6 @@ Future<void> copyRecsToMainResumeLaTeX(List<TextEditingController> controllers) 
       await entity.copy(newFile.path);
     }
   }
-  if (kDebugMode) {
-    print("Files copied successfully.");
-  }
 }
 
 Future<void> compileResume(List<TextEditingController> controllers) async {
@@ -560,28 +578,8 @@ Future<void> uploadZipFile(File zipFile) async {
     String filePath = p.join("${appDir.path}/Temp", 'Return.zip');
     File file = File(filePath);
     await file.writeAsBytes(responseBody);
-    if (kDebugMode) {
-      print('File downloaded and saved successfully at $filePath');
-    }
-  } else {
-    if (kDebugMode) {
-      print('File upload failed with status: ${response.statusCode}');
-    }
-    var responseBody = await response.stream.bytesToString();
-    if (kDebugMode) {
-      print('Response: $responseBody');
-    }
   }
-  try {
-    zipFile.deleteSync();
-    if (kDebugMode) {
-      print('Original file deleted successfully.');
-    }
-  } catch (e) {
-    if (kDebugMode) {
-      print('Unable to delete original file: $zipFile');
-    }
-  }
+  zipFile.deleteSync();
 }
 
 Future<File> zipResume(Directory masterDir) async {
@@ -592,9 +590,6 @@ Future<File> zipResume(Directory masterDir) async {
   encoder.create(zipFilePath);
   encoder.addDirectory(masterDir, includeDirName: false);
   encoder.close();
-  if (kDebugMode) {
-    print("Resume zipped successfully at $zipFilePath");
-  }
   cleanTempResume();
   return File(zipFilePath);
 }
@@ -609,9 +604,6 @@ Future<void> cleanTempResume() async {
         entity.deleteSync();
       }
     }
-  }
-  if (kDebugMode) {
-    print('.txt files deleted successfully.');
   }
 }
 
