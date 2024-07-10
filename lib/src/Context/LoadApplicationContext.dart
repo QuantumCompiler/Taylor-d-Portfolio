@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import '../Applications/ViewApplication.dart';
+import '../Utilities/ApplicationsUtils.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/Globals.dart';
-// import '../Utilities/ApplicationsUtils.dart';
-// import '../Jobs/EditJob.dart';
 
 AppBar appBar(BuildContext context, final apps, Function state) {
   return AppBar(
@@ -39,25 +39,31 @@ AppBar appBar(BuildContext context, final apps, Function state) {
   );
 }
 
-Center loadAppsContent(BuildContext context, final apps, Function state) {
+Center loadAppsContent(BuildContext context, List<Application> apps, Function state) {
   return Center(
     child: Container(
       width: MediaQuery.of(context).size.width * applicationsContainerWidth,
       child: ListView.builder(
         itemCount: apps.length,
         itemBuilder: (context, index) {
-          return StatefulBuilder(builder: (BuildContext context, StateSetter setState) {
-            return Tooltip(
-              message: 'Click To Edit ${apps[index].path.split('/').last}',
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: ListTile(
-                  title: Text(apps[index].path.split('/').last),
-                  onTap: () => {},
-                ),
+          return Tooltip(
+            message: 'Click To View - ${apps[index].applicationName}',
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: ListTile(
+                title: Text(apps[index].applicationName),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ViewAppPage(
+                        prevApp: apps[index],
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          });
+            ),
+          );
         },
       ),
     ),
