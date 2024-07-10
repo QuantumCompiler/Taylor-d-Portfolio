@@ -45,12 +45,12 @@ Ensure there are exactly:
   - 2 education recommendations (CU Boulder and Colorado Mesa University)
   - 3 experience recommendations
   - 4 project recommendations (Include Taylor'd Portfolio every time)
-  - 20 math skill recommendations
-  - 20 personal skill recommendations
+  - 15 math skill recommendations
+  - 15 personal skill recommendations
   - All frameworks from the portfolio
   - All programming languages from the portfolio
   - 20 programming skill recommendations
-  - 20 scientific skill recommendations
+  - 15 scientific skill recommendations
 
 If any category does not meet the required number of recommendations, fill in the remainder with relevant skills for the job posting.
 
@@ -60,11 +60,11 @@ Format your response as a JSON object:
     "Experience_Recommendations": ["Applied Materials", "University Of Oklahoma", "Mesa Lavender Farms"],
     "Projects_Recommendations": ["Taylor'd Portfolio", "Project 2", "Project 3", "Project 4"],
     "Math_Skills_Recommendations": ["Math Skill 1", "Math Skill 2", ..., "Math Skill 20"],
-    "Personal_Skills_Recommendations": ["Personal Skill 1", "Personal Skill 2", ..., "Personal Skill 20"],
+    "Personal_Skills_Recommendations": ["Personal Skill 1", "Personal Skill 2", ..., "Personal Skill 15"],
     "Framework_Recommendations": ["Framework 1", "Framework 2", ..., "Framework n"],
     "Programming_Languages_Recommendations": ["Language 1", "Language 2", ..., "Language n"],
     "Programming_Skills_Recommendations": ["Programming Skill 1", "Programming Skill 2", ..., "Programming Skill 20"],
-    "Scientific_Skills_Recommendations": ["Scientific Skill 1", "Scientific Skill 2", ..., "Scientific Skill 20"]
+    "Scientific_Skills_Recommendations": ["Scientific Skill 1", "Scientific Skill 2", ..., "Scientific Skill 15"]
 }
 Ensure the response is a valid JSON object and nothing else.
 ''';
