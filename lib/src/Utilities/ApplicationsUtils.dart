@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
-import '../Context/NewApplicationContext.dart';
+import '../Context/Applications/NewApplicationContext.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/Globals.dart';
 import '../Globals/JobsGlobals.dart';

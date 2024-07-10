@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../Context/LoadApplicationContext.dart';
+import '../Context/Applications/LoadApplicationContext.dart';
 import '../Utilities/ApplicationsUtils.dart';
 
 class LoadApplicationPage extends StatefulWidget {

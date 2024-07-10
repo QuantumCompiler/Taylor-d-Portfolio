@@ -1,11 +1,11 @@
 // Imports
 import 'package:flutter/material.dart';
-import '../Globals/DashboardGlobals.dart';
-import '../Globals/Globals.dart';
-import '../Applications/Applications.dart';
-import '../Jobs/Job.dart';
-import '../Profiles/Profiles.dart';
-import '../Settings/Settings.dart';
+import '../../Globals/DashboardGlobals.dart';
+import '../../Globals/Globals.dart';
+import '../../Applications/Applications.dart';
+import '../../Jobs/Job.dart';
+import '../../Profiles/Profiles.dart';
+import '../../Settings/Settings.dart';
 
 /*  ResumeCard - Card for the Resume section of the Dashboard
       Input:

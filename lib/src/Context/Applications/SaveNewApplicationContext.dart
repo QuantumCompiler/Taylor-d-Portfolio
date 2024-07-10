@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../Globals/ApplicationsGlobals.dart';
-import '../Utilities/ApplicationsUtils.dart';
-import '../Globals/Globals.dart';
-import '../Themes/Themes.dart';
+import '../../Globals/ApplicationsGlobals.dart';
+import '../../Utilities/ApplicationsUtils.dart';
+import '../../Globals/Globals.dart';
+import '../../Themes/Themes.dart';
 
 AppBar appBar(BuildContext context, ApplicationContent content, Function state) {
   return AppBar(

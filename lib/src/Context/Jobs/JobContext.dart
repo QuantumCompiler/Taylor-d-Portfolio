@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../Globals/ProfilesGlobals.dart';
-import '../Profiles/LoadProfiles.dart';
-import '../Profiles/NewProfile.dart';
-import '../Globals/Globals.dart';
+import '../../Globals/JobsGlobals.dart';
+import '../../Jobs/LoadJob.dart';
+import '../../Jobs/NewJob.dart';
+import '../../Globals/Globals.dart';
 
-/*  appBar - AppBar for the profile page
+/*  appBar - AppBar for the jobs page
       Constructor:
         Input:
           context: BuildContext
@@ -27,7 +27,7 @@ AppBar appBar(BuildContext context) {
       },
     ),
     title: Text(
-      profileTitle,
+      jobsTitle,
       style: TextStyle(
         fontSize: appBarTitle,
         fontWeight: FontWeight.bold,
@@ -36,37 +36,37 @@ AppBar appBar(BuildContext context) {
   );
 }
 
-/*  profileContent - Body content for the profile page
+/*  jobsContent - Body content for the jobs page
       Input:
         context: BuildContext
       Algorithm:
-          * Return a center widget with a container for the profile
-          * Populate the container with a column of profile options
+          * Return a center widget with a container for the jobs
+          * Populate the container with a column of job options
       Output:
-          Returns a Center widget with a container for the profile
+          Returns a Center widget with a container for the jobs
 */
-Center profileContent(BuildContext context) {
+Center jobsContent(BuildContext context) {
   return Center(
     child: Container(
-      width: MediaQuery.of(context).size.width * profileTileContainerWidth,
+      width: MediaQuery.of(context).size.width * jobTileContainerWidth,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           SizedBox(height: standardSizedBoxHeight),
           ListTile(
             title: Text(
-              createNewProfilePrompt,
+              createNewJob,
             ),
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => NewProfilePage()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => NewJobPage()));
             },
           ),
           ListTile(
             title: Text(
-              loadProfilesTitle,
+              loadJobs,
             ),
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => LoadProfilePage()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => LoadJobPage()));
             },
           ),
         ],

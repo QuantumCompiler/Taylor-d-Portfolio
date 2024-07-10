@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import '../Globals/ProfilesGlobals.dart';
-import '../Profiles/EditProfile.dart';
-import '../Utilities/ProfilesUtils.dart';
-import '../Globals/Globals.dart';
+import '../../Jobs/EditJob.dart';
+import '../../Globals/JobsGlobals.dart';
+import '../../Utilities/JobUtils.dart';
+import '../../Globals/Globals.dart';
 
-/* appBar - AppBar for the load profile page
+/*  appBar - AppBar for the load jobs page
       Input:
-        context: BuildContext of the page
-        profiles: List of profiles
-        state: Function to update the state of the page
+        context - BuildContext for the page
+        jobs - List of jobs to display
+        state - Function to set the state of the page
       Algorithm:
-          * Create a back button to return to the previous page
-          * Modify the navigation based on the device type
-          * Add a title to the AppBar
+        * Create icons with actions for the app bar
+        * Modify the behavior of the icons based on the platform
+        * Create the app bar with the title
       Output:
-        Returns an AppBar
+        Returns an AppBar for the load jobs page
 */
-AppBar appBar(BuildContext context, final profiles, Function state) {
+AppBar appBar(BuildContext context, final jobs, Function state) {
   return AppBar(
     leading: IconButton(
       icon: const Icon(Icons.arrow_back),
@@ -41,7 +41,7 @@ AppBar appBar(BuildContext context, final profiles, Function state) {
       ),
     ],
     title: Text(
-      profiles.isEmpty ? profilesEmptyTitle : loadProfilesTitle,
+      jobs.isEmpty ? noJobsTitle : loadJobsTitle,
       style: TextStyle(
         fontSize: appBarTitle,
         fontWeight: FontWeight.bold,
@@ -50,66 +50,57 @@ AppBar appBar(BuildContext context, final profiles, Function state) {
   );
 }
 
-/*  loadingProfilesAppBar - AppBar for the loading profiles page
+/*  loadingJobsAppBar - AppBar for the load jobs page when loading
       Input:
-        context: BuildContext of the page
+        context - BuildContext for the page
       Algorithm:
-          * Create a back button to return to the previous page
-          * Add a title to the AppBar
+        * Create an icon with an action for the app bar
+        * Modify the behavior of the icon based on the platform
+        * Create the app bar with the title
       Output:
-        Returns an AppBar
+        Returns an AppBar for the load jobs page when loading
 */
-AppBar loadingProfilesAppBar(BuildContext context) {
+AppBar loadingJobsAppBar(BuildContext context) {
   return AppBar(
     leading: IconButton(
       icon: const Icon(Icons.arrow_back),
       onPressed: () => Navigator.of(context).pop(),
     ),
-    title: Text(
-      currentlyLoadingProfiles,
-    ),
+    title: Text(loadingJobsTitle),
   );
 }
 
-/*  loadingProfilesContent - Body content for the loading profiles page
+/*  loadJobsContent - Content for the load jobs page
       Input:
-        None
+        context - BuildContext for the page
+        jobs - List of jobs to display
+        state - Function to set the state of the page
       Algorithm:
-          * Display a CircularProgressIndicator
+        * Create a container with a list of jobs
+        * Create a list view with the jobs
+        * Create a list tile for each job
+        * Create a mouse region for each list tile
+        * Create a list tile with a title and delete icon
+        * Create an on tap function for the list tile
       Output:
-        Returns a Center widget with a CircularProgressIndicator
+        Returns a container with a list of jobs for the load jobs page
 */
-Center loadingProfilesContent() {
-  return const Center(child: CircularProgressIndicator());
-}
-
-/* loadProfileContent - Body content for the load profile page
-      Input:
-        context: BuildContext of the page
-        profiles: List of profiles
-        state: Function to update the state of the page
-      Algorithm:
-          * Create a container to hold the profile tiles
-          * Populate the container with a ListView of profile tiles
-      Output:
-        Returns a Center widget with a container of profile tiles
-*/
-Center loadProfileContent(BuildContext context, final profiles, Function state) {
+Center loadJobsContent(BuildContext context, final jobs, Function state) {
   return Center(
     child: Container(
-      width: MediaQuery.of(context).size.width * profileTileContainerWidth,
+      width: MediaQuery.of(context).size.width * jobTileContainerWidth,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           SizedBox(height: standardSizedBoxHeight),
           Expanded(
             child: ListView.builder(
-              itemCount: profiles.length,
+              itemCount: jobs.length,
               itemBuilder: (context, index) {
                 return MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: ListTile(
-                    title: Text(profiles[index].path.split('/').last),
+                    title: Text(jobs[index].path.split('/').last),
                     trailing: IconButton(
                       icon: Icon(Icons.delete),
                       onPressed: () {
@@ -118,7 +109,7 @@ Center loadProfileContent(BuildContext context, final profiles, Function state) 
                           builder: (BuildContext context) {
                             return AlertDialog(
                               title: Text(
-                                "$deleteButton ${profiles[index].path.split('/').last}?",
+                                "$delete ${jobs[index].path.split('/').last}?",
                                 style: TextStyle(
                                   fontSize: appBarTitle,
                                   fontWeight: FontWeight.bold,
@@ -126,7 +117,7 @@ Center loadProfileContent(BuildContext context, final profiles, Function state) 
                                 textAlign: TextAlign.center,
                               ),
                               content: Text(
-                                deleteProfilePrompt,
+                                deleteJobPrompt,
                                 style: TextStyle(
                                   fontSize: secondaryTitles,
                                 ),
@@ -147,7 +138,7 @@ Center loadProfileContent(BuildContext context, final profiles, Function state) 
                                     ElevatedButton(
                                       child: Text(deleteButton),
                                       onPressed: () async {
-                                        await DeleteProfile(profiles[index].path.split('/').last);
+                                        await DeleteJob(jobs[index].path.split('/').last);
                                         Navigator.of(context).pop();
                                         state(() {});
                                       },
@@ -164,7 +155,7 @@ Center loadProfileContent(BuildContext context, final profiles, Function state) 
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => EditProfilePage(profileName: profiles[index].path.split('/').last),
+                          builder: (context) => EditJobPage(jobName: jobs[index].path.split('/').last),
                         ),
                       ).then(
                         (_) {
@@ -181,4 +172,16 @@ Center loadProfileContent(BuildContext context, final profiles, Function state) 
       ),
     ),
   );
+}
+
+/*  loadingJobsContent - Content for the load jobs page when loading
+      Input:
+        None
+      Algorithm:
+        * Create a circular progress indicator
+      Output:
+        Returns a circular progress indicator for the load jobs page when loading
+*/
+Center loadingJobsContent() {
+  return const Center(child: CircularProgressIndicator());
 }

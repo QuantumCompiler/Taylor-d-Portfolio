@@ -2,13 +2,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import '../Applications/SaveNewApplication.dart';
-import '../Globals/ApplicationsGlobals.dart';
-import '../Utilities/ApplicationsUtils.dart';
-import '../Jobs/EditJob.dart';
-import '../Globals/Globals.dart';
-import '../Profiles/EditProfile.dart';
-import '../Themes/Themes.dart';
+import '../../Applications/SaveNewApplication.dart';
+import '../../Globals/ApplicationsGlobals.dart';
+import '../../Utilities/ApplicationsUtils.dart';
+import '../../Jobs/EditJob.dart';
+import '../../Globals/Globals.dart';
+import '../../Profiles/EditProfile.dart';
+import '../../Themes/Themes.dart';
 
 AppBar appBar(BuildContext context, Function state) {
   return AppBar(

@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../Globals/JobsGlobals.dart';
-import '../Utilities/JobUtils.dart';
-import '../Globals/Globals.dart';
-import '../Themes/Themes.dart';
+import '../../Globals/JobsGlobals.dart';
+import '../../Utilities/JobUtils.dart';
+import '../../Globals/Globals.dart';
+import '../../Themes/Themes.dart';
 
 /*  appBar - AppBar for the new job page
       Input:

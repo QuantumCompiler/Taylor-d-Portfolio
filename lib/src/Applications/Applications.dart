@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../Context/ApplicationsContext.dart';
+import '../Context/Applications/ApplicationsContext.dart';
 
 class ApplicationsPage extends StatelessWidget {
   const ApplicationsPage({super.key});

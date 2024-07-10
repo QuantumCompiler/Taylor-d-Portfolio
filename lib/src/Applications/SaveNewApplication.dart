@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../Context/SaveNewApplicationContext.dart';
+import '../Context/Applications/SaveNewApplicationContext.dart';
 import '../Utilities/ApplicationsUtils.dart';
 
 class SaveNewApplicationPage extends StatefulWidget {

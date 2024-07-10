@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../Context/ViewApplicationContext.dart';
+import '../Context/Applications/ViewApplicationContext.dart';
 import '../Utilities/ApplicationsUtils.dart';
 
 class ViewAppPage extends StatelessWidget {
