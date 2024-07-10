@@ -5,6 +5,7 @@ import '../Utilities/ApplicationsUtils.dart';
 class ViewAppPage extends StatelessWidget {
   final Application prevApp;
   const ViewAppPage({
+    super.key,
     required this.prevApp,
   });
   @override
@@ -26,6 +27,7 @@ class ViewAppPage extends StatelessWidget {
           return Scaffold(
             appBar: appBar(context, prevApp),
             body: loadAppContent(context, prevApp),
+            bottomNavigationBar: bottomAppBar(context, prevApp),
           );
         } else {
           return Scaffold(
