@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../Globals/SettingsGlobals.dart';
 import '../../Globals/Globals.dart';
 import '../../Utilities/JobUtils.dart';
-import '../../Utilities/ProfilesUtils.dart';
+import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/SettingsUtilities.dart';
 import '../../Themes/Themes.dart';
 

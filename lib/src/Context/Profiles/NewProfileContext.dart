@@ -3,51 +3,6 @@ import 'package:flutter/material.dart';
 import '../../Globals/ProfilesGlobals.dart';
 import '../../Utilities/ProfilesUtils.dart';
 import '../../Globals/Globals.dart';
-import '../../Themes/Themes.dart';
-
-/*  appBar - AppBar for the new profile page
-      Input:
-        context: BuildContext of the page
-      Algorithm:
-          * Create a back button to return to the previous page
-          * Modify the navigation based on the device type
-          * Add a title to the AppBar
-      Output:
-        Returns an AppBars
-*/
-AppBar appBar(BuildContext context) {
-  return AppBar(
-    leading: IconButton(
-      icon: Icon(Icons.arrow_back),
-      onPressed: () {
-        Navigator.of(context).pop();
-      },
-    ),
-    actions: <Widget>[
-      IconButton(
-        icon: Icon(Icons.dashboard),
-        onPressed: () {
-          if (isDesktop()) {
-            Navigator.of(context).pop();
-            Navigator.of(context).pop();
-            Navigator.of(context).pop();
-          } else if (isMobile()) {
-            Navigator.of(context).pop();
-            Navigator.of(context).pop();
-          }
-        },
-      ),
-    ],
-    title: Text(
-      createNewProfilePrompt,
-      style: TextStyle(
-        color: themeTextColor(context),
-        fontSize: appBarTitle,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  );
-}
 
 /*  newProfileContent - Body content for the new profile page
       Input:
@@ -69,14 +24,8 @@ SingleChildScrollView newProfileContent(BuildContext context, Profile newProfile
         ...ProfileEntry(context, newProfile.eduTitle, newProfile.eduCont, educationHint),
         // Experience
         ...ProfileEntry(context, newProfile.expTitle, newProfile.expCont, experienceHint),
-        // Extracurricular
-        // ...ProfileEntry(context, newProfile.extTitle, newProfile.extCont, experienceHint),
-        // Honors
-        // ...ProfileEntry(context, newProfile.honTitle, newProfile.honCont, honorsHint),
         // Projects
         ...ProfileEntry(context, newProfile.projTitle, newProfile.projCont, projectsHint),
-        // References
-        // ...ProfileEntry(context, newProfile.refTitle, newProfile.refCont, referencesHint),
         // Skills
         ...ProfileEntry(context, newProfile.skiTitle, newProfile.skillsCont, skillsHint),
       ],

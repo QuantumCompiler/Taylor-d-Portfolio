@@ -246,7 +246,7 @@ SizedBox desktopDrawer(BuildContext context) {
             IconButton(
               tooltip: applicationToolTip,
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => ApplicationsPage()));
+                // Navigator.push(context, MaterialPageRoute(builder: (context) => ApplicationsPage()));
               },
               icon: Icon(Icons.library_add),
             ),
@@ -310,7 +310,7 @@ BottomAppBar mobileNavbar(BuildContext context) {
         IconButton(
           tooltip: applicationToolTip,
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ApplicationsPage()));
+            // Navigator.push(context, MaterialPageRoute(builder: (context) => ApplicationsPage()));
           },
           icon: Icon(Icons.library_add),
         ),
