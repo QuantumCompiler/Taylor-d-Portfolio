@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'src/Dashboard/Dashboard.dart';
-import 'src/Globals/Globals.dart';
+import 'src/Utilities/GlobalUtils.dart';
 import 'src/Themes/Themes.dart';
 
 void main() async {
