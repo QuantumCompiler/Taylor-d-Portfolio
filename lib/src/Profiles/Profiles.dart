@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import '../Globals/ProfilesGlobals.dart';
 import '../Context/Profiles/ProfileContext.dart';
+import '../Context/Globals/GlobalContexts.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appBar(context),
-      body: profileContent(context),
+      appBar: GenAppBar(context, profileTitle),
+      body: ProfileContent(context),
     );
   }
 }

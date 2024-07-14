@@ -1,6 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import '../Context/Globals/GlobalContexts.dart';
 import '../Context/Profiles/LoadProfilesContext.dart';
+import '../Globals/ProfilesGlobals.dart';
+import '../Utilities/GlobalUtils.dart';
 import '../Utilities/ProfilesUtils.dart';
 
 class LoadProfilePage extends StatefulWidget {
@@ -12,20 +14,17 @@ class LoadProfilePage extends StatefulWidget {
 class LoadProfilePageState extends State<LoadProfilePage> {
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Directory>>(
+    return FutureBuilder(
       future: RetrieveSortedProfiles(),
-      builder: (BuildContext context, AsyncSnapshot<List<Directory>> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<List<Profile>> snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          final profiles = snapshot.data ?? [];
+          final profs = snapshot.data ?? [];
           return Scaffold(
-            appBar: appBar(context, profiles, setState),
-            body: profiles.isEmpty ? Container() : loadProfileContent(context, profiles, setState),
+            appBar: GenAppBarWithDashboardObject(context, loadProfilesTitle, profilesEmptyTitle, 3, profs, setState),
+            body: LoadProfileContent(context, profs, setState),
           );
         } else {
-          return Scaffold(
-            appBar: loadingProfilesAppBar(context),
-            body: loadingProfilesContent(),
-          );
+          return Scaffold();
         }
       },
     );
