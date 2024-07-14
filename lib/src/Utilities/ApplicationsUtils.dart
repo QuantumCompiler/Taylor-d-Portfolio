@@ -12,6 +12,7 @@ import '../Globals/Globals.dart';
 import '../Globals/JobsGlobals.dart';
 import '../Globals/ProfilesGlobals.dart';
 import '../Themes/Themes.dart';
+import '../Utilities/GlobalUtils.dart';
 
 class Application {
   // Directories
@@ -610,25 +611,6 @@ Future<void> cleanTempResume() async {
       }
     }
   }
-}
-
-Future<List<Application>> RetrieveSortedApplications() async {
-  final appsDir = await GetApplicationsDir();
-  List<Application> applications = [];
-  if (appsDir.existsSync()) {
-    for (var entity in appsDir.listSync()) {
-      if (entity is Directory) {
-        String appName = entity.path.split('/').last;
-        applications.add(Application(
-          applicationName: appName,
-          profileName: '',
-          controllers: List.generate(9, (index) => TextEditingController()),
-        ));
-      }
-    }
-  }
-  applications.sort((a, b) => a.applicationName.compareTo(b.applicationName));
-  return applications;
 }
 
 Future<void> CreateNewApplication(ApplicationContent content, List<TextEditingController> controllers) async {

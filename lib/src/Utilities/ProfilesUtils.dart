@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../Globals/ProfilesGlobals.dart';
 import '../Globals/Globals.dart';
 import '../Themes/Themes.dart';
+import '../Utilities/GlobalUtils.dart';
 
 // Profile Class
 class Profile {
@@ -138,24 +139,6 @@ class Profile {
   }
 }
 
-Future<void> DeleteAllProfiles() async {
-  final profilesDirectory = await GetProfilesDir();
-  final List<FileSystemEntity> profiles = profilesDirectory.listSync();
-  for (final profile in profiles) {
-    if (profile is Directory) {
-      await profile.delete(recursive: true);
-    }
-  }
-}
-
-Future<void> DeleteProfile(String profileName) async {
-  final profilesDirectory = await GetProfilesDir();
-  final profileDir = Directory('${profilesDirectory.path}/$profileName');
-  if (await profileDir.exists()) {
-    await profileDir.delete(recursive: true);
-  }
-}
-
 List<Widget> ProfileEntry(BuildContext context, String title, TextEditingController controller, String hintText, {int? lines = 10}) {
   return [
     Center(
@@ -182,11 +165,4 @@ List<Widget> ProfileEntry(BuildContext context, String title, TextEditingControl
     ),
     SizedBox(height: 20),
   ];
-}
-
-Future<List<Directory>> RetrieveSortedProfiles() async {
-  final profilesDir = await GetProfilesDir();
-  final profilesList = profilesDir.listSync().whereType<Directory>().toList();
-  profilesList.sort((a, b) => a.path.split('/').last.compareTo(b.path.split('/').last));
-  return profilesList;
 }
