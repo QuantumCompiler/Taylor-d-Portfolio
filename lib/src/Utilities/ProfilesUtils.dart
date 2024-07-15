@@ -139,47 +139,99 @@ class Profile {
   }
 }
 
-class EduContEntry extends StatefulWidget {
-  final BuildContext context;
-  final String title;
-  final TextEditingController nameController;
-  final TextEditingController degreeController;
-  final TextEditingController descriptionController;
-  final bool graduated;
-  final VoidCallback addEntry;
-  final VoidCallback deleteEntry;
-  final Function(bool) updateGraduated;
-  final int? lines;
+class EducationProfileEntry extends StatefulWidget {
+  final Profile newProfile;
 
-  EduContEntry({
-    required Key key,
-    required this.context,
-    required this.title,
-    required this.nameController,
-    required this.degreeController,
-    required this.descriptionController,
-    required this.graduated,
-    required this.addEntry,
-    required this.deleteEntry,
-    required this.updateGraduated,
-    this.lines = 10,
-  }) : super(key: key);
+  EducationProfileEntry({
+    required this.newProfile,
+  });
 
   @override
-  EduContEntryState createState() => EduContEntryState();
+  EducationProfileEntryState createState() => EducationProfileEntryState();
 }
 
-class EduContEntryState extends State<EduContEntry> {
-  late bool graduated;
+class EducationProfileEntryState extends State<EducationProfileEntry> {
+  List<Map<String, dynamic>> entries = [];
 
   @override
   void initState() {
     super.initState();
-    graduated = widget.graduated;
+    entries.add(
+      {
+        'key': GlobalKey(),
+        'nameController': TextEditingController(),
+        'degreeController': TextEditingController(),
+        'descriptionController': TextEditingController(),
+        'graduated': false,
+      },
+    );
+  }
+
+  void addEntry(int index) {
+    setState(() {
+      entries.insert(
+        index + 1,
+        {
+          'key': GlobalKey(),
+          'nameController': TextEditingController(),
+          'degreeController': TextEditingController(),
+          'descriptionController': TextEditingController(),
+          'graduated': false,
+        },
+      );
+    });
+  }
+
+  void deleteEntry(GlobalKey key) {
+    if (entries.length > 1) {
+      setState(() {
+        entries.removeWhere((entry) => entry['key'] == key);
+      });
+    }
+  }
+
+  void updateGraduated(GlobalKey key, bool value) {
+    setState(() {
+      entries.firstWhere((entry) => entry['key'] == key)['graduated'] = value;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          ...entries.asMap().entries.map(
+            (entry) {
+              int index = entry.key;
+              var entryData = entry.value;
+              return buildContEntry(
+                context,
+                index,
+                entryData['key'],
+                entryData['nameController'],
+                entryData['degreeController'],
+                entryData['descriptionController'],
+                entryData['graduated'],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildContEntry(
+    BuildContext context,
+    int index,
+    GlobalKey key,
+    TextEditingController nameController,
+    TextEditingController degreeController,
+    TextEditingController descriptionController,
+    bool graduated,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.start,
@@ -187,7 +239,7 @@ class EduContEntryState extends State<EduContEntry> {
         SizedBox(height: standardSizedBoxHeight),
         Center(
           child: Text(
-            widget.title,
+            'Institution - ${index + 1}',
             style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
           ),
         ),
@@ -204,7 +256,7 @@ class EduContEntryState extends State<EduContEntry> {
                 children: <Widget>[
                   Expanded(
                     child: TextFormField(
-                      controller: widget.nameController,
+                      controller: nameController,
                       keyboardType: TextInputType.multiline,
                       maxLines: 1,
                       decoration: InputDecoration(hintText: 'Enter name here...'),
@@ -219,7 +271,7 @@ class EduContEntryState extends State<EduContEntry> {
                         setState(() {
                           graduated = value ?? false;
                         });
-                        widget.updateGraduated(graduated);
+                        updateGraduated(key, graduated);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Graduated: ${graduated.toString()}')),
                         );
@@ -260,16 +312,16 @@ class EduContEntryState extends State<EduContEntry> {
               ),
               SizedBox(height: standardSizedBoxHeight),
               TextFormField(
-                controller: widget.degreeController,
+                controller: degreeController,
                 keyboardType: TextInputType.multiline,
                 maxLines: 1,
                 decoration: InputDecoration(hintText: 'Enter degree(s) information here...'),
               ),
               SizedBox(height: standardSizedBoxHeight),
               TextFormField(
-                controller: widget.descriptionController,
+                controller: descriptionController,
                 keyboardType: TextInputType.multiline,
-                maxLines: widget.lines,
+                maxLines: 10,
                 decoration: InputDecoration(hintText: 'Enter description here...'),
               ),
               SizedBox(height: standardSizedBoxHeight),
@@ -279,11 +331,11 @@ class EduContEntryState extends State<EduContEntry> {
                 children: [
                   IconButton(
                     icon: Icon(Icons.add),
-                    onPressed: widget.addEntry,
+                    onPressed: () => addEntry(index),
                   ),
                   IconButton(
                     icon: Icon(Icons.delete),
-                    onPressed: widget.deleteEntry,
+                    onPressed: () => deleteEntry(key),
                   ),
                 ],
               ),

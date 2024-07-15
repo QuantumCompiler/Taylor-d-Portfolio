@@ -3,6 +3,7 @@
         "apikey",
         "ARGB",
         "curr",
+        "descr",
         "dotenv",
         "fram",
         "OPENAI",

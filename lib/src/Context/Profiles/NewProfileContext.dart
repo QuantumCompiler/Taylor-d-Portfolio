@@ -23,26 +23,25 @@ SingleChildScrollView newProfileContent(BuildContext context, Profile newProfile
       mainAxisAlignment: MainAxisAlignment.start,
       children: <Widget>[
         // Education
-        // ...GenEntry(context, newProfile.eduTitle, newProfile.eduCont, educationHint)
-        ...GenEntry(context, newProfile, newProfile.eduTitle, newProfile.eduCont, (context, newProfile) async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProfileContentPage(
-                newProfile: newProfile,
-                title: 'Education Entries',
+        ...GenEntry(
+          context,
+          newProfile,
+          newProfile.eduTitle,
+          newProfile.eduCont,
+          (context, newProfile) async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProfileContentPage(
+                  newProfile: newProfile,
+                  title: 'Education Entries',
+                  type: ContentType.education,
+                ),
               ),
-            ),
-          );
-        }, educationHint)
-        // // Education
-        // ...ProfileEntry(context, newProfile.eduTitle, newProfile.eduCont, educationHint),
-        // // Experience
-        // ...ProfileEntry(context, newProfile.expTitle, newProfile.expCont, experienceHint),
-        // // Projects
-        // ...ProfileEntry(context, newProfile.projTitle, newProfile.projCont, projectsHint),
-        // // Skills
-        // ...ProfileEntry(context, newProfile.skiTitle, newProfile.skillsCont, skillsHint),
+            );
+          },
+          educationHint,
+        )
       ],
     ),
   );

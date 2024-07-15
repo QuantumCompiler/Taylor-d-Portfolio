@@ -50,3 +50,7 @@ double secondaryTitles = 16.0;
 
 double titleContainerWidth = 0.6;
 double containerWidth = 0.8;
+
+enum ContentType {
+  education,
+}

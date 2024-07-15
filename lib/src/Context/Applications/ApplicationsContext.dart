@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import '../../Applications/LoadApplication.dart';
-import '../../Applications/NewApplication.dart';
-import '../../Globals/ApplicationsGlobals.dart';
-import '../../Globals/Globals.dart';
+// import 'package:flutter/material.dart';
+// import '../../Applications/LoadApplication.dart';
+// import '../../Applications/NewApplication.dart';
+// import '../../Globals/ApplicationsGlobals.dart';
+// import '../../Globals/Globals.dart';
 
 // AppBar appBar(BuildContext context) {
 //   return AppBar(

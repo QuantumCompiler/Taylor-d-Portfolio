@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../Globals/DashboardGlobals.dart';
 import '../../Globals/Globals.dart';
-import '../../Applications/Applications.dart';
+// import '../../Applications/Applications.dart';
 import '../../Jobs/Job.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
