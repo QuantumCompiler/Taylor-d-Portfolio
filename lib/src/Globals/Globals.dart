@@ -49,3 +49,4 @@ double appBarTitle = 24.0;
 double secondaryTitles = 16.0;
 
 double titleContainerWidth = 0.6;
+double containerWidth = 0.8;
