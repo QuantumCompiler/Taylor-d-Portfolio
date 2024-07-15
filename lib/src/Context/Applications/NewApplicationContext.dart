@@ -5,7 +5,7 @@ import '../../Globals/ApplicationsGlobals.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Jobs/EditJob.dart';
 import '../../Globals/Globals.dart';
-import '../../Profiles/EditProfile.dart';
+// import '../../Profiles/EditProfile.dart';
 import '../../Themes/Themes.dart';
 
 AppBar appBar(BuildContext context, Function state) {
@@ -169,16 +169,16 @@ SingleChildScrollView loadApplicationContent(BuildContext context, ApplicationCo
                               ],
                             ),
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EditProfilePage(profileName: content.profiles[index].path.split('/').last),
-                                ),
-                              ).then(
-                                (_) {
-                                  state(() {});
-                                },
-                              );
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (context) => EditProfilePage(profileName: content.profiles[index].path.split('/').last),
+                              //   ),
+                              // ).then(
+                              //   (_) {
+                              //     state(() {});
+                              //   },
+                              // );
                             },
                           ),
                         ),

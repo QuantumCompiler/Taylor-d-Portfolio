@@ -174,6 +174,15 @@ ListTile GenListTileWithRoute(BuildContext context, String title, dynamic obj) {
   );
 }
 
+ListTile GenListTileWithFunc(BuildContext context, String title, dynamic obj, Future<void> Function(BuildContext context, dynamic obj) mainFunc) {
+  return ListTile(
+    title: Text(title),
+    onTap: () async {
+      await mainFunc(context, obj);
+    },
+  );
+}
+
 ListTile GenListTileWithDelFunc(
     BuildContext context, String title, dynamic obj, Widget Function() dialogFunction, Future<void> Function(BuildContext context, dynamic obj) mainFunc, Function setState) {
   return ListTile(
@@ -202,43 +211,4 @@ ListTile GenListTileWithDelFunc(
       setState(() {});
     },
   );
-}
-
-List<Widget> GenEntry(BuildContext context, dynamic obj, String title, TextEditingController controller, Future<void> Function(BuildContext context, dynamic obj) mainFunc, String hintText,
-    {int? lines = 10}) {
-  return [
-    Center(
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: secondaryTitles,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ),
-    SizedBox(height: standardSizedBoxHeight),
-    Center(
-      child: Container(
-        width: MediaQuery.of(context).size.width * containerWidth,
-        child: Column(
-          children: [
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.multiline,
-              maxLines: lines,
-              decoration: InputDecoration(hintText: hintText.isEmpty ? null : hintText),
-            ),
-            SizedBox(height: standardSizedBoxHeight),
-            ElevatedButton(
-              child: Text('More'),
-              onPressed: () async {
-                await mainFunc(context, obj);
-              },
-            )
-          ],
-        ),
-      ),
-    ),
-    SizedBox(height: standardSizedBoxHeight),
-  ];
 }

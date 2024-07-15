@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../Context/Globals/GlobalContexts.dart';
+import '../Globals/GlobalContext.dart';
 import '../../Globals/Globals.dart';
 import '../../Globals/ProfilesGlobals.dart';
-import '../../Profiles/LoadProfiles.dart';
+// import '../../Profiles/LoadProfiles.dart';
 import '../../Profiles/NewProfile.dart';
 
 Center ProfileContent(BuildContext context) {
@@ -14,7 +14,7 @@ Center ProfileContent(BuildContext context) {
         children: [
           SizedBox(height: standardSizedBoxHeight),
           GenListTileWithRoute(context, createNewProfilePrompt, NewProfilePage()),
-          GenListTileWithRoute(context, loadProfilesTitle, LoadProfilePage()),
+          // GenListTileWithRoute(context, loadProfilesTitle, LoadProfilePage()),
         ],
       ),
     ),
