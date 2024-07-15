@@ -155,6 +155,16 @@ AppBar GenAppBarWithDashboardObject(BuildContext context, String title, String e
   );
 }
 
+Future<DateTime?> SelectDate(BuildContext context) async {
+  final DateTime? pickedDate = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now(),
+    firstDate: DateTime(1900),
+    lastDate: DateTime(3000),
+  );
+  return pickedDate;
+}
+
 ListTile GenListTileWithRoute(BuildContext context, String title, dynamic obj) {
   return ListTile(
     title: Text(title),
@@ -168,20 +178,67 @@ ListTile GenListTileWithDelFunc(
     BuildContext context, String title, dynamic obj, Widget Function() dialogFunction, Future<void> Function(BuildContext context, dynamic obj) mainFunc, Function setState) {
   return ListTile(
     title: Text(title),
-    trailing: IconButton(
-      icon: Icon(Icons.delete),
-      onPressed: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return dialogFunction();
-          },
-        );
-      },
+    trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Tooltip(
+          message: 'Delete - ${obj.name}',
+          child: IconButton(
+            icon: Icon(Icons.delete),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return dialogFunction();
+                },
+              );
+            },
+          ),
+        ),
+      ],
     ),
     onTap: () async {
       await mainFunc(context, obj);
       setState(() {});
     },
   );
+}
+
+List<Widget> GenEntry(BuildContext context, dynamic obj, String title, TextEditingController controller, Future<void> Function(BuildContext context, dynamic obj) mainFunc, String hintText,
+    {int? lines = 10}) {
+  return [
+    Center(
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: secondaryTitles,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ),
+    SizedBox(height: standardSizedBoxHeight),
+    Center(
+      child: Container(
+        width: MediaQuery.of(context).size.width * containerWidth,
+        child: Column(
+          children: [
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.multiline,
+              maxLines: lines,
+              decoration: InputDecoration(hintText: hintText.isEmpty ? null : hintText),
+            ),
+            SizedBox(height: standardSizedBoxHeight),
+            ElevatedButton(
+              child: Text('More'),
+              onPressed: () async {
+                await mainFunc(context, obj);
+              },
+            )
+          ],
+        ),
+      ),
+    ),
+    SizedBox(height: standardSizedBoxHeight),
+  ];
 }
