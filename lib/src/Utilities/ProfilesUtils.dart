@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../Context/Globals/GlobalContexts.dart';
 import '../Globals/ProfilesGlobals.dart';
 import '../Globals/Globals.dart';
-import '../Themes/Themes.dart';
 import '../Utilities/GlobalUtils.dart';
 
 // Profile Class
@@ -139,30 +139,158 @@ class Profile {
   }
 }
 
-List<Widget> ProfileEntry(BuildContext context, String title, TextEditingController controller, String hintText, {int? lines = 10}) {
-  return [
-    Center(
-      child: Text(
-        title,
-        style: TextStyle(
-          color: themeTextColor(context),
-          fontSize: profileTitleSize,
-          fontWeight: FontWeight.bold,
+class EduContEntry extends StatefulWidget {
+  final BuildContext context;
+  final String title;
+  final TextEditingController nameController;
+  final TextEditingController degreeController;
+  final TextEditingController descriptionController;
+  final bool graduated;
+  final VoidCallback addEntry;
+  final VoidCallback deleteEntry;
+  final Function(bool) updateGraduated;
+  final int? lines;
+
+  EduContEntry({
+    required Key key,
+    required this.context,
+    required this.title,
+    required this.nameController,
+    required this.degreeController,
+    required this.descriptionController,
+    required this.graduated,
+    required this.addEntry,
+    required this.deleteEntry,
+    required this.updateGraduated,
+    this.lines = 10,
+  }) : super(key: key);
+
+  @override
+  EduContEntryState createState() => EduContEntryState();
+}
+
+class EduContEntryState extends State<EduContEntry> {
+  late bool graduated;
+
+  @override
+  void initState() {
+    super.initState();
+    graduated = widget.graduated;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SizedBox(height: standardSizedBoxHeight),
+        Center(
+          child: Text(
+            widget.title,
+            style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
+          ),
         ),
-      ),
-    ),
-    SizedBox(height: standardSizedBoxHeight),
-    Center(
-      child: Container(
-        width: MediaQuery.of(context).size.width * profileContainerWidth,
-        child: TextField(
-          controller: controller,
-          keyboardType: TextInputType.multiline,
-          maxLines: lines,
-          decoration: InputDecoration(hintText: hintText.isEmpty ? null : hintText),
+        SizedBox(height: standardSizedBoxHeight),
+        Container(
+          width: MediaQuery.of(context).size.width * 0.75,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: TextFormField(
+                      controller: widget.nameController,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 1,
+                      decoration: InputDecoration(hintText: 'Enter name here...'),
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: 'Graduated From Institution?',
+                    child: Checkbox(
+                      value: graduated,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          graduated = value ?? false;
+                        });
+                        widget.updateGraduated(graduated);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Graduated: ${graduated.toString()}')),
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: 'Select Start Date',
+                    child: IconButton(
+                      icon: Icon(Icons.date_range),
+                      onPressed: () async {
+                        DateTime? selectedDate = await SelectDate(context);
+                        if (selectedDate != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Selected Date: ${selectedDate.toString().split(' ')[0]}')),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: 'Select End Date',
+                    child: IconButton(
+                      icon: Icon(Icons.date_range),
+                      onPressed: () async {
+                        DateTime? selectedDate = await SelectDate(context);
+                        if (selectedDate != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Selected Date: ${selectedDate.toString().split(' ')[0]}')),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+              TextFormField(
+                controller: widget.degreeController,
+                keyboardType: TextInputType.multiline,
+                maxLines: 1,
+                decoration: InputDecoration(hintText: 'Enter degree(s) information here...'),
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+              TextFormField(
+                controller: widget.descriptionController,
+                keyboardType: TextInputType.multiline,
+                maxLines: widget.lines,
+                decoration: InputDecoration(hintText: 'Enter description here...'),
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.add),
+                    onPressed: widget.addEntry,
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: widget.deleteEntry,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    ),
-    SizedBox(height: 20),
-  ];
+      ],
+    );
+  }
 }
