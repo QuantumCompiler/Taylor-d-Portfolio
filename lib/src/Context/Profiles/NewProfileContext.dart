@@ -28,11 +28,24 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile newProfile
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProfileContentPage(newProfile: newProfile, title: 'Education Entries', type: ContentType.education, keyList: keys),
+                        builder: (context) => ProfileContentPage(profile: newProfile, title: 'Education Entries', type: ContentType.education, keyList: keys),
                       ),
                     );
                   },
                 ),
+                GenListTileWithFunc(
+                  context,
+                  'Experience',
+                  newProfile,
+                  (context, newProfile) async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileContentPage(profile: newProfile, title: 'Experience Entries', type: ContentType.experience, keyList: keys),
+                      ),
+                    );
+                  },
+                )
               ],
             ),
           ),

@@ -13,7 +13,9 @@ class NewProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     Profile newProfile = Profile();
     final GlobalKey<EducationProfileEntryState> educationProfileKey = GlobalKey<EducationProfileEntryState>();
+    final GlobalKey<ExperienceProfileEntryState> experienceProfileKey = GlobalKey<ExperienceProfileEntryState>();
     keyList.add(educationProfileKey);
+    keyList.add(experienceProfileKey);
     return Scaffold(
       appBar: GenAppBarWithDashboard(context, createNewProfilePrompt, 3),
       body: NewProfileContent(context, newProfile, keyList),

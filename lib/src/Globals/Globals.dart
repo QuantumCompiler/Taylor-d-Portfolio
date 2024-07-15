@@ -53,4 +53,5 @@ double containerWidth = 0.8;
 
 enum ContentType {
   education,
+  experience,
 }
