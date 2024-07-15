@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../Globals/ProfilesGlobals.dart';
-import '../../Utilities/ProfilesUtils.dart';
+import '../../Context/Globals/GlobalContexts.dart';
 import '../../Globals/Globals.dart';
+import '../../Globals/ProfilesGlobals.dart';
+import '../../Profiles/ContentProfile.dart';
+import '../../Utilities/ProfilesUtils.dart';
 
 /*  newProfileContent - Body content for the new profile page
       Input:
@@ -21,13 +23,26 @@ SingleChildScrollView newProfileContent(BuildContext context, Profile newProfile
       mainAxisAlignment: MainAxisAlignment.start,
       children: <Widget>[
         // Education
-        ...ProfileEntry(context, newProfile.eduTitle, newProfile.eduCont, educationHint),
-        // Experience
-        ...ProfileEntry(context, newProfile.expTitle, newProfile.expCont, experienceHint),
-        // Projects
-        ...ProfileEntry(context, newProfile.projTitle, newProfile.projCont, projectsHint),
-        // Skills
-        ...ProfileEntry(context, newProfile.skiTitle, newProfile.skillsCont, skillsHint),
+        // ...GenEntry(context, newProfile.eduTitle, newProfile.eduCont, educationHint)
+        ...GenEntry(context, newProfile, newProfile.eduTitle, newProfile.eduCont, (context, newProfile) async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProfileContentPage(
+                newProfile: newProfile,
+                title: 'Education Entries',
+              ),
+            ),
+          );
+        }, educationHint)
+        // // Education
+        // ...ProfileEntry(context, newProfile.eduTitle, newProfile.eduCont, educationHint),
+        // // Experience
+        // ...ProfileEntry(context, newProfile.expTitle, newProfile.expCont, experienceHint),
+        // // Projects
+        // ...ProfileEntry(context, newProfile.projTitle, newProfile.projCont, projectsHint),
+        // // Skills
+        // ...ProfileEntry(context, newProfile.skiTitle, newProfile.skillsCont, skillsHint),
       ],
     ),
   );

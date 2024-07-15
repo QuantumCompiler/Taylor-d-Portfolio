@@ -66,21 +66,15 @@ SingleChildScrollView editProfileContent(BuildContext context, Profile prevProfi
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         // Profile Name
-        ...ProfileEntry(context, profileNameTitle, prevProfile.nameCont, '', lines: 1),
-        // Education
-        ...ProfileEntry(context, educationTitle, prevProfile.eduCont, ''),
-        // Experience
-        ...ProfileEntry(context, experienceTitle, prevProfile.expCont, ''),
-        // Extracurricular
-        // ...ProfileEntry(context, extracurricularTitle, prevProfile.extCont, ''),
-        // Honors
-        // ...ProfileEntry(context, honorsTitle, prevProfile.honCont, ''),
-        // Projects
-        ...ProfileEntry(context, projectsTitle, prevProfile.projCont, ''),
-        // References
-        // ...ProfileEntry(context, referencesTitle, prevProfile.refCont, ''),
-        // Skills
-        ...ProfileEntry(context, skillsTitle, prevProfile.skillsCont, ''),
+        // ...ProfileEntry(context, profileNameTitle, prevProfile.nameCont, '', lines: 1),
+        // // Education
+        // ...ProfileEntry(context, educationTitle, prevProfile.eduCont, ''),
+        // // Experience
+        // ...ProfileEntry(context, experienceTitle, prevProfile.expCont, ''),
+        // // Projects
+        // ...ProfileEntry(context, projectsTitle, prevProfile.projCont, ''),
+        // // Skills
+        // ...ProfileEntry(context, skillsTitle, prevProfile.skillsCont, ''),
       ],
     ),
   );
