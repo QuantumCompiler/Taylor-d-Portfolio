@@ -162,7 +162,10 @@ Future<DateTime?> SelectDate(BuildContext context) async {
     firstDate: DateTime(1900),
     lastDate: DateTime(3000),
   );
-  return pickedDate;
+  if (pickedDate != null) {
+    return DateTime(pickedDate.year, pickedDate.month, pickedDate.day);
+  }
+  return DateTime.now();
 }
 
 ListTile GenListTileWithRoute(BuildContext context, String title, dynamic obj) {

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../Context/Globals/GlobalContext.dart';
@@ -12,7 +13,6 @@ class ProfileEduCont {
   late DateTime? startTime;
   late DateTime? endTime;
   late bool graduated;
-  late String name;
   ProfileEduCont() {
     desInfo = TextEditingController();
     degInfo = TextEditingController();
@@ -20,7 +20,24 @@ class ProfileEduCont {
     startTime = DateTime.now();
     endTime = DateTime.now();
     graduated = false;
-    name = schoolInfo.text;
+  }
+  ProfileEduCont.fromJSON(Map<String, dynamic> json) {
+    desInfo = TextEditingController(text: json['desInfo']);
+    degInfo = TextEditingController(text: json['degInfo']);
+    schoolInfo = TextEditingController(text: json['schoolInfo']);
+    graduated = json['graduated'];
+    startTime = DateTime.parse(json['startTime']);
+    endTime = DateTime.parse(json['endTime']);
+  }
+  Map<String, dynamic> toJSON() {
+    return {
+      'desInfo': desInfo.text,
+      'degInfo': degInfo.text,
+      'schoolInfo': schoolInfo.text,
+      'graduated': graduated,
+      'startTime': startTime?.toIso8601String().split('T')[0],
+      'endTime': endTime?.toIso8601String().split('T')[0],
+    };
   }
 }
 
@@ -61,6 +78,12 @@ class Profile {
     projTitle = projectsTitle;
     skiTitle = skillsTitle;
     eduContList = eduContList;
+    setTempDir();
+  }
+
+  Future<void> CreateEduContJSON() async {
+    await WriteEduContentToJSONFile('Temp/');
+    await ReadEduContentFromJSON('Temp/');
   }
 
   // Create New Profile
@@ -73,6 +96,15 @@ class Profile {
   // Get Education Content
   Future<List<ProfileEduCont>> getEduCont() async {
     return eduContList;
+  }
+
+  // Print Education Content
+  Future<void> printEduCont() async {
+    for (int i = 0; i < eduContList.length; i++) {
+      print('Entry ${i + 1}: Degree Info: ${eduContList[i].degInfo.text}, Description Info: ${eduContList[i].desInfo.text}, '
+          'School Info: ${eduContList[i].schoolInfo.text}, Graduated: ${eduContList[i].graduated}, Start Time: ${eduContList[i].startTime}, '
+          'End Time: ${eduContList[i].endTime}');
+    }
   }
 
   // Set Education Content
@@ -89,6 +121,52 @@ class Profile {
   Future<void> setProfDir() async {
     final parentDir = await profsDir;
     CreateDir(parentDir, name);
+  }
+
+  // Set Temp Directory
+  Future<void> setTempDir() async {
+    final parentDir = await profsDir;
+    final temp = Directory('${parentDir.path}/Temp');
+    if (temp.existsSync()) {
+      temp.deleteSync(recursive: true);
+    }
+    CreateDir(parentDir, 'Temp');
+  }
+
+  Future<void> ReadEduContentFromJSON(String subDir) async {
+    final profs = await profsDir;
+    final file = File('${profs.path}/$subDir/EduCont.json');
+    if (!file.existsSync()) {
+      print('Education content json file does not exist.');
+      return;
+    }
+    String jsonString = file.readAsStringSync();
+    List<dynamic> jsonData = jsonDecode(jsonString);
+    for (int i = 0; i < jsonData.length; i++) {
+      print(jsonData[i]['desInfo']);
+      print(jsonData[i]['degInfo']);
+      print(jsonData[i]['schoolInfo']);
+      print(jsonData[i]['graduated']);
+      print(jsonData[i]['startTime']);
+      print(jsonData[i]['endTime']);
+    }
+    print(jsonData);
+  }
+
+  // Write Education Content To JSON
+  Future<void> WriteEduContentToJSONFile(String subDir) async {
+    final profs = await profsDir;
+    Directory desDir = Directory('${profs.path}/$subDir');
+    if (!desDir.existsSync()) {
+      desDir.createSync();
+    }
+    final file = File('${desDir.path}EduCont.json');
+    if (file.existsSync()) {
+      file.deleteSync();
+    }
+    List<Map<String, dynamic>> eduContJSON = eduContList.map((eduCont) => eduCont.toJSON()).toList();
+    String jsonString = jsonEncode(eduContJSON);
+    await file.writeAsString(jsonString);
   }
 }
 
@@ -120,6 +198,17 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
   void addEntry(int index) {
     setState(() {
       entries.insert(index + 1, ProfileEduCont());
+    });
+  }
+
+  void clearEntry(int index) {
+    setState(() {
+      entries[index].degInfo.text = '';
+      entries[index].desInfo.text = '';
+      entries[index].schoolInfo.text = '';
+      entries[index].graduated = false;
+      entries[index].startTime = DateTime.now();
+      entries[index].endTime = DateTime.now();
     });
   }
 
@@ -193,40 +282,43 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                       decoration: InputDecoration(hintText: 'Enter name here...'),
                       onChanged: (value) {
                         setState(() {
-                          entry.name = entry.schoolInfo.text;
+                          widget.newProfile.setEduCont(entries);
                         });
                       },
                     ),
                   ),
                   SizedBox(width: standardSizedBoxWidth),
                   Tooltip(
-                    message: 'Graduated From Institution?',
+                    message: 'Graduated From Institution ${index + 1}?',
                     child: Checkbox(
                       value: entry.graduated,
                       onChanged: (bool? value) {
                         setState(() {
                           entry.graduated = value ?? false;
+                          widget.newProfile.setEduCont(entries);
                         });
                       },
                     ),
                   ),
                   SizedBox(width: standardSizedBoxWidth),
                   Tooltip(
-                    message: 'Select Start Date',
+                    message: 'Select Start Date For Institution ${index + 1}',
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
                         entry.startTime = await SelectDate(context);
+                        widget.newProfile.setEduCont(entries);
                       },
                     ),
                   ),
                   SizedBox(width: standardSizedBoxWidth),
                   Tooltip(
-                    message: 'Select End Date',
+                    message: 'Select End Date For Institution ${index + 1}',
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
                         entry.endTime = await SelectDate(context);
+                        widget.newProfile.setEduCont(entries);
                       },
                     ),
                   ),
@@ -238,6 +330,11 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                 keyboardType: TextInputType.multiline,
                 maxLines: 1,
                 decoration: InputDecoration(hintText: 'Enter degree(s) information here...'),
+                onChanged: (value) {
+                  setState(() {
+                    widget.newProfile.setEduCont(entries);
+                  });
+                },
               ),
               SizedBox(height: standardSizedBoxHeight),
               TextFormField(
@@ -245,19 +342,46 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                 keyboardType: TextInputType.multiline,
                 maxLines: 10,
                 decoration: InputDecoration(hintText: 'Enter description here...'),
+                onChanged: (value) {
+                  setState(() {
+                    widget.newProfile.setEduCont(entries);
+                  });
+                },
               ),
               SizedBox(height: standardSizedBoxHeight),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.add),
-                    onPressed: () => addEntry(index),
+                  Tooltip(
+                    message: 'Add Entry After Institution ${index + 1}',
+                    child: IconButton(
+                      icon: Icon(Icons.add),
+                      onPressed: () {
+                        addEntry(index);
+                        widget.newProfile.setEduCont(entries);
+                      },
+                    ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () => deleteEntry(index),
+                  Tooltip(
+                    message: 'Clear Entries For Institution ${index + 1}',
+                    child: IconButton(
+                      icon: Icon(Icons.clear),
+                      onPressed: () {
+                        clearEntry(index);
+                        widget.newProfile.setEduCont(entries);
+                      },
+                    ),
+                  ),
+                  Tooltip(
+                    message: 'Delete Entry For Institution ${index + 1}',
+                    child: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () {
+                        deleteEntry(index);
+                        widget.newProfile.setEduCont(entries);
+                      },
+                    ),
                   ),
                 ],
               ),

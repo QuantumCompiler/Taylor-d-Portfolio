@@ -38,16 +38,7 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
         ElevatedButton(
           child: Text('Save Content'),
           onPressed: () {
-            var educationEntries = (keyList[0].currentState as EducationProfileEntryState).retrieveEntries();
-            for (int i = 0; i < educationEntries.length; i++) {
-              var entry = educationEntries[i];
-              print(
-                'Entry ${i + 1}: ${entry.schoolInfo.text}, ${entry.name}, '
-                '${entry.degInfo.text}, ${entry.desInfo.text}, ${entry.graduated}, '
-                '${entry.startTime}, ${entry.endTime}',
-              );
-            }
-            newProfile.setEduCont(educationEntries);
+            newProfile.CreateEduContJSON();
           },
         ),
       ],
