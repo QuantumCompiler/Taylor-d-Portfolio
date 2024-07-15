@@ -19,6 +19,7 @@ class ProfileContentPage extends StatelessWidget {
     return Scaffold(
       appBar: GenAppBarWithDashboard(context, title, 4),
       body: ProfileContentEntry(newProfile: newProfile, contentType: type),
+      bottomNavigationBar: ProfileContentBottomAppBar(context),
     );
   }
 }

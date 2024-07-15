@@ -142,7 +142,8 @@ class Profile {
 class EducationProfileEntry extends StatefulWidget {
   final Profile newProfile;
 
-  EducationProfileEntry({
+  const EducationProfileEntry({
+    super.key,
     required this.newProfile,
   });
 
@@ -194,6 +195,17 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
     setState(() {
       entries.firstWhere((entry) => entry['key'] == key)['graduated'] = value;
     });
+  }
+
+  List<Map<String, dynamic>> retrieveEntries() {
+    return entries.map((entry) {
+      return {
+        'name': entry['nameController'].text,
+        'degree': entry['degreeController'].text,
+        'description': entry['descriptionController'].text,
+        'graduated': entry['graduated'],
+      };
+    }).toList();
   }
 
   @override
@@ -272,9 +284,6 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                           graduated = value ?? false;
                         });
                         updateGraduated(key, graduated);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Graduated: ${graduated.toString()}')),
-                        );
                       },
                     ),
                   ),
@@ -284,12 +293,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        DateTime? selectedDate = await SelectDate(context);
-                        if (selectedDate != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Selected Date: ${selectedDate.toString().split(' ')[0]}')),
-                          );
-                        }
+                        DateTime? selectedStartDate = await SelectDate(context);
                       },
                     ),
                   ),
@@ -299,12 +303,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        DateTime? selectedDate = await SelectDate(context);
-                        if (selectedDate != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Selected Date: ${selectedDate.toString().split(' ')[0]}')),
-                          );
-                        }
+                        DateTime? selectedEndDate = await SelectDate(context);
                       },
                     ),
                   ),

@@ -26,3 +26,12 @@ class ProfileContentEntryState extends State<ProfileContentEntry> {
     }
   }
 }
+
+BottomAppBar ProfileContentBottomAppBar(BuildContext context) {
+  return BottomAppBar(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+    ),
+  );
+}
