@@ -45,7 +45,20 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile newProfile
                       ),
                     );
                   },
-                )
+                ),
+                GenListTileWithFunc(
+                  context,
+                  'Projects',
+                  newProfile,
+                  (context, newProfile) async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileContentPage(profile: newProfile, title: 'Project Entries', type: ContentType.projects, keyList: keys),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),

@@ -6,12 +6,12 @@ import '../../Globals/Globals.dart';
 
 class ProfileContentEntry extends StatefulWidget {
   final Profile profile;
-  final ContentType contentType;
+  final ContentType type;
   final List<GlobalKey> keyList;
   const ProfileContentEntry({
     super.key,
     required this.profile,
-    required this.contentType,
+    required this.type,
     required this.keyList,
   });
 
@@ -22,11 +22,13 @@ class ProfileContentEntry extends StatefulWidget {
 class ProfileContentEntryState extends State<ProfileContentEntry> {
   @override
   Widget build(BuildContext context) {
-    switch (widget.contentType) {
+    switch (widget.type) {
       case ContentType.education:
         return EducationProfileEntry(profile: widget.profile, key: widget.keyList[0]);
       case ContentType.experience:
         return ExperienceProfileEntry(profile: widget.profile, key: widget.keyList[1]);
+      case ContentType.projects:
+        return ProjectProfileEntry(profile: widget.profile, key: widget.keyList[2]);
     }
   }
 }
@@ -37,6 +39,8 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
     buttonText = 'Save Education';
   } else if (type == ContentType.experience) {
     buttonText = 'Save Experience';
+  } else if (type == ContentType.projects) {
+    buttonText = 'Save Projects';
   } else {
     buttonText = 'Save Content';
   }
@@ -52,6 +56,8 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
               await profile.CreateEduContJSON();
             } else if (type == ContentType.experience) {
               await profile.CreateExpContJSON();
+            } else if (type == ContentType.projects) {
+              await profile.CreateProjContJSON();
             }
           },
         ),

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import '../Context/Globals/GlobalContext.dart';
 import '../Globals/ProfilesGlobals.dart';
 import '../Globals/Globals.dart';
@@ -84,6 +83,40 @@ class ProfileExpCont {
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Projects Profile Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class ProfileProjCont {
+  late TextEditingController projName;
+  late TextEditingController roleName;
+  late TextEditingController desInfo;
+  late DateTime? date;
+  late bool completed;
+  ProfileProjCont() {
+    projName = TextEditingController();
+    roleName = TextEditingController();
+    desInfo = TextEditingController();
+    date = DateTime.now();
+    completed = false;
+  }
+  ProfileProjCont.fromJSON(Map<String, dynamic> json) {
+    projName = TextEditingController(text: json['projName']);
+    roleName = TextEditingController(text: json['roleName']);
+    desInfo = TextEditingController(text: json['desInfo']);
+    date = DateTime.parse(json['date']);
+    completed = json['completed'];
+  }
+  Map<String, dynamic> toJSON() {
+    return {
+      'projName': projName.text,
+      'roleName': roleName.text,
+      'desInfo': desInfo.text,
+      'date': date?.toIso8601String().split('T')[0],
+      'completed': completed,
+    };
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Profile Class
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 class Profile {
@@ -115,6 +148,7 @@ class Profile {
   // Lists Of Types
   List<ProfileEduCont> eduContList = [];
   List<ProfileExpCont> expContList = [];
+  List<ProfileProjCont> projContList = [];
 
   // Constructor
   Profile({this.name = ''}) {
@@ -123,6 +157,8 @@ class Profile {
     projTitle = projectsTitle;
     skiTitle = skillsTitle;
     eduContList = eduContList;
+    expContList = expContList;
+    projContList = projContList;
     setTempDir();
   }
 
@@ -136,6 +172,11 @@ class Profile {
     await ReadExpContentFromJSON('Temp/');
   }
 
+  Future<void> CreateProjContJSON() async {
+    await WriteContentToJSON('Temp/', 'ProjCont.json', projContList);
+    await ReadProjContentFromJSON('Temp/');
+  }
+
   // Create New Profile
   Future<void> CreateNewProfile(String profName) async {
     setProfName(profName);
@@ -143,13 +184,55 @@ class Profile {
     // setWriteNewFiles();
   }
 
+  // Load Education Contents
+  Future<void> LoadEduCont() async {
+    final appsDir = await GetAppDir();
+    File jsonFile = File('${appsDir.path}/Profiles/Temp/EduCont.json');
+    if (jsonFile.existsSync()) {
+      String jsonString = await jsonFile.readAsString();
+      List<dynamic> jsonData = jsonDecode(jsonString);
+      List<ProfileEduCont> eduEntries = jsonData.map((entry) => ProfileEduCont.fromJSON(entry)).toList();
+      eduContList = eduEntries;
+    }
+  }
+
+  // Load Experience Contents
+  Future<void> LoadExpCont() async {
+    final appsDir = await GetAppDir();
+    File jsonFile = File('${appsDir.path}/Profiles/Temp/ExpCont.json');
+    if (jsonFile.existsSync()) {
+      String jsonString = await jsonFile.readAsString();
+      List<dynamic> jsonData = jsonDecode(jsonString);
+      List<ProfileExpCont> expEntries = jsonData.map((entry) => ProfileExpCont.fromJSON(entry)).toList();
+      expContList = expEntries;
+    }
+  }
+
+  // Load Projects Contents
+  Future<void> LoadProjectsCont() async {
+    final appsDir = await GetAppDir();
+    File jsonFile = File('${appsDir.path}/Profiles/Temp/ProjCont.json');
+    if (jsonFile.existsSync()) {
+      String jsonString = await jsonFile.readAsString();
+      List<dynamic> jsonData = jsonDecode(jsonString);
+      List<ProfileProjCont> projEntries = jsonData.map((entry) => ProfileProjCont.fromJSON(entry)).toList();
+      projContList = projEntries;
+    }
+  }
+
   // Set Education Content
   Future<void> setEduCont(List<ProfileEduCont> list) async {
     eduContList = list;
   }
 
+  // Set Experience Content
   Future<void> setExpCont(List<ProfileExpCont> list) async {
     expContList = list;
+  }
+
+  // Set Projects Content
+  Future<void> setProjCont(List<ProfileProjCont> list) async {
+    projContList = list;
   }
 
   // Set Profile Name
@@ -193,6 +276,7 @@ class Profile {
     }
   }
 
+  // Read Experience Content From JSON
   Future<void> ReadExpContentFromJSON(String subDir) async {
     final profs = await profsDir;
     final file = File('${profs.path}/$subDir/ExpCont.json');
@@ -212,14 +296,24 @@ class Profile {
     }
   }
 
-  // companyName = TextEditingController(text: json['companyName']);
-  // positionName = TextEditingController(text: json['positionName']);
-  // desInfo = TextEditingController(text: json['desInfo']);
-  // startDate = DateTime.parse(json['startDate']);
-  // endDate = DateTime.parse(json['endDate']);
-  // stillWorking = json['stillWorking'];
-
-  // Read Experience Content From JSON
+  // Read Projects Content From JSON
+  Future<void> ReadProjContentFromJSON(String subDir) async {
+    final profs = await profsDir;
+    final file = File('${profs.path}/$subDir/ProjCont.json');
+    if (!file.existsSync()) {
+      print('Projects content json file does not exist.');
+      return;
+    }
+    String jsonString = file.readAsStringSync();
+    List<dynamic> jsonData = jsonDecode(jsonString);
+    for (int i = 0; i < jsonData.length; i++) {
+      print(jsonData[i]['projName']);
+      print(jsonData[i]['roleName']);
+      print(jsonData[i]['desInfo']);
+      print(jsonData[i]['completed']);
+      print(jsonData[i]['date']);
+    }
+  }
 
   // Write Content To JSON
   Future<void> WriteContentToJSON<T>(String subDir, String fileName, List<T> list) async {
@@ -232,12 +326,13 @@ class Profile {
     if (file.existsSync()) {
       file.deleteSync();
     }
-
     List<Map<String, dynamic>> contJSON = list.map((cont) {
       if (cont is ProfileEduCont) {
         return (cont as ProfileEduCont).toJSON();
       } else if (cont is ProfileExpCont) {
         return (cont as ProfileExpCont).toJSON();
+      } else if (cont is ProfileProjCont) {
+        return (cont as ProfileProjCont).toJSON();
       } else {
         throw Exception("Type T does not have a toJSON method");
       }
@@ -269,11 +364,18 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
   @override
   void initState() {
     super.initState();
-    if (widget.profile.eduContList.isNotEmpty) {
-      entries = widget.profile.eduContList;
-    } else {
-      entries.add(ProfileEduCont());
-    }
+    initialize();
+  }
+
+  Future<void> initialize() async {
+    await widget.profile.LoadEduCont();
+    setState(() {
+      if (widget.profile.expContList.isNotEmpty) {
+        entries = widget.profile.eduContList;
+      } else {
+        entries.add(ProfileEduCont());
+      }
+    });
   }
 
   void addEntry(int index) {
@@ -491,11 +593,18 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
   @override
   void initState() {
     super.initState();
-    if (widget.profile.expContList.isNotEmpty) {
-      entries = widget.profile.expContList;
-    } else {
-      entries.add(ProfileExpCont());
-    }
+    initialize();
+  }
+
+  Future<void> initialize() async {
+    await widget.profile.LoadExpCont();
+    setState(() {
+      if (widget.profile.expContList.isNotEmpty) {
+        entries = widget.profile.expContList;
+      } else {
+        entries.add(ProfileExpCont());
+      }
+    });
   }
 
   void addEntry(int index) {
@@ -679,6 +788,223 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                       onPressed: () {
                         deleteEntry(index);
                         widget.profile.setExpCont(entries);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Project Profile Entry
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class ProjectProfileEntry extends StatefulWidget {
+  final Profile profile;
+
+  const ProjectProfileEntry({
+    super.key,
+    required this.profile,
+  });
+
+  @override
+  ProjectProfileEntryState createState() => ProjectProfileEntryState();
+}
+
+class ProjectProfileEntryState extends State<ProjectProfileEntry> {
+  List<ProfileProjCont> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    initialize();
+  }
+
+  Future<void> initialize() async {
+    await widget.profile.LoadProjectsCont();
+    setState(() {
+      if (widget.profile.projContList.isNotEmpty) {
+        entries = widget.profile.projContList;
+      } else {
+        entries.add(ProfileProjCont());
+      }
+    });
+  }
+
+  void addEntry(int index) {
+    setState(() {
+      entries.insert(index + 1, ProfileProjCont());
+    });
+  }
+
+  void clearEntry(int index) {
+    setState(() {
+      entries[index].projName.text = '';
+      entries[index].roleName.text = '';
+      entries[index].desInfo.text = '';
+      entries[index].date = DateTime.now();
+      entries[index].completed = false;
+    });
+  }
+
+  void deleteEntry(int index) {
+    if (entries.length > 1) {
+      setState(() {
+        entries.removeAt(index);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          ...entries.asMap().entries.map(
+            (entry) {
+              int index = entry.key;
+              ProfileProjCont entryData = entry.value;
+              return buildContEntry(
+                context,
+                index,
+                entryData,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildContEntry(
+    BuildContext context,
+    int index,
+    ProfileProjCont entry,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SizedBox(height: standardSizedBoxHeight),
+        Center(
+          child: Text(
+            'Project - ${index + 1}',
+            style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Container(
+          width: MediaQuery.of(context).size.width * 0.75,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: TextFormField(
+                      controller: entry.projName,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 1,
+                      decoration: InputDecoration(hintText: 'Enter project name here...'),
+                      onChanged: (value) {
+                        setState(() {
+                          widget.profile.setProjCont(entries);
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: 'Completed project ${index + 1}?',
+                    child: Checkbox(
+                      value: entry.completed,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          entry.completed = value ?? false;
+                          widget.profile.setProjCont(entries);
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: 'Select Date For Project ${index + 1}',
+                    child: IconButton(
+                      icon: Icon(Icons.date_range),
+                      onPressed: () async {
+                        entry.date = await SelectDate(context);
+                        widget.profile.setProjCont(entries);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+              TextFormField(
+                controller: entry.roleName,
+                keyboardType: TextInputType.multiline,
+                maxLines: 1,
+                decoration: InputDecoration(hintText: 'Enter role info here...'),
+                onChanged: (value) {
+                  setState(() {
+                    widget.profile.setProjCont(entries);
+                  });
+                },
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+              TextFormField(
+                controller: entry.desInfo,
+                keyboardType: TextInputType.multiline,
+                maxLines: 10,
+                decoration: InputDecoration(hintText: 'Enter description here...'),
+                onChanged: (value) {
+                  setState(() {
+                    widget.profile.setProjCont(entries);
+                  });
+                },
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Tooltip(
+                    message: 'Add Entry After Project ${index + 1}',
+                    child: IconButton(
+                      icon: Icon(Icons.add),
+                      onPressed: () {
+                        addEntry(index);
+                        widget.profile.setProjCont(entries);
+                      },
+                    ),
+                  ),
+                  Tooltip(
+                    message: 'Clear Entries For Project ${index + 1}',
+                    child: IconButton(
+                      icon: Icon(Icons.clear),
+                      onPressed: () {
+                        clearEntry(index);
+                        widget.profile.setProjCont(entries);
+                      },
+                    ),
+                  ),
+                  Tooltip(
+                    message: 'Delete Entry For Project ${index + 1}',
+                    child: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () {
+                        deleteEntry(index);
+                        widget.profile.setProjCont(entries);
                       },
                     ),
                   ),

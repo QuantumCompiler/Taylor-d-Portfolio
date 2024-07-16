@@ -21,7 +21,7 @@ class ProfileContentPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: GenAppBarWithDashboard(context, title, 4),
-      body: ProfileContentEntry(profile: profile, contentType: type, keyList: keyList),
+      body: ProfileContentEntry(profile: profile, type: type, keyList: keyList),
       bottomNavigationBar: ProfileContentBottomAppBar(context, type, profile, keyList),
     );
   }
