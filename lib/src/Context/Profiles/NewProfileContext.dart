@@ -59,6 +59,19 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile newProfile
                     );
                   },
                 ),
+                GenListTileWithFunc(
+                  context,
+                  'Skills',
+                  newProfile,
+                  (context, newProfile) async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileContentPage(profile: newProfile, title: 'Skills Entries', type: ContentType.skills, keyList: keys),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),

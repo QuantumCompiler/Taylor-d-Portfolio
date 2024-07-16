@@ -117,6 +117,28 @@ class ProfileProjCont {
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Skills Profile Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class ProfileSkillsCont {
+  late TextEditingController skillCategory;
+  late TextEditingController desInfo;
+  ProfileSkillsCont() {
+    skillCategory = TextEditingController();
+    desInfo = TextEditingController();
+  }
+  ProfileSkillsCont.fromJSON(Map<String, dynamic> json) {
+    skillCategory = TextEditingController(text: json['skillCategory']);
+    desInfo = TextEditingController(text: json['desInfo']);
+  }
+  Map<String, dynamic> toJSON() {
+    return {
+      'skillCategory': skillCategory.text,
+      'desInfo': desInfo.text,
+    };
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Profile Class
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 class Profile {
@@ -149,6 +171,7 @@ class Profile {
   List<ProfileEduCont> eduContList = [];
   List<ProfileExpCont> expContList = [];
   List<ProfileProjCont> projContList = [];
+  List<ProfileSkillsCont> skillsContList = [];
 
   // Constructor
   Profile({this.name = ''}) {
@@ -159,6 +182,7 @@ class Profile {
     eduContList = eduContList;
     expContList = expContList;
     projContList = projContList;
+    skillsContList = skillsContList;
     setTempDir();
   }
 
@@ -175,6 +199,11 @@ class Profile {
   Future<void> CreateProjContJSON() async {
     await WriteContentToJSON('Temp/', 'ProjCont.json', projContList);
     await ReadProjContentFromJSON('Temp/');
+  }
+
+  Future<void> CreateSkillsContJSON() async {
+    await WriteContentToJSON('Temp/', 'SkillsCont.json', skillsContList);
+    await ReadSkillsContentFromJSON('Temp/');
   }
 
   // Create New Profile
@@ -220,6 +249,18 @@ class Profile {
     }
   }
 
+  // Load Skills Contents
+  Future<void> LoadSkillsCont() async {
+    final appsDir = await GetAppDir();
+    File jsonFile = File('${appsDir.path}/Profiles/Temp/SkillsCont.json');
+    if (jsonFile.existsSync()) {
+      String jsonString = await jsonFile.readAsString();
+      List<dynamic> jsonData = jsonDecode(jsonString);
+      List<ProfileSkillsCont> skillsEntries = jsonData.map((entry) => ProfileSkillsCont.fromJSON(entry)).toList();
+      skillsContList = skillsEntries;
+    }
+  }
+
   // Set Education Content
   Future<void> setEduCont(List<ProfileEduCont> list) async {
     eduContList = list;
@@ -233,6 +274,11 @@ class Profile {
   // Set Projects Content
   Future<void> setProjCont(List<ProfileProjCont> list) async {
     projContList = list;
+  }
+
+  // Set Skills Content
+  Future<void> setSkillsCont(List<ProfileSkillsCont> list) async {
+    skillsContList = list;
   }
 
   // Set Profile Name
@@ -315,6 +361,22 @@ class Profile {
     }
   }
 
+  // Read Projects Content From JSON
+  Future<void> ReadSkillsContentFromJSON(String subDir) async {
+    final profs = await profsDir;
+    final file = File('${profs.path}/$subDir/SkillsCont.json');
+    if (!file.existsSync()) {
+      print('Skills content json file does not exist.');
+      return;
+    }
+    String jsonString = file.readAsStringSync();
+    List<dynamic> jsonData = jsonDecode(jsonString);
+    for (int i = 0; i < jsonData.length; i++) {
+      print(jsonData[i]['skillCategory']);
+      print(jsonData[i]['desInfo']);
+    }
+  }
+
   // Write Content To JSON
   Future<void> WriteContentToJSON<T>(String subDir, String fileName, List<T> list) async {
     final profs = await profsDir;
@@ -333,11 +395,12 @@ class Profile {
         return (cont as ProfileExpCont).toJSON();
       } else if (cont is ProfileProjCont) {
         return (cont as ProfileProjCont).toJSON();
+      } else if (cont is ProfileSkillsCont) {
+        return (cont as ProfileSkillsCont).toJSON();
       } else {
         throw Exception("Type T does not have a toJSON method");
       }
     }).toList();
-
     String jsonString = jsonEncode(contJSON);
     await file.writeAsString(jsonString);
   }
@@ -1005,6 +1068,184 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                       onPressed: () {
                         deleteEntry(index);
                         widget.profile.setProjCont(entries);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Skills Profile Entry
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class SkillsProjectEntry extends StatefulWidget {
+  final Profile profile;
+
+  const SkillsProjectEntry({
+    super.key,
+    required this.profile,
+  });
+
+  @override
+  SkillsProjectEntryState createState() => SkillsProjectEntryState();
+}
+
+class SkillsProjectEntryState extends State<SkillsProjectEntry> {
+  List<ProfileSkillsCont> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    initialize();
+  }
+
+  Future<void> initialize() async {
+    await widget.profile.LoadSkillsCont();
+    setState(() {
+      if (widget.profile.projContList.isNotEmpty) {
+        entries = widget.profile.skillsContList;
+      } else {
+        entries.add(ProfileSkillsCont());
+      }
+    });
+  }
+
+  void addEntry(int index) {
+    setState(() {
+      entries.insert(index + 1, ProfileSkillsCont());
+    });
+  }
+
+  void clearEntry(int index) {
+    setState(() {
+      entries[index].skillCategory.text = '';
+      entries[index].desInfo.text = '';
+    });
+  }
+
+  void deleteEntry(int index) {
+    if (entries.length > 1) {
+      setState(() {
+        entries.removeAt(index);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          ...entries.asMap().entries.map(
+            (entry) {
+              int index = entry.key;
+              ProfileSkillsCont entryData = entry.value;
+              return buildContEntry(
+                context,
+                index,
+                entryData,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildContEntry(
+    BuildContext context,
+    int index,
+    ProfileSkillsCont entry,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SizedBox(height: standardSizedBoxHeight),
+        Center(
+          child: Text(
+            'Skill Category - ${index + 1}',
+            style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Container(
+          width: MediaQuery.of(context).size.width * 0.75,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: TextFormField(
+                      controller: entry.skillCategory,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 1,
+                      decoration: InputDecoration(hintText: 'Enter skill category here...'),
+                      onChanged: (value) {
+                        setState(() {
+                          widget.profile.setSkillsCont(entries);
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+              TextFormField(
+                controller: entry.desInfo,
+                keyboardType: TextInputType.multiline,
+                maxLines: 10,
+                decoration: InputDecoration(hintText: 'Enter skills here...'),
+                onChanged: (value) {
+                  setState(() {
+                    widget.profile.setSkillsCont(entries);
+                  });
+                },
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Tooltip(
+                    message: 'Add Entry Skill Category ${index + 1}',
+                    child: IconButton(
+                      icon: Icon(Icons.add),
+                      onPressed: () {
+                        addEntry(index);
+                        widget.profile.setSkillsCont(entries);
+                      },
+                    ),
+                  ),
+                  Tooltip(
+                    message: 'Clear Entries For Skill Category ${index + 1}',
+                    child: IconButton(
+                      icon: Icon(Icons.clear),
+                      onPressed: () {
+                        clearEntry(index);
+                        widget.profile.setSkillsCont(entries);
+                      },
+                    ),
+                  ),
+                  Tooltip(
+                    message: 'Delete Entry Skill Category ${index + 1}',
+                    child: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () {
+                        deleteEntry(index);
+                        widget.profile.setSkillsCont(entries);
                       },
                     ),
                   ),

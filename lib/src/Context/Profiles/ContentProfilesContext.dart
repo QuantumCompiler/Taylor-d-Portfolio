@@ -29,6 +29,8 @@ class ProfileContentEntryState extends State<ProfileContentEntry> {
         return ExperienceProfileEntry(profile: widget.profile, key: widget.keyList[1]);
       case ContentType.projects:
         return ProjectProfileEntry(profile: widget.profile, key: widget.keyList[2]);
+      case ContentType.skills:
+        return SkillsProjectEntry(profile: widget.profile, key: widget.keyList[3]);
     }
   }
 }
@@ -41,6 +43,8 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
     buttonText = 'Save Experience';
   } else if (type == ContentType.projects) {
     buttonText = 'Save Projects';
+  } else if (type == ContentType.skills) {
+    buttonText = 'Save Skills';
   } else {
     buttonText = 'Save Content';
   }
@@ -58,6 +62,8 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
               await profile.CreateExpContJSON();
             } else if (type == ContentType.projects) {
               await profile.CreateProjContJSON();
+            } else if (type == ContentType.skills) {
+              await profile.CreateSkillsContJSON();
             }
           },
         ),

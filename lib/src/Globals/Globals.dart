@@ -55,4 +55,5 @@ enum ContentType {
   education,
   experience,
   projects,
+  skills,
 }
