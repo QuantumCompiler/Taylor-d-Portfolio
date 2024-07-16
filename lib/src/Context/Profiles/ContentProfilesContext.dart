@@ -50,6 +50,7 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
   } else {
     buttonText = 'Save Content';
   }
+  profile.name = 'Test 1';
   return BottomAppBar(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -59,7 +60,7 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
           child: Text(buttonText),
           onPressed: () async {
             if (type == ContentType.coverLetter) {
-              await profile.CreateCLContJSON();
+              await profile.WriteNewCLCont('Temp');
             } else if (type == ContentType.education) {
               await profile.CreateEduContJSON();
             } else if (type == ContentType.experience) {

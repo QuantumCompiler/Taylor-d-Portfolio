@@ -163,13 +163,14 @@ Future<List<Profile>> RetrieveSortedProfiles() async {
     for (var entity in profsDir.listSync()) {
       if (entity is Directory) {
         String profName = entity.path.split('/').last;
-        profiles.add(
-          Profile(
-            name: profName,
-          ),
+        Profile profile = await Profile.create(
+          name: profName,
+          newProfile: false,
         );
+        profiles.add(profile);
       }
     }
   }
+  profiles.sort((a, b) => a.name.compareTo(b.name));
   return profiles;
 }

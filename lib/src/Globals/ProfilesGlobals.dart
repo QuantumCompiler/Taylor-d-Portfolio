@@ -34,10 +34,8 @@ String saveProfileButton = 'Save Profile';
 String skillsTitle = 'Skills';
 String skillsHint = 'Enter skills here.';
 // File Names
+String coverLetterFile = 'coverletter.txt';
 String educationFile = 'education.txt';
 String experienceFile = 'experience.txt';
-String extracurricularFile = 'extracurricular.txt';
-String honorsFile = 'honors.txt';
 String projectsFile = 'projects.txt';
-String referencesFile = 'references.txt';
 String skillsFile = 'skills.txt';
