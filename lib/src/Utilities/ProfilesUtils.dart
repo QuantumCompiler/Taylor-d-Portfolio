@@ -1,10 +1,29 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import '../Context/Globals/GlobalContext.dart';
 import '../Globals/ProfilesGlobals.dart';
 import '../Globals/Globals.dart';
 import '../Utilities/GlobalUtils.dart';
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Cover Letter Pitch Profile Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class ProfileCLCont {
+  late TextEditingController pitch;
+  ProfileCLCont() {
+    pitch = TextEditingController();
+  }
+  ProfileCLCont.fromJSON(Map<String, dynamic> json) {
+    pitch = TextEditingController(text: json['pitch'] ?? '');
+  }
+  Map<String, dynamic> toJSON() {
+    return {
+      'pitch': pitch.text,
+    };
+  }
+}
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Education Profile Content
@@ -13,9 +32,10 @@ class ProfileEduCont {
   late TextEditingController desInfo;
   late TextEditingController degInfo;
   late TextEditingController schoolInfo;
-  late DateTime? startDate;
-  late DateTime? endDate;
+  DateTime? startDate;
+  DateTime? endDate;
   late bool graduated;
+
   ProfileEduCont() {
     desInfo = TextEditingController();
     degInfo = TextEditingController();
@@ -24,14 +44,16 @@ class ProfileEduCont {
     endDate = DateTime.now();
     graduated = false;
   }
+
   ProfileEduCont.fromJSON(Map<String, dynamic> json) {
-    desInfo = TextEditingController(text: json['desInfo']);
-    degInfo = TextEditingController(text: json['degInfo']);
-    schoolInfo = TextEditingController(text: json['schoolInfo']);
-    startDate = DateTime.parse(json['startDate']);
-    endDate = DateTime.parse(json['endDate']);
-    graduated = json['graduated'];
+    desInfo = TextEditingController(text: json['desInfo'] ?? '');
+    degInfo = TextEditingController(text: json['degInfo'] ?? '');
+    schoolInfo = TextEditingController(text: json['schoolInfo'] ?? '');
+    startDate = json['startDate'] != null ? DateTime.parse(json['startDate']) : null;
+    endDate = json['endDate'] != null ? DateTime.parse(json['endDate']) : null;
+    graduated = json['graduated'] ?? false;
   }
+
   Map<String, dynamic> toJSON() {
     return {
       'desInfo': desInfo.text,
@@ -51,9 +73,10 @@ class ProfileExpCont {
   late TextEditingController companyName;
   late TextEditingController positionName;
   late TextEditingController desInfo;
-  late DateTime? startDate;
-  late DateTime? endDate;
+  DateTime? startDate;
+  DateTime? endDate;
   late bool stillWorking;
+
   ProfileExpCont() {
     companyName = TextEditingController();
     positionName = TextEditingController();
@@ -62,14 +85,16 @@ class ProfileExpCont {
     endDate = DateTime.now();
     stillWorking = false;
   }
+
   ProfileExpCont.fromJSON(Map<String, dynamic> json) {
-    companyName = TextEditingController(text: json['companyName']);
-    positionName = TextEditingController(text: json['positionName']);
-    desInfo = TextEditingController(text: json['desInfo']);
-    startDate = DateTime.parse(json['startDate']);
-    endDate = DateTime.parse(json['endDate']);
-    stillWorking = json['stillWorking'];
+    companyName = TextEditingController(text: json['companyName'] ?? '');
+    positionName = TextEditingController(text: json['positionName'] ?? '');
+    desInfo = TextEditingController(text: json['desInfo'] ?? '');
+    startDate = json['startDate'] != null ? DateTime.parse(json['startDate']) : null;
+    endDate = json['endDate'] != null ? DateTime.parse(json['endDate']) : null;
+    stillWorking = json['stillWorking'] ?? false;
   }
+
   Map<String, dynamic> toJSON() {
     return {
       'companyName': companyName.text,
@@ -89,8 +114,9 @@ class ProfileProjCont {
   late TextEditingController projName;
   late TextEditingController roleName;
   late TextEditingController desInfo;
-  late DateTime? date;
+  DateTime? date;
   late bool completed;
+
   ProfileProjCont() {
     projName = TextEditingController();
     roleName = TextEditingController();
@@ -98,13 +124,15 @@ class ProfileProjCont {
     date = DateTime.now();
     completed = false;
   }
+
   ProfileProjCont.fromJSON(Map<String, dynamic> json) {
-    projName = TextEditingController(text: json['projName']);
-    roleName = TextEditingController(text: json['roleName']);
-    desInfo = TextEditingController(text: json['desInfo']);
-    date = DateTime.parse(json['date']);
-    completed = json['completed'];
+    projName = TextEditingController(text: json['projName'] ?? '');
+    roleName = TextEditingController(text: json['roleName'] ?? '');
+    desInfo = TextEditingController(text: json['desInfo'] ?? '');
+    date = json['date'] != null ? DateTime.parse(json['date']) : null;
+    completed = json['completed'] ?? false;
   }
+
   Map<String, dynamic> toJSON() {
     return {
       'projName': projName.text,
@@ -122,14 +150,17 @@ class ProfileProjCont {
 class ProfileSkillsCont {
   late TextEditingController skillCategory;
   late TextEditingController desInfo;
+
   ProfileSkillsCont() {
     skillCategory = TextEditingController();
     desInfo = TextEditingController();
   }
+
   ProfileSkillsCont.fromJSON(Map<String, dynamic> json) {
-    skillCategory = TextEditingController(text: json['skillCategory']);
-    desInfo = TextEditingController(text: json['desInfo']);
+    skillCategory = TextEditingController(text: json['skillCategory'] ?? '');
+    desInfo = TextEditingController(text: json['desInfo'] ?? '');
   }
+
   Map<String, dynamic> toJSON() {
     return {
       'skillCategory': skillCategory.text,
@@ -168,6 +199,7 @@ class Profile {
   late String skills;
 
   // Lists Of Types
+  List<ProfileCLCont> coverLetterContList = [];
   List<ProfileEduCont> eduContList = [];
   List<ProfileExpCont> expContList = [];
   List<ProfileProjCont> projContList = [];
@@ -179,11 +211,17 @@ class Profile {
     expTitle = experienceTitle;
     projTitle = projectsTitle;
     skiTitle = skillsTitle;
+    coverLetterContList = coverLetterContList;
     eduContList = eduContList;
     expContList = expContList;
     projContList = projContList;
     skillsContList = skillsContList;
     setTempDir();
+  }
+
+  Future<void> CreateCLContJSON() async {
+    await WriteContentToJSON('Temp/', 'CLCont.json', coverLetterContList);
+    await ReadCLContentFromJSON('Temp/');
   }
 
   Future<void> CreateEduContJSON() async {
@@ -213,52 +251,94 @@ class Profile {
     // setWriteNewFiles();
   }
 
+  // Load Cover Letter Contents
+  Future<void> LoadCLCont() async {
+    try {
+      final appsDir = await getApplicationDocumentsDirectory();
+      final jsonFile = File('${appsDir.path}/Profiles/Temp/CLCont.json');
+      final fileExists = await jsonFile.exists();
+      if (fileExists) {
+        final jsonString = await jsonFile.readAsString();
+        final List<dynamic> jsonData = jsonDecode(jsonString);
+        final List<ProfileCLCont> entries = jsonData.map((entry) => ProfileCLCont.fromJSON(entry)).toList();
+        coverLetterContList = entries;
+      }
+    } catch (e) {
+      throw ('An error occurred while loading cover letter contents: $e');
+    }
+  }
+
   // Load Education Contents
   Future<void> LoadEduCont() async {
-    final appsDir = await GetAppDir();
-    File jsonFile = File('${appsDir.path}/Profiles/Temp/EduCont.json');
-    if (jsonFile.existsSync()) {
-      String jsonString = await jsonFile.readAsString();
-      List<dynamic> jsonData = jsonDecode(jsonString);
-      List<ProfileEduCont> eduEntries = jsonData.map((entry) => ProfileEduCont.fromJSON(entry)).toList();
-      eduContList = eduEntries;
+    try {
+      final appsDir = await getApplicationDocumentsDirectory();
+      final jsonFile = File('${appsDir.path}/Profiles/Temp/CLCont.json');
+      final fileExists = await jsonFile.exists();
+      if (fileExists) {
+        final jsonString = await jsonFile.readAsString();
+        final List<dynamic> jsonData = jsonDecode(jsonString);
+        final List<ProfileEduCont> entries = jsonData.map((entry) => ProfileEduCont.fromJSON(entry)).toList();
+        eduContList = entries;
+      }
+    } catch (e) {
+      throw ('An error occurred while loading education contents: $e');
     }
   }
 
   // Load Experience Contents
   Future<void> LoadExpCont() async {
-    final appsDir = await GetAppDir();
-    File jsonFile = File('${appsDir.path}/Profiles/Temp/ExpCont.json');
-    if (jsonFile.existsSync()) {
-      String jsonString = await jsonFile.readAsString();
-      List<dynamic> jsonData = jsonDecode(jsonString);
-      List<ProfileExpCont> expEntries = jsonData.map((entry) => ProfileExpCont.fromJSON(entry)).toList();
-      expContList = expEntries;
+    try {
+      final appsDir = await getApplicationDocumentsDirectory();
+      final jsonFile = File('${appsDir.path}/Profiles/Temp/ExpCont.json');
+      final fileExists = await jsonFile.exists();
+      if (fileExists) {
+        final jsonString = await jsonFile.readAsString();
+        final List<dynamic> jsonData = jsonDecode(jsonString);
+        final List<ProfileExpCont> entries = jsonData.map((entry) => ProfileExpCont.fromJSON(entry)).toList();
+        expContList = entries;
+      }
+    } catch (e) {
+      throw ('An error occurred while loading experience contents: $e');
     }
   }
 
   // Load Projects Contents
   Future<void> LoadProjectsCont() async {
-    final appsDir = await GetAppDir();
-    File jsonFile = File('${appsDir.path}/Profiles/Temp/ProjCont.json');
-    if (jsonFile.existsSync()) {
-      String jsonString = await jsonFile.readAsString();
-      List<dynamic> jsonData = jsonDecode(jsonString);
-      List<ProfileProjCont> projEntries = jsonData.map((entry) => ProfileProjCont.fromJSON(entry)).toList();
-      projContList = projEntries;
+    try {
+      final appsDir = await getApplicationDocumentsDirectory();
+      final jsonFile = File('${appsDir.path}/Profiles/Temp/ProjCont.json');
+      final fileExists = await jsonFile.exists();
+      if (fileExists) {
+        final jsonString = await jsonFile.readAsString();
+        final List<dynamic> jsonData = jsonDecode(jsonString);
+        final List<ProfileProjCont> entries = jsonData.map((entry) => ProfileProjCont.fromJSON(entry)).toList();
+        projContList = entries;
+      }
+    } catch (e) {
+      throw ('An error occurred while loading projects contents: $e');
     }
   }
 
   // Load Skills Contents
   Future<void> LoadSkillsCont() async {
-    final appsDir = await GetAppDir();
-    File jsonFile = File('${appsDir.path}/Profiles/Temp/SkillsCont.json');
-    if (jsonFile.existsSync()) {
-      String jsonString = await jsonFile.readAsString();
-      List<dynamic> jsonData = jsonDecode(jsonString);
-      List<ProfileSkillsCont> skillsEntries = jsonData.map((entry) => ProfileSkillsCont.fromJSON(entry)).toList();
-      skillsContList = skillsEntries;
+    try {
+      final appsDir = await getApplicationDocumentsDirectory();
+      final jsonFile = File('${appsDir.path}/Profiles/Temp/SkillsCont.json');
+      final fileExists = await jsonFile.exists();
+      if (fileExists) {
+        final jsonString = await jsonFile.readAsString();
+        final List<dynamic> jsonData = jsonDecode(jsonString);
+        final List<ProfileSkillsCont> entries = jsonData.map((entry) => ProfileSkillsCont.fromJSON(entry)).toList();
+        skillsContList = entries;
+      }
+    } catch (e) {
+      throw ('An error occurred while loading skills contents: $e');
     }
+  }
+
+  // Set Cover Letter Pitch Content
+  Future<void> setCLCont(List<ProfileCLCont> list) async {
+    coverLetterContList = list;
   }
 
   // Set Education Content
@@ -300,6 +380,21 @@ class Profile {
       temp.deleteSync(recursive: true);
     }
     CreateDir(parentDir, 'Temp');
+  }
+
+  // Read Cover Letter Pitch Content From JSON
+  Future<void> ReadCLContentFromJSON(String subDir) async {
+    final profs = await profsDir;
+    final file = File('${profs.path}/$subDir/CLCont.json');
+    if (!file.existsSync()) {
+      print('Cover letter content json file does not exist.');
+      return;
+    }
+    String jsonString = file.readAsStringSync();
+    List<dynamic> jsonData = jsonDecode(jsonString);
+    for (int i = 0; i < jsonData.length; i++) {
+      print(jsonData[i]['pitch']);
+    }
   }
 
   // Read Education Content From JSON
@@ -397,12 +492,117 @@ class Profile {
         return (cont as ProfileProjCont).toJSON();
       } else if (cont is ProfileSkillsCont) {
         return (cont as ProfileSkillsCont).toJSON();
+      } else if (cont is ProfileCLCont) {
+        return (cont as ProfileCLCont).toJSON();
       } else {
         throw Exception("Type T does not have a toJSON method");
       }
     }).toList();
     String jsonString = jsonEncode(contJSON);
     await file.writeAsString(jsonString);
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Cover Letter Pitch Profile Entry
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class CoverLetterProfilePitchEntry extends StatefulWidget {
+  final Profile profile;
+
+  const CoverLetterProfilePitchEntry({
+    super.key,
+    required this.profile,
+  });
+
+  @override
+  CoverLetterProfilePitchEntryState createState() => CoverLetterProfilePitchEntryState();
+}
+
+class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEntry> {
+  List<ProfileCLCont> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    initializeEntries();
+  }
+
+  void initializeEntries() {
+    if (widget.profile.coverLetterContList.isNotEmpty) {
+      entries = widget.profile.coverLetterContList;
+    } else {
+      entries.add(ProfileCLCont());
+    }
+  }
+
+  void clearEntry(int index) {
+    setState(() {
+      entries[index].pitch.text = '';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          ...entries.asMap().entries.map(
+            (entry) {
+              int index = entry.key;
+              ProfileCLCont entryData = entry.value;
+              return buildContEntry(
+                context,
+                index,
+                entryData,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildContEntry(
+    BuildContext context,
+    int index,
+    ProfileCLCont entry,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SizedBox(height: standardSizedBoxHeight),
+        Center(
+          child: Text(
+            'Pitch',
+            style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Container(
+          width: MediaQuery.of(context).size.width * 0.75,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: entry.pitch,
+                keyboardType: TextInputType.multiline,
+                maxLines: 15,
+                decoration: InputDecoration(hintText: 'Enter pitch here...'),
+                onChanged: (value) {
+                  setState(() {
+                    widget.profile.setCLCont(entries);
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -427,23 +627,21 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
   @override
   void initState() {
     super.initState();
-    initialize();
+    initializeEntries();
   }
 
-  Future<void> initialize() async {
-    await widget.profile.LoadEduCont();
-    setState(() {
-      if (widget.profile.expContList.isNotEmpty) {
-        entries = widget.profile.eduContList;
-      } else {
-        entries.add(ProfileEduCont());
-      }
-    });
+  void initializeEntries() {
+    if (widget.profile.eduContList.isNotEmpty) {
+      entries = widget.profile.eduContList;
+    } else {
+      entries.add(ProfileEduCont());
+    }
   }
 
   void addEntry(int index) {
     setState(() {
       entries.insert(index + 1, ProfileEduCont());
+      widget.profile.setEduCont(entries);
     });
   }
 
@@ -455,6 +653,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
       entries[index].graduated = false;
       entries[index].startDate = DateTime.now();
       entries[index].endDate = DateTime.now();
+      widget.profile.setEduCont(entries);
     });
   }
 
@@ -462,6 +661,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
     if (entries.length > 1) {
       setState(() {
         entries.removeAt(index);
+        widget.profile.setEduCont(entries);
       });
     }
   }
@@ -656,23 +856,21 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
   @override
   void initState() {
     super.initState();
-    initialize();
+    initializeEntries();
   }
 
-  Future<void> initialize() async {
-    await widget.profile.LoadExpCont();
-    setState(() {
-      if (widget.profile.expContList.isNotEmpty) {
-        entries = widget.profile.expContList;
-      } else {
-        entries.add(ProfileExpCont());
-      }
-    });
+  void initializeEntries() {
+    if (widget.profile.expContList.isNotEmpty) {
+      entries = widget.profile.expContList;
+    } else {
+      entries.add(ProfileExpCont());
+    }
   }
 
   void addEntry(int index) {
     setState(() {
       entries.insert(index + 1, ProfileExpCont());
+      widget.profile.setExpCont(entries);
     });
   }
 
@@ -684,6 +882,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
       entries[index].startDate = DateTime.now();
       entries[index].endDate = DateTime.now();
       entries[index].stillWorking = false;
+      widget.profile.setExpCont(entries);
     });
   }
 
@@ -691,6 +890,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
     if (entries.length > 1) {
       setState(() {
         entries.removeAt(index);
+        widget.profile.setExpCont(entries);
       });
     }
   }
@@ -885,23 +1085,21 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
   @override
   void initState() {
     super.initState();
-    initialize();
+    initializeEntries();
   }
 
-  Future<void> initialize() async {
-    await widget.profile.LoadProjectsCont();
-    setState(() {
-      if (widget.profile.projContList.isNotEmpty) {
-        entries = widget.profile.projContList;
-      } else {
-        entries.add(ProfileProjCont());
-      }
-    });
+  void initializeEntries() {
+    if (widget.profile.projContList.isNotEmpty) {
+      entries = widget.profile.projContList;
+    } else {
+      entries.add(ProfileProjCont());
+    }
   }
 
   void addEntry(int index) {
     setState(() {
       entries.insert(index + 1, ProfileProjCont());
+      widget.profile.setProjCont(entries);
     });
   }
 
@@ -912,6 +1110,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
       entries[index].desInfo.text = '';
       entries[index].date = DateTime.now();
       entries[index].completed = false;
+      widget.profile.setProjCont(entries);
     });
   }
 
@@ -919,6 +1118,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
     if (entries.length > 1) {
       setState(() {
         entries.removeAt(index);
+        widget.profile.setProjCont(entries);
       });
     }
   }
@@ -1102,23 +1302,21 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
   @override
   void initState() {
     super.initState();
-    initialize();
+    initializeEntries();
   }
 
-  Future<void> initialize() async {
-    await widget.profile.LoadSkillsCont();
-    setState(() {
-      if (widget.profile.projContList.isNotEmpty) {
-        entries = widget.profile.skillsContList;
-      } else {
-        entries.add(ProfileSkillsCont());
-      }
-    });
+  void initializeEntries() {
+    if (widget.profile.skillsContList.isNotEmpty) {
+      entries = widget.profile.skillsContList;
+    } else {
+      entries.add(ProfileSkillsCont());
+    }
   }
 
   void addEntry(int index) {
     setState(() {
       entries.insert(index + 1, ProfileSkillsCont());
+      widget.profile.setSkillsCont(entries);
     });
   }
 
@@ -1126,6 +1324,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
     setState(() {
       entries[index].skillCategory.text = '';
       entries[index].desInfo.text = '';
+      widget.profile.setSkillsCont(entries);
     });
   }
 
@@ -1133,6 +1332,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
     if (entries.length > 1) {
       setState(() {
         entries.removeAt(index);
+        widget.profile.setSkillsCont(entries);
       });
     }
   }

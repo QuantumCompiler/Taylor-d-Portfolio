@@ -1,8 +1,6 @@
-// import 'dart:io';
 import 'package:flutter/material.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Globals/Globals.dart';
-// import '../../Globals/ProfilesGlobals.dart';
 import '../../Profiles/ContentProfile.dart';
 import '../../Utilities/ProfilesUtils.dart';
 
@@ -20,6 +18,19 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile newProfile
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 SizedBox(height: standardSizedBoxHeight),
+                GenListTileWithFunc(
+                  context,
+                  'Cover Letter Pitch',
+                  newProfile,
+                  (context, newProfile) async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileContentPage(profile: newProfile, title: 'Cover Letter Pitch', type: ContentType.coverLetter, keyList: keys),
+                      ),
+                    );
+                  },
+                ),
                 GenListTileWithFunc(
                   context,
                   'Education',

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-// import '../../Context/Globals/GlobalContexts.dart';
-// import '../../Globals/ProfilesGlobals.dart';
 import '../../Utilities/ProfilesUtils.dart';
 import '../../Globals/Globals.dart';
 
@@ -23,21 +21,25 @@ class ProfileContentEntryState extends State<ProfileContentEntry> {
   @override
   Widget build(BuildContext context) {
     switch (widget.type) {
+      case ContentType.coverLetter:
+        return CoverLetterProfilePitchEntry(profile: widget.profile, key: widget.keyList[0]);
       case ContentType.education:
-        return EducationProfileEntry(profile: widget.profile, key: widget.keyList[0]);
+        return EducationProfileEntry(profile: widget.profile, key: widget.keyList[1]);
       case ContentType.experience:
-        return ExperienceProfileEntry(profile: widget.profile, key: widget.keyList[1]);
+        return ExperienceProfileEntry(profile: widget.profile, key: widget.keyList[2]);
       case ContentType.projects:
-        return ProjectProfileEntry(profile: widget.profile, key: widget.keyList[2]);
+        return ProjectProfileEntry(profile: widget.profile, key: widget.keyList[3]);
       case ContentType.skills:
-        return SkillsProjectEntry(profile: widget.profile, key: widget.keyList[3]);
+        return SkillsProjectEntry(profile: widget.profile, key: widget.keyList[4]);
     }
   }
 }
 
 BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, Profile profile, List<GlobalKey> keyList) {
   String buttonText;
-  if (type == ContentType.education) {
+  if (type == ContentType.coverLetter) {
+    buttonText = 'Save Pitch';
+  } else if (type == ContentType.education) {
     buttonText = 'Save Education';
   } else if (type == ContentType.experience) {
     buttonText = 'Save Experience';
@@ -56,7 +58,9 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
         ElevatedButton(
           child: Text(buttonText),
           onPressed: () async {
-            if (type == ContentType.education) {
+            if (type == ContentType.coverLetter) {
+              await profile.CreateCLContJSON();
+            } else if (type == ContentType.education) {
               await profile.CreateEduContJSON();
             } else if (type == ContentType.experience) {
               await profile.CreateExpContJSON();

@@ -12,10 +12,12 @@ class NewProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Profile newProfile = Profile();
+    final GlobalKey<CoverLetterProfilePitchEntryState> coverLetterProfileKey = GlobalKey<CoverLetterProfilePitchEntryState>();
     final GlobalKey<EducationProfileEntryState> educationProfileKey = GlobalKey<EducationProfileEntryState>();
     final GlobalKey<ExperienceProfileEntryState> experienceProfileKey = GlobalKey<ExperienceProfileEntryState>();
     final GlobalKey<ProjectProfileEntryState> projectProfileKey = GlobalKey<ProjectProfileEntryState>();
     final GlobalKey<SkillsProjectEntryState> skillsProfileKey = GlobalKey<SkillsProjectEntryState>();
+    keyList.add(coverLetterProfileKey);
     keyList.add(educationProfileKey);
     keyList.add(experienceProfileKey);
     keyList.add(projectProfileKey);
