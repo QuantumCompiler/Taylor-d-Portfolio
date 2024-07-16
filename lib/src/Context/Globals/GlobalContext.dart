@@ -104,7 +104,7 @@ AppBar GenAppBarWithDashboard(BuildContext context, String title, int backPop) {
               Navigator.of(context).pop();
             }
           } else if (isMobile()) {
-            for (int i = 0; i < backPop + 1; i++) {
+            for (int i = 0; i < backPop - 1; i++) {
               Navigator.of(context).pop();
             }
           }

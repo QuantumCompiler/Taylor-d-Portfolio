@@ -10,7 +10,4 @@ import UIKit
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
-  override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
-    return true
-  }
 }
