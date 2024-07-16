@@ -100,7 +100,9 @@ BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile, Li
       children: [
         ElevatedButton(
           child: Text('Save Profile'),
-          onPressed: () => {},
+          onPressed: () async {
+            await newProfile.WriteProfile('Temp', 'Temp');
+          },
         ),
       ],
     ),

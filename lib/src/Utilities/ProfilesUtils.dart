@@ -1,173 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:taylord_portfolio/src/Globals/ProfilesGlobals.dart';
 import '../Context/Globals/GlobalContext.dart';
 import '../Globals/Globals.dart';
+import '../Globals/ProfilesGlobals.dart';
 import '../Utilities/GlobalUtils.dart';
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Cover Letter Pitch Profile Content
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-class ProfileCLCont {
-  late TextEditingController pitch;
-  ProfileCLCont() {
-    pitch = TextEditingController();
-  }
-  ProfileCLCont.fromJSON(Map<String, dynamic> json) {
-    pitch = TextEditingController(text: json['pitch'] ?? '');
-  }
-  Map<String, dynamic> toJSON() {
-    return {
-      'pitch': pitch.text,
-    };
-  }
-}
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Education Profile Content
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-class ProfileEduCont {
-  late TextEditingController desInfo;
-  late TextEditingController degInfo;
-  late TextEditingController schoolInfo;
-  DateTime? startDate;
-  DateTime? endDate;
-  late bool graduated;
-
-  ProfileEduCont() {
-    desInfo = TextEditingController();
-    degInfo = TextEditingController();
-    schoolInfo = TextEditingController();
-    startDate = DateTime.now();
-    endDate = DateTime.now();
-    graduated = false;
-  }
-
-  ProfileEduCont.fromJSON(Map<String, dynamic> json) {
-    desInfo = TextEditingController(text: json['desInfo'] ?? '');
-    degInfo = TextEditingController(text: json['degInfo'] ?? '');
-    schoolInfo = TextEditingController(text: json['schoolInfo'] ?? '');
-    startDate = json['startDate'] != null ? DateTime.parse(json['startDate']) : null;
-    endDate = json['endDate'] != null ? DateTime.parse(json['endDate']) : null;
-    graduated = json['graduated'] ?? false;
-  }
-
-  Map<String, dynamic> toJSON() {
-    return {
-      'desInfo': desInfo.text,
-      'degInfo': degInfo.text,
-      'schoolInfo': schoolInfo.text,
-      'startDate': startDate?.toIso8601String().split('T')[0],
-      'endDate': endDate?.toIso8601String().split('T')[0],
-      'graduated': graduated,
-    };
-  }
-}
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Experience Profile Content
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-class ProfileExpCont {
-  late TextEditingController companyName;
-  late TextEditingController positionName;
-  late TextEditingController desInfo;
-  DateTime? startDate;
-  DateTime? endDate;
-  late bool stillWorking;
-
-  ProfileExpCont() {
-    companyName = TextEditingController();
-    positionName = TextEditingController();
-    desInfo = TextEditingController();
-    startDate = DateTime.now();
-    endDate = DateTime.now();
-    stillWorking = false;
-  }
-
-  ProfileExpCont.fromJSON(Map<String, dynamic> json) {
-    companyName = TextEditingController(text: json['companyName'] ?? '');
-    positionName = TextEditingController(text: json['positionName'] ?? '');
-    desInfo = TextEditingController(text: json['desInfo'] ?? '');
-    startDate = json['startDate'] != null ? DateTime.parse(json['startDate']) : null;
-    endDate = json['endDate'] != null ? DateTime.parse(json['endDate']) : null;
-    stillWorking = json['stillWorking'] ?? false;
-  }
-
-  Map<String, dynamic> toJSON() {
-    return {
-      'companyName': companyName.text,
-      'positionName': positionName.text,
-      'desInfo': desInfo.text,
-      'startDate': startDate?.toIso8601String().split('T')[0],
-      'endDate': endDate?.toIso8601String().split('T')[0],
-      'stillWorking': stillWorking,
-    };
-  }
-}
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Projects Profile Content
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-class ProfileProjCont {
-  late TextEditingController projName;
-  late TextEditingController roleName;
-  late TextEditingController desInfo;
-  DateTime? date;
-  late bool completed;
-
-  ProfileProjCont() {
-    projName = TextEditingController();
-    roleName = TextEditingController();
-    desInfo = TextEditingController();
-    date = DateTime.now();
-    completed = false;
-  }
-
-  ProfileProjCont.fromJSON(Map<String, dynamic> json) {
-    projName = TextEditingController(text: json['projName'] ?? '');
-    roleName = TextEditingController(text: json['roleName'] ?? '');
-    desInfo = TextEditingController(text: json['desInfo'] ?? '');
-    date = json['date'] != null ? DateTime.parse(json['date']) : null;
-    completed = json['completed'] ?? false;
-  }
-
-  Map<String, dynamic> toJSON() {
-    return {
-      'projName': projName.text,
-      'roleName': roleName.text,
-      'desInfo': desInfo.text,
-      'date': date?.toIso8601String().split('T')[0],
-      'completed': completed,
-    };
-  }
-}
-
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-//  Skills Profile Content
-// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-class ProfileSkillsCont {
-  late TextEditingController skillCategory;
-  late TextEditingController desInfo;
-
-  ProfileSkillsCont() {
-    skillCategory = TextEditingController();
-    desInfo = TextEditingController();
-  }
-
-  ProfileSkillsCont.fromJSON(Map<String, dynamic> json) {
-    skillCategory = TextEditingController(text: json['skillCategory'] ?? '');
-    desInfo = TextEditingController(text: json['desInfo'] ?? '');
-  }
-
-  Map<String, dynamic> toJSON() {
-    return {
-      'skillCategory': skillCategory.text,
-      'desInfo': desInfo.text,
-    };
-  }
-}
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Profile Class
@@ -181,6 +20,7 @@ class Profile {
   late File eduFile;
   late File expFile;
   late File projFile;
+  late File profFile;
   late File skiFile;
 
   // Strings
@@ -403,12 +243,47 @@ class Profile {
         List<dynamic> jsonData = jsonDecode(jsonString);
         String content = '';
         for (int i = 0; i < jsonData.length; i++) {
-          content += jsonData[i]['pitch'];
+          content += jsonData[i]['about'];
         }
         await WriteFile(currDir, covFile, content);
       }
     } catch (e) {
       throw ('Error occurred: $e');
+    }
+  }
+
+  Future<void> WriteProfile(String jsonDir, String destDir) async {
+    final masterDir = await getApplicationDocumentsDirectory();
+    final File file = File('${masterDir.path}/$destDir/Profile.json');
+    final File covFile = File('${masterDir.path}/$jsonDir/CLCont.json');
+    final File eduFile = File('${masterDir.path}/$jsonDir/EduCont.json');
+    final File expFile = File('${masterDir.path}/$jsonDir/ExpCont.json');
+    final File proFile = File('${masterDir.path}/$jsonDir/ProjCont.json');
+    final File skiFile = File('${masterDir.path}/$jsonDir/SkillsCont.json');
+    if (covFile.existsSync() && eduFile.existsSync() && expFile.existsSync() && proFile.existsSync() && skiFile.existsSync()) {
+      final List<dynamic> covData = jsonDecode(await covFile.readAsString());
+      final List<dynamic> eduData = jsonDecode(await eduFile.readAsString());
+      final List<dynamic> expData = jsonDecode(await expFile.readAsString());
+      final List<dynamic> proData = jsonDecode(await proFile.readAsString());
+      final List<dynamic> skiData = jsonDecode(await skiFile.readAsString());
+      final Map<String, dynamic> combinedJSON = {
+        'name': name,
+        'coverLetter': covData,
+        'education': eduData,
+        'experience': expData,
+        'projects': proData,
+        'skills': skiData,
+      };
+      try {
+        final String jsonString = jsonEncode(combinedJSON);
+        await file.writeAsString(jsonString);
+      } catch (e) {
+        throw ('Error ocurred in writing profile file: $e');
+      }
+    } else {
+      if (kDebugMode) {
+        print('Necessary files do not exist to write profile file.');
+      }
     }
   }
 
@@ -423,12 +298,12 @@ class Profile {
     String jsonString = file.readAsStringSync();
     List<dynamic> jsonData = jsonDecode(jsonString);
     for (int i = 0; i < jsonData.length; i++) {
-      print(jsonData[i]['desInfo']);
-      print(jsonData[i]['degInfo']);
-      print(jsonData[i]['schoolInfo']);
+      print(jsonData[i]['name']);
+      print(jsonData[i]['degree']);
+      print(jsonData[i]['description']);
+      print(jsonData[i]['start']);
+      print(jsonData[i]['end']);
       print(jsonData[i]['graduated']);
-      print(jsonData[i]['startDate']);
-      print(jsonData[i]['endDate']);
     }
   }
 
@@ -443,12 +318,12 @@ class Profile {
     String jsonString = file.readAsStringSync();
     List<dynamic> jsonData = jsonDecode(jsonString);
     for (int i = 0; i < jsonData.length; i++) {
-      print(jsonData[i]['companyName']);
-      print(jsonData[i]['positionName']);
-      print(jsonData[i]['desInfo']);
-      print(jsonData[i]['stillWorking']);
-      print(jsonData[i]['startDate']);
-      print(jsonData[i]['endDate']);
+      print(jsonData[i]['name']);
+      print(jsonData[i]['position']);
+      print(jsonData[i]['description']);
+      print(jsonData[i]['start']);
+      print(jsonData[i]['end']);
+      print(jsonData[i]['working']);
     }
   }
 
@@ -465,7 +340,7 @@ class Profile {
     for (int i = 0; i < jsonData.length; i++) {
       print(jsonData[i]['projName']);
       print(jsonData[i]['roleName']);
-      print(jsonData[i]['desInfo']);
+      print(jsonData[i]['description']);
       print(jsonData[i]['completed']);
       print(jsonData[i]['date']);
     }
@@ -483,7 +358,7 @@ class Profile {
     List<dynamic> jsonData = jsonDecode(jsonString);
     for (int i = 0; i < jsonData.length; i++) {
       print(jsonData[i]['skillCategory']);
-      print(jsonData[i]['desInfo']);
+      print(jsonData[i]['description']);
     }
   }
 
@@ -515,6 +390,24 @@ class Profile {
     }).toList();
     String jsonString = jsonEncode(contJSON);
     await file.writeAsString(jsonString);
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Cover Letter Pitch Profile Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class ProfileCLCont {
+  late TextEditingController about;
+  ProfileCLCont() {
+    about = TextEditingController();
+  }
+  ProfileCLCont.fromJSON(Map<String, dynamic> json) {
+    about = TextEditingController(text: json['about'] ?? '');
+  }
+  Map<String, dynamic> toJSON() {
+    return {
+      'about': about.text,
+    };
   }
 }
 
@@ -552,7 +445,7 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
 
   void clearEntry(int index) async {
     setState(() {
-      entries[index].pitch.text = '';
+      entries[index].about.text = '';
     });
     await widget.profile.setCLCont(entries);
   }
@@ -592,7 +485,7 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
         SizedBox(height: standardSizedBoxHeight),
         Center(
           child: Text(
-            'Pitch',
+            'About',
             style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
           ),
         ),
@@ -604,10 +497,10 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               TextFormField(
-                controller: entry.pitch,
+                controller: entry.about,
                 keyboardType: TextInputType.multiline,
                 maxLines: 15,
-                decoration: InputDecoration(hintText: 'Enter pitch here...'),
+                decoration: InputDecoration(hintText: 'Enter details about you here...'),
                 onChanged: (value) async {
                   await widget.profile.setCLCont(entries);
                 },
@@ -621,7 +514,7 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Tooltip(
-              message: 'Clear Cover Letter Pitch',
+              message: 'Clear Cover Letter About',
               child: IconButton(
                 icon: Icon(Icons.clear),
                 onPressed: () async {
@@ -630,9 +523,54 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
               ),
             ),
           ],
-        )
+        ),
       ],
     );
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Education Profile Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class ProfileEduCont {
+  late TextEditingController description;
+  late TextEditingController degree;
+  late TextEditingController name;
+  DateTime? start;
+  DateTime? end;
+  late bool graduated;
+  late bool include;
+
+  ProfileEduCont() {
+    description = TextEditingController();
+    degree = TextEditingController();
+    name = TextEditingController();
+    start = DateTime.now();
+    end = DateTime.now();
+    graduated = false;
+    include = false;
+  }
+
+  ProfileEduCont.fromJSON(Map<String, dynamic> json) {
+    description = TextEditingController(text: json['description'] ?? '');
+    degree = TextEditingController(text: json['degree'] ?? '');
+    name = TextEditingController(text: json['name'] ?? '');
+    start = json['start'] != null ? DateTime.parse(json['start']) : null;
+    end = json['end'] != null ? DateTime.parse(json['end']) : null;
+    graduated = json['graduated'] ?? false;
+    include = json['include'] ?? false;
+  }
+
+  Map<String, dynamic> toJSON() {
+    return {
+      'name': name.text,
+      'degree': degree.text,
+      'description': description.text,
+      'start': start?.toIso8601String().split('T')[0],
+      'end': end?.toIso8601String().split('T')[0],
+      'graduated': graduated,
+      'include': include,
+    };
   }
 }
 
@@ -677,12 +615,13 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
 
   void clearEntry(int index) async {
     setState(() {
-      entries[index].degInfo.text = '';
-      entries[index].desInfo.text = '';
-      entries[index].schoolInfo.text = '';
+      entries[index].name.text = '';
+      entries[index].degree.text = '';
+      entries[index].description.text = '';
+      entries[index].start = DateTime.now();
+      entries[index].end = DateTime.now();
       entries[index].graduated = false;
-      entries[index].startDate = DateTime.now();
-      entries[index].endDate = DateTime.now();
+      entries[index].include = false;
     });
     await widget.profile.setEduCont(entries);
   }
@@ -731,7 +670,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
         SizedBox(height: standardSizedBoxHeight),
         Center(
           child: Text(
-            'Institution - ${index + 1}',
+            entry.name.text.isNotEmpty ? entry.name.text : "Institution ${index + 1}",
             style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
           ),
         ),
@@ -748,46 +687,60 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                 children: <Widget>[
                   Expanded(
                     child: TextFormField(
-                      controller: entry.schoolInfo,
+                      controller: entry.name,
                       keyboardType: TextInputType.multiline,
                       maxLines: 1,
                       decoration: InputDecoration(hintText: 'Enter name here...'),
                       onChanged: (value) async {
+                        setState(() {});
                         await widget.profile.setEduCont(entries);
                       },
                     ),
                   ),
                   SizedBox(width: standardSizedBoxWidth),
                   Tooltip(
-                    message: 'Graduated From Institution ${index + 1}?',
+                    message: entry.name.text.isNotEmpty ? "Graduated From ${entry.name.text}?" : "Graduated From Institution ${index + 1}?",
                     child: Checkbox(
                       value: entry.graduated,
                       onChanged: (bool? value) async {
-                        await widget.profile.setEduCont(entries);
                         setState(() {
                           entry.graduated = value ?? false;
                         });
-                      },
-                    ),
-                  ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  Tooltip(
-                    message: 'Select Start Date For Institution ${index + 1}',
-                    child: IconButton(
-                      icon: Icon(Icons.date_range),
-                      onPressed: () async {
-                        entry.startDate = await SelectDate(context);
                         await widget.profile.setEduCont(entries);
                       },
                     ),
                   ),
                   SizedBox(width: standardSizedBoxWidth),
                   Tooltip(
-                    message: 'Select End Date For Institution ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Institution ${index + 1} In Portfolio?",
+                    child: Checkbox(
+                      value: entry.include,
+                      onChanged: (bool? value) async {
+                        setState(() {
+                          entry.include = value ?? false;
+                        });
+                        await widget.profile.setEduCont(entries);
+                      },
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Institution ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        entry.endDate = await SelectDate(context);
+                        entry.start = await SelectDate(context);
+                        await widget.profile.setEduCont(entries);
+                      },
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Institution ${index + 1}",
+                    child: IconButton(
+                      icon: Icon(Icons.date_range),
+                      onPressed: () async {
+                        entry.end = await SelectDate(context);
                         await widget.profile.setEduCont(entries);
                       },
                     ),
@@ -796,20 +749,24 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
               ),
               SizedBox(height: standardSizedBoxHeight),
               TextFormField(
-                controller: entry.degInfo,
+                controller: entry.degree,
                 keyboardType: TextInputType.multiline,
                 maxLines: 1,
-                decoration: InputDecoration(hintText: 'Enter degree(s) information here...'),
+                decoration: InputDecoration(
+                  hintText: entry.name.text.isNotEmpty ? "Enter degree(s) information for ${entry.name.text} here..." : "Enter degree(s) information here...",
+                ),
                 onChanged: (value) async {
                   await widget.profile.setEduCont(entries);
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
               TextFormField(
-                controller: entry.desInfo,
+                controller: entry.description,
                 keyboardType: TextInputType.multiline,
                 maxLines: 10,
-                decoration: InputDecoration(hintText: 'Enter description here...'),
+                decoration: InputDecoration(
+                  hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description here...",
+                ),
                 onChanged: (value) async {
                   await widget.profile.setEduCont(entries);
                 },
@@ -820,7 +777,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Tooltip(
-                    message: 'Add Entry After Institution ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Institution ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.add),
                       onPressed: () async {
@@ -829,7 +786,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                     ),
                   ),
                   Tooltip(
-                    message: 'Clear Entries For Institution ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Institution ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.clear),
                       onPressed: () async {
@@ -837,15 +794,16 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                       },
                     ),
                   ),
-                  Tooltip(
-                    message: 'Delete Entry For Institution ${index + 1}',
-                    child: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () async {
-                        deleteEntry(index);
-                      },
+                  if (entries.length > 1)
+                    Tooltip(
+                      message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Institution ${index + 1}",
+                      child: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () async {
+                          deleteEntry(index);
+                        },
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -853,6 +811,51 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
         ),
       ],
     );
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Experience Profile Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class ProfileExpCont {
+  late TextEditingController name;
+  late TextEditingController position;
+  late TextEditingController description;
+  DateTime? start;
+  DateTime? end;
+  late bool working;
+  late bool include;
+
+  ProfileExpCont() {
+    name = TextEditingController();
+    position = TextEditingController();
+    description = TextEditingController();
+    start = DateTime.now();
+    end = DateTime.now();
+    working = false;
+    include = false;
+  }
+
+  ProfileExpCont.fromJSON(Map<String, dynamic> json) {
+    name = TextEditingController(text: json['name'] ?? '');
+    position = TextEditingController(text: json['position'] ?? '');
+    description = TextEditingController(text: json['description'] ?? '');
+    start = json['start'] != null ? DateTime.parse(json['start']) : null;
+    end = json['end'] != null ? DateTime.parse(json['end']) : null;
+    working = json['working'] ?? false;
+    include = json['include'] ?? false;
+  }
+
+  Map<String, dynamic> toJSON() {
+    return {
+      'name': name.text,
+      'position': position.text,
+      'description': description.text,
+      'start': start?.toIso8601String().split('T')[0],
+      'end': end?.toIso8601String().split('T')[0],
+      'working': working,
+      'include': include,
+    };
   }
 }
 
@@ -897,12 +900,13 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
 
   void clearEntry(int index) async {
     setState(() {
-      entries[index].companyName.text = '';
-      entries[index].positionName.text = '';
-      entries[index].desInfo.text = '';
-      entries[index].startDate = DateTime.now();
-      entries[index].endDate = DateTime.now();
-      entries[index].stillWorking = false;
+      entries[index].name.text = '';
+      entries[index].position.text = '';
+      entries[index].description.text = '';
+      entries[index].start = DateTime.now();
+      entries[index].end = DateTime.now();
+      entries[index].working = false;
+      entries[index].include = false;
     });
     await widget.profile.setExpCont(entries);
   }
@@ -951,7 +955,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
         SizedBox(height: standardSizedBoxHeight),
         Center(
           child: Text(
-            'Work Experience - ${index + 1}',
+            entry.name.text.isNotEmpty ? entry.name.text : "Work Experience ${index + 1}",
             style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
           ),
         ),
@@ -968,46 +972,60 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                 children: <Widget>[
                   Expanded(
                     child: TextFormField(
-                      controller: entry.companyName,
+                      controller: entry.name,
                       keyboardType: TextInputType.multiline,
                       maxLines: 1,
                       decoration: InputDecoration(hintText: 'Enter company name here...'),
                       onChanged: (value) async {
+                        setState(() {});
                         await widget.profile.setExpCont(entries);
                       },
                     ),
                   ),
                   SizedBox(width: standardSizedBoxWidth),
                   Tooltip(
-                    message: 'Still Working At Work Experience ${index + 1}?',
+                    message: entry.name.text.isNotEmpty ? "Sill Working At ${entry.name.text}?" : "Sill Working At Work Experience - ${index + 1}?",
                     child: Checkbox(
-                      value: entry.stillWorking,
+                      value: entry.working,
+                      onChanged: (bool? value) async {
+                        setState(() {
+                          entry.working = value ?? false;
+                        });
+                        await widget.profile.setExpCont(entries);
+                      },
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Work Experience ${index + 1} In Portfolio?",
+                    child: Checkbox(
+                      value: entry.include,
                       onChanged: (bool? value) async {
                         await widget.profile.setExpCont(entries);
                         setState(() {
-                          entry.stillWorking = value ?? false;
+                          entry.include = value ?? false;
                         });
                       },
                     ),
                   ),
                   SizedBox(width: standardSizedBoxWidth),
                   Tooltip(
-                    message: 'Select Start Date For Work Experience ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Work Experience ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        entry.startDate = await SelectDate(context);
+                        entry.start = await SelectDate(context);
                         await widget.profile.setExpCont(entries);
                       },
                     ),
                   ),
                   SizedBox(width: standardSizedBoxWidth),
                   Tooltip(
-                    message: 'Select End Date For Work Experience ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Work Experience ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        entry.endDate = await SelectDate(context);
+                        entry.end = await SelectDate(context);
                         await widget.profile.setExpCont(entries);
                       },
                     ),
@@ -1016,20 +1034,24 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
               ),
               SizedBox(height: standardSizedBoxHeight),
               TextFormField(
-                controller: entry.positionName,
+                controller: entry.position,
                 keyboardType: TextInputType.multiline,
                 maxLines: 1,
-                decoration: InputDecoration(hintText: 'Enter position info here...'),
+                decoration: InputDecoration(
+                  hintText: entry.name.text.isNotEmpty ? "Enter position info for ${entry.name.text} here..." : "Enter position info here...",
+                ),
                 onChanged: (value) async {
                   await widget.profile.setExpCont(entries);
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
               TextFormField(
-                controller: entry.desInfo,
+                controller: entry.description,
                 keyboardType: TextInputType.multiline,
                 maxLines: 10,
-                decoration: InputDecoration(hintText: 'Enter description here...'),
+                decoration: InputDecoration(
+                  hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description here...",
+                ),
                 onChanged: (value) async {
                   await widget.profile.setExpCont(entries);
                 },
@@ -1040,7 +1062,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Tooltip(
-                    message: 'Add Entry After Work Experience ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Work Experience ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.add),
                       onPressed: () async {
@@ -1049,7 +1071,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                     ),
                   ),
                   Tooltip(
-                    message: 'Clear Entries For Work Experience ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Work Experience ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.clear),
                       onPressed: () async {
@@ -1057,15 +1079,16 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                       },
                     ),
                   ),
-                  Tooltip(
-                    message: 'Delete Entry For Work Experience ${index + 1}',
-                    child: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () async {
-                        deleteEntry(index);
-                      },
+                  if (entries.length > 1)
+                    Tooltip(
+                      message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Work Experience ${index + 1}",
+                      child: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () async {
+                          deleteEntry(index);
+                        },
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -1073,6 +1096,43 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
         ),
       ],
     );
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Projects Profile Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class ProfileProjCont {
+  late TextEditingController projName;
+  late TextEditingController roleName;
+  late TextEditingController description;
+  DateTime? date;
+  late bool completed;
+
+  ProfileProjCont() {
+    projName = TextEditingController();
+    roleName = TextEditingController();
+    description = TextEditingController();
+    date = DateTime.now();
+    completed = false;
+  }
+
+  ProfileProjCont.fromJSON(Map<String, dynamic> json) {
+    projName = TextEditingController(text: json['projName'] ?? '');
+    roleName = TextEditingController(text: json['roleName'] ?? '');
+    description = TextEditingController(text: json['description'] ?? '');
+    date = json['date'] != null ? DateTime.parse(json['date']) : null;
+    completed = json['completed'] ?? false;
+  }
+
+  Map<String, dynamic> toJSON() {
+    return {
+      'projName': projName.text,
+      'roleName': roleName.text,
+      'description': description.text,
+      'date': date?.toIso8601String().split('T')[0],
+      'completed': completed,
+    };
   }
 }
 
@@ -1119,7 +1179,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
     setState(() {
       entries[index].projName.text = '';
       entries[index].roleName.text = '';
-      entries[index].desInfo.text = '';
+      entries[index].description.text = '';
       entries[index].date = DateTime.now();
       entries[index].completed = false;
     });
@@ -1234,7 +1294,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
               ),
               SizedBox(height: standardSizedBoxHeight),
               TextFormField(
-                controller: entry.desInfo,
+                controller: entry.description,
                 keyboardType: TextInputType.multiline,
                 maxLines: 10,
                 decoration: InputDecoration(hintText: 'Enter description here...'),
@@ -1285,6 +1345,31 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Skills Profile Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class ProfileSkillsCont {
+  late TextEditingController skillCategory;
+  late TextEditingController description;
+
+  ProfileSkillsCont() {
+    skillCategory = TextEditingController();
+    description = TextEditingController();
+  }
+
+  ProfileSkillsCont.fromJSON(Map<String, dynamic> json) {
+    skillCategory = TextEditingController(text: json['skillCategory'] ?? '');
+    description = TextEditingController(text: json['description'] ?? '');
+  }
+
+  Map<String, dynamic> toJSON() {
+    return {
+      'skillCategory': skillCategory.text,
+      'description': description.text,
+    };
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Skills Profile Entry
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 class SkillsProjectEntry extends StatefulWidget {
@@ -1326,7 +1411,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
   void clearEntry(int index) async {
     setState(() {
       entries[index].skillCategory.text = '';
-      entries[index].desInfo.text = '';
+      entries[index].description.text = '';
     });
     await widget.profile.setSkillsCont(entries);
   }
@@ -1405,7 +1490,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
               ),
               SizedBox(height: standardSizedBoxHeight),
               TextFormField(
-                controller: entry.desInfo,
+                controller: entry.description,
                 keyboardType: TextInputType.multiline,
                 maxLines: 10,
                 decoration: InputDecoration(hintText: 'Enter skills here...'),

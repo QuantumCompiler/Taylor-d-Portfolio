@@ -38,4 +38,5 @@ String coverLetterFile = 'coverletter.txt';
 String educationFile = 'education.txt';
 String experienceFile = 'experience.txt';
 String projectsFile = 'projects.txt';
+String profileFile = 'profile.txt';
 String skillsFile = 'skills.txt';
