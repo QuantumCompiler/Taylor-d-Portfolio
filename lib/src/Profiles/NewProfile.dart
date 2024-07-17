@@ -19,7 +19,7 @@ class NewProfilePageState extends State<NewProfilePage> {
   void initState() {
     super.initState();
     keyList = [];
-    futureProfile = Profile.create(newProfile: true);
+    futureProfile = Profile.Init(newProfile: true);
   }
 
   @override
@@ -54,7 +54,7 @@ class NewProfilePageState extends State<NewProfilePage> {
         future: futureProfile,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            return NewProfileBottomAppBar(context, snapshot.data!, keyList);
+            return NewProfileBottomAppBar(context, snapshot.data!);
           } else {
             return Container();
           }

@@ -1,144 +1,192 @@
-// import 'package:flutter/material.dart';
-// import '../../Globals/ProfilesGlobals.dart';
-// import '../../Utilities/ProfilesUtils.dart';
-// import '../../Globals/Globals.dart';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import '../../Context/Globals/GlobalContext.dart';
+import '../../Globals/Globals.dart';
+import '../../Profiles/ContentProfile.dart';
+import '../../Utilities/ProfilesUtils.dart';
 
-// /*  appBar - AppBar for the edit profile page
-//       Input:
-//         context: BuildContext of the page
-//         prevProfile: Profile object of the previous profile
-//       Algorithm:
-//           * Create a back button to return to the previous page
-//           * Modify the navigation based on the device type
-//           * Add a title to the AppBar
-//       Output:
-//         Returns an AppBar
-// */
-// AppBar appBar(BuildContext context, Profile prevProfile) {
-//   return AppBar(
-//     leading: IconButton(
-//       icon: Icon(Icons.arrow_back),
-//       onPressed: () {
-//         Navigator.of(context).pop();
-//       },
-//     ),
-//     actions: <Widget>[
-//       IconButton(
-//         icon: Icon(Icons.dashboard),
-//         onPressed: () {
-//           if (isDesktop()) {
-//             Navigator.of(context).pop();
-//             Navigator.of(context).pop();
-//             Navigator.of(context).pop();
-//             Navigator.of(context).pop();
-//           } else if (isMobile()) {
-//             Navigator.of(context).pop();
-//             Navigator.of(context).pop();
-//             Navigator.of(context).pop();
-//           }
-//         },
-//       ),
-//     ],
-//     title: Text(
-//       prevProfile.name,
-//       style: TextStyle(
-//         fontSize: appBarTitle,
-//         fontWeight: FontWeight.bold,
-//       ),
-//     ),
-//   );
-// }
+SingleChildScrollView EditProfileContent(BuildContext context, Profile previousProfile, List<GlobalKey> keys) {
+  return SingleChildScrollView(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Center(
+          child: Container(
+            width: MediaQuery.of(context).size.width * titleContainerWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                GenListTileWithFunc(
+                  context,
+                  'Cover Letter Pitch',
+                  previousProfile,
+                  (context, previousProfile) async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProfileContentPage(profile: previousProfile, title: 'Cover Letter Pitch', type: ContentType.coverLetter, keyList: keys)),
+                    );
+                  },
+                ),
+                GenListTileWithFunc(
+                  context,
+                  'Education',
+                  previousProfile,
+                  (context, previousProfile) async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProfileContentPage(profile: previousProfile, title: 'Education Entries', type: ContentType.education, keyList: keys)),
+                    );
+                  },
+                ),
+                GenListTileWithFunc(
+                  context,
+                  'Experience',
+                  previousProfile,
+                  (context, previousProfile) async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProfileContentPage(profile: previousProfile, title: 'Experience Entries', type: ContentType.experience, keyList: keys)),
+                    );
+                  },
+                ),
+                GenListTileWithFunc(
+                  context,
+                  'Projects',
+                  previousProfile,
+                  (context, previousProfile) async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProfileContentPage(profile: previousProfile, title: 'Project Entries', type: ContentType.projects, keyList: keys)),
+                    );
+                  },
+                ),
+                GenListTileWithFunc(
+                  context,
+                  'Skills',
+                  previousProfile,
+                  (context, previousProfile) async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProfileContentPage(profile: previousProfile, title: 'Skills Entries', type: ContentType.skills, keyList: keys)),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
-// /* editProfileContent - Body content for the edit profile page
-//       Input:
-//         context: BuildContext of the page
-//         prevProfile: Profile object of the previous profile
-//       Algorithm:
-//           * Create a SingleChildScrollView to allow for scrolling
-//           * Populate the SingleChildScrollView with a column of profile options
-//       Output:
-//         Returns a SingleChildScrollView with a column of profile options
-// */
-// SingleChildScrollView editProfileContent(BuildContext context, Profile prevProfile) {
-//   return SingleChildScrollView(
-//     child: Column(
-//       crossAxisAlignment: CrossAxisAlignment.center,
-//       mainAxisAlignment: MainAxisAlignment.start,
-//       children: [
-//         // Profile Name
-//         // ...ProfileEntry(context, profileNameTitle, prevProfile.nameCont, '', lines: 1),
-//         // // Education
-//         // ...ProfileEntry(context, educationTitle, prevProfile.eduCont, ''),
-//         // // Experience
-//         // ...ProfileEntry(context, experienceTitle, prevProfile.expCont, ''),
-//         // // Projects
-//         // ...ProfileEntry(context, projectsTitle, prevProfile.projCont, ''),
-//         // // Skills
-//         // ...ProfileEntry(context, skillsTitle, prevProfile.skillsCont, ''),
-//       ],
-//     ),
-//   );
-// }
-
-// /*  bottomAppBar - BottomAppBar for the edit profile page
-//       Input:
-//         context: BuildContext of the page
-//         prevProfile: Profile object of the previous profile
-//       Algorithm:
-//           * Create a row of buttons for the BottomAppBar
-//           * Modify the buttons based on the device type
-//       Output:
-//         Returns a BottomAppBar
-// */
-// BottomAppBar bottomAppBar(BuildContext context, Profile prevProfile) {
-//   return BottomAppBar(
-//     child: Row(
-//       crossAxisAlignment: CrossAxisAlignment.center,
-//       mainAxisAlignment: MainAxisAlignment.center,
-//       children: [
-//         if (isDesktop()) ...[
-//           ElevatedButton(
-//             onPressed: () {
-//               prevProfile.setOverwriteFiles();
-//               Navigator.of(context).pop();
-//             },
-//             child: Text(overwriteButton),
-//           ),
-//           SizedBox(width: standardSizedBoxWidth),
-//           ElevatedButton(
-//             onPressed: () => {},
-//             child: Text('Set As Primary'),
-//           ),
-//           SizedBox(width: standardSizedBoxWidth),
-//           ElevatedButton(
-//             onPressed: () {
-//               Navigator.of(context).pop();
-//             },
-//             child: Text('Cancel'),
-//           ),
-//         ] else if (isMobile()) ...[
-//           IconButton(
-//             onPressed: () {
-//               prevProfile.setOverwriteFiles();
-//               Navigator.of(context).pop();
-//             },
-//             icon: Icon(Icons.save),
-//           ),
-//           SizedBox(width: standardSizedBoxWidth),
-//           IconButton(
-//             onPressed: () => {},
-//             icon: Icon(Icons.check),
-//           ),
-//           SizedBox(width: standardSizedBoxWidth),
-//           IconButton(
-//             onPressed: () {
-//               Navigator.of(context).pop();
-//             },
-//             icon: Icon(Icons.cancel),
-//           ),
-//           SizedBox(width: standardSizedBoxWidth),
-//         ]
-//       ],
-//     ),
-//   );
-// }
+BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfile, List<GlobalKey> keyList, Function setState) {
+  TextEditingController nameController = TextEditingController(text: previousProfile.name);
+  return BottomAppBar(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          child: Text('Overwrite Profile'),
+          onPressed: () async {
+            await showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: Text(
+                    'Overwrite Profile',
+                    style: TextStyle(
+                      fontSize: appBarTitle,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  content: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Choose A Name For Your Profile',
+                        style: TextStyle(
+                          fontSize: secondaryTitles,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: standardSizedBoxHeight),
+                      TextFormField(
+                        controller: nameController,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: 1,
+                        decoration: InputDecoration(hintText: 'Enter name here...'),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          child: Text('Cancel'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                        SizedBox(width: standardSizedBoxWidth),
+                        ElevatedButton(
+                          child: Text('Overwrite Profile'),
+                          onPressed: () async {
+                            final masterDir = await getApplicationDocumentsDirectory();
+                            final currDir = Directory('${masterDir.path}/Profiles/${nameController.text}');
+                            if (currDir.existsSync()) {
+                              Navigator.of(context).pop();
+                              await showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return GenAlertDialogWithIcon(
+                                    "Profile ${nameController.text} Already Exists!",
+                                    "Please select a different name for this profile",
+                                    Icons.error,
+                                  );
+                                },
+                              );
+                              nameController.text = previousProfile.name;
+                            } else {
+                              try {
+                                await previousProfile.CreateProfile(nameController.text);
+                                Navigator.of(context).pop();
+                                Navigator.of(context).pop();
+                                setState(() {});
+                                await showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return GenAlertDialogWithIcon(
+                                      "Profile ${previousProfile.name}",
+                                      "Written Successfully",
+                                      Icons.check_circle_outline,
+                                    );
+                                  },
+                                );
+                              } catch (e) {
+                                throw ("Error occurred in overwriting ${nameController.text} profile");
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    )
+                  ],
+                );
+              },
+            );
+          },
+        ),
+      ],
+    ),
+  );
+}

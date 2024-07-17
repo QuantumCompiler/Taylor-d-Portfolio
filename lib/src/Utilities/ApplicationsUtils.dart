@@ -614,7 +614,7 @@ Future<void> cleanTempResume() async {
 }
 
 Future<void> CreateNewApplication(ApplicationContent content, List<TextEditingController> controllers) async {
-  Application newApp = new Application(
+  Application newApp = Application(
     applicationName: content.checkedJobs[0].toString(),
     profileName: content.checkedProfiles[0].toString(),
     controllers: controllers,

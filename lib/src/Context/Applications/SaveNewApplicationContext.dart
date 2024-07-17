@@ -31,7 +31,7 @@ AppBar appBar(BuildContext context, ApplicationContent content, Function state) 
       ),
     ],
     title: Text(
-      '${content.checkedJobs[0].toString()}',
+      content.checkedJobs[0].toString(),
       style: TextStyle(
         color: themeTextColor(context),
         fontSize: appBarTitle,

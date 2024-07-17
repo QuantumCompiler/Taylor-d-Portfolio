@@ -38,7 +38,7 @@ class Profile {
     required this.skillsContList,
   });
 
-  static Future<Profile> create({String name = '', required bool? newProfile}) async {
+  static Future<Profile> Init({String name = '', required bool? newProfile}) async {
     List<ProfileCLCont> coverLetterContList = [];
     List<ProfileEduCont> eduContList = [];
     List<ProfileExpCont> expContList = [];
@@ -72,39 +72,61 @@ class Profile {
 
   // Create Profile
   Future<void> CreateProfile(String profName) async {
-    if (newProfile == true) {
-      await setProfName(profName);
-      await setProfDir();
-      final masterDir = await getApplicationDocumentsDirectory();
-      final currDir = Directory('${masterDir.path}/Profiles/$name');
-      if (currDir.existsSync()) {
-        try {
-          await WriteProfile("Profiles/$name", "Profiles/$name");
-          if (kDebugMode) {
-            print('Files written successfully to ${currDir.path}');
-          }
-          final tempDir = Directory('${masterDir.path}/Temp');
-          if (tempDir.existsSync()) {
-            try {
-              List<FileSystemEntity> entities = tempDir.listSync();
-              for (FileSystemEntity entity in entities) {
-                if (entity is File) {
-                  await entity.delete();
-                } else if (entity is Directory) {
-                  await entity.delete(recursive: true);
-                }
+    String oldName = name;
+    await setProfName(profName); // This should correctly set the new profile name
+    final masterDir = await getApplicationDocumentsDirectory();
+    final currDir = Directory('${masterDir.path}/Profiles/$name');
+    if (oldName != name) {
+      final oldDir = Directory('${masterDir.path}/Profiles/$oldName');
+      if (await oldDir.exists()) {
+        await oldDir.rename(currDir.path);
+      } else {
+        print('Old directory $oldName does not exist.');
+      }
+    }
+    try {
+      if (newProfile == true) {
+        await WriteProfile("Profiles/$name", "Profiles/$name");
+        if (kDebugMode) {
+          print('Files written successfully to ${currDir.path}');
+        }
+        final tempDir = Directory('${masterDir.path}/Temp');
+        if (tempDir.existsSync()) {
+          try {
+            List<FileSystemEntity> entities = tempDir.listSync();
+            for (FileSystemEntity entity in entities) {
+              if (entity is File) {
+                await entity.delete();
+              } else if (entity is Directory) {
+                await entity.delete(recursive: true);
               }
-              if (kDebugMode) {
-                print('$tempDir cleaned successfully');
-              }
-            } catch (e) {
-              throw ("Error in cleaning $tempDir.");
             }
+            if (kDebugMode) {
+              print('$tempDir cleaned successfully');
+            }
+          } catch (e) {
+            throw ("Error in cleaning $tempDir: $e");
           }
-        } catch (e) {
-          throw ("Error in creating profile $e");
+        }
+      } else if (newProfile == false) {
+        List<FileSystemEntity> entities = currDir.listSync();
+        for (FileSystemEntity entity in entities) {
+          if (entity is File) {
+            await entity.delete();
+          } else if (entity is Directory) {
+            await entity.delete(recursive: true);
+          }
+        }
+        if (kDebugMode) {
+          print('$currDir cleaned successfully');
+        }
+        await WriteProfile("Profiles/$name", "Profiles/$name");
+        if (kDebugMode) {
+          print('Files written successfully to ${currDir.path}');
         }
       }
+    } catch (e) {
+      throw ('Error in processing profile: $e');
     }
   }
 

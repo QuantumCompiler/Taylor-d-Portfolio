@@ -6,7 +6,7 @@ AlertDialog GenAlertDialog(String title, String content) {
     title: Text(
       title,
       style: TextStyle(
-        fontSize: appBarTitle,
+        fontSize: secondaryTitles,
         fontWeight: FontWeight.bold,
       ),
       textAlign: TextAlign.center,
@@ -17,6 +17,32 @@ AlertDialog GenAlertDialog(String title, String content) {
         fontSize: secondaryTitles,
       ),
       textAlign: TextAlign.center,
+    ),
+  );
+}
+
+AlertDialog GenAlertDialogWithIcon(String title, String content, IconData? icon) {
+  return AlertDialog(
+    title: Text(
+      title,
+      style: TextStyle(
+        fontSize: appBarTitle,
+        fontWeight: FontWeight.bold,
+      ),
+      textAlign: TextAlign.center,
+    ),
+    content: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 100.0,
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Text(content),
+      ],
     ),
   );
 }

@@ -94,7 +94,7 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile newProfile
   );
 }
 
-BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile, List<GlobalKey> keyList) {
+BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile) {
   TextEditingController nameController = TextEditingController();
   return BottomAppBar(
     child: Row(
@@ -158,61 +158,28 @@ BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile, Li
                               await showDialog(
                                 context: context,
                                 builder: (context) {
-                                  return AlertDialog(
-                                    title: Text(
-                                      'Profile ${nameController.text} Already Exists!',
-                                      style: TextStyle(
-                                        fontSize: appBarTitle,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    content: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.error,
-                                          size: 100.0,
-                                        ),
-                                        SizedBox(height: standardSizedBoxHeight),
-                                        Text(
-                                          'Please select a different name for this profile.',
-                                          style: TextStyle(
-                                            fontSize: secondaryTitles,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
-                                    ),
+                                  return GenAlertDialogWithIcon(
+                                    "Profile ${nameController.text} Already Exists!",
+                                    "Please select a different name for this profile",
+                                    Icons.error,
                                   );
                                 },
                               );
+                              nameController.text = "";
                             } else {
                               try {
                                 await newProfile.CreateProfile(nameController.text);
                                 Navigator.of(context).pop();
                                 Navigator.of(context).pop();
                                 await showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: Text(
-                                        'Profile ${newProfile.name} Written Successfully',
-                                        style: TextStyle(
-                                          fontSize: secondaryTitles,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      content: Icon(
+                                    context: context,
+                                    builder: (context) {
+                                      return GenAlertDialogWithIcon(
+                                        'Profile ${newProfile.name}',
+                                        'Written Successfully',
                                         Icons.check_circle_outline,
-                                        size: 100.0,
-                                      ),
-                                    );
-                                  },
-                                );
+                                      );
+                                    });
                               } catch (e) {
                                 throw ('Error occurred in creating ${nameController.text} profile');
                               }
