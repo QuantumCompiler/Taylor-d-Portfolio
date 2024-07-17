@@ -16,12 +16,7 @@ class Profile {
   final bool? newProfile;
 
   // Files
-  late File covFile;
-  late File eduFile;
-  late File expFile;
-  late File projFile;
-  late File profFile;
-  late File skiFile;
+  late File proFile;
 
   // Strings
   late String name;
@@ -43,19 +38,25 @@ class Profile {
     required this.skillsContList,
   });
 
-  static Future<Profile> create({String name = '', required bool newProfile}) async {
+  static Future<Profile> create({String name = '', required bool? newProfile}) async {
     List<ProfileCLCont> coverLetterContList = [];
     List<ProfileEduCont> eduContList = [];
     List<ProfileExpCont> expContList = [];
     List<ProfileProjCont> projContList = [];
     List<ProfileSkillsCont> skillsContList = [];
 
-    if (newProfile) {
+    if (newProfile == true) {
       coverLetterContList = await LoadCLCont('Temp/');
       eduContList = await LoadEduCont('Temp/');
       expContList = await LoadExpCont('Temp/');
       projContList = await LoadProjectsCont('Temp/');
       skillsContList = await LoadSkillsCont('Temp/');
+    } else if (newProfile == false) {
+      coverLetterContList = await LoadCLCont('Profiles/$name/');
+      eduContList = await LoadEduCont('Profiles/$name/');
+      expContList = await LoadExpCont('Profiles/$name/');
+      projContList = await LoadProjectsCont('Profiles/$name/');
+      skillsContList = await LoadSkillsCont('Profiles/$name/');
     }
 
     return Profile._(
@@ -69,38 +70,49 @@ class Profile {
     );
   }
 
-  Future<void> CreateEduContJSON() async {
-    await WriteContentToJSON('Temp/', 'EduCont.json', eduContList);
-    await ReadEduContentFromJSON('Temp/');
-  }
-
-  Future<void> CreateExpContJSON() async {
-    await WriteContentToJSON('Temp/', 'ExpCont.json', expContList);
-    await ReadExpContentFromJSON('Temp/');
-  }
-
-  Future<void> CreateProjContJSON() async {
-    await WriteContentToJSON('Temp/', 'ProjCont.json', projContList);
-    await ReadProjContentFromJSON('Temp/');
-  }
-
-  Future<void> CreateSkillsContJSON() async {
-    await WriteContentToJSON('Temp/', 'SkillsCont.json', skillsContList);
-    await ReadSkillsContentFromJSON('Temp/');
-  }
-
-  // Create New Profile
-  Future<void> CreateNewProfile(String profName) async {
-    setProfName(profName);
-    setProfDir();
-    // setWriteNewFiles();
+  // Create Profile
+  Future<void> CreateProfile(String profName) async {
+    if (newProfile == true) {
+      await setProfName(profName);
+      await setProfDir();
+      final masterDir = await getApplicationDocumentsDirectory();
+      final currDir = Directory('${masterDir.path}/Profiles/$name');
+      if (currDir.existsSync()) {
+        try {
+          await WriteProfile("Profiles/$name", "Profiles/$name");
+          if (kDebugMode) {
+            print('Files written successfully to ${currDir.path}');
+          }
+          final tempDir = Directory('${masterDir.path}/Temp');
+          if (tempDir.existsSync()) {
+            try {
+              List<FileSystemEntity> entities = tempDir.listSync();
+              for (FileSystemEntity entity in entities) {
+                if (entity is File) {
+                  await entity.delete();
+                } else if (entity is Directory) {
+                  await entity.delete(recursive: true);
+                }
+              }
+              if (kDebugMode) {
+                print('$tempDir cleaned successfully');
+              }
+            } catch (e) {
+              throw ("Error in cleaning $tempDir.");
+            }
+          }
+        } catch (e) {
+          throw ("Error in creating profile $e");
+        }
+      }
+    }
   }
 
   // Load Cover Letter Contents
   static Future<List<ProfileCLCont>> LoadCLCont(String subDir) async {
     try {
       final masterDir = await getApplicationDocumentsDirectory();
-      final jsonFile = File('${masterDir.path}/$subDir/CLCont.json');
+      final jsonFile = File('${masterDir.path}/$subDir/$coverLetterJSONFile');
       final fileExists = await jsonFile.exists();
       if (fileExists) {
         final jsonString = await jsonFile.readAsString();
@@ -118,7 +130,7 @@ class Profile {
   static Future<List<ProfileEduCont>> LoadEduCont(String subDir) async {
     try {
       final masterDir = await getApplicationDocumentsDirectory();
-      final jsonFile = File('${masterDir.path}/$subDir/EduCont.json');
+      final jsonFile = File('${masterDir.path}/$subDir/$educationJSONFile');
       final fileExists = await jsonFile.exists();
       if (fileExists) {
         final jsonString = await jsonFile.readAsString();
@@ -136,7 +148,7 @@ class Profile {
   static Future<List<ProfileExpCont>> LoadExpCont(String subDir) async {
     try {
       final masterDir = await getApplicationDocumentsDirectory();
-      final jsonFile = File('${masterDir.path}/$subDir/ExpCont.json');
+      final jsonFile = File('${masterDir.path}/$subDir/$experienceJSONFile');
       final fileExists = await jsonFile.exists();
       if (fileExists) {
         final jsonString = await jsonFile.readAsString();
@@ -154,7 +166,7 @@ class Profile {
   static Future<List<ProfileProjCont>> LoadProjectsCont(String subDir) async {
     try {
       final masterDir = await getApplicationDocumentsDirectory();
-      final jsonFile = File('${masterDir.path}/$subDir/ProjCont.json');
+      final jsonFile = File('${masterDir.path}/$subDir/$projectsJSONFile');
       final fileExists = await jsonFile.exists();
       if (fileExists) {
         final jsonString = await jsonFile.readAsString();
@@ -172,7 +184,7 @@ class Profile {
   static Future<List<ProfileSkillsCont>> LoadSkillsCont(String subDir) async {
     try {
       final masterDir = await getApplicationDocumentsDirectory();
-      final jsonFile = File('${masterDir.path}/$subDir/SkillsCont.json');
+      final jsonFile = File('${masterDir.path}/$subDir/$skillsJSONFile');
       final fileExists = await jsonFile.exists();
       if (fileExists) {
         final jsonString = await jsonFile.readAsString();
@@ -223,44 +235,143 @@ class Profile {
     CreateDir(parentDir, name);
   }
 
-  // Finish Implementation Here!!!!
-  Future<void> WriteNewCLCont(String jsonDir) async {
-    await WriteContentToJSON(jsonDir, 'CLCont.json', coverLetterContList);
-    try {
-      final masterDir = await getApplicationDocumentsDirectory();
-      final profilesDir = Directory('${masterDir.path}/Profiles');
-      final currDir = Directory('${profilesDir.path}/$name');
-      if (!currDir.existsSync()) {
-        currDir.create();
+  Future<String> StringifyCLCont(String subDir) async {
+    String ret = '';
+    final masterDir = await getApplicationDocumentsDirectory();
+    final File jsonFile = File('${masterDir.path}/$subDir/$coverLetterJSONFile');
+    if (!jsonFile.existsSync()) {
+      if (kDebugMode) {
+        print('$jsonFile does not exist.');
       }
-      final file = File('${masterDir.path}/$jsonDir/CLCont.json');
-      if (await file.exists()) {
-        covFile = File('${masterDir.path}/Profiles/$name/$coverLetterFile');
-        if (covFile.existsSync()) {
-          covFile.deleteSync();
-        }
-        String jsonString = file.readAsStringSync();
+    } else {
+      try {
+        String jsonString = jsonFile.readAsStringSync();
         List<dynamic> jsonData = jsonDecode(jsonString);
-        String content = '';
         for (int i = 0; i < jsonData.length; i++) {
-          content += jsonData[i]['about'];
+          ret += "About Applicant:\n\n${jsonData[i]['about']}\n";
         }
-        await WriteFile(currDir, covFile, content);
+      } catch (e) {
+        throw ('Error occurred $e');
       }
-    } catch (e) {
-      throw ('Error occurred: $e');
     }
+    return ret;
   }
 
+  Future<String> StringifyEduCont(String subDir) async {
+    String ret = '';
+    final masterDir = await getApplicationDocumentsDirectory();
+    final File jsonFile = File('${masterDir.path}/$subDir/$educationJSONFile');
+    if (!jsonFile.existsSync()) {
+      if (kDebugMode) {
+        print('$jsonFile does not exist');
+      }
+    } else {
+      try {
+        String jsonString = jsonFile.readAsStringSync();
+        List<dynamic> jsonData = jsonDecode(jsonString);
+        for (int i = 0; i < jsonData.length; i++) {
+          if (i == 0) {
+            ret += "\nEducation Information:\n";
+          }
+          ret += "\nEducation Institution ${i + 1}:\n\nSchool Name: ${jsonData[i]['name']}\n\nDegree(s): ${jsonData[i]['degree']}\n\nDescription: ${jsonData[i]['description']}\n";
+        }
+      } catch (e) {
+        throw ("Error occurred $e");
+      }
+    }
+    return ret;
+  }
+
+  Future<String> StringifyExpCont(String subDir) async {
+    String ret = '';
+    final masterDir = await getApplicationDocumentsDirectory();
+    final File jsonFile = File('${masterDir.path}/$subDir/$experienceJSONFile');
+    if (!jsonFile.existsSync()) {
+      if (kDebugMode) {
+        print('$jsonFile does not exist');
+      }
+    } else {
+      try {
+        String jsonString = jsonFile.readAsStringSync();
+        List<dynamic> jsonData = jsonDecode(jsonString);
+        for (int i = 0; i < jsonData.length; i++) {
+          if (i == 0) {
+            ret += "\nExperience Information:\n";
+          }
+          ret += "\nExperience Institution ${i + 1}:\n\nCompany Name: ${jsonData[i]['name']}\n\nPosition(s): ${jsonData[i]['position']}\n\nDescription: ${jsonData[i]['description']}\n";
+        }
+      } catch (e) {
+        throw ("Error occurred $e");
+      }
+    }
+    return ret;
+  }
+
+  Future<String> StringifyProjCont(String subDir) async {
+    String ret = '';
+    final masterDir = await getApplicationDocumentsDirectory();
+    final File jsonFile = File('${masterDir.path}/$subDir/$projectsJSONFile');
+    if (!jsonFile.existsSync()) {
+      if (kDebugMode) {
+        print('$jsonFile does not exist.');
+      }
+    } else {
+      try {
+        String jsonString = jsonFile.readAsStringSync();
+        List<dynamic> jsonData = jsonDecode(jsonString);
+        for (int i = 0; i < jsonData.length; i++) {
+          if (i == 0) {
+            ret += "\nProject Information:\n";
+          }
+          ret += "\nProject ${i + 1}:\n\nProject Name: ${jsonData[i]['name']}\n\nRole(s): ${jsonData[i]['role']}\n\nDescription: ${jsonData[i]['description']}\n";
+        }
+      } catch (e) {
+        throw ("Error occurred $e");
+      }
+    }
+    return ret;
+  }
+
+  Future<String> StringifySkillsCont(String subDir) async {
+    String ret = '';
+    final masterDir = await getApplicationDocumentsDirectory();
+    final File jsonFile = File('${masterDir.path}/$subDir/$skillsJSONFile');
+    if (!jsonFile.existsSync()) {
+      if (kDebugMode) {
+        print('$jsonFile does not exist');
+      }
+    } else {
+      try {
+        String jsonString = jsonFile.readAsStringSync();
+        List<dynamic> jsonData = jsonDecode(jsonString);
+        for (int i = 0; i < jsonData.length; i++) {
+          if (i == 0) {
+            ret += "\nSkills Information:\n";
+          }
+          ret += "\nSkill Category ${i + 1}:\n\nSkill Name: ${jsonData[0]['name']}\n\nDescription: ${jsonData[i]['description']}\n";
+        }
+      } catch (e) {
+        throw ("Error occurred $e");
+      }
+    }
+    return ret;
+  }
+
+  // Write Profile
   Future<void> WriteProfile(String jsonDir, String destDir) async {
     final masterDir = await getApplicationDocumentsDirectory();
-    final File file = File('${masterDir.path}/$destDir/Profile.json');
-    final File covFile = File('${masterDir.path}/$jsonDir/CLCont.json');
-    final File eduFile = File('${masterDir.path}/$jsonDir/EduCont.json');
-    final File expFile = File('${masterDir.path}/$jsonDir/ExpCont.json');
-    final File proFile = File('${masterDir.path}/$jsonDir/ProjCont.json');
-    final File skiFile = File('${masterDir.path}/$jsonDir/SkillsCont.json');
+    await WriteContentToJSON(jsonDir, coverLetterJSONFile, coverLetterContList);
+    await WriteContentToJSON(jsonDir, educationJSONFile, eduContList);
+    await WriteContentToJSON(jsonDir, experienceJSONFile, expContList);
+    await WriteContentToJSON(jsonDir, projectsJSONFile, projContList);
+    await WriteContentToJSON(jsonDir, skillsJSONFile, skillsContList);
+    final File covFile = File('${masterDir.path}/$jsonDir/$coverLetterJSONFile');
+    final File eduFile = File('${masterDir.path}/$jsonDir/$educationJSONFile');
+    final File expFile = File('${masterDir.path}/$jsonDir/$experienceJSONFile');
+    final File proFile = File('${masterDir.path}/$jsonDir/$projectsJSONFile');
+    final File skiFile = File('${masterDir.path}/$jsonDir/$skillsJSONFile');
     if (covFile.existsSync() && eduFile.existsSync() && expFile.existsSync() && proFile.existsSync() && skiFile.existsSync()) {
+      final File profileFile = File('${masterDir.path}/$destDir/$finalProfileJSONFile');
       final List<dynamic> covData = jsonDecode(await covFile.readAsString());
       final List<dynamic> eduData = jsonDecode(await eduFile.readAsString());
       final List<dynamic> expData = jsonDecode(await expFile.readAsString());
@@ -276,7 +387,20 @@ class Profile {
       };
       try {
         final String jsonString = jsonEncode(combinedJSON);
-        await file.writeAsString(jsonString);
+        await profileFile.writeAsString(jsonString);
+        String clCont = await StringifyCLCont(jsonDir);
+        String eduCont = await StringifyEduCont(jsonDir);
+        String expCont = await StringifyExpCont(jsonDir);
+        String proCont = await StringifyProjCont(jsonDir);
+        String skillsCont = await StringifySkillsCont(jsonDir);
+        String finalRet = clCont + eduCont + expCont + proCont + skillsCont;
+        try {
+          Directory finalDir = Directory('${masterDir.path}/$destDir');
+          final proFile = File('${finalDir.path}/$finalProfileTextFile');
+          await WriteFile(finalDir, proFile, finalRet);
+        } catch (e) {
+          throw ('Error occurred in creating string for final profile: $e');
+        }
       } catch (e) {
         throw ('Error ocurred in writing profile file: $e');
       }
@@ -284,81 +408,6 @@ class Profile {
       if (kDebugMode) {
         print('Necessary files do not exist to write profile file.');
       }
-    }
-  }
-
-  // Read Education Content From JSON
-  Future<void> ReadEduContentFromJSON(String subDir) async {
-    final masterDir = await getApplicationDocumentsDirectory();
-    final file = File('${masterDir.path}/$subDir/EduCont.json');
-    if (!file.existsSync()) {
-      print('Education content json file does not exist.');
-      return;
-    }
-    String jsonString = file.readAsStringSync();
-    List<dynamic> jsonData = jsonDecode(jsonString);
-    for (int i = 0; i < jsonData.length; i++) {
-      print(jsonData[i]['name']);
-      print(jsonData[i]['degree']);
-      print(jsonData[i]['description']);
-      print(jsonData[i]['start']);
-      print(jsonData[i]['end']);
-      print(jsonData[i]['graduated']);
-    }
-  }
-
-  // Read Experience Content From JSON
-  Future<void> ReadExpContentFromJSON(String subDir) async {
-    final masterDir = await getApplicationDocumentsDirectory();
-    final file = File('${masterDir.path}/$subDir/ExpCont.json');
-    if (!file.existsSync()) {
-      print('Experience content json file does not exist.');
-      return;
-    }
-    String jsonString = file.readAsStringSync();
-    List<dynamic> jsonData = jsonDecode(jsonString);
-    for (int i = 0; i < jsonData.length; i++) {
-      print(jsonData[i]['name']);
-      print(jsonData[i]['position']);
-      print(jsonData[i]['description']);
-      print(jsonData[i]['start']);
-      print(jsonData[i]['end']);
-      print(jsonData[i]['working']);
-    }
-  }
-
-  // Read Projects Content From JSON
-  Future<void> ReadProjContentFromJSON(String subDir) async {
-    final masterDir = await getApplicationDocumentsDirectory();
-    final file = File('${masterDir.path}/$subDir/ProjCont.json');
-    if (!file.existsSync()) {
-      print('Projects content json file does not exist.');
-      return;
-    }
-    String jsonString = file.readAsStringSync();
-    List<dynamic> jsonData = jsonDecode(jsonString);
-    for (int i = 0; i < jsonData.length; i++) {
-      print(jsonData[i]['projName']);
-      print(jsonData[i]['roleName']);
-      print(jsonData[i]['description']);
-      print(jsonData[i]['completed']);
-      print(jsonData[i]['date']);
-    }
-  }
-
-  // Read Projects Content From JSON
-  Future<void> ReadSkillsContentFromJSON(String subDir) async {
-    final masterDir = await getApplicationDocumentsDirectory();
-    final file = File('${masterDir.path}/$subDir/SkillsCont.json');
-    if (!file.existsSync()) {
-      print('Skills content json file does not exist.');
-      return;
-    }
-    String jsonString = file.readAsStringSync();
-    List<dynamic> jsonData = jsonDecode(jsonString);
-    for (int i = 0; i < jsonData.length; i++) {
-      print(jsonData[i]['skillCategory']);
-      print(jsonData[i]['description']);
     }
   }
 
@@ -753,7 +802,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                 keyboardType: TextInputType.multiline,
                 maxLines: 1,
                 decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter degree(s) information for ${entry.name.text} here..." : "Enter degree(s) information here...",
+                  hintText: entry.name.text.isNotEmpty ? "Enter degree(s) information for ${entry.name.text} here..." : "Enter degree(s) information for Institution ${index + 1} here...",
                 ),
                 onChanged: (value) async {
                   await widget.profile.setEduCont(entries);
@@ -765,7 +814,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                 keyboardType: TextInputType.multiline,
                 maxLines: 10,
                 decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description here...",
+                  hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Institution ${index + 1} here...",
                 ),
                 onChanged: (value) async {
                   await widget.profile.setEduCont(entries);
@@ -1038,7 +1087,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                 keyboardType: TextInputType.multiline,
                 maxLines: 1,
                 decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter position info for ${entry.name.text} here..." : "Enter position info here...",
+                  hintText: entry.name.text.isNotEmpty ? "Enter position info for ${entry.name.text} here..." : "Enter position info for Work Experience ${index + 1} here...",
                 ),
                 onChanged: (value) async {
                   await widget.profile.setExpCont(entries);
@@ -1050,7 +1099,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                 keyboardType: TextInputType.multiline,
                 maxLines: 10,
                 decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description here...",
+                  hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Work Experience ${index + 1} here...",
                 ),
                 onChanged: (value) async {
                   await widget.profile.setExpCont(entries);
@@ -1103,35 +1152,43 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
 //  Projects Profile Content
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 class ProfileProjCont {
-  late TextEditingController projName;
-  late TextEditingController roleName;
+  late TextEditingController name;
+  late TextEditingController role;
   late TextEditingController description;
-  DateTime? date;
+  DateTime? start;
+  DateTime? end;
   late bool completed;
+  late bool include;
 
   ProfileProjCont() {
-    projName = TextEditingController();
-    roleName = TextEditingController();
+    name = TextEditingController();
+    role = TextEditingController();
     description = TextEditingController();
-    date = DateTime.now();
+    start = DateTime.now();
+    end = DateTime.now();
     completed = false;
+    include = false;
   }
 
   ProfileProjCont.fromJSON(Map<String, dynamic> json) {
-    projName = TextEditingController(text: json['projName'] ?? '');
-    roleName = TextEditingController(text: json['roleName'] ?? '');
+    name = TextEditingController(text: json['name'] ?? '');
+    role = TextEditingController(text: json['role'] ?? '');
     description = TextEditingController(text: json['description'] ?? '');
-    date = json['date'] != null ? DateTime.parse(json['date']) : null;
+    start = json['start'] != null ? DateTime.parse(json['start']) : null;
+    start = json['end'] != null ? DateTime.parse(json['end']) : null;
     completed = json['completed'] ?? false;
+    include = json['include'] ?? false;
   }
 
   Map<String, dynamic> toJSON() {
     return {
-      'projName': projName.text,
-      'roleName': roleName.text,
+      'name': name.text,
+      'role': role.text,
       'description': description.text,
-      'date': date?.toIso8601String().split('T')[0],
+      'start': start?.toIso8601String().split('T')[0],
+      'end': end?.toIso8601String().split('T')[0],
       'completed': completed,
+      'include': include,
     };
   }
 }
@@ -1177,11 +1234,13 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
 
   void clearEntry(int index) async {
     setState(() {
-      entries[index].projName.text = '';
-      entries[index].roleName.text = '';
+      entries[index].name.text = '';
+      entries[index].role.text = '';
       entries[index].description.text = '';
-      entries[index].date = DateTime.now();
+      entries[index].start = DateTime.now();
+      entries[index].end = DateTime.now();
       entries[index].completed = false;
+      entries[index].include = false;
     });
     await widget.profile.setProjCont(entries);
   }
@@ -1230,7 +1289,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
         SizedBox(height: standardSizedBoxHeight),
         Center(
           child: Text(
-            'Project - ${index + 1}',
+            entry.name.text.isNotEmpty ? entry.name.text : "Project ${index + 1}",
             style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
           ),
         ),
@@ -1247,35 +1306,60 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                 children: <Widget>[
                   Expanded(
                     child: TextFormField(
-                      controller: entry.projName,
+                      controller: entry.name,
                       keyboardType: TextInputType.multiline,
                       maxLines: 1,
                       decoration: InputDecoration(hintText: 'Enter project name here...'),
                       onChanged: (value) async {
+                        setState(() {});
                         await widget.profile.setProjCont(entries);
                       },
                     ),
                   ),
                   SizedBox(width: standardSizedBoxWidth),
                   Tooltip(
-                    message: 'Completed project ${index + 1}?',
+                    message: entry.name.text.isNotEmpty ? "Completed ${entry.name.text}?" : "Completed Project ${index + 1}?",
                     child: Checkbox(
                       value: entry.completed,
                       onChanged: (bool? value) async {
-                        await widget.profile.setProjCont(entries);
                         setState(() {
                           entry.completed = value ?? false;
                         });
+                        await widget.profile.setProjCont(entries);
                       },
                     ),
                   ),
                   SizedBox(width: standardSizedBoxWidth),
                   Tooltip(
-                    message: 'Select Date For Project ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Project ${index + 1} In Portfolio?",
+                    child: Checkbox(
+                      value: entry.include,
+                      onChanged: (bool? value) async {
+                        setState(() {
+                          entry.include = value ?? false;
+                        });
+                        await widget.profile.setProjCont(entries);
+                      },
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Project ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        entry.date = await SelectDate(context);
+                        entry.start = await SelectDate(context);
+                        await widget.profile.setProjCont(entries);
+                      },
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Project ${index + 1}",
+                    child: IconButton(
+                      icon: Icon(Icons.date_range),
+                      onPressed: () async {
+                        entry.end = await SelectDate(context);
                         await widget.profile.setProjCont(entries);
                       },
                     ),
@@ -1284,10 +1368,12 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
               ),
               SizedBox(height: standardSizedBoxHeight),
               TextFormField(
-                controller: entry.roleName,
+                controller: entry.role,
                 keyboardType: TextInputType.multiline,
                 maxLines: 1,
-                decoration: InputDecoration(hintText: 'Enter role info here...'),
+                decoration: InputDecoration(
+                  hintText: entry.name.text.isNotEmpty ? "Enter role info for ${entry.name.text} here..." : "Enter role info for Project ${index + 1} here...",
+                ),
                 onChanged: (value) async {
                   await widget.profile.setProjCont(entries);
                 },
@@ -1297,7 +1383,9 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
                 maxLines: 10,
-                decoration: InputDecoration(hintText: 'Enter description here...'),
+                decoration: InputDecoration(
+                  hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Project ${index + 1} here...",
+                ),
                 onChanged: (value) async {
                   await widget.profile.setProjCont(entries);
                 },
@@ -1308,7 +1396,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Tooltip(
-                    message: 'Add Entry After Project ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Project ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.add),
                       onPressed: () async {
@@ -1317,7 +1405,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                     ),
                   ),
                   Tooltip(
-                    message: 'Clear Entries For Project ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Project ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.clear),
                       onPressed: () async {
@@ -1325,15 +1413,16 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                       },
                     ),
                   ),
-                  Tooltip(
-                    message: 'Delete Entry For Project ${index + 1}',
-                    child: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () async {
-                        deleteEntry(index);
-                      },
+                  if (entries.length > 1)
+                    Tooltip(
+                      message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Project ${index + 1}",
+                      child: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () async {
+                          deleteEntry(index);
+                        },
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -1348,23 +1437,27 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
 //  Skills Profile Content
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 class ProfileSkillsCont {
-  late TextEditingController skillCategory;
+  late TextEditingController name;
   late TextEditingController description;
+  late bool include;
 
   ProfileSkillsCont() {
-    skillCategory = TextEditingController();
+    name = TextEditingController();
     description = TextEditingController();
+    include = false;
   }
 
   ProfileSkillsCont.fromJSON(Map<String, dynamic> json) {
-    skillCategory = TextEditingController(text: json['skillCategory'] ?? '');
+    name = TextEditingController(text: json['name'] ?? '');
     description = TextEditingController(text: json['description'] ?? '');
+    include = json['include'] ?? false;
   }
 
   Map<String, dynamic> toJSON() {
     return {
-      'skillCategory': skillCategory.text,
+      'name': name.text,
       'description': description.text,
+      'include': include,
     };
   }
 }
@@ -1410,8 +1503,9 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
 
   void clearEntry(int index) async {
     setState(() {
-      entries[index].skillCategory.text = '';
+      entries[index].name.text = '';
       entries[index].description.text = '';
+      entries[index].include = false;
     });
     await widget.profile.setSkillsCont(entries);
   }
@@ -1460,7 +1554,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
         SizedBox(height: standardSizedBoxHeight),
         Center(
           child: Text(
-            'Skill Category - ${index + 1}',
+            entry.name.text.isNotEmpty ? entry.name.text : "Skill Category ${index + 1}",
             style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
           ),
         ),
@@ -1477,11 +1571,25 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                 children: <Widget>[
                   Expanded(
                     child: TextFormField(
-                      controller: entry.skillCategory,
+                      controller: entry.name,
                       keyboardType: TextInputType.multiline,
                       maxLines: 1,
-                      decoration: InputDecoration(hintText: 'Enter skill category here...'),
+                      decoration: InputDecoration(hintText: 'Enter skill name here...'),
                       onChanged: (value) async {
+                        setState(() {});
+                        await widget.profile.setSkillsCont(entries);
+                      },
+                    ),
+                  ),
+                  SizedBox(width: standardSizedBoxWidth),
+                  Tooltip(
+                    message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Skill Category ${index + 1}",
+                    child: Checkbox(
+                      value: entry.include,
+                      onChanged: (bool? value) async {
+                        setState(() {
+                          entry.include = value ?? false;
+                        });
                         await widget.profile.setSkillsCont(entries);
                       },
                     ),
@@ -1493,7 +1601,9 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
                 maxLines: 10,
-                decoration: InputDecoration(hintText: 'Enter skills here...'),
+                decoration: InputDecoration(
+                  hintText: entry.name.text.isNotEmpty ? "Enter skills info for ${entry.name.text} here..." : "Enter skills info for Skill Category ${index + 1} here...",
+                ),
                 onChanged: (value) async {
                   await widget.profile.setSkillsCont(entries);
                 },
@@ -1504,7 +1614,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Tooltip(
-                    message: 'Add Entry Skill Category ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Skill Category ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.add),
                       onPressed: () {
@@ -1513,7 +1623,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                     ),
                   ),
                   Tooltip(
-                    message: 'Clear Entries For Skill Category ${index + 1}',
+                    message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Skill Category ${index + 1}",
                     child: IconButton(
                       icon: Icon(Icons.clear),
                       onPressed: () {
@@ -1521,15 +1631,16 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                       },
                     ),
                   ),
-                  Tooltip(
-                    message: 'Delete Entry Skill Category ${index + 1}',
-                    child: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () {
-                        deleteEntry(index);
-                      },
+                  if (entries.length > 1)
+                    Tooltip(
+                      message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Skill Category ${index + 1}",
+                      child: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () {
+                          deleteEntry(index);
+                        },
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],

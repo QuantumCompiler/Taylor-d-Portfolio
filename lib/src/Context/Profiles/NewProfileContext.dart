@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Globals/Globals.dart';
 import '../../Profiles/ContentProfile.dart';
@@ -93,6 +95,7 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile newProfile
 }
 
 BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile, List<GlobalKey> keyList) {
+  TextEditingController nameController = TextEditingController();
   return BottomAppBar(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -101,7 +104,127 @@ BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile, Li
         ElevatedButton(
           child: Text('Save Profile'),
           onPressed: () async {
-            await newProfile.WriteProfile('Temp', 'Temp');
+            await showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: Text(
+                    'Save New Profile',
+                    style: TextStyle(
+                      fontSize: appBarTitle,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  content: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Choose A Name For Your New Profile',
+                        style: TextStyle(
+                          fontSize: secondaryTitles,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      TextFormField(
+                        controller: nameController,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: 1,
+                        decoration: InputDecoration(hintText: 'Enter name here...'),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          child: Text('Cancel'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                        SizedBox(width: standardSizedBoxWidth),
+                        ElevatedButton(
+                          child: Text('Save Profile'),
+                          onPressed: () async {
+                            final masterDir = await getApplicationDocumentsDirectory();
+                            final currDir = Directory('${masterDir.path}/Profiles/${nameController.text}');
+                            if (currDir.existsSync()) {
+                              Navigator.of(context).pop();
+                              await showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    title: Text(
+                                      'Profile ${nameController.text} Already Exists!',
+                                      style: TextStyle(
+                                        fontSize: appBarTitle,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    content: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.error,
+                                          size: 100.0,
+                                        ),
+                                        SizedBox(height: standardSizedBoxHeight),
+                                        Text(
+                                          'Please select a different name for this profile.',
+                                          style: TextStyle(
+                                            fontSize: secondaryTitles,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            } else {
+                              try {
+                                await newProfile.CreateProfile(nameController.text);
+                                Navigator.of(context).pop();
+                                Navigator.of(context).pop();
+                                await showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: Text(
+                                        'Profile ${newProfile.name} Written Successfully',
+                                        style: TextStyle(
+                                          fontSize: secondaryTitles,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      content: Icon(
+                                        Icons.check_circle_outline,
+                                        size: 100.0,
+                                      ),
+                                    );
+                                  },
+                                );
+                              } catch (e) {
+                                throw ('Error occurred in creating ${nameController.text} profile');
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            );
           },
         ),
       ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../Utilities/ProfilesUtils.dart';
 import '../../Globals/Globals.dart';
+import '../../Globals/ProfilesGlobals.dart';
 
 class ProfileContentEntry extends StatefulWidget {
   final Profile profile;
@@ -50,7 +51,6 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
   } else {
     buttonText = 'Save Content';
   }
-  profile.name = 'Test 1';
   return BottomAppBar(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -60,15 +60,25 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
           child: Text(buttonText),
           onPressed: () async {
             if (type == ContentType.coverLetter) {
-              await profile.WriteNewCLCont('Temp');
+              if (profile.newProfile == true) {
+                await profile.WriteContentToJSON('Temp/', coverLetterJSONFile, profile.coverLetterContList);
+              }
             } else if (type == ContentType.education) {
-              await profile.CreateEduContJSON();
+              if (profile.newProfile == true) {
+                await profile.WriteContentToJSON('Temp/', educationJSONFile, profile.eduContList);
+              }
             } else if (type == ContentType.experience) {
-              await profile.CreateExpContJSON();
+              if (profile.newProfile == true) {
+                await profile.WriteContentToJSON('Temp/', experienceJSONFile, profile.expContList);
+              }
             } else if (type == ContentType.projects) {
-              await profile.CreateProjContJSON();
+              if (profile.newProfile == true) {
+                await profile.WriteContentToJSON('Temp/', projectsJSONFile, profile.projContList);
+              }
             } else if (type == ContentType.skills) {
-              await profile.CreateSkillsContJSON();
+              if (profile.newProfile == true) {
+                await profile.WriteContentToJSON('Temp/', skillsJSONFile, profile.skillsContList);
+              }
             }
           },
         ),

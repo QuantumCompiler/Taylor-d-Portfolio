@@ -405,10 +405,10 @@ Future<List<File>> getProfileFiles(String name) async {
   List<File> files = [];
   final profsDir = await GetProfilesDir();
   final currProf = Directory('${profsDir.path}/$name');
-  File eduFile = File('${currProf.path}/$educationFile');
-  File expFile = File('${currProf.path}/$experienceFile');
-  File projFile = File('${currProf.path}/$projectsFile');
-  File skiFile = File('${currProf.path}/$skillsFile');
+  File eduFile = File('${currProf.path}/$educationTextFile');
+  File expFile = File('${currProf.path}/$experienceTextFile');
+  File projFile = File('${currProf.path}/$projectsTextFile');
+  File skiFile = File('${currProf.path}/$skillsTextFile');
   files.add(eduFile);
   files.add(expFile);
   files.add(projFile);
