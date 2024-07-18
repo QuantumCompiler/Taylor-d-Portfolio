@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:taylord_portfolio/src/Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 
 AlertDialog GenAlertDialog(String title, String content) {
@@ -125,15 +126,7 @@ AppBar GenAppBarWithDashboard(BuildContext context, String title, int backPop) {
       IconButton(
         icon: Icon(Icons.dashboard),
         onPressed: () {
-          if (isDesktop()) {
-            for (int i = 0; i < backPop; i++) {
-              Navigator.of(context).pop();
-            }
-          } else if (isMobile()) {
-            for (int i = 0; i < backPop - 1; i++) {
-              Navigator.of(context).pop();
-            }
-          }
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Dashboard()), (Route<dynamic> route) => false);
         },
       ),
     ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../Context/Globals/GlobalContext.dart';
 import '../Context/Profiles/LoadProfilesContext.dart';
+import '../Dashboard/Dashboard.dart';
+import '../Profiles/Profiles.dart';
 import '../Utilities/GlobalUtils.dart';
 import '../Utilities/ProfilesUtils.dart';
 
@@ -23,7 +24,26 @@ class LoadProfilePageState extends State<LoadProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: GenAppBarWithDashboard(context, "Load Previous Profiles", 3),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new),
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => ProfilePage()), (Route<dynamic> route) => false);
+          },
+        ),
+        actions: [
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.dashboard),
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Dashboard()), (Route<dynamic> route) => false);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
       body: FutureBuilder<List<Profile>>(
         future: profiles,
         builder: (context, AsyncSnapshot<List<Profile>> snapshot) {
