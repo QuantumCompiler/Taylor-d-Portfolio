@@ -62,22 +62,32 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
             if (type == ContentType.coverLetter) {
               if (profile.newProfile == true) {
                 await profile.WriteContentToJSON('Temp/', coverLetterJSONFile, profile.coverLetterContList);
+              } else if (profile.newProfile == false) {
+                await profile.WriteContentToJSON('Profiles/${profile.name}', coverLetterJSONFile, profile.coverLetterContList);
               }
             } else if (type == ContentType.education) {
               if (profile.newProfile == true) {
                 await profile.WriteContentToJSON('Temp/', educationJSONFile, profile.eduContList);
+              } else if (profile.newProfile == false) {
+                await profile.WriteContentToJSON('Profiles/${profile.name}', educationJSONFile, profile.eduContList);
               }
             } else if (type == ContentType.experience) {
               if (profile.newProfile == true) {
                 await profile.WriteContentToJSON('Temp/', experienceJSONFile, profile.expContList);
+              } else if (profile.newProfile == false) {
+                await profile.WriteContentToJSON('Profiles/${profile.name}', experienceJSONFile, profile.expContList);
               }
             } else if (type == ContentType.projects) {
               if (profile.newProfile == true) {
                 await profile.WriteContentToJSON('Temp/', projectsJSONFile, profile.projContList);
+              } else if (profile.newProfile == false) {
+                await profile.WriteContentToJSON('Profiles/${profile.name}', projectsJSONFile, profile.projContList);
               }
             } else if (type == ContentType.skills) {
               if (profile.newProfile == true) {
                 await profile.WriteContentToJSON('Temp/', skillsJSONFile, profile.skillsContList);
+              } else if (profile.newProfile == false) {
+                await profile.WriteContentToJSON('Profiles/${profile.name}', skillsJSONFile, profile.skillsContList);
               }
             }
           },

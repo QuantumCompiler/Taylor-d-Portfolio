@@ -28,6 +28,9 @@ class Profile {
   List<ProfileProjCont> projContList = [];
   List<ProfileSkillsCont> skillsContList = [];
 
+  // Text Editing Controller
+  TextEditingController nameController = TextEditingController();
+
   Profile._({
     required this.newProfile,
     required this.name,
@@ -36,6 +39,7 @@ class Profile {
     required this.expContList,
     required this.projContList,
     required this.skillsContList,
+    required this.nameController,
   });
 
   static Future<Profile> Init({String name = '', required bool? newProfile}) async {
@@ -67,66 +71,63 @@ class Profile {
       expContList: expContList,
       projContList: projContList,
       skillsContList: skillsContList,
+      nameController: TextEditingController(text: name),
     );
   }
 
   // Create Profile
   Future<void> CreateProfile(String profName) async {
-    String oldName = name;
-    await setProfName(profName); // This should correctly set the new profile name
-    final masterDir = await getApplicationDocumentsDirectory();
-    final currDir = Directory('${masterDir.path}/Profiles/$name');
-    if (oldName != name) {
-      final oldDir = Directory('${masterDir.path}/Profiles/$oldName');
-      if (await oldDir.exists()) {
-        await oldDir.rename(currDir.path);
-      } else {
-        print('Old directory $oldName does not exist.');
+    if (newProfile == true) {
+      await setProfName(profName);
+      await setProfDir();
+      await WriteProfile("Profiles/$name", "Profiles/$name");
+      if (kDebugMode) {
+        print('Profile $name created successfully');
       }
-    }
-    try {
-      if (newProfile == true) {
-        await WriteProfile("Profiles/$name", "Profiles/$name");
-        if (kDebugMode) {
-          print('Files written successfully to ${currDir.path}');
-        }
+      try {
+        final masterDir = await getApplicationDocumentsDirectory();
         final tempDir = Directory('${masterDir.path}/Temp');
-        if (tempDir.existsSync()) {
+        if (await tempDir.exists()) {
           try {
-            List<FileSystemEntity> entities = tempDir.listSync();
-            for (FileSystemEntity entity in entities) {
-              if (entity is File) {
-                await entity.delete();
-              } else if (entity is Directory) {
-                await entity.delete(recursive: true);
+            final tempDirContents = tempDir.listSync();
+            for (var file in tempDirContents) {
+              if (file is File) {
+                await file.delete();
+              } else if (file is Directory) {
+                await file.delete(recursive: true);
               }
             }
             if (kDebugMode) {
-              print('$tempDir cleaned successfully');
+              print('$tempDir contents cleaned successfully');
             }
           } catch (e) {
-            throw ("Error in cleaning $tempDir: $e");
+            throw ('Error occurred in cleaning $tempDir contents: $e');
           }
         }
-      } else if (newProfile == false) {
-        List<FileSystemEntity> entities = currDir.listSync();
-        for (FileSystemEntity entity in entities) {
-          if (entity is File) {
-            await entity.delete();
-          } else if (entity is Directory) {
-            await entity.delete(recursive: true);
-          }
-        }
-        if (kDebugMode) {
-          print('$currDir cleaned successfully');
-        }
-        await WriteProfile("Profiles/$name", "Profiles/$name");
-        if (kDebugMode) {
-          print('Files written successfully to ${currDir.path}');
-        }
+      } catch (e) {
+        throw ('Error occurred in creating $name profile: $e');
       }
-    } catch (e) {
-      throw ('Error in processing profile: $e');
+    }
+    if (newProfile == false) {
+      final newName = nameController.text;
+      final masterDir = await getApplicationDocumentsDirectory();
+      final oldDir = Directory('${masterDir.path}/Profiles/$name');
+      final existing = Directory('${masterDir.path}/Profiles/$newName');
+      Directory newDir;
+      if (oldDir.existsSync() && !existing.existsSync()) {
+        newDir = await oldDir.rename('${masterDir.path}/Profiles/$newName');
+        name = newName;
+      } else {
+        newDir = oldDir;
+      }
+      try {
+        await WriteProfile("Profiles/$name", "Profiles/$name");
+      } catch (e) {
+        throw ('Error occurred in overwriting $name: $e');
+      }
+      if (kDebugMode) {
+        print('$newDir');
+      }
     }
   }
 

@@ -26,7 +26,7 @@ class LoadProfilePageState extends State<LoadProfilePage> {
       appBar: GenAppBarWithDashboard(context, "Load Previous Profiles", 3),
       body: FutureBuilder<List<Profile>>(
         future: profiles,
-        builder: (context, snapshot) {
+        builder: (context, AsyncSnapshot<List<Profile>> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {

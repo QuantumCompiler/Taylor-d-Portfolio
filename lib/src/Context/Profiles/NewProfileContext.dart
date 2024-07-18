@@ -153,7 +153,7 @@ BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile) {
                           onPressed: () async {
                             final masterDir = await getApplicationDocumentsDirectory();
                             final currDir = Directory('${masterDir.path}/Profiles/${nameController.text}');
-                            if (currDir.existsSync()) {
+                            if (await currDir.exists()) {
                               Navigator.of(context).pop();
                               await showDialog(
                                 context: context,
@@ -165,7 +165,6 @@ BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile) {
                                   );
                                 },
                               );
-                              nameController.text = "";
                             } else {
                               try {
                                 await newProfile.CreateProfile(nameController.text);
@@ -181,7 +180,21 @@ BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile) {
                                       );
                                     });
                               } catch (e) {
-                                throw ('Error occurred in creating ${nameController.text} profile');
+                                await showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: Text('Error'),
+                                      content: Text('An error occurred while creating the profile. Please try again. $e'),
+                                      actions: [
+                                        ElevatedButton(
+                                          child: Text('OK'),
+                                          onPressed: () => Navigator.of(context).pop(),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
                               }
                             }
                           },

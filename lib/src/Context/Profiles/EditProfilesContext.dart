@@ -84,7 +84,6 @@ SingleChildScrollView EditProfileContent(BuildContext context, Profile previousP
 }
 
 BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfile, List<GlobalKey> keyList, Function setState) {
-  TextEditingController nameController = TextEditingController(text: previousProfile.name);
   return BottomAppBar(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -119,7 +118,7 @@ BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfi
                       ),
                       SizedBox(height: standardSizedBoxHeight),
                       TextFormField(
-                        controller: nameController,
+                        controller: previousProfile.nameController,
                         keyboardType: TextInputType.multiline,
                         maxLines: 1,
                         decoration: InputDecoration(hintText: 'Enter name here...'),
@@ -142,23 +141,23 @@ BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfi
                           child: Text('Overwrite Profile'),
                           onPressed: () async {
                             final masterDir = await getApplicationDocumentsDirectory();
-                            final currDir = Directory('${masterDir.path}/Profiles/${nameController.text}');
+                            final currDir = Directory('${masterDir.path}/Profiles/${previousProfile.nameController.text}');
                             if (currDir.existsSync()) {
                               Navigator.of(context).pop();
                               await showDialog(
                                 context: context,
                                 builder: (context) {
                                   return GenAlertDialogWithIcon(
-                                    "Profile ${nameController.text} Already Exists!",
+                                    "Profile ${previousProfile.nameController.text} Already Exists!",
                                     "Please select a different name for this profile",
                                     Icons.error,
                                   );
                                 },
                               );
-                              nameController.text = previousProfile.name;
+                              previousProfile.nameController.text = previousProfile.name;
                             } else {
                               try {
-                                await previousProfile.CreateProfile(nameController.text);
+                                await previousProfile.CreateProfile(previousProfile.nameController.text);
                                 Navigator.of(context).pop();
                                 Navigator.of(context).pop();
                                 setState(() {});
@@ -173,7 +172,7 @@ BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfi
                                   },
                                 );
                               } catch (e) {
-                                throw ("Error occurred in overwriting ${nameController.text} profile");
+                                throw ("Error occurred in overwriting ${previousProfile.nameController.text} profile");
                               }
                             }
                           },

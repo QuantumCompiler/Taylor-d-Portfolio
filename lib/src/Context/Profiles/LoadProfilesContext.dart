@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../Globals/GlobalContext.dart';
+import '../../Globals/Globals.dart';
 import '../../Profiles/EditProfile.dart';
 import '../../Utilities/GlobalUtils.dart';
-import '../../Globals/Globals.dart';
 
 Widget LoadProfileContent(BuildContext context, dynamic profiles, Function setState) {
   return Center(
@@ -30,24 +30,19 @@ Widget LoadProfileContent(BuildContext context, dynamic profiles, Function setSt
                     setState(() {
                       profiles.removeAt(index);
                     });
-                    Navigator.of(context).pop();
+                    Navigator.pop(context);
                   },
                   setState,
                 ),
                 (context, profile) async {
-                  final result = await Navigator.push(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => EditProfilePage(profileName: profiles[index].name),
                     ),
-                  );
-                  if (result != null) {
-                    setState(
-                      () {
-                        profiles[index].name = result;
-                      },
-                    );
-                  }
+                  ).then((_) {
+                    setState(() {});
+                  });
                 },
                 setState,
               ),
