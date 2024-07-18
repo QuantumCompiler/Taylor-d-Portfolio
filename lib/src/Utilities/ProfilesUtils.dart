@@ -1,3 +1,4 @@
+// ignore_for_file: unused_local_variable
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -117,16 +118,12 @@ class Profile {
       if (oldDir.existsSync() && !existing.existsSync()) {
         newDir = await oldDir.rename('${masterDir.path}/Profiles/$newName');
         name = newName;
-      } else {
-        newDir = oldDir;
       }
+      newDir = oldDir;
       try {
         await WriteProfile("Profiles/$name", "Profiles/$name");
       } catch (e) {
         throw ('Error occurred in overwriting $name: $e');
-      }
-      if (kDebugMode) {
-        print('$newDir');
       }
     }
   }

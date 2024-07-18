@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../Context/Globals/GlobalContext.dart';
 import '../../Globals/Globals.dart';
 import '../../Profiles/ContentProfile.dart';
@@ -140,40 +138,23 @@ BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfi
                         ElevatedButton(
                           child: Text('Overwrite Profile'),
                           onPressed: () async {
-                            final masterDir = await getApplicationDocumentsDirectory();
-                            final currDir = Directory('${masterDir.path}/Profiles/${previousProfile.nameController.text}');
-                            if (currDir.existsSync()) {
+                            try {
+                              await previousProfile.CreateProfile(previousProfile.nameController.text);
                               Navigator.of(context).pop();
+                              Navigator.of(context).pop();
+                              setState(() {});
                               await showDialog(
                                 context: context,
                                 builder: (context) {
                                   return GenAlertDialogWithIcon(
-                                    "Profile ${previousProfile.nameController.text} Already Exists!",
-                                    "Please select a different name for this profile",
-                                    Icons.error,
+                                    "Profile ${previousProfile.name}",
+                                    "Written Successfully",
+                                    Icons.check_circle_outline,
                                   );
                                 },
                               );
-                              previousProfile.nameController.text = previousProfile.name;
-                            } else {
-                              try {
-                                await previousProfile.CreateProfile(previousProfile.nameController.text);
-                                Navigator.of(context).pop();
-                                Navigator.of(context).pop();
-                                setState(() {});
-                                await showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return GenAlertDialogWithIcon(
-                                      "Profile ${previousProfile.name}",
-                                      "Written Successfully",
-                                      Icons.check_circle_outline,
-                                    );
-                                  },
-                                );
-                              } catch (e) {
-                                throw ("Error occurred in overwriting ${previousProfile.nameController.text} profile");
-                              }
+                            } catch (e) {
+                              throw ("Error occurred in overwriting ${previousProfile.nameController.text} profile");
                             }
                           },
                         ),
