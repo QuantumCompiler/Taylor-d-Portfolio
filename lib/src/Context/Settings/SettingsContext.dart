@@ -1,5 +1,6 @@
 // Imports
 import 'package:flutter/material.dart';
+import '../../Dashboard/Dashboard.dart';
 import '../../Globals/SettingsGlobals.dart';
 import '../../Globals/Globals.dart';
 import '../../Utilities/JobUtils.dart';
@@ -18,16 +19,23 @@ import '../../Themes/Themes.dart';
 AppBar appBar(BuildContext context) {
   return AppBar(
     leading: IconButton(
-      icon: Icon(Icons.arrow_back),
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () {
-        if (isDesktop()) {
-          Navigator.of(context).pop();
-          Navigator.of(context).pop();
-        } else if (isMobile()) {
-          Navigator.of(context).pop();
-        }
+        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
       },
     ),
+    actions: [
+      Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.dashboard),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
+            },
+          ),
+        ],
+      ),
+    ],
     title: Text(
       settingsTitle,
       style: TextStyle(
@@ -56,8 +64,8 @@ Center bodyContent(BuildContext context, ThemeProvider theme) {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           switchTheme(theme),
-          delJobs(context),
-          delProfs(context),
+          // delJobs(context),
+          // delProfs(context),
           setLatexDirectory(context),
         ],
       ),

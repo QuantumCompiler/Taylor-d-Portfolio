@@ -19,7 +19,7 @@ import '../../Globals/Globals.dart';
 AppBar appBar(BuildContext context, final jobs, Function state) {
   return AppBar(
     leading: IconButton(
-      icon: const Icon(Icons.arrow_back),
+      icon: const Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () {
         Navigator.of(context).pop();
         state(() {});
@@ -63,7 +63,7 @@ AppBar appBar(BuildContext context, final jobs, Function state) {
 AppBar loadingJobsAppBar(BuildContext context) {
   return AppBar(
     leading: IconButton(
-      icon: const Icon(Icons.arrow_back),
+      icon: const Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () => Navigator.of(context).pop(),
     ),
     title: Text(loadingJobsTitle),

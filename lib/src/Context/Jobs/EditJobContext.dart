@@ -17,7 +17,7 @@ import '../../Globals/Globals.dart';
 AppBar appBar(BuildContext context, Job prevJob) {
   return AppBar(
     leading: IconButton(
-      icon: Icon(Icons.arrow_back),
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () {
         Navigator.of(context).pop();
       },

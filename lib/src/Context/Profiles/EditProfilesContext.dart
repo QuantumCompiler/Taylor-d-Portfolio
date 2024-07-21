@@ -1,8 +1,41 @@
 import 'package:flutter/material.dart';
 import '../../Context/Globals/GlobalContext.dart';
+import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 import '../../Profiles/ContentProfile.dart';
+import '../../Profiles/Profiles.dart';
+import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/ProfilesUtils.dart';
+
+AppBar EditProfileAppBar(BuildContext context, String profileName) {
+  return AppBar(
+    title: Text(
+      'Edit Profile $profileName',
+      style: TextStyle(
+        fontSize: appBarTitle,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    leading: IconButton(
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
+      onPressed: () {
+        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+      },
+    ),
+    actions: [
+      Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.dashboard),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
+            },
+          ),
+        ],
+      ),
+    ],
+  );
+}
 
 SingleChildScrollView EditProfileContent(BuildContext context, Profile previousProfile, List<GlobalKey> keys) {
   return SingleChildScrollView(
@@ -81,7 +114,7 @@ SingleChildScrollView EditProfileContent(BuildContext context, Profile previousP
   );
 }
 
-BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfile, List<GlobalKey> keyList, Function setState) {
+BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfile, List<GlobalKey> keyList) {
   return BottomAppBar(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -140,9 +173,7 @@ BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfi
                           onPressed: () async {
                             try {
                               await previousProfile.CreateProfile(previousProfile.nameController.text);
-                              Navigator.of(context).pop();
-                              Navigator.of(context).pop();
-                              setState(() {});
+                              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
                               await showDialog(
                                 context: context,
                                 builder: (context) {

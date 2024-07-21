@@ -2,9 +2,42 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import '../Globals/GlobalContext.dart';
+import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 import '../../Profiles/ContentProfile.dart';
+import '../../Profiles/Profiles.dart';
 import '../../Utilities/ProfilesUtils.dart';
+import '../../Utilities/GlobalUtils.dart';
+
+AppBar NewProfileAppBar(BuildContext context) {
+  return AppBar(
+    title: Text(
+      'Create New Profile',
+      style: TextStyle(
+        fontSize: appBarTitle,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    leading: IconButton(
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
+      onPressed: () {
+        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+      },
+    ),
+    actions: [
+      Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.dashboard),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
+            },
+          ),
+        ],
+      )
+    ],
+  );
+}
 
 SingleChildScrollView NewProfileContent(BuildContext context, Profile newProfile, List<GlobalKey> keys) {
   return SingleChildScrollView(
@@ -168,8 +201,7 @@ BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile) {
                             } else {
                               try {
                                 await newProfile.CreateProfile(nameController.text);
-                                Navigator.of(context).pop();
-                                Navigator.of(context).pop();
+                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
                                 await showDialog(
                                     context: context,
                                     builder: (context) {

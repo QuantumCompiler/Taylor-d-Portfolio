@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../Context/Globals/GlobalContext.dart';
-import '../Globals/ProfilesGlobals.dart';
 import '../Context/Profiles/NewProfileContext.dart';
 import '../Utilities/ProfilesUtils.dart';
 
@@ -25,7 +23,7 @@ class NewProfilePageState extends State<NewProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: GenAppBarWithDashboard(context, createNewProfilePrompt, 3),
+      appBar: NewProfileAppBar(context),
       body: FutureBuilder<Profile>(
         future: futureProfile,
         builder: (context, snapshot) {

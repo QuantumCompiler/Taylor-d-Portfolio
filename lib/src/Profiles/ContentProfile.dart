@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../Context/Globals/GlobalContext.dart';
 import '../Context/Profiles/ContentProfilesContext.dart';
 import '../Globals/Globals.dart';
 import '../Utilities/ProfilesUtils.dart';
@@ -20,7 +19,7 @@ class ProfileContentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: GenAppBarWithDashboard(context, title, 4),
+      appBar: ProfileContentAppBar(context, type, profile.name),
       body: ProfileContentEntry(profile: profile, type: type, keyList: keyList),
       bottomNavigationBar: ProfileContentBottomAppBar(context, type, profile, keyList),
     );

@@ -7,7 +7,7 @@ import '../../Themes/Themes.dart';
 AppBar appBar(BuildContext context, ApplicationContent content, Function state) {
   return AppBar(
     leading: IconButton(
-      icon: Icon(Icons.arrow_back),
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () {
         Navigator.of(context).pop();
         state(() {});

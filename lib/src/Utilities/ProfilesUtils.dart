@@ -82,9 +82,6 @@ class Profile {
       await setProfName(profName);
       await setProfDir();
       await WriteProfile("Profiles/$name", "Profiles/$name");
-      if (kDebugMode) {
-        print('Profile $name created successfully');
-      }
       try {
         final masterDir = await getApplicationDocumentsDirectory();
         final tempDir = Directory('${masterDir.path}/Temp');
@@ -97,9 +94,6 @@ class Profile {
               } else if (file is Directory) {
                 await file.delete(recursive: true);
               }
-            }
-            if (kDebugMode) {
-              print('$tempDir contents cleaned successfully');
             }
           } catch (e) {
             throw ('Error occurred in cleaning $tempDir contents: $e');
@@ -368,7 +362,7 @@ class Profile {
           if (i == 0) {
             ret += "\nSkills Information:\n";
           }
-          ret += "\nSkill Category ${i + 1}:\n\nSkill Name: ${jsonData[0]['name']}\n\nDescription: ${jsonData[i]['description']}\n";
+          ret += "\nSkill Category ${i + 1}:\n\nSkill Name: ${jsonData[i]['name']}\n\nDescription: ${jsonData[i]['description']}\n";
         }
       } catch (e) {
         throw ("Error occurred $e");

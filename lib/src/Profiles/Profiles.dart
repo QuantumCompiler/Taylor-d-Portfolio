@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:taylord_portfolio/src/Dashboard/Dashboard.dart';
-// import '../Globals/ProfilesGlobals.dart';
 import '../Context/Profiles/ProfileContext.dart';
-import '../Context/Globals/GlobalContext.dart';
 import '../Utilities/GlobalUtils.dart';
 import '../Utilities/ProfilesUtils.dart';
 
@@ -18,9 +15,11 @@ class ProfilePageState extends State<ProfilePage> {
 
   Future<void> _refreshProfiles() async {
     List<Profile> updatedProfiles = await RetrieveSortedProfiles();
-    setState(() {
-      profiles = updatedProfiles;
-    });
+    if (mounted) {
+      setState(() {
+        profiles = updatedProfiles;
+      });
+    }
   }
 
   @override
@@ -33,26 +32,7 @@ class ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     _refreshProfiles();
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_outlined),
-          onPressed: () {
-            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Dashboard()), (Route<dynamic> route) => false);
-          },
-        ),
-        actions: [
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.dashboard),
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Dashboard()), (Route<dynamic> route) => false);
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
+      appBar: ProfileAppBar(context, profiles),
       body: FutureBuilder<List<Profile>>(
         future: profilesFuture,
         builder: (context, AsyncSnapshot<List<Profile>> snapshot) {

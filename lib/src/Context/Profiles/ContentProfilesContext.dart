@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../Utilities/ProfilesUtils.dart';
 import '../../Globals/Globals.dart';
 import '../../Globals/ProfilesGlobals.dart';
+// import '../../Profiles/Profiles.dart';
+// import '../../Utilities/GlobalUtils.dart';
+import '../../Utilities/ProfilesUtils.dart';
 
 class ProfileContentEntry extends StatefulWidget {
   final Profile profile;
@@ -34,6 +36,41 @@ class ProfileContentEntryState extends State<ProfileContentEntry> {
         return SkillsProjectEntry(profile: widget.profile, key: widget.keyList[4]);
     }
   }
+}
+
+AppBar ProfileContentAppBar(BuildContext context, ContentType type, String profileName) {
+  String title = '';
+  if (profileName == '') {
+    profileName = 'New Profile';
+  }
+  if (type == ContentType.coverLetter) {
+    title = 'Cover Letter - $profileName';
+  } else if (type == ContentType.education) {
+    title = 'Education - $profileName';
+  } else if (type == ContentType.experience) {
+    title = 'Experience - $profileName';
+  } else if (type == ContentType.projects) {
+    title = 'Projects - $profileName';
+  } else if (type == ContentType.skills) {
+    title = 'Skills - $profileName';
+  } else {
+    title = 'Content - $profileName';
+  }
+  return AppBar(
+    title: Text(
+      title,
+      style: TextStyle(
+        fontSize: appBarTitle,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    leading: IconButton(
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
+      onPressed: () {
+        Navigator.of(context).pop();
+      },
+    ),
+  );
 }
 
 BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, Profile profile, List<GlobalKey> keyList) {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:taylord_portfolio/src/Dashboard/Dashboard.dart';
+import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 
 AlertDialog GenAlertDialog(String title, String content) {
@@ -94,7 +94,7 @@ AlertDialog GenAlertDialogWithFunctions(String title, String content, String but
 AppBar GenAppBar(BuildContext context, String title) {
   return AppBar(
     leading: IconButton(
-      icon: Icon(Icons.arrow_back),
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () {
         if (isDesktop()) {
           Navigator.of(context).pop();
@@ -117,7 +117,7 @@ AppBar GenAppBar(BuildContext context, String title) {
 AppBar GenAppBarWithDashboard(BuildContext context, String title, int backPop) {
   return AppBar(
     leading: IconButton(
-      icon: Icon(Icons.arrow_back),
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () {
         Navigator.of(context).pop();
       },
@@ -143,7 +143,7 @@ AppBar GenAppBarWithDashboard(BuildContext context, String title, int backPop) {
 AppBar GenAppBarWithDashboardObject(BuildContext context, String title, String emptyTitle, int backPop, final obj, Function state) {
   return AppBar(
     leading: IconButton(
-      icon: Icon(Icons.arrow_back),
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () {
         Navigator.of(context).pop();
       },

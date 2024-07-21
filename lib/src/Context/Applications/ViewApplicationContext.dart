@@ -14,7 +14,7 @@ class PDFScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back_ios_new_outlined),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -47,7 +47,7 @@ class PDFScreen extends StatelessWidget {
 AppBar appBar(BuildContext context, Application prevApp) {
   return AppBar(
     leading: IconButton(
-      icon: Icon(Icons.arrow_back),
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () {
         Navigator.of(context).pop();
       },

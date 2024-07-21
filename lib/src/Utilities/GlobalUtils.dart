@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import '../Utilities/ApplicationsUtils.dart';
@@ -173,4 +174,41 @@ Future<List<Profile>> RetrieveSortedProfiles() async {
   }
   profiles.sort((a, b) => a.name.compareTo(b.name));
   return profiles;
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Custom Page Route Builders
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+// Left To Right Route
+class LeftToRightPageRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+  LeftToRightPageRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(-1.0, 0.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOut;
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            var offsetAnimation = animation.drive(tween);
+            return SlideTransition(position: offsetAnimation, child: child);
+          },
+        );
+}
+
+// Right To Left Route
+class RightToLeftPageRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+  RightToLeftPageRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(1.0, 0.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOut;
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            var offsetAnimation = animation.drive(tween);
+            return SlideTransition(position: offsetAnimation, child: child);
+          },
+        );
 }

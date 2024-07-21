@@ -6,6 +6,7 @@ import '../../Globals/Globals.dart';
 import '../../Jobs/Job.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
+import '../../Utilities/GlobalUtils.dart';
 
 /*  ResumeCard - Card for the Resume section of the Dashboard
       Input:
@@ -262,7 +263,7 @@ SizedBox desktopDrawer(BuildContext context) {
             IconButton(
               tooltip: profileToolTip,
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+                Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
               },
               icon: Icon(Icons.person),
             ),
@@ -270,7 +271,7 @@ SizedBox desktopDrawer(BuildContext context) {
             IconButton(
               tooltip: settingsToolTip,
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: SettingsPage()), (Route<dynamic> route) => false);
               },
               icon: Icon(Icons.settings),
             ),
@@ -324,14 +325,14 @@ BottomAppBar mobileNavbar(BuildContext context) {
         Spacer(),
         IconButton(
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+            Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
           },
           icon: Icon(Icons.person),
         ),
         Spacer(),
         IconButton(
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+            Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: SettingsPage()), (Route<dynamic> route) => false);
           },
           icon: Icon(Icons.settings),
         ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../Context/Globals/GlobalContext.dart';
 import '../Context/Profiles/EditProfilesContext.dart';
 import '../Utilities/ProfilesUtils.dart';
 
@@ -28,7 +27,7 @@ class EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: GenAppBarWithDashboard(context, 'Edit ${widget.profileName}', 3),
+      appBar: EditProfileAppBar(context, widget.profileName),
       body: FutureBuilder<Profile>(
         future: previousProfile,
         builder: (context, snapshot) {
@@ -58,7 +57,7 @@ class EditProfilePageState extends State<EditProfilePage> {
         future: previousProfile,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            return EditProfileBottomAppBar(context, snapshot.data!, keyList, setState);
+            return EditProfileBottomAppBar(context, snapshot.data!, keyList);
           } else {
             return Container();
           }

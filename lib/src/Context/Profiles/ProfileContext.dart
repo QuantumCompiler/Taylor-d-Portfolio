@@ -1,13 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:taylord_portfolio/src/Globals/Globals.dart';
-import 'package:taylord_portfolio/src/Profiles/LoadProfiles.dart';
-import 'package:taylord_portfolio/src/Utilities/GlobalUtils.dart';
-// import '../Globals/GlobalContext.dart';
-// import '../../Globals/Globals.dart';
-// import '../../Globals/ProfilesGlobals.dart';
-// import '../../Profiles/LoadProfiles.dart';
-// import '../../Profiles/NewProfile.dart';
+import '../../Dashboard/Dashboard.dart';
+import '../../Globals/Globals.dart';
+import '../../Profiles/EditProfile.dart';
+import '../../Profiles/NewProfile.dart';
+import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/ProfilesUtils.dart';
+
+AppBar ProfileAppBar(BuildContext context, List<Profile> profiles) {
+  return AppBar(
+    title: Text(
+      profiles.isNotEmpty ? 'Profiles, Edit Or Create New' : 'Profiles, Create New Profile',
+      style: TextStyle(
+        fontSize: appBarTitle,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    leading: IconButton(
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
+      onPressed: () {
+        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
+      },
+    ),
+    actions: [
+      Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.dashboard),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
+            },
+          ),
+        ],
+      ),
+    ],
+  );
+}
 
 SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profiles, Function setState) {
   return SingleChildScrollView(
@@ -57,10 +84,66 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
                                       size: 30.0,
                                     ),
                                     onPressed: () async {
-                                      await DeleteProfile(profiles[index].name);
-                                      setState(
-                                        () {
-                                          profiles.removeAt(index);
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) {
+                                          return AlertDialog(
+                                            content: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.center,
+                                              mainAxisAlignment: MainAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  'Delete Profile ${profiles[index].name}?',
+                                                  style: TextStyle(
+                                                    fontSize: appBarTitle,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                SizedBox(height: standardSizedBoxHeight),
+                                                Icon(
+                                                  Icons.warning,
+                                                  size: 50.0,
+                                                ),
+                                                SizedBox(height: standardSizedBoxHeight),
+                                                Text(
+                                                  'Are you sure that you would like to delete this profile?\nThis cannot be undone.',
+                                                ),
+                                                SizedBox(height: standardSizedBoxHeight),
+                                                Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    ElevatedButton(
+                                                      child: Text(
+                                                        'Cancel',
+                                                      ),
+                                                      onPressed: () {
+                                                        Navigator.of(context).pop();
+                                                      },
+                                                    ),
+                                                    SizedBox(width: standardSizedBoxWidth),
+                                                    ElevatedButton(
+                                                      child: Text('Delete'),
+                                                      onPressed: () async {
+                                                        try {
+                                                          await DeleteProfile(profiles[index].name);
+                                                          setState(
+                                                            () {
+                                                              profiles.removeAt(index);
+                                                            },
+                                                          );
+                                                          Navigator.of(context).pop();
+                                                        } catch (e) {
+                                                          throw ('Error in deleting ${profiles[index].name}');
+                                                        }
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          );
                                         },
                                       );
                                     },
@@ -68,7 +151,9 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
                                 ),
                               ],
                             ),
-                            onTap: () => {},
+                            onTap: () {
+                              Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: EditProfilePage(profileName: profiles[index].name)), (Route<dynamic> route) => false);
+                            },
                           ),
                         ),
                       );
@@ -81,9 +166,7 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
                 child: IconButton(
                   icon: Icon(Icons.add_circle_outline_rounded),
                   onPressed: () {
-                    setState(() {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => LoadProfilePage()));
-                    });
+                    Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewProfilePage()), (Route<dynamic> route) => false);
                   },
                 ),
               ),
@@ -103,11 +186,23 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
                   textAlign: TextAlign.center,
                 ),
               ),
+              SizedBox(height: 4 * standardSizedBoxHeight),
+              Center(
+                child: CircularProgressIndicator(),
+              ),
+              SizedBox(height: 4 * standardSizedBoxHeight),
+              Center(
+                child: Tooltip(
+                  message: 'Create A New Profile',
+                  child: IconButton(
+                    icon: Icon(Icons.add_circle_outline_rounded),
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewProfilePage()), (Route<dynamic> route) => false);
+                    },
+                  ),
+                ),
+              ),
             ],
           ),
   );
 }
-// This Works!
-// setState(() {
-//   profiles[1].setProfName('55');
-// });
