@@ -11,6 +11,32 @@ import '../Utilities/GlobalUtils.dart';
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Profile Class
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+/*  Profile Class - Class for the Profile
+      Fields:
+        newProfile - Boolean for whether the profile is new
+        proFile - File for the profile
+        name - String for the name of the profile
+        coverLetterContList - List of ProfileCLCont objects
+        eduContList - List of ProfileEduCont objects
+        expContList - List of ProfileExpCont objects
+        projContList - List of ProfileProjCont objects
+        skillsContList - List of ProfileSkillsCont objects
+        nameController - Text Editing Controller for the name field
+      Methods:
+        Init - Initializes a profile
+        CreateProfile - Creates a profile with the given name
+        LoadContent - Loads content from a JSON file into a list
+        SetContent - Sets content from one list to another
+        SetProfName - Sets the name of the profile
+        SetProfDir - Sets the directory for the profile
+        StringifyCLCont - Stringifies the cover letter content
+        StringifyEduCont - Stringifies the education content
+        StringifyExpCont - Stringifies the experience content
+        StringifyProjCont - Stringifies the project content
+        StringifySkillsCont - Stringifies the skills content
+        WriteProfile - Writes the profile to a JSON file
+        WriteContentToJSON - Writes content to a JSON file
+*/
 class Profile {
   // Boolean
   final bool? newProfile;
