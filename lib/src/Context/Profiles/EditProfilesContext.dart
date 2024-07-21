@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../Context/Globals/GlobalContext.dart';
+import '../../Context/Profiles/ProfileContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
-import '../../Profiles/ProfileContent.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/ProfilesUtils.dart';
@@ -37,7 +37,7 @@ AppBar EditProfileAppBar(BuildContext context, String profileName) {
   );
 }
 
-SingleChildScrollView EditProfileContent(BuildContext context, Profile previousProfile, List<GlobalKey> keys) {
+SingleChildScrollView EditProfileContent(BuildContext context, Profile profile, List<GlobalKey> keys) {
   return SingleChildScrollView(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -49,63 +49,7 @@ SingleChildScrollView EditProfileContent(BuildContext context, Profile previousP
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                GenListTileWithFunc(
-                  context,
-                  'Cover Letter Pitch',
-                  previousProfile,
-                  (context, previousProfile) async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfileContentPage(profile: previousProfile, title: 'Cover Letter Pitch', type: ContentType.coverLetter, keyList: keys)),
-                    );
-                  },
-                ),
-                GenListTileWithFunc(
-                  context,
-                  'Education',
-                  previousProfile,
-                  (context, previousProfile) async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfileContentPage(profile: previousProfile, title: 'Education Entries', type: ContentType.education, keyList: keys)),
-                    );
-                  },
-                ),
-                GenListTileWithFunc(
-                  context,
-                  'Experience',
-                  previousProfile,
-                  (context, previousProfile) async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfileContentPage(profile: previousProfile, title: 'Experience Entries', type: ContentType.experience, keyList: keys)),
-                    );
-                  },
-                ),
-                GenListTileWithFunc(
-                  context,
-                  'Projects',
-                  previousProfile,
-                  (context, previousProfile) async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfileContentPage(profile: previousProfile, title: 'Project Entries', type: ContentType.projects, keyList: keys)),
-                    );
-                  },
-                ),
-                GenListTileWithFunc(
-                  context,
-                  'Skills',
-                  previousProfile,
-                  (context, previousProfile) async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfileContentPage(profile: previousProfile, title: 'Skills Entries', type: ContentType.skills, keyList: keys)),
-                    );
-                  },
-                ),
-              ],
+              children: [...ProfileOptionsContent(context, profile, keys)],
             ),
           ),
         ),
@@ -114,7 +58,7 @@ SingleChildScrollView EditProfileContent(BuildContext context, Profile previousP
   );
 }
 
-BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfile, List<GlobalKey> keyList) {
+BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile profile, List<GlobalKey> keyList) {
   return BottomAppBar(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -149,7 +93,7 @@ BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfi
                       ),
                       SizedBox(height: standardSizedBoxHeight),
                       TextFormField(
-                        controller: previousProfile.nameController,
+                        controller: profile.nameController,
                         keyboardType: TextInputType.multiline,
                         maxLines: 1,
                         decoration: InputDecoration(hintText: 'Enter name here...'),
@@ -172,20 +116,20 @@ BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile previousProfi
                           child: Text('Overwrite Profile'),
                           onPressed: () async {
                             try {
-                              await previousProfile.CreateProfile(previousProfile.nameController.text);
+                              await profile.CreateProfile(profile.nameController.text);
                               Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
                               await showDialog(
                                 context: context,
                                 builder: (context) {
                                   return GenAlertDialogWithIcon(
-                                    "Profile ${previousProfile.name}",
+                                    "Profile ${profile.name}",
                                     "Written Successfully",
                                     Icons.check_circle_outline,
                                   );
                                 },
                               );
                             } catch (e) {
-                              throw ("Error occurred in overwriting ${previousProfile.nameController.text} profile");
+                              throw ("Error occurred in overwriting ${profile.nameController.text} profile");
                             }
                           },
                         ),

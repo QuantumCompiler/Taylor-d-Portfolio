@@ -3,6 +3,7 @@ import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 import '../../Profiles/EditProfile.dart';
 import '../../Profiles/NewProfile.dart';
+import '../../Profiles/ProfileContent.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/ProfilesUtils.dart';
 
@@ -205,4 +206,44 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
             ],
           ),
   );
+}
+
+List<Widget> ProfileOptionsContent(BuildContext context, Profile profile, List<GlobalKey> keys) {
+  List<Widget> ret = [];
+  ListTile CoverLetterTile = ListTile(
+    title: Text('Cover Letter Pitch'),
+    onTap: () async {
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: profile, title: 'Cover Letter Pitch', type: ContentType.coverLetter, keyList: keys)));
+    },
+  );
+  ListTile EducationTile = ListTile(
+    title: Text('Education'),
+    onTap: () async {
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: profile, title: 'Education Entries', type: ContentType.education, keyList: keys)));
+    },
+  );
+  ListTile ExperienceTile = ListTile(
+    title: Text('Experience'),
+    onTap: () async {
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: profile, title: 'Experience Entries', type: ContentType.experience, keyList: keys)));
+    },
+  );
+  ListTile ProjectsTile = ListTile(
+    title: Text('Projects'),
+    onTap: () async {
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: profile, title: 'Project Entries', type: ContentType.projects, keyList: keys)));
+    },
+  );
+  ListTile SkillsTile = ListTile(
+    title: Text('Skills'),
+    onTap: () async {
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: profile, title: 'Skill Entries', type: ContentType.skills, keyList: keys)));
+    },
+  );
+  ret.add(CoverLetterTile);
+  ret.add(EducationTile);
+  ret.add(ExperienceTile);
+  ret.add(ProjectsTile);
+  ret.add(SkillsTile);
+  return ret;
 }

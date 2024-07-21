@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import '../Profiles/ProfileContext.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
-import '../../Profiles/ProfileContent.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Utilities/ProfilesUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
@@ -40,7 +40,7 @@ AppBar NewProfileAppBar(BuildContext context) {
   );
 }
 
-SingleChildScrollView NewProfileContent(BuildContext context, Profile newProfile, List<GlobalKey> keys) {
+SingleChildScrollView NewProfileContent(BuildContext context, Profile profile, List<GlobalKey> keys) {
   return SingleChildScrollView(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -54,71 +54,72 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile newProfile
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 SizedBox(height: standardSizedBoxHeight),
-                GenListTileWithFunc(
-                  context,
-                  'Cover Letter Pitch',
-                  newProfile,
-                  (context, newProfile) async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfileContentPage(profile: newProfile, title: 'Cover Letter Pitch', type: ContentType.coverLetter, keyList: keys),
-                      ),
-                    );
-                  },
-                ),
-                GenListTileWithFunc(
-                  context,
-                  'Education',
-                  newProfile,
-                  (context, newProfile) async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfileContentPage(profile: newProfile, title: 'Education Entries', type: ContentType.education, keyList: keys),
-                      ),
-                    );
-                  },
-                ),
-                GenListTileWithFunc(
-                  context,
-                  'Experience',
-                  newProfile,
-                  (context, newProfile) async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfileContentPage(profile: newProfile, title: 'Experience Entries', type: ContentType.experience, keyList: keys),
-                      ),
-                    );
-                  },
-                ),
-                GenListTileWithFunc(
-                  context,
-                  'Projects',
-                  newProfile,
-                  (context, newProfile) async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfileContentPage(profile: newProfile, title: 'Project Entries', type: ContentType.projects, keyList: keys),
-                      ),
-                    );
-                  },
-                ),
-                GenListTileWithFunc(
-                  context,
-                  'Skills',
-                  newProfile,
-                  (context, newProfile) async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfileContentPage(profile: newProfile, title: 'Skills Entries', type: ContentType.skills, keyList: keys),
-                      ),
-                    );
-                  },
-                ),
+                ...ProfileOptionsContent(context, profile, keys),
+                // GenListTileWithFunc(
+                //   context,
+                //   'Cover Letter Pitch',
+                //   profile,
+                //   (context, profile) async {
+                //     await Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => ProfileContentPage(profile: profile, title: 'Cover Letter Pitch', type: ContentType.coverLetter, keyList: keys),
+                //       ),
+                //     );
+                //   },
+                // ),
+                // GenListTileWithFunc(
+                //   context,
+                //   'Education',
+                //   profile,
+                //   (context, profile) async {
+                //     await Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => ProfileContentPage(profile: profile, title: 'Education Entries', type: ContentType.education, keyList: keys),
+                //       ),
+                //     );
+                //   },
+                // ),
+                // GenListTileWithFunc(
+                //   context,
+                //   'Experience',
+                //   profile,
+                //   (context, profile) async {
+                //     await Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => ProfileContentPage(profile: profile, title: 'Experience Entries', type: ContentType.experience, keyList: keys),
+                //       ),
+                //     );
+                //   },
+                // ),
+                // GenListTileWithFunc(
+                //   context,
+                //   'Projects',
+                //   profile,
+                //   (context, profile) async {
+                //     await Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => ProfileContentPage(profile: profile, title: 'Project Entries', type: ContentType.projects, keyList: keys),
+                //       ),
+                //     );
+                //   },
+                // ),
+                // GenListTileWithFunc(
+                //   context,
+                //   'Skills',
+                //   profile,
+                //   (context, profile) async {
+                //     await Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => ProfileContentPage(profile: profile, title: 'Skills Entries', type: ContentType.skills, keyList: keys),
+                //       ),
+                //     );
+                //   },
+                // ),
               ],
             ),
           ),
@@ -128,7 +129,7 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile newProfile
   );
 }
 
-BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile) {
+BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile profile) {
   TextEditingController nameController = TextEditingController();
   return BottomAppBar(
     child: Row(
@@ -201,13 +202,13 @@ BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile newProfile) {
                               );
                             } else {
                               try {
-                                await newProfile.CreateProfile(nameController.text);
+                                await profile.CreateProfile(nameController.text);
                                 Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
                                 await showDialog(
                                     context: context,
                                     builder: (context) {
                                       return GenAlertDialogWithIcon(
-                                        'Profile ${newProfile.name}',
+                                        'Profile ${profile.name}',
                                         'Written Successfully',
                                         Icons.check_circle_outline,
                                       );
