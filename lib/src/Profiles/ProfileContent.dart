@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../Context/Profiles/ProfileContentContex.dart';
+import '../Context/Profiles/ProfileContentContext.dart';
 import '../Globals/Globals.dart';
 import '../Utilities/ProfilesUtils.dart';
 

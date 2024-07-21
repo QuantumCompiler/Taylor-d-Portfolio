@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../Globals/Globals.dart';
 import '../../Globals/ProfilesGlobals.dart';
-// import '../../Profiles/Profiles.dart';
-// import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/ProfilesUtils.dart';
 
 class ProfileContentEntry extends StatefulWidget {

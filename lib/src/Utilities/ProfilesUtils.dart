@@ -22,11 +22,11 @@ class Profile {
   late String name;
 
   // Lists Of Types
-  List<ProfileCLCont> coverLetterContList = [];
-  List<ProfileEduCont> eduContList = [];
-  List<ProfileExpCont> expContList = [];
-  List<ProfileProjCont> projContList = [];
-  List<ProfileSkillsCont> skillsContList = [];
+  late List<ProfileCLCont> coverLetterContList = [];
+  late List<ProfileEduCont> eduContList = [];
+  late List<ProfileExpCont> expContList = [];
+  late List<ProfileProjCont> projContList = [];
+  late List<ProfileSkillsCont> skillsContList = [];
 
   // Text Editing Controller
   TextEditingController nameController = TextEditingController();
@@ -432,18 +432,18 @@ class Profile {
   Future<void> WriteProfile(String jsonDir, String destDir) async {
     // Grab master directory
     final masterDir = await getApplicationDocumentsDirectory();
-    // Write content to JSON
-    await WriteContentToJSON(jsonDir, coverLetterJSONFile, coverLetterContList);
-    await WriteContentToJSON(jsonDir, educationJSONFile, eduContList);
-    await WriteContentToJSON(jsonDir, experienceJSONFile, expContList);
-    await WriteContentToJSON(jsonDir, projectsJSONFile, projContList);
-    await WriteContentToJSON(jsonDir, skillsJSONFile, skillsContList);
     // Write profile JSON files
     final File covFile = File('${masterDir.path}/$jsonDir/$coverLetterJSONFile');
     final File eduFile = File('${masterDir.path}/$jsonDir/$educationJSONFile');
     final File expFile = File('${masterDir.path}/$jsonDir/$experienceJSONFile');
     final File proFile = File('${masterDir.path}/$jsonDir/$projectsJSONFile');
     final File skiFile = File('${masterDir.path}/$jsonDir/$skillsJSONFile');
+    // Write content to JSON
+    await WriteContentToJSON<ProfileCLCont>(jsonDir, coverLetterJSONFile, coverLetterContList);
+    await WriteContentToJSON<ProfileEduCont>(jsonDir, educationJSONFile, eduContList);
+    await WriteContentToJSON<ProfileExpCont>(jsonDir, experienceJSONFile, expContList);
+    await WriteContentToJSON<ProfileProjCont>(jsonDir, projectsJSONFile, projContList);
+    await WriteContentToJSON<ProfileSkillsCont>(jsonDir, skillsJSONFile, skillsContList);
     // If the necessary files exist, write the profile file
     if (covFile.existsSync() && eduFile.existsSync() && expFile.existsSync() && proFile.existsSync() && skiFile.existsSync()) {
       // Write profile JSON file
@@ -456,12 +456,12 @@ class Profile {
       final List<dynamic> skiData = jsonDecode(await skiFile.readAsString());
       // Combine JSON files
       final Map<String, dynamic> combinedJSON = {
-        'name': name,
-        'coverLetter': covData,
-        'education': eduData,
-        'experience': expData,
-        'projects': proData,
-        'skills': skiData,
+        'profileName': name,
+        'profileCoverLetter': covData.isEmpty ? "" : covData,
+        'profileEducation': eduData.isEmpty ? "" : eduData,
+        'profileExperience': expData.isEmpty ? "" : expData,
+        'profileProjects': proData.isEmpty ? "" : proData,
+        'profileSkills': skiData.isEmpty ? "" : skiData,
       };
       // Write profile file
       try {
@@ -521,6 +521,9 @@ class Profile {
     }
     // Create file
     final file = File('${desDir.path}/$fileName');
+    if (file.existsSync()) {
+      file.deleteSync();
+    }
     // Map list to JSON
     List<Map<String, dynamic>> contJSON = list.map((cont) {
       // If the type is ProfileCLCont
@@ -653,9 +656,9 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
         Output:
           Initializes the entries for the CoverLetterProfilePitchEntry class
   */
-  void initializeEntries() {
+  void initializeEntries() async {
     if (widget.profile.coverLetterContList.isNotEmpty) {
-      entries = widget.profile.coverLetterContList;
+      await widget.profile.SetContent<ProfileCLCont>(widget.profile.coverLetterContList, entries);
     } else {
       entries.add(ProfileCLCont());
     }
@@ -893,7 +896,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
   */
   void initializeEntries() async {
     if (widget.profile.eduContList.isNotEmpty) {
-      entries = widget.profile.eduContList;
+      widget.profile.SetContent<ProfileEduCont>(widget.profile.eduContList, entries);
     } else {
       entries.add(ProfileEduCont());
     }
@@ -1278,7 +1281,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
   */
   void initializeEntries() {
     if (widget.profile.expContList.isNotEmpty) {
-      entries = widget.profile.expContList;
+      widget.profile.SetContent<ProfileExpCont>(widget.profile.expContList, entries);
     } else {
       entries.add(ProfileExpCont());
     }
@@ -1663,7 +1666,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
   */
   void initializeEntries() {
     if (widget.profile.projContList.isNotEmpty) {
-      entries = widget.profile.projContList;
+      widget.profile.SetContent<ProfileProjCont>(widget.profile.projContList, entries);
     } else {
       entries.add(ProfileProjCont());
     }
@@ -2028,7 +2031,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
   */
   void initializeEntries() {
     if (widget.profile.skillsContList.isNotEmpty) {
-      entries = widget.profile.skillsContList;
+      widget.profile.SetContent<ProfileSkillsCont>(widget.profile.skillsContList, entries);
     } else {
       entries.add(ProfileSkillsCont());
     }
