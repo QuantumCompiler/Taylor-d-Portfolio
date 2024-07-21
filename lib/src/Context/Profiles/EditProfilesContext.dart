@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../Context/Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
-import '../../Profiles/ContentProfile.dart';
+import '../../Profiles/ProfileContent.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/ProfilesUtils.dart';

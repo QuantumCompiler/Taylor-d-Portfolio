@@ -1,5 +1,5 @@
+import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import '../Utilities/ApplicationsUtils.dart';
@@ -102,8 +102,48 @@ Future<void> CreateProfileDir() async {
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Other Directory Operations
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+
+// Clean Directory
+Future<void> CleanDir(String subDir) async {
+  final masterDir = await getApplicationDocumentsDirectory();
+  final dir = Directory('${masterDir.path}/$subDir');
+  final contents = dir.listSync();
+  for (var entity in contents) {
+    if (entity is File) {
+      await entity.delete();
+    } else if (entity is Directory) {
+      await entity.delete(recursive: true);
+    }
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Files
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+
+// Read JSON To String
+Future<List<dynamic>> JSONList(File inputFile) async {
+  String jsonString = await inputFile.readAsString();
+  return jsonDecode(jsonString);
+}
+
+// Map String To JSON
+Future<List<T>> MapJSONToList<T>(File inputFile, T Function(Map<String, dynamic> fromJSON) fromJSON) async {
+  List<T> ret = [];
+  final jsonString = await inputFile.readAsString();
+  final List<dynamic> jsonData = jsonDecode(jsonString);
+  ret = jsonData.map((entry) => fromJSON(entry)).toList();
+  return ret;
+}
+
+// Retrieve JSON File
+Future<File> RetJSONFile(String subDir, String fileName) async {
+  final masterDir = await getApplicationDocumentsDirectory();
+  File jsonFile = File('${masterDir.path}/$subDir/$fileName');
+  return jsonFile;
+}
 
 // Write New File
 Future<void> WriteFile(Directory dir, File file, String contents) async {

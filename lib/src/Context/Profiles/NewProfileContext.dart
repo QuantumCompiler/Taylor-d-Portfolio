@@ -4,7 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
-import '../../Profiles/ContentProfile.dart';
+import '../../Profiles/ProfileContent.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Utilities/ProfilesUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
@@ -20,7 +20,8 @@ AppBar NewProfileAppBar(BuildContext context) {
     ),
     leading: IconButton(
       icon: Icon(Icons.arrow_back_ios_new_outlined),
-      onPressed: () {
+      onPressed: () async {
+        await CleanDir('Temp');
         Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
       },
     ),
