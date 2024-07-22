@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
+import '../../Jobs/EditJob.dart';
 import '../../Jobs/JobContent.dart';
 import '../../Jobs/NewJob.dart';
 import '../../Utilities/GlobalUtils.dart';
@@ -152,7 +153,7 @@ SingleChildScrollView JobContent(BuildContext context, List<Job> jobs, Function 
                               ],
                             ),
                             onTap: () {
-                              // Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: EditJob(profileName: jobs[index].name)), (Route<dynamic> route) => false);
+                              Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: EditJobPage(jobName: jobs[index].name)), (Route<dynamic> route) => false);
                             },
                           ),
                         ),
