@@ -7,6 +7,39 @@ import '../Globals/Globals.dart';
 import '../Globals/JobsGlobals.dart';
 import '../Utilities/GlobalUtils.dart';
 
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Job Class
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+/*  Job - Job object
+      Boolean:
+        * newJob - Determines if the job is new or existing
+      Files:
+        * jobFile - File that is the job file
+      Strings:
+        * name - Name of the job
+      List Of Types:
+        * descriptionContList - List of Job Description Content
+        * otherInfoContList - List of Job Other Information Content
+        * roleContList - List of Job Role Content
+        * skillsContList - List of Job Skills Content
+      Text Editing Controller:
+        * nameController - Text Editing Controller for the name
+      Constructor:
+        * Job._ - Initializes a job object
+      Functions:
+        * Init - Initializes a job object
+        * LoadContent - Loads content from a JSON file
+        * CreateJob - Creates a job object
+        * SetContent - Sets the content of a list
+        * SetJobName - Sets the name of the job
+        * SetJobDir - Sets the directory of the job
+        * StringifyDes - Stringifies the job description
+        * StringifyOther - Stringifies the other information
+        * StringifyRole - Stringifies the role
+        * StringifySkills - Stringifies the skills
+        * WriteJob - Writes the job to a file
+        * WriteContentToJSON - Writes content to a JSON file
+*/
 class Job {
   // Boolean
   final bool? newJob;
@@ -26,6 +59,7 @@ class Job {
   // Text Editing Controller
   TextEditingController nameController = TextEditingController();
 
+  // Constructor
   Job._({
     required this.newJob,
     required this.name,
@@ -36,6 +70,18 @@ class Job {
     required this.nameController,
   });
 
+  /*  Init - Initializes a job object
+        Input:
+          name - String that is the name of the job (optional)
+          newJob - Boolean that determines if the job is new or existing
+        Algorithm:
+          * Initialize lists for each section
+          * If the job is new, set the directory to Temp
+          * If the job is existing, set the directory to Jobs/name
+          * Load content for each section
+        Output:
+          Job object
+  */
   static Future<Job> Init({String name = '', required bool? newJob}) async {
     // Lists for each section
     List<JobDesCont> descriptionContList = [];
@@ -65,6 +111,23 @@ class Job {
     );
   }
 
+  /*  LoadContent - Loads content from a JSON file
+        Class T Declaration:
+          * JobDesCont - Job Description Content
+          * JobOtherCont - Job Other Information Content
+          * JobRoleCont - Job Role Content
+          * JobSkillsCont - Job Skills Content
+        Input:
+          fileName - String that is the name of the file
+          subDir - String that is the subdirectory of the file
+          fromJSON - Function that maps JSON to a type
+        Algorithm:
+          * Declare empty list
+          * Try to load content
+            * If the file exists, map the JSON to the list
+        Output:
+          List of type T
+  */
   static Future<List<T>> LoadContent<T>(String fileName, String subDir, T Function(Map<String, dynamic>) fromJSON) async {
     // Declare empty list
     List<T> ret = [];
@@ -86,6 +149,24 @@ class Job {
     return ret;
   }
 
+  /*  CreateJob - Creates a job object
+        Input:
+          jobName - String that is the name of the job
+        Algorithm:
+          * If the job is new
+            * Set the job name and directory
+            * Write the job
+            * Clean the Temp directory
+          * If the job is existing
+            * Get the name of the job from the controller
+            * Get directories for master, old, and existing
+            * If the old directory exists and the existing directory does not
+              * Rename the old directory to the existing directory
+            * Set the new directory to the old directory
+            * Attempt to write the job
+        Output:
+          Creates files for a job
+  */
   Future<void> CreateJob(String jobName) async {
     // Job is new
     if (newJob == true) {
@@ -128,7 +209,7 @@ class Job {
       }
       // Set new directory to the old directory
       newDir = oldDir;
-      // Attempt to write profile
+      // Attempt to write job
       try {
         await WriteJob("Jobs/$name", "Jobs/$name");
       } catch (e) {
@@ -137,24 +218,65 @@ class Job {
     }
   }
 
-  // Set Content
+  /*  SetContent - Sets the content of a list
+        Class T Declaration:
+          * JobDesCont - Job Description Content
+          * JobOtherCont - Job Other Information Content
+          * JobRoleCont - Job Role Content
+          * JobSkillsCont - Job Skills Content
+        Input:
+          inputList - List of type T that is the input list
+          outputList - List of type T that is the output list
+        Algorithm:
+          * Clear the output list
+          * Add all elements from the input list to the output list
+        Output:
+          Sets the content of a list
+  */
   Future<void> SetContent<T>(List<T> inputList, List<T> outputList) async {
     outputList.clear();
     outputList.addAll(inputList);
   }
 
-  // Set Job Name
+  /*  SetJobName - Sets the name of the job
+        Input:
+          jobName - String that is the name of the job
+        Algorithm:
+          * Set the name of the job to the class variable
+        Output:
+          Sets the name of the job
+  */
   Future<void> SetJobName(String jobName) async {
     name = jobName;
   }
 
-  // Set Job Dir
+  /*  SetJobDir - Sets the directory of the job
+        Input:
+          None
+        Algorithm:
+          * Get the master directory
+          * Set the parent directory to Jobs
+          * Create the directory
+        Output:
+          Sets the directory of the job
+  */
   Future<void> SetJobDir() async {
     final masterDir = await getApplicationDocumentsDirectory();
     Directory parentDir = Directory('${masterDir.path}/Jobs/');
     CreateDir(parentDir, name);
   }
 
+  /*  StringifyDes - Stringifies the job description
+        Input:
+          subDir - String that is the subdirectory of the file
+        Algorithm:
+          * Declare empty string
+          * Grab JSON file
+          * If the file exists, map the JSON to the list
+          * For each element in the list, add the description field to the return string
+        Output:
+          Stringified job description
+  */
   Future<String> StringifyDes(String subDir) async {
     String ret = '';
     // Grab JSON file
@@ -175,6 +297,17 @@ class Job {
     return ret;
   }
 
+  /*  StringifyOther - Stringifies the other information
+        Input:
+          subDir - String that is the subdirectory of the file
+        Algorithm:
+          * Declare empty string
+          * Grab JSON file
+          * If the file exists, map the JSON to the list
+          * For each element in the list, add the description field to the return string
+        Output:
+          Stringified other information
+  */
   Future<String> StringifyOther(String subDir) async {
     String ret = '';
     // Grab JSON file
@@ -195,6 +328,17 @@ class Job {
     return ret;
   }
 
+  /*  StringifyRole - Stringifies the role
+        Input:
+          subDir - String that is the subdirectory of the file
+        Algorithm:
+          * Declare empty string
+          * Grab JSON file
+          * If the file exists, map the JSON to the list
+          * For each element in the list, add the description field to the return string
+        Output:
+          Stringified role
+  */
   Future<String> StringifyRole(String subDir) async {
     String ret = '';
     // Grab JSON file
@@ -215,6 +359,17 @@ class Job {
     return ret;
   }
 
+  /*  StringifySkills - Stringifies the skills
+        Input:
+          subDir - String that is the subdirectory of the file
+        Algorithm:
+          * Declare empty string
+          * Grab JSON file
+          * If the file exists, map the JSON to the list
+          * For each element in the list, add the description field to the return string
+        Output:
+          Stringified skills
+  */
   Future<String> StringifySkills(String subDir) async {
     String ret = '';
     // Grab JSON file
@@ -235,6 +390,21 @@ class Job {
     return ret;
   }
 
+  /*  WriteJob - Writes the job to a file
+        Input:
+          jsonDir - String that is the subdirectory of the JSON files
+          destDir - String that is the subdirectory of the destination files
+        Algorithm:
+          * Grab master directory
+          * Write profile JSON files
+          * If the necessary files exist, write the job file
+            * Decode JSON files
+            * Combine JSON files
+            * Write job file
+          * Catch error if occurs
+        Output:
+          Writes the job to a file
+  */
   Future<void> WriteJob(String jsonDir, String destDir) async {
     // Grab master directory
     final masterDir = await getApplicationDocumentsDirectory();
@@ -244,12 +414,11 @@ class Job {
     final File roleFile = File('${masterDir.path}/$jsonDir/$roleJSONFile');
     final File skillsFile = File('${masterDir.path}/$jsonDir/$skillsJSONFile');
     // Write content to JSON
-    // await WriteContentToJSON<ProfileCLCont>(jsonDir, coverLetterJSONFile, coverLetterContList);
     await WriteContentToJSON<JobDesCont>(jsonDir, descriptionJSONFile, descriptionContList);
     await WriteContentToJSON<JobOtherCont>(jsonDir, otherJSONFile, otherInfoContList);
     await WriteContentToJSON<JobRoleCont>(jsonDir, roleJSONFile, roleContList);
     await WriteContentToJSON<JobSkillsCont>(jsonDir, skillsJSONFile, skillsContList);
-    // If the necessary files exist, write the profile file
+    // If the necessary files exist, write the job file
     if (desFile.existsSync() && othFile.existsSync() && roleFile.existsSync() && skillsFile.existsSync()) {
       // Write job JSON file
       final File jobFile = File('${masterDir.path}/$destDir/$finalJobJSONFile');
@@ -266,7 +435,7 @@ class Job {
         'jobRole': roleData.isEmpty ? "" : roleData,
         'jobSkills': skillsData.isEmpty ? "" : skillsData,
       };
-      // Write profile file
+      // Write job file
       try {
         // Encode JSON
         final String jsonString = jsonEncode(combinedJSON);
@@ -290,7 +459,26 @@ class Job {
     }
   }
 
-  // Write Content To JSON
+  /*  WriteContentToJSON - Writes content to a JSON file
+        Class T Declaration:
+          * JobDesCont - Job Description Content
+          * JobOtherCont - Job Other Information Content
+          * JobRoleCont - Job Role Content
+          * JobSkillsCont - Job Skills Content
+        Input:
+          subDir - String that is the subdirectory of the file
+          fileName - String that is the name of the file
+          list - List of type T that is the list to write
+        Algorithm:
+          * Grab master directory
+          * If the directory does not exist, create it
+          * Create file
+          * Map list to JSON
+          * Encode JSON
+          * Write JSON to file
+        Output:
+          Writes content to a JSON file
+  */
   Future<void> WriteContentToJSON<T>(String subDir, String fileName, List<T> list) async {
     // Grab master directory
     final masterDir = await getApplicationDocumentsDirectory();
@@ -337,14 +525,39 @@ class Job {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Description Content
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+/*  JobDesCont - Job Description Content
+      Text Editing Controller:
+        * description - Text Editing Controller for the description
+      Constructor:
+        * JobDesCont - Initializes a job description content object
+        * JobDesCont.fromJSON - Converts the description to JSON
+      Functions:
+        * toJSON - Converts the description to JSON
+*/
 class JobDesCont {
   late TextEditingController description;
   JobDesCont() {
     description = TextEditingController();
   }
+  /*  JobDesCont.fromJSON - Converts the description to JSON
+        Input:
+          json - Map of strings to dynamic
+        Algorithm:
+          * Return the description as JSON
+        Output:
+          Description as JSON
+  */
   JobDesCont.fromJSON(Map<String, dynamic> json) {
     description = TextEditingController(text: json['description'] ?? '');
   }
+  /*  toJSON - Converts the description to JSON
+        Input:
+          None
+        Algorithm:
+          * Return the description as JSON
+        Output:
+          Description as JSON
+  */
   Map<String, dynamic> toJSON() {
     return {
       'description': description.text,
@@ -355,6 +568,18 @@ class JobDesCont {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Description Content Entry
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+/*  DescriptionJobEntry - Description Job Entry
+      Job:
+        * job - Job object
+      List Of Types:
+        * entries - List of Job Description Content
+      Functions:
+        * initState - Initializes the description entries
+        * initializeEntries - Initializes the description entries
+        * clearEntry - Clears the description entry
+        * build - Builds the description entry
+        * buildContEntry - Builds the description content entry
+*/
 class DescriptionJobEntry extends StatefulWidget {
   final Job job;
 
@@ -376,6 +601,15 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
     initializeEntries();
   }
 
+  /*  initializeEntries - Initializes the description entries
+        Input:
+          None
+        Algorithm:
+          * If the job description content list is not empty, set the content
+          * Otherwise, add a new description entry
+        Output:
+          Initializes the description entries
+  */
   void initializeEntries() async {
     if (widget.job.descriptionContList.isNotEmpty) {
       await widget.job.SetContent<JobDesCont>(widget.job.descriptionContList, entries);
@@ -384,6 +618,16 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
     }
   }
 
+  /*  clearEntry - Clears the description entry
+        Input:
+          index - Integer that is the index of the entry
+        Algorithm:
+          * Set the description to an empty string
+          * Set the state
+          * Write the content to the job
+        Output:
+          Clears the description entry
+  */
   void clearEntry(int index) async {
     setState(() {
       entries[index].description.text = '';
@@ -424,6 +668,7 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         SizedBox(height: standardSizedBoxHeight),
+        // Title
         Center(
           child: Text(
             'Enter Job Description',
@@ -440,6 +685,7 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              // Description
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
@@ -457,6 +703,7 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Clear Button
             Tooltip(
               message: 'Clear Description Entry',
               child: IconButton(
@@ -476,14 +723,39 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Other Information Content
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+/*  JobOtherCont - Job Other Information Content
+      Text Editing Controller:
+        * description - Text Editing Controller for the description
+      Constructor:
+        * JobOtherCont - Initializes a job other information content object
+        * JobOtherCont.fromJSON - Converts the description to JSON
+      Functions:
+        * toJSON - Converts the description to JSON
+*/
 class JobOtherCont {
   late TextEditingController description;
   JobOtherCont() {
     description = TextEditingController();
   }
+  /*  JobOtherCont.fromJSON - Converts the description to JSON
+        Input:
+          json - Map of strings to dynamic
+        Algorithm:
+          * Return the description as JSON
+        Output:
+          Description as JSON
+  */
   JobOtherCont.fromJSON(Map<String, dynamic> json) {
     description = TextEditingController(text: json['description'] ?? '');
   }
+  /*  toJSON - Converts the description to JSON
+        Input:
+          None
+        Algorithm:
+          * Return the description as JSON
+        Output:
+          Description as JSON
+  */
   Map<String, dynamic> toJSON() {
     return {
       'description': description.text,
@@ -494,6 +766,18 @@ class JobOtherCont {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Other Information Content Entry
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+/*  OtherInfoJobEntry - Other Information Job Entry
+      Job:
+        * job - Job object
+      List Of Types:
+        * entries - List of Job Other Information Content
+      Functions:
+        * initState - Initializes the other information entries
+        * initializeEntries - Initializes the other information entries
+        * clearEntry - Clears the other information entry
+        * build - Builds the other information entry
+        * buildContEntry - Builds the other information content entry
+*/
 class OtherInfoJobEntry extends StatefulWidget {
   final Job job;
 
@@ -515,6 +799,15 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
     initializeEntries();
   }
 
+  /*  initializeEntries - Initializes the other information entries
+        Input:
+          None
+        Algorithm:
+          * If the job other information content list is not empty, set the content
+          * Otherwise, add a new other information entry
+        Output:
+          Initializes the other information entries
+  */
   void initializeEntries() async {
     if (widget.job.otherInfoContList.isNotEmpty) {
       await widget.job.SetContent<JobOtherCont>(widget.job.otherInfoContList, entries);
@@ -523,6 +816,16 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
     }
   }
 
+  /*  clearEntry - Clears the other information entry
+        Input:
+          index - Integer that is the index of the entry
+        Algorithm:
+          * Set the description to an empty string
+          * Set the state
+          * Write the content to the job
+        Output:
+          Clears the other information entry
+  */
   void clearEntry(int index) async {
     setState(() {
       entries[index].description.text = '';
@@ -563,6 +866,7 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         SizedBox(height: standardSizedBoxHeight),
+        // Title
         Center(
           child: Text(
             'Enter Other Information',
@@ -579,6 +883,7 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              // Description
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
@@ -596,6 +901,7 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Clear Button
             Tooltip(
               message: 'Clear Other Info Entry',
               child: IconButton(
@@ -615,14 +921,39 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Role Content
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+/*  JobRoleCont - Job Role Content
+      Text Editing Controller:
+        * description - Text Editing Controller for the description
+      Constructor:
+        * JobRoleCont - Initializes a job role content object
+        * JobRoleCont.fromJSON - Converts the description to JSON
+      Functions:
+        * toJSON - Converts the description to JSON
+*/
 class JobRoleCont {
   late TextEditingController description;
   JobRoleCont() {
     description = TextEditingController();
   }
+  /*  JobRoleCont.fromJSON - Converts the description to JSON
+        Input:
+          json - Map of strings to dynamic
+        Algorithm:
+          * Return the description as JSON
+        Output:
+          Description as JSON
+  */
   JobRoleCont.fromJSON(Map<String, dynamic> json) {
     description = TextEditingController(text: json['description'] ?? '');
   }
+  /*  toJSON - Converts the description to JSON
+        Input:
+          None
+        Algorithm:
+          * Return the description as JSON
+        Output:
+          Description as JSON
+  */
   Map<String, dynamic> toJSON() {
     return {
       'description': description.text,
@@ -633,6 +964,18 @@ class JobRoleCont {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Role Content Entry
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+/*  RoleJobEntry - Role Job Entry
+      Job:
+        * job - Job object
+      List Of Types:
+        * entries - List of Job Role Content
+      Functions:
+        * initState - Initializes the role entries
+        * initializeEntries - Initializes the role entries
+        * clearEntry - Clears the role entry
+        * build - Builds the role entry
+        * buildContEntry - Builds the role content entry
+*/
 class RoleJobEntry extends StatefulWidget {
   final Job job;
 
@@ -654,6 +997,15 @@ class RoleJobEntryState extends State<RoleJobEntry> {
     initializeEntries();
   }
 
+  /*  initializeEntries - Initializes the role entries
+        Input:
+          None
+        Algorithm:
+          * If the job role content list is not empty, set the content
+          * Otherwise, add a new role entry
+        Output:
+          Initializes the role entries
+  */
   void initializeEntries() async {
     if (widget.job.roleContList.isNotEmpty) {
       await widget.job.SetContent<JobRoleCont>(widget.job.roleContList, entries);
@@ -662,6 +1014,16 @@ class RoleJobEntryState extends State<RoleJobEntry> {
     }
   }
 
+  /*  clearEntry - Clears the role entry
+        Input:
+          index - Integer that is the index of the entry
+        Algorithm:
+          * Set the description to an empty string
+          * Set the state
+          * Write the content to the job
+        Output:
+          Clears the role entry
+  */
   void clearEntry(int index) async {
     setState(() {
       entries[index].description.text = '';
@@ -702,6 +1064,7 @@ class RoleJobEntryState extends State<RoleJobEntry> {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         SizedBox(height: standardSizedBoxHeight),
+        // Title
         Center(
           child: Text(
             'Enter Role Information',
@@ -718,6 +1081,7 @@ class RoleJobEntryState extends State<RoleJobEntry> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              // Description
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
@@ -735,6 +1099,7 @@ class RoleJobEntryState extends State<RoleJobEntry> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Clear Button
             Tooltip(
               message: 'Clear Role Info Entry',
               child: IconButton(
@@ -754,14 +1119,39 @@ class RoleJobEntryState extends State<RoleJobEntry> {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Skills Content
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+/*  JobSkillsCont - Job Skills Content
+      Text Editing Controller:
+        * description - Text Editing Controller for the description
+      Constructor:
+        * JobSkillsCont - Initializes a job skills content object
+        * JobSkillsCont.fromJSON - Converts the description to JSON
+      Functions:
+        * toJSON - Converts the description to JSON
+*/
 class JobSkillsCont {
   late TextEditingController description;
   JobSkillsCont() {
     description = TextEditingController();
   }
+  /*  JobSkillsCont.fromJSON - Converts the description to JSON
+        Input:
+          json - Map of strings to dynamic
+        Algorithm:
+          * Return the description as JSON
+        Output:
+          Description as JSON
+  */
   JobSkillsCont.fromJSON(Map<String, dynamic> json) {
     description = TextEditingController(text: json['description'] ?? '');
   }
+  /*  toJSON - Converts the description to JSON
+        Input:
+          None
+        Algorithm:
+          * Return the description as JSON
+        Output:
+          Description as JSON
+  */
   Map<String, dynamic> toJSON() {
     return {
       'description': description.text,
@@ -772,6 +1162,18 @@ class JobSkillsCont {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Skills Content Entry
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+/*  SkillsJobEntry - Skills Job Entry
+      Job:
+        * job - Job object
+      List Of Types:
+        * entries - List of Job Skills Content
+      Functions:
+        * initState - Initializes the skill entries
+        * initializeEntries - Initializes the skill entries
+        * clearEntry - Clears the skill entry
+        * build - Builds the skill entry
+        * buildContEntry - Builds the skill content entry
+*/
 class SkillsJobEntry extends StatefulWidget {
   final Job job;
 
@@ -792,7 +1194,15 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
     super.initState();
     initializeEntries();
   }
-
+  /*  initializeEntries - Initializes the skill entries
+        Input:
+          None
+        Algorithm:
+          * If the job skill content list is not empty, set the content
+          * Otherwise, add a new skill entry
+        Output:
+          Initializes the skill entries
+  */
   void initializeEntries() async {
     if (widget.job.skillsContList.isNotEmpty) {
       await widget.job.SetContent<JobSkillsCont>(widget.job.skillsContList, entries);
@@ -800,7 +1210,16 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
       entries.add(JobSkillsCont());
     }
   }
-
+  /*  clearEntry - Clears the skill entry
+        Input:
+          index - Integer that is the index of the entry
+        Algorithm:
+          * Set the description to an empty string
+          * Set the state
+          * Write the content to the job
+        Output:
+          Clears the skill entry
+  */
   void clearEntry(int index) async {
     setState(() {
       entries[index].description.text = '';
@@ -841,6 +1260,7 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         SizedBox(height: standardSizedBoxHeight),
+        // Title
         Center(
           child: Text(
             'Enter Skill Requirements',
@@ -857,6 +1277,7 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              // Description
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
@@ -874,6 +1295,7 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Clear Button
             Tooltip(
               message: 'Clear Skill Requirements Entry',
               child: IconButton(
