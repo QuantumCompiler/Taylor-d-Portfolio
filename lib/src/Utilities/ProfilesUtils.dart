@@ -39,7 +39,7 @@ import '../Utilities/GlobalUtils.dart';
 */
 class Profile {
   // Boolean
-  final bool? newProfile;
+  final bool newProfile;
 
   // Files
   late File proFile;
@@ -82,7 +82,7 @@ class Profile {
         Output:
           Profile object
   */
-  static Future<Profile> Init({String name = '', required bool? newProfile}) async {
+  static Future<Profile> Init({String name = '', required bool newProfile}) async {
     // Lists of content for each section
     List<ProfileCLCont> coverLetterContList = [];
     List<ProfileEduCont> eduContList = [];

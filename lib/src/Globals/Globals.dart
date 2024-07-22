@@ -26,6 +26,7 @@ Color cyanButtonColor = Color.fromARGB(255, 0, 213, 255);
 Color whiteButtonColor = Colors.white;
 Color blackTextColor = Colors.black;
 Color whiteTextColor = Colors.white;
+Color cardHoverColor = Color.fromARGB(255, 0, 255, 60);
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Directories

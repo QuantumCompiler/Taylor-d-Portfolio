@@ -48,6 +48,10 @@ class ThemeProvider with ChangeNotifier {
           fontWeight: FontWeight.bold,
         ),
       ),
+      cardTheme: CardTheme(
+        elevation: 50.0,
+        shadowColor: Color.fromARGB(51, 0, 213, 255),
+      ),
     );
   }
 }
