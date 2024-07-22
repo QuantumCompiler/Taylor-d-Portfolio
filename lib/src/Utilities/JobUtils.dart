@@ -24,6 +24,7 @@ class Job {
 
   // List Of Types
   late List<JobDesCont> descriptionContList = [];
+  late List<JobOtherCont> otherInfoContList = [];
 
   // Text Editing Controller
   TextEditingController nameController = TextEditingController();
@@ -32,12 +33,14 @@ class Job {
     required this.newJob,
     required this.name,
     required this.descriptionContList,
+    required this.otherInfoContList,
     required this.nameController,
   });
 
   static Future<Job> Init({String name = '', required bool? newJob}) async {
     // Lists for each section
     List<JobDesCont> descriptionContList = [];
+    List<JobOtherCont> otherInfoContList = [];
     // New job initializer
     String finalDir = '';
     if (newJob == true) {
@@ -47,10 +50,12 @@ class Job {
     }
     // Set lists
     descriptionContList = [];
+    otherInfoContList = [];
     return Job._(
       newJob: newJob,
       name: name,
       descriptionContList: descriptionContList,
+      otherInfoContList: otherInfoContList,
       nameController: TextEditingController(text: name),
     );
   }
@@ -92,6 +97,10 @@ class Job {
       // If the type is job description
       if (cont is JobDesCont) {
         return (cont as JobDesCont).toJSON();
+      }
+      // If the type is other info
+      if (cont is JobOtherCont) {
+        return (cont as JobOtherCont).toJSON();
       }
       // else if (cont is ProfileEduCont) {
       //   return (cont as ProfileEduCont).toJSON();
@@ -229,7 +238,7 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
                 maxLines: 15,
                 decoration: InputDecoration(hintText: 'Enter the job description here...'),
                 onChanged: (value) async {
-                  await widget.job.SetContent(entries, widget.job.descriptionContList);
+                  await widget.job.SetContent<JobDesCont>(entries, widget.job.descriptionContList);
                 },
               ),
             ],
@@ -242,6 +251,145 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
           children: [
             Tooltip(
               message: 'Clear Description Entry',
+              child: IconButton(
+                icon: Icon(Icons.clear),
+                onPressed: () async {
+                  clearEntry(index);
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Other Information Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class JobOtherCont {
+  late TextEditingController description;
+  JobOtherCont() {
+    description = TextEditingController();
+  }
+  JobOtherCont.fromJSON(Map<String, dynamic> json) {
+    description = TextEditingController(text: json['description'] ?? '');
+  }
+  Map<String, dynamic> toJSON() {
+    return {
+      'description': description.text,
+    };
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Other Information Content Entry
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class OtherInfoJobEntry extends StatefulWidget {
+  final Job job;
+
+  const OtherInfoJobEntry({
+    super.key,
+    required this.job,
+  });
+
+  @override
+  OtherInfoJobEntryState createState() => OtherInfoJobEntryState();
+}
+
+class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
+  List<JobOtherCont> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    initializeEntries();
+  }
+
+  void initializeEntries() async {
+    if (widget.job.descriptionContList.isNotEmpty) {
+      await widget.job.SetContent<JobOtherCont>(widget.job.otherInfoContList, entries);
+    } else {
+      entries.add(JobOtherCont());
+    }
+  }
+
+  void clearEntry(int index) async {
+    setState(() {
+      entries[index].description.text = '';
+    });
+    await widget.job.SetContent<JobOtherCont>(widget.job.otherInfoContList, entries);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          ...entries.asMap().entries.map(
+            (entry) {
+              int index = entry.key;
+              JobOtherCont entryData = entry.value;
+              return buildContEntry(
+                context,
+                index,
+                entryData,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildContEntry(
+    BuildContext context,
+    int index,
+    JobOtherCont entry,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SizedBox(height: standardSizedBoxHeight),
+        Center(
+          child: Text(
+            'Enter Other Information',
+            style: TextStyle(
+              fontSize: secondaryTitles,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Container(
+          width: MediaQuery.of(context).size.width * 0.75,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: entry.description,
+                keyboardType: TextInputType.multiline,
+                maxLines: 15,
+                decoration: InputDecoration(hintText: 'Enter the other information here...'),
+                onChanged: (value) async {
+                  await widget.job.SetContent<JobOtherCont>(entries, widget.job.otherInfoContList);
+                },
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Tooltip(
+              message: 'Clear Other Info Entry',
               child: IconButton(
                 icon: Icon(Icons.clear),
                 onPressed: () async {

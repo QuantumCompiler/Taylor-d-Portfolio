@@ -36,7 +36,9 @@ class NewJobPageState extends State<NewJobPage> {
           } else {
             Job newJob = snapshot.data!;
             final GlobalKey<DescriptionJobEntryState> jobDescriptionKey = GlobalKey<DescriptionJobEntryState>();
+            final GlobalKey<OtherInfoJobEntryState> otherInfoKey = GlobalKey<OtherInfoJobEntryState>();
             keyList.add(jobDescriptionKey);
+            keyList.add(otherInfoKey);
             return NewJobContent(context, newJob, keyList);
           }
         },
