@@ -63,4 +63,5 @@ enum JobContentType {
   description,
   other,
   role,
+  skills,
 }

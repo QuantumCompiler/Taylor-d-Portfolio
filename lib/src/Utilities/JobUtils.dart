@@ -12,9 +12,6 @@ class Job {
   // Files
   late File jobFile;
 
-// late String qualTitle;
-// late String roleTitle;
-
   // Strings
   late String name;
 
@@ -22,6 +19,7 @@ class Job {
   late List<JobDesCont> descriptionContList = [];
   late List<JobOtherCont> otherInfoContList = [];
   late List<JobRoleCont> roleContList = [];
+  late List<JobSkillsCont> skillsContList = [];
 
   // Text Editing Controller
   TextEditingController nameController = TextEditingController();
@@ -32,6 +30,7 @@ class Job {
     required this.descriptionContList,
     required this.otherInfoContList,
     required this.roleContList,
+    required this.skillsContList,
     required this.nameController,
   });
 
@@ -40,6 +39,7 @@ class Job {
     List<JobDesCont> descriptionContList = [];
     List<JobOtherCont> otherInfoContList = [];
     List<JobRoleCont> roleContList = [];
+    List<JobSkillsCont> skillsContList = [];
     // New job initializer
     String finalDir = '';
     if (newJob == true) {
@@ -51,12 +51,14 @@ class Job {
     descriptionContList = [];
     otherInfoContList = [];
     roleContList = [];
+    skillsContList = [];
     return Job._(
       newJob: newJob,
       name: name,
       descriptionContList: descriptionContList,
       otherInfoContList: otherInfoContList,
       roleContList: roleContList,
+      skillsContList: skillsContList,
       nameController: TextEditingController(text: name),
     );
   }
@@ -106,6 +108,10 @@ class Job {
       // If the type is role
       else if (cont is JobRoleCont) {
         return (cont as JobRoleCont).toJSON();
+      }
+      // If the type is skills
+      else if (cont is JobSkillsCont) {
+        return (cont as JobSkillsCont).toJSON();
       }
       // If the type is not recognized
       else {
@@ -522,6 +528,145 @@ class RoleJobEntryState extends State<RoleJobEntry> {
           children: [
             Tooltip(
               message: 'Clear Role Info Entry',
+              child: IconButton(
+                icon: Icon(Icons.clear),
+                onPressed: () async {
+                  clearEntry(index);
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Skills Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class JobSkillsCont {
+  late TextEditingController description;
+  JobSkillsCont() {
+    description = TextEditingController();
+  }
+  JobSkillsCont.fromJSON(Map<String, dynamic> json) {
+    description = TextEditingController(text: json['description'] ?? '');
+  }
+  Map<String, dynamic> toJSON() {
+    return {
+      'description': description.text,
+    };
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Skills Content Entry
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class SkillsJobEntry extends StatefulWidget {
+  final Job job;
+
+  const SkillsJobEntry({
+    super.key,
+    required this.job,
+  });
+
+  @override
+  SkillsJobEntryState createState() => SkillsJobEntryState();
+}
+
+class SkillsJobEntryState extends State<SkillsJobEntry> {
+  List<JobSkillsCont> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    initializeEntries();
+  }
+
+  void initializeEntries() async {
+    if (widget.job.skillsContList.isNotEmpty) {
+      await widget.job.SetContent<JobSkillsCont>(widget.job.skillsContList, entries);
+    } else {
+      entries.add(JobSkillsCont());
+    }
+  }
+
+  void clearEntry(int index) async {
+    setState(() {
+      entries[index].description.text = '';
+    });
+    await widget.job.SetContent<JobSkillsCont>(widget.job.skillsContList, entries);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          ...entries.asMap().entries.map(
+            (entry) {
+              int index = entry.key;
+              JobSkillsCont entryData = entry.value;
+              return buildContEntry(
+                context,
+                index,
+                entryData,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildContEntry(
+    BuildContext context,
+    int index,
+    JobSkillsCont entry,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SizedBox(height: standardSizedBoxHeight),
+        Center(
+          child: Text(
+            'Enter Skill Requirements',
+            style: TextStyle(
+              fontSize: secondaryTitles,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Container(
+          width: MediaQuery.of(context).size.width * 0.75,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: entry.description,
+                keyboardType: TextInputType.multiline,
+                maxLines: 15,
+                decoration: InputDecoration(hintText: 'Enter skill requirements here...'),
+                onChanged: (value) async {
+                  await widget.job.SetContent<JobSkillsCont>(entries, widget.job.skillsContList);
+                },
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Tooltip(
+              message: 'Clear Skill Requirements Entry',
               child: IconButton(
                 icon: Icon(Icons.clear),
                 onPressed: () async {

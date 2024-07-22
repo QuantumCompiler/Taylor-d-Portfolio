@@ -28,6 +28,8 @@ class JobContentEntryState extends State<JobContentEntry> {
         return OtherInfoJobEntry(job: widget.job, key: widget.keyList[1]);
       case JobContentType.role:
         return RoleJobEntry(job: widget.job, key: widget.keyList[2]);
+      case JobContentType.skills:
+        return SkillsJobEntry(job: widget.job, key: widget.keyList[3]);
     }
   }
 }
@@ -43,6 +45,8 @@ AppBar JobContentAppBar(BuildContext context, JobContentType type, String jobNam
     title = 'Other Information - $jobName';
   } else if (type == JobContentType.role) {
     title = 'Role Description - $jobName';
+  } else if (type == JobContentType.skills) {
+    title = 'Skill Requirements - $jobName';
   }
   return AppBar(
     title: Text(
@@ -75,6 +79,8 @@ BottomAppBar JobContentBottomAppBar(BuildContext context, JobContentType type, J
     buttonText = 'Save Other';
   } else if (type == JobContentType.role) {
     buttonText = 'Save Role';
+  } else if (type == JobContentType.skills) {
+    buttonText = 'Save Skills';
   } else {
     buttonText = 'Save Content';
   }
@@ -92,6 +98,8 @@ BottomAppBar JobContentBottomAppBar(BuildContext context, JobContentType type, J
               await job.WriteContentToJSON<JobOtherCont>(finalDir, otherJSONFile, job.otherInfoContList);
             } else if (type == JobContentType.role) {
               await job.WriteContentToJSON<JobRoleCont>(finalDir, roleJSONFile, job.roleContList);
+            } else if (type == JobContentType.skills) {
+              await job.WriteContentToJSON<JobSkillsCont>(finalDir, skillsJSONFile, job.skillsContList);
             }
           },
         ),
