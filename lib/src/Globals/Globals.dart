@@ -62,4 +62,5 @@ enum ProfileContentType {
 enum JobContentType {
   description,
   other,
+  role,
 }

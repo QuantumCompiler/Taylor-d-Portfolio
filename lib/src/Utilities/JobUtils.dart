@@ -12,10 +12,6 @@ class Job {
   // Files
   late File jobFile;
 
-// // Main Titles & Name
-// late String desTitle;
-// late String name;
-// late String othTitle;
 // late String qualTitle;
 // late String roleTitle;
 
@@ -25,6 +21,7 @@ class Job {
   // List Of Types
   late List<JobDesCont> descriptionContList = [];
   late List<JobOtherCont> otherInfoContList = [];
+  late List<JobRoleCont> roleContList = [];
 
   // Text Editing Controller
   TextEditingController nameController = TextEditingController();
@@ -34,6 +31,7 @@ class Job {
     required this.name,
     required this.descriptionContList,
     required this.otherInfoContList,
+    required this.roleContList,
     required this.nameController,
   });
 
@@ -41,6 +39,7 @@ class Job {
     // Lists for each section
     List<JobDesCont> descriptionContList = [];
     List<JobOtherCont> otherInfoContList = [];
+    List<JobRoleCont> roleContList = [];
     // New job initializer
     String finalDir = '';
     if (newJob == true) {
@@ -51,11 +50,13 @@ class Job {
     // Set lists
     descriptionContList = [];
     otherInfoContList = [];
+    roleContList = [];
     return Job._(
       newJob: newJob,
       name: name,
       descriptionContList: descriptionContList,
       otherInfoContList: otherInfoContList,
+      roleContList: roleContList,
       nameController: TextEditingController(text: name),
     );
   }
@@ -99,21 +100,13 @@ class Job {
         return (cont as JobDesCont).toJSON();
       }
       // If the type is other info
-      if (cont is JobOtherCont) {
+      else if (cont is JobOtherCont) {
         return (cont as JobOtherCont).toJSON();
       }
-      // else if (cont is ProfileEduCont) {
-      //   return (cont as ProfileEduCont).toJSON();
-      // }
-      // else if (cont is ProfileExpCont) {
-      //   return (cont as ProfileExpCont).toJSON();
-      // }
-      // else if (cont is ProfileProjCont) {
-      //   return (cont as ProfileProjCont).toJSON();
-      // }
-      // else if (cont is ProfileSkillsCont) {
-      //   return (cont as ProfileSkillsCont).toJSON();
-      // }
+      // If the type is role
+      else if (cont is JobRoleCont) {
+        return (cont as JobRoleCont).toJSON();
+      }
       // If the type is not recognized
       else {
         throw Exception("Type T does not have a toJSON method");
@@ -390,6 +383,145 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
           children: [
             Tooltip(
               message: 'Clear Other Info Entry',
+              child: IconButton(
+                icon: Icon(Icons.clear),
+                onPressed: () async {
+                  clearEntry(index);
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Role Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class JobRoleCont {
+  late TextEditingController description;
+  JobRoleCont() {
+    description = TextEditingController();
+  }
+  JobRoleCont.fromJSON(Map<String, dynamic> json) {
+    description = TextEditingController(text: json['description'] ?? '');
+  }
+  Map<String, dynamic> toJSON() {
+    return {
+      'description': description.text,
+    };
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Role Content Entry
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class RoleJobEntry extends StatefulWidget {
+  final Job job;
+
+  const RoleJobEntry({
+    super.key,
+    required this.job,
+  });
+
+  @override
+  RoleJobEntryState createState() => RoleJobEntryState();
+}
+
+class RoleJobEntryState extends State<RoleJobEntry> {
+  List<JobRoleCont> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    initializeEntries();
+  }
+
+  void initializeEntries() async {
+    if (widget.job.roleContList.isNotEmpty) {
+      await widget.job.SetContent<JobRoleCont>(widget.job.roleContList, entries);
+    } else {
+      entries.add(JobRoleCont());
+    }
+  }
+
+  void clearEntry(int index) async {
+    setState(() {
+      entries[index].description.text = '';
+    });
+    await widget.job.SetContent<JobRoleCont>(widget.job.roleContList, entries);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          ...entries.asMap().entries.map(
+            (entry) {
+              int index = entry.key;
+              JobRoleCont entryData = entry.value;
+              return buildContEntry(
+                context,
+                index,
+                entryData,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildContEntry(
+    BuildContext context,
+    int index,
+    JobRoleCont entry,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SizedBox(height: standardSizedBoxHeight),
+        Center(
+          child: Text(
+            'Enter Role Information',
+            style: TextStyle(
+              fontSize: secondaryTitles,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Container(
+          width: MediaQuery.of(context).size.width * 0.75,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: entry.description,
+                keyboardType: TextInputType.multiline,
+                maxLines: 15,
+                decoration: InputDecoration(hintText: 'Enter role information here...'),
+                onChanged: (value) async {
+                  await widget.job.SetContent<JobRoleCont>(entries, widget.job.roleContList);
+                },
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Tooltip(
+              message: 'Clear Role Info Entry',
               child: IconButton(
                 icon: Icon(Icons.clear),
                 onPressed: () async {

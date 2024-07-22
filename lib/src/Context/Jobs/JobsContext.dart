@@ -224,7 +224,14 @@ List<Widget> JobOptionsContent(BuildContext context, Job job, List<GlobalKey> ke
       await Navigator.push(context, MaterialPageRoute(builder: (context) => JobContentPage(job: job, title: 'Other Information Entry', type: JobContentType.other, keyList: keys)));
     },
   );
+  ListTile RoleInfoTile = ListTile(
+    title: Text('Role Information'),
+    onTap: () async {
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => JobContentPage(job: job, title: 'Role Information Entry', type: JobContentType.role, keyList: keys)));
+    },
+  );
   ret.add(DescriptionTile);
   ret.add(OtherInfoTile);
+  ret.add(RoleInfoTile);
   return ret;
 }
