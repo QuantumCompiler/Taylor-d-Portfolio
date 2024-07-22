@@ -45,11 +45,14 @@ SingleChildScrollView EditJobContent(BuildContext context, Job job, List<GlobalK
       children: [
         Center(
           child: Container(
-            width: MediaQuery.of(context).size.width * titleContainerWidth,
+            width: MediaQuery.of(context).size.width * 0.8,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.start,
-              children: [...JobOptionsContent(context, job, keys)],
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                ...JobOptionsContent(context, job, keys),
+              ],
             ),
           ),
         ),

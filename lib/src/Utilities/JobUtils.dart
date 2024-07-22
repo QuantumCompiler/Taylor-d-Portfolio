@@ -42,7 +42,7 @@ import '../Utilities/GlobalUtils.dart';
 */
 class Job {
   // Boolean
-  final bool? newJob;
+  final bool newJob;
 
   // Files
   late File jobFile;
@@ -82,7 +82,7 @@ class Job {
         Output:
           Job object
   */
-  static Future<Job> Init({String name = '', required bool? newJob}) async {
+  static Future<Job> Init({String name = '', required bool newJob}) async {
     // Lists for each section
     List<JobDesCont> descriptionContList = [];
     List<JobOtherCont> otherInfoContList = [];

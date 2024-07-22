@@ -48,7 +48,7 @@ SingleChildScrollView NewJobContent(BuildContext context, Job job, List<GlobalKe
       children: <Widget>[
         Center(
           child: Container(
-            width: MediaQuery.of(context).size.width * titleContainerWidth,
+            width: MediaQuery.of(context).size.width * 0.8,
             child: Column(
               children: [
                 SizedBox(height: standardSizedBoxHeight),
