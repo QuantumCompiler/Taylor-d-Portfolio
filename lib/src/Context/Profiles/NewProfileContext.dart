@@ -30,7 +30,8 @@ AppBar NewProfileAppBar(BuildContext context) {
         children: [
           IconButton(
             icon: Icon(Icons.dashboard),
-            onPressed: () {
+            onPressed: () async {
+              await CleanDir('Temp');
               Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
             },
           ),

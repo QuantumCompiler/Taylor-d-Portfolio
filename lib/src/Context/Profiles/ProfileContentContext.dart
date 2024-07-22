@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../Context/Globals/GlobalContext.dart';
 import '../../Globals/Globals.dart';
 import '../../Globals/ProfilesGlobals.dart';
 import '../../Utilities/ProfilesUtils.dart';
@@ -101,15 +102,40 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ProfileContentType
           child: Text(buttonText),
           onPressed: () async {
             if (type == ProfileContentType.coverLetter) {
-              await profile.WriteContentToJSON<ProfileCLCont>(finalDir, coverLetterJSONFile, profile.coverLetterContList);
+              try {
+                await profile.WriteContentToJSON<ProfileCLCont>(finalDir, coverLetterJSONFile, profile.coverLetterContList);
+                GenSnackBar(context, 'Cover Letter Content Written Successfully');
+              } catch (e) {
+                throw ('Error occurred: $e');
+              }
             } else if (type == ProfileContentType.education) {
-              await profile.WriteContentToJSON<ProfileEduCont>(finalDir, educationJSONFile, profile.eduContList);
+              try {
+                await profile.WriteContentToJSON<ProfileEduCont>(finalDir, educationJSONFile, profile.eduContList);
+                GenSnackBar(context, 'Education Content Written Successfully');
+              } catch (e) {
+                throw ('Error occurred: $e');
+              }
             } else if (type == ProfileContentType.experience) {
-              await profile.WriteContentToJSON<ProfileExpCont>(finalDir, experienceJSONFile, profile.expContList);
+              try {
+                await profile.WriteContentToJSON<ProfileExpCont>(finalDir, experienceJSONFile, profile.expContList);
+                GenSnackBar(context, 'Experience Content Written Successfully');
+              } catch (e) {
+                throw ('Error occurred: $e');
+              }
             } else if (type == ProfileContentType.projects) {
-              await profile.WriteContentToJSON<ProfileProjCont>(finalDir, projectsJSONFile, profile.projContList);
+              try {
+                await profile.WriteContentToJSON<ProfileProjCont>(finalDir, projectsJSONFile, profile.projContList);
+                GenSnackBar(context, 'Projects Content Written Successfully');
+              } catch (e) {
+                throw ('Error occurred: $e');
+              }
             } else if (type == ProfileContentType.skills) {
-              await profile.WriteContentToJSON<ProfileSkillsCont>(finalDir, skillsJSONFile, profile.skillsContList);
+              try {
+                await profile.WriteContentToJSON<ProfileSkillsCont>(finalDir, skillsJSONFile, profile.skillsContList);
+                GenSnackBar(context, 'Skills Content Written Successfully');
+              } catch (e) {
+                throw ('Error occurred: $e');
+              }
             }
           },
         ),

@@ -102,3 +102,20 @@ Future<DateTime?> SelectDate(BuildContext context) async {
   }
   return DateTime.now();
 }
+
+ScaffoldFeatureController<SnackBar, SnackBarClosedReason> GenSnackBar(BuildContext context, String content) {
+  return ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            content,
+          ),
+        ],
+      ),
+      duration: Duration(seconds: 1),
+    ),
+  );
+}

@@ -26,7 +26,7 @@ class ThemeProvider with ChangeNotifier {
       brightness: _isDarkTheme ? Brightness.dark : Brightness.light,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
-          backgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? cyanButtonColor : whiteButtonColor),
+          backgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? cyanButtonColor : cyanButtonColor),
           foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Colors.black : Colors.black),
           textStyle: WidgetStateProperty.all<TextStyle>(
             TextStyle(
@@ -40,6 +40,13 @@ class ThemeProvider with ChangeNotifier {
       ),
       bottomAppBarTheme: BottomAppBarTheme(
         color: Colors.transparent,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: Color.fromARGB(128, 0, 213, 255),
+        contentTextStyle: TextStyle(
+          color: Colors.black,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

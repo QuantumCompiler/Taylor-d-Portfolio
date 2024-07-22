@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../Context/Globals/GlobalContext.dart';
 import '../../Globals/Globals.dart';
 import '../../Globals/JobsGlobals.dart';
 import '../../Utilities/JobUtils.dart';
@@ -93,13 +94,33 @@ BottomAppBar JobContentBottomAppBar(BuildContext context, JobContentType type, J
           child: Text(buttonText),
           onPressed: () async {
             if (type == JobContentType.description) {
-              await job.WriteContentToJSON<JobDesCont>(finalDir, descriptionJSONFile, job.descriptionContList);
+              try {
+                await job.WriteContentToJSON<JobDesCont>(finalDir, descriptionJSONFile, job.descriptionContList);
+                GenSnackBar(context, 'Job Description Content Written Successfully');
+              } catch (e) {
+                throw ('Error occurred: $e');
+              }
             } else if (type == JobContentType.other) {
-              await job.WriteContentToJSON<JobOtherCont>(finalDir, otherJSONFile, job.otherInfoContList);
+              try {
+                await job.WriteContentToJSON<JobOtherCont>(finalDir, otherJSONFile, job.otherInfoContList);
+                GenSnackBar(context, 'Other Information Content Written Successfully');
+              } catch (e) {
+                throw ('Error occurred: $e');
+              }
             } else if (type == JobContentType.role) {
-              await job.WriteContentToJSON<JobRoleCont>(finalDir, roleJSONFile, job.roleContList);
+              try {
+                await job.WriteContentToJSON<JobRoleCont>(finalDir, roleJSONFile, job.roleContList);
+                GenSnackBar(context, 'Role Description Content Written Successfully');
+              } catch (e) {
+                throw ('Error occurred: $e');
+              }
             } else if (type == JobContentType.skills) {
-              await job.WriteContentToJSON<JobSkillsCont>(finalDir, skillsJSONFile, job.skillsContList);
+              try {
+                await job.WriteContentToJSON<JobSkillsCont>(finalDir, skillsJSONFile, job.skillsContList);
+                GenSnackBar(context, 'Skill Requirements Content Written Successfully');
+              } catch (e) {
+                throw ('Error occurred: $e');
+              }
             }
           },
         ),

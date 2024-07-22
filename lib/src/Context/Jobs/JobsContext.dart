@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 import '../../Jobs/EditJob.dart';
-import '../../Jobs/JobContent.dart';
+import '../../Jobs/JobsContent.dart';
 import '../../Jobs/NewJob.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/JobUtils.dart';
