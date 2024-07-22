@@ -6,7 +6,7 @@ import '../Utilities/ProfilesUtils.dart';
 class ProfileContentPage extends StatelessWidget {
   final Profile profile;
   final String title;
-  final ContentType type;
+  final ProfileContentType type;
   final List<GlobalKey> keyList;
   const ProfileContentPage({
     super.key,

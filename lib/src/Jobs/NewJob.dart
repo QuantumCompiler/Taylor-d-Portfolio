@@ -2,15 +2,45 @@ import 'package:flutter/material.dart';
 import '../Context/Jobs/NewJobContext.dart';
 import '../Utilities/JobUtils.dart';
 
-class NewJobPage extends StatelessWidget {
+class NewJobPage extends StatefulWidget {
   const NewJobPage({super.key});
+
+  @override
+  NewJobPageState createState() => NewJobPageState();
+}
+
+class NewJobPageState extends State<NewJobPage> {
+  late Future<Job> futureJob;
+  late List<GlobalKey> keyList;
+
+  @override
+  void initState() {
+    super.initState();
+    keyList = [];
+    futureJob = Job.Init(newJob: true);
+  }
+
   @override
   Widget build(BuildContext context) {
-    Job newJob = Job();
     return Scaffold(
-      appBar: appBar(context),
-      body: newJobContent(context, newJob),
-      bottomNavigationBar: bottomAppBar(context, newJob),
+      appBar: NewJobAppBar(context),
+      body: FutureBuilder<Job>(
+        future: futureJob,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData) {
+            return Center(child: Text('No Job Found'));
+          } else {
+            Job newJob = snapshot.data!;
+            final GlobalKey<DescriptionJobEntryState> jobDescriptionKey = GlobalKey<DescriptionJobEntryState>();
+            keyList.add(jobDescriptionKey);
+            return NewJobContent(context, newJob, keyList);
+          }
+        },
+      ),
     );
   }
 }

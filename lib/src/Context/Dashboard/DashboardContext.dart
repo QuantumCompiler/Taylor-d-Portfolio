@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../Globals/DashboardGlobals.dart';
 import '../../Globals/Globals.dart';
 // import '../../Applications/Applications.dart';
-import '../../Jobs/Job.dart';
+import '../../Jobs/Jobs.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
 import '../../Utilities/GlobalUtils.dart';
@@ -255,7 +255,7 @@ SizedBox desktopDrawer(BuildContext context) {
             IconButton(
               tooltip: jobsToolTip,
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => JobsPage()));
+                Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
               },
               icon: Icon(Icons.task),
             ),
@@ -318,7 +318,7 @@ BottomAppBar mobileNavbar(BuildContext context) {
         Spacer(),
         IconButton(
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => JobsPage()));
+            Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
           },
           icon: Icon(Icons.task),
         ),

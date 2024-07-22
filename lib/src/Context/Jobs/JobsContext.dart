@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
-import '../../Profiles/EditProfile.dart';
-import '../../Profiles/NewProfile.dart';
-import '../../Profiles/ProfileContent.dart';
+import '../../Jobs/JobContent.dart';
+import '../../Jobs/NewJob.dart';
 import '../../Utilities/GlobalUtils.dart';
-import '../../Utilities/ProfilesUtils.dart';
+import '../../Utilities/JobUtils.dart';
 
-AppBar ProfileAppBar(BuildContext context, List<Profile> profiles) {
+AppBar JobsAppBar(BuildContext context, List<Job> jobs) {
   return AppBar(
     title: Text(
-      profiles.isNotEmpty ? 'Profiles, Edit Or Create New' : 'Profiles, Create New Profile',
+      jobs.isNotEmpty ? "Jobs, Edit Or Create New" : "Jobs, Create New",
       style: TextStyle(
         fontSize: appBarTitle,
         fontWeight: FontWeight.bold,
@@ -37,9 +36,9 @@ AppBar ProfileAppBar(BuildContext context, List<Profile> profiles) {
   );
 }
 
-SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profiles, Function setState) {
+SingleChildScrollView JobContent(BuildContext context, List<Job> jobs, Function setState) {
   return SingleChildScrollView(
-    child: profiles.isNotEmpty
+    child: jobs.isNotEmpty
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -48,7 +47,7 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
               SizedBox(height: standardSizedBoxHeight),
               Center(
                 child: Text(
-                  'View / Edit Previous Profiles',
+                  'View / Edit Previous Jobs',
                   style: TextStyle(
                     fontSize: secondaryTitles,
                     fontWeight: FontWeight.bold,
@@ -66,19 +65,19 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
                   width: MediaQuery.of(context).size.width * titleContainerWidth,
                   child: ListView.builder(
                     shrinkWrap: true,
-                    itemCount: profiles.length,
+                    itemCount: jobs.length,
                     itemBuilder: (context, index) {
                       return Tooltip(
-                        message: 'Click To Edit ${profiles[index].name}',
+                        message: 'Click To Edit ${jobs[index].name}',
                         child: MouseRegion(
                           cursor: SystemMouseCursors.click,
                           child: ListTile(
-                            title: Text(profiles[index].name),
+                            title: Text(jobs[index].name),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Tooltip(
-                                  message: 'Delete Profile ${profiles[index].name}',
+                                  message: 'Delete Job ${jobs[index].name}',
                                   child: IconButton(
                                     icon: Icon(
                                       Icons.delete,
@@ -95,7 +94,7 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Text(
-                                                  'Delete Profile ${profiles[index].name}?',
+                                                  'Delete Job ${jobs[index].name}?',
                                                   style: TextStyle(
                                                     fontSize: appBarTitle,
                                                     fontWeight: FontWeight.bold,
@@ -108,7 +107,7 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
                                                 ),
                                                 SizedBox(height: standardSizedBoxHeight),
                                                 Text(
-                                                  'Are you sure that you would like to delete this profile?\nThis cannot be undone.',
+                                                  'Are you sure that you would like to delete this job?\nThis cannot be undone.',
                                                 ),
                                                 SizedBox(height: standardSizedBoxHeight),
                                                 Row(
@@ -128,15 +127,15 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
                                                       child: Text('Delete'),
                                                       onPressed: () async {
                                                         try {
-                                                          await DeleteProfile(profiles[index].name);
+                                                          await DeleteJob(jobs[index].name);
                                                           setState(
                                                             () {
-                                                              profiles.removeAt(index);
+                                                              jobs.removeAt(index);
                                                             },
                                                           );
                                                           Navigator.of(context).pop();
                                                         } catch (e) {
-                                                          throw ('Error in deleting ${profiles[index].name}');
+                                                          throw ('Error in deleting ${jobs[index].name}');
                                                         }
                                                       },
                                                     ),
@@ -153,7 +152,7 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
                               ],
                             ),
                             onTap: () {
-                              Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: EditProfilePage(profileName: profiles[index].name)), (Route<dynamic> route) => false);
+                              // Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: EditJob(profileName: jobs[index].name)), (Route<dynamic> route) => false);
                             },
                           ),
                         ),
@@ -165,11 +164,11 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
               SizedBox(height: standardSizedBoxHeight),
               Center(
                 child: Tooltip(
-                  message: 'Create A New Profile',
+                  message: 'Create New Job',
                   child: IconButton(
                     icon: Icon(Icons.add_circle_outline_rounded),
                     onPressed: () {
-                      Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewProfilePage()), (Route<dynamic> route) => false);
+                      Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewJobPage()), (Route<dynamic> route) => false);
                     },
                   ),
                 ),
@@ -182,7 +181,7 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
             children: [
               Center(
                 child: Text(
-                  'No Current Profiles',
+                  'No Current Jobs',
                   style: TextStyle(
                     fontSize: secondaryTitles,
                     fontWeight: FontWeight.bold,
@@ -197,11 +196,11 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
               SizedBox(height: 4 * standardSizedBoxHeight),
               Center(
                 child: Tooltip(
-                  message: 'Create A New Profile',
+                  message: 'Create A New Job',
                   child: IconButton(
                     icon: Icon(Icons.add_circle_outline_rounded),
                     onPressed: () {
-                      Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewProfilePage()), (Route<dynamic> route) => false);
+                      Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewJobPage()), (Route<dynamic> route) => false);
                     },
                   ),
                 ),
@@ -211,42 +210,14 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
   );
 }
 
-List<Widget> ProfileOptionsContent(BuildContext context, Profile profile, List<GlobalKey> keys) {
+List<Widget> JobOptionsContent(BuildContext context, Job job, List<GlobalKey> keys) {
   List<Widget> ret = [];
-  ListTile CoverLetterTile = ListTile(
-    title: Text('Cover Letter Pitch'),
+  ListTile DescriptionTile = ListTile(
+    title: Text('Job Description'),
     onTap: () async {
-      await Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: profile, title: 'Cover Letter Pitch', type: ProfileContentType.coverLetter, keyList: keys)));
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => JobContentPage(job: job, title: 'Job Description Entry', type: JobContentType.description, keyList: keys)));
     },
   );
-  ListTile EducationTile = ListTile(
-    title: Text('Education'),
-    onTap: () async {
-      await Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: profile, title: 'Education Entries', type: ProfileContentType.education, keyList: keys)));
-    },
-  );
-  ListTile ExperienceTile = ListTile(
-    title: Text('Experience'),
-    onTap: () async {
-      await Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: profile, title: 'Experience Entries', type: ProfileContentType.experience, keyList: keys)));
-    },
-  );
-  ListTile ProjectsTile = ListTile(
-    title: Text('Projects'),
-    onTap: () async {
-      await Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: profile, title: 'Project Entries', type: ProfileContentType.projects, keyList: keys)));
-    },
-  );
-  ListTile SkillsTile = ListTile(
-    title: Text('Skills'),
-    onTap: () async {
-      await Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: profile, title: 'Skill Entries', type: ProfileContentType.skills, keyList: keys)));
-    },
-  );
-  ret.add(CoverLetterTile);
-  ret.add(EducationTile);
-  ret.add(ExperienceTile);
-  ret.add(ProjectsTile);
-  ret.add(SkillsTile);
+  ret.add(DescriptionTile);
   return ret;
 }

@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import '../Utilities/ApplicationsUtils.dart';
+// import '../Utilities/ApplicationsUtils.dart';
+import '../Utilities/JobUtils.dart';
 import '../Utilities/ProfilesUtils.dart';
 import '../Globals/Globals.dart';
 
@@ -154,6 +155,24 @@ Future<void> WriteFile(Directory dir, File file, String contents) async {
 //  Delete Objects
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 
+Future<void> DeleteAllJobs() async {
+  final jobsDir = await GetJobsDir();
+  final List<FileSystemEntity> jobs = jobsDir.listSync();
+  for (final job in jobs) {
+    if (job is Directory) {
+      await job.delete(recursive: true);
+    }
+  }
+}
+
+Future<void> DeleteJob(String jobName) async {
+  final jobsDir = await GetJobsDir();
+  final jobDir = Directory('${jobsDir.path}/$jobName');
+  if (await jobDir.exists()) {
+    await jobDir.delete(recursive: true);
+  }
+}
+
 Future<void> DeleteAllProfiles() async {
   final profilesDirectory = await GetProfilesDir();
   final List<FileSystemEntity> profiles = profilesDirectory.listSync();
@@ -177,23 +196,43 @@ Future<void> DeleteProfile(String profileName) async {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 
 // Retrieve Applications
-Future<List<Application>> RetrieveSortedApplications() async {
-  final appsDir = await GetApplicationsDir();
-  List<Application> applications = [];
-  if (appsDir.existsSync()) {
-    for (var entity in appsDir.listSync()) {
+// Future<List<Application>> RetrieveSortedApplications() async {
+//   final appsDir = await GetApplicationsDir();
+//   List<Application> applications = [];
+//   if (appsDir.existsSync()) {
+//     for (var entity in appsDir.listSync()) {
+//       if (entity is Directory) {
+//         String appName = entity.path.split('/').last;
+//         applications.add(Application(
+//           applicationName: appName,
+//           profileName: '',
+//           controllers: List.generate(9, (index) => TextEditingController()),
+//         ));
+//       }
+//     }
+//   }
+//   applications.sort((a, b) => a.applicationName.compareTo(b.applicationName));
+//   return applications;
+// }
+
+// Retrieve Jobs
+Future<List<Job>> RetrieveSortedJobs() async {
+  final jobsDir = await GetJobsDir();
+  List<Job> jobs = [];
+  if (jobsDir.existsSync()) {
+    for (var entity in jobsDir.listSync()) {
       if (entity is Directory) {
-        String appName = entity.path.split('/').last;
-        applications.add(Application(
-          applicationName: appName,
-          profileName: '',
-          controllers: List.generate(9, (index) => TextEditingController()),
-        ));
+        String jobName = entity.path.split('/').last;
+        Job job = await Job.Init(
+          name: jobName,
+          newJob: false,
+        );
+        jobs.add(job);
       }
     }
   }
-  applications.sort((a, b) => a.applicationName.compareTo(b.applicationName));
-  return applications;
+  jobs.sort((a, b) => a.name.compareTo(b.name));
+  return jobs;
 }
 
 // Retrieve Profiles

@@ -1,192 +1,257 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../Globals/JobsGlobals.dart';
+import 'package:path_provider/path_provider.dart';
 import '../Globals/Globals.dart';
-import '../Themes/Themes.dart';
 import '../Utilities/GlobalUtils.dart';
 
 class Job {
-  // Directories
-  final Future<Directory> appDir = GetAppDir();
-  final Future<Directory> cacheDir = GetCacheDir();
-  final Future<Directory> jobsDir = GetJobsDir();
-  final Future<Directory> supDir = GetSupportDir();
+  // Boolean
+  final bool? newJob;
 
   // Files
-  late File desFile;
-  late File othFile;
-  late File qualFile;
-  late File roleFile;
+  late File jobFile;
 
-  // Main Titles & Name
-  late String desTitle;
+// // Main Titles & Name
+// late String desTitle;
+// late String name;
+// late String othTitle;
+// late String qualTitle;
+// late String roleTitle;
+
+  // Strings
   late String name;
-  late String othTitle;
-  late String qualTitle;
-  late String roleTitle;
 
-  // Contents
-  late String description;
-  late String other;
-  late String quals;
-  late String roleInfo;
+  // List Of Types
+  late List<JobDesCont> descriptionContList = [];
 
-  // Controllers
-  late TextEditingController desCont;
-  late TextEditingController nameCont;
-  late TextEditingController otherCont;
-  late TextEditingController qualsCont;
-  late TextEditingController roleCont;
+  // Text Editing Controller
+  TextEditingController nameController = TextEditingController();
 
-  // Constructor
-  Job({this.name = ''}) {
-    desTitle = descriptionTitle;
-    othTitle = otherTitle;
-    qualTitle = qualificationsTitle;
-    roleTitle = roleInfoTitle;
-    desCont = TextEditingController();
-    nameCont = TextEditingController();
-    otherCont = TextEditingController();
-    qualsCont = TextEditingController();
-    roleCont = TextEditingController();
+  Job._({
+    required this.newJob,
+    required this.name,
+    required this.descriptionContList,
+    required this.nameController,
+  });
+
+  static Future<Job> Init({String name = '', required bool? newJob}) async {
+    // Lists for each section
+    List<JobDesCont> descriptionContList = [];
+    // New job initializer
+    String finalDir = '';
+    if (newJob == true) {
+      finalDir = 'Temp';
+    } else if (newJob == false) {
+      finalDir = 'Jobs/$name';
+    }
+    // Set lists
+    descriptionContList = [];
+    return Job._(
+      newJob: newJob,
+      name: name,
+      descriptionContList: descriptionContList,
+      nameController: TextEditingController(text: name),
+    );
   }
 
-  // Create New Job
-  Future<void> CreateNewJob(String jobName) async {
-    setJobName(jobName);
-    setJobDir();
-    setWriteNewFiles();
+  // Set Content
+  Future<void> SetContent<T>(List<T> inputList, List<T> outputList) async {
+    outputList.clear();
+    outputList.addAll(inputList);
   }
-
-  // Load Job
-  Future<void> LoadJobData() async {
-    final jobsDirectory = await jobsDir;
-    final currJob = Directory('${jobsDirectory.path}/$name');
-    if (currJob.existsSync()) {
-      nameCont.text = name;
-    }
-    desFile = File('${currJob.path}/$descriptionFile');
-    othFile = File('${currJob.path}/$otherFile');
-    qualFile = File('${currJob.path}/$qualificationsFile');
-    roleFile = File('${currJob.path}/$roleInfoFile');
-    if (desFile.existsSync()) {
-      description = await desFile.readAsString();
-      desCont.text = description;
-    }
-    if (othFile.existsSync()) {
-      other = await othFile.readAsString();
-      otherCont.text = other;
-    }
-    if (qualFile.existsSync()) {
-      quals = await qualFile.readAsString();
-      qualsCont.text = quals;
-    }
-    if (roleFile.existsSync()) {
-      roleInfo = await roleFile.readAsString();
-      roleCont.text = roleInfo;
-    }
-  }
-
-  // Setters
 
   // Set Job Name
-  Future<void> setJobName(String jobName) async {
+  Future<void> SetJobName(String jobName) async {
     name = jobName;
   }
 
-  // Set Overwrite Files
-  Future<void> setOverwriteFiles() async {
-    final dir = await jobsDir;
-    final newName = nameCont.text;
-    final oldDir = Directory('${dir.path}/$name');
-    final existing = Directory('${dir.path}/$newName');
-    Directory newDir;
-    if (oldDir.existsSync() && !existing.existsSync()) {
-      newDir = await oldDir.rename('${dir.path}/$newName');
-      name = newName;
-    } else {
-      newDir = oldDir;
-    }
-    desFile = File('${newDir.path}/$descriptionFile');
-    othFile = File('${newDir.path}/$otherFile');
-    qualFile = File('${newDir.path}/$qualificationsFile');
-    roleFile = File('${newDir.path}/$roleInfoFile');
-    WriteFile(dir, desFile, desCont.text);
-    WriteFile(dir, othFile, otherCont.text);
-    WriteFile(dir, qualFile, qualsCont.text);
-    WriteFile(dir, roleFile, roleCont.text);
-  }
-
-  // Set Job Directory
-  Future<void> setJobDir() async {
-    final parentDir = await jobsDir;
+  // Set Job Dir
+  Future<void> SetJobDir() async {
+    final masterDir = await getApplicationDocumentsDirectory();
+    Directory parentDir = Directory('${masterDir.path}/Jobs/');
     CreateDir(parentDir, name);
   }
 
-  // Set Write New Files
-  Future<void> setWriteNewFiles() async {
-    final dir = await jobsDir;
-    final currDir = Directory('${dir.path}/$name');
-    desFile = File('${currDir.path}/$descriptionFile');
-    othFile = File('${currDir.path}/$otherFile');
-    qualFile = File('${currDir.path}/$qualificationsFile');
-    roleFile = File('${currDir.path}/$roleInfoFile');
-    WriteFile(dir, desFile, desCont.text);
-    WriteFile(dir, othFile, otherCont.text);
-    WriteFile(dir, qualFile, qualsCont.text);
-    WriteFile(dir, roleFile, roleCont.text);
+  // Write Content To JSON
+  Future<void> WriteContentToJSON<T>(String subDir, String fileName, List<T> list) async {
+    // Grab master directory
+    final masterDir = await getApplicationDocumentsDirectory();
+    Directory desDir = Directory('${masterDir.path}/$subDir');
+    // If the directory does not exist, create it
+    if (!desDir.existsSync()) {
+      desDir.createSync();
+    }
+    // Create file
+    final file = File('${desDir.path}/$fileName');
+    if (file.existsSync()) {
+      file.deleteSync();
+    }
+    // Map list to JSON
+    List<Map<String, dynamic>> contJSON = list.map((cont) {
+      // If the type is job description
+      if (cont is JobDesCont) {
+        return (cont as JobDesCont).toJSON();
+      }
+      // else if (cont is ProfileEduCont) {
+      //   return (cont as ProfileEduCont).toJSON();
+      // }
+      // else if (cont is ProfileExpCont) {
+      //   return (cont as ProfileExpCont).toJSON();
+      // }
+      // else if (cont is ProfileProjCont) {
+      //   return (cont as ProfileProjCont).toJSON();
+      // }
+      // else if (cont is ProfileSkillsCont) {
+      //   return (cont as ProfileSkillsCont).toJSON();
+      // }
+      // If the type is not recognized
+      else {
+        throw Exception("Type T does not have a toJSON method");
+      }
+    }).toList();
+    // Encode JSON
+    String jsonString = jsonEncode(contJSON);
+    // Write JSON to file
+    await file.writeAsString(jsonString);
   }
 }
 
-Future<void> DeleteAllJobs() async {
-  final jobsDir = await GetJobsDir();
-  final List<FileSystemEntity> jobs = jobsDir.listSync();
-  for (final job in jobs) {
-    if (job is Directory) {
-      await job.delete(recursive: true);
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Description Content
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class JobDesCont {
+  late TextEditingController description;
+  JobDesCont() {
+    description = TextEditingController();
+  }
+  JobDesCont.fromJSON(Map<String, dynamic> json) {
+    description = TextEditingController(text: json['description'] ?? '');
+  }
+  Map<String, dynamic> toJSON() {
+    return {
+      'description': description.text,
+    };
+  }
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Description Content Entry
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+class DescriptionJobEntry extends StatefulWidget {
+  final Job job;
+
+  const DescriptionJobEntry({
+    super.key,
+    required this.job,
+  });
+
+  @override
+  DescriptionJobEntryState createState() => DescriptionJobEntryState();
+}
+
+class DescriptionJobEntryState extends State<DescriptionJobEntry> {
+  List<JobDesCont> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    initializeEntries();
+  }
+
+  void initializeEntries() async {
+    if (widget.job.descriptionContList.isNotEmpty) {
+      await widget.job.SetContent<JobDesCont>(widget.job.descriptionContList, entries);
+    } else {
+      entries.add(JobDesCont());
     }
   }
-}
 
-Future<void> DeleteJob(String jobName) async {
-  final jobsDir = await GetJobsDir();
-  final jobDir = Directory('${jobsDir.path}/$jobName');
-  if (await jobDir.exists()) {
-    await jobDir.delete(recursive: true);
+  void clearEntry(int index) async {
+    setState(() {
+      entries[index].description.text = '';
+    });
+    await widget.job.SetContent<JobDesCont>(widget.job.descriptionContList, entries);
   }
-}
 
-List<Widget> JobEntry(BuildContext context, String title, TextEditingController controller, String hintText, {int? lines = 10}) {
-  return [
-    Center(
-      child: Text(
-        title,
-        style: TextStyle(
-          color: themeTextColor(context),
-          fontSize: jobTitleSize,
-          fontWeight: FontWeight.bold,
-        ),
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          ...entries.asMap().entries.map(
+            (entry) {
+              int index = entry.key;
+              JobDesCont entryData = entry.value;
+              return buildContEntry(
+                context,
+                index,
+                entryData,
+              );
+            },
+          ),
+        ],
       ),
-    ),
-    SizedBox(height: standardSizedBoxHeight),
-    Center(
-      child: Container(
-        width: MediaQuery.of(context).size.width * jobContainerWidth,
-        child: TextField(
-          controller: controller,
-          keyboardType: TextInputType.multiline,
-          maxLines: lines,
-          decoration: InputDecoration(hintText: hintText.isEmpty ? null : hintText),
-        ),
-      ),
-    ),
-    SizedBox(height: 20),
-  ];
-}
+    );
+  }
 
-Future<List<Directory>> RetrieveSortedJobs() async {
-  final jobsDir = await GetJobsDir();
-  final jobsList = jobsDir.listSync().whereType<Directory>().toList();
-  jobsList.sort((a, b) => a.path.split('/').last.compareTo(b.path.split('/').last));
-  return jobsList;
+  Widget buildContEntry(
+    BuildContext context,
+    int index,
+    JobDesCont entry,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SizedBox(height: standardSizedBoxHeight),
+        Center(
+          child: Text(
+            'Enter Job Description',
+            style: TextStyle(
+              fontSize: secondaryTitles,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Container(
+          width: MediaQuery.of(context).size.width * 0.75,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: entry.description,
+                keyboardType: TextInputType.multiline,
+                maxLines: 15,
+                decoration: InputDecoration(hintText: 'Enter the job description here...'),
+                onChanged: (value) async {
+                  await widget.job.SetContent(entries, widget.job.descriptionContList);
+                },
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Tooltip(
+              message: 'Clear Description Entry',
+              child: IconButton(
+                icon: Icon(Icons.clear),
+                onPressed: () async {
+                  clearEntry(index);
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }

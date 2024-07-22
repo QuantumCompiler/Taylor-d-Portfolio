@@ -5,7 +5,7 @@ import '../../Utilities/ProfilesUtils.dart';
 
 class ProfileContentEntry extends StatefulWidget {
   final Profile profile;
-  final ContentType type;
+  final ProfileContentType type;
   final List<GlobalKey> keyList;
   const ProfileContentEntry({
     super.key,
@@ -22,34 +22,34 @@ class ProfileContentEntryState extends State<ProfileContentEntry> {
   @override
   Widget build(BuildContext context) {
     switch (widget.type) {
-      case ContentType.coverLetter:
+      case ProfileContentType.coverLetter:
         return CoverLetterProfilePitchEntry(profile: widget.profile, key: widget.keyList[0]);
-      case ContentType.education:
+      case ProfileContentType.education:
         return EducationProfileEntry(profile: widget.profile, key: widget.keyList[1]);
-      case ContentType.experience:
+      case ProfileContentType.experience:
         return ExperienceProfileEntry(profile: widget.profile, key: widget.keyList[2]);
-      case ContentType.projects:
+      case ProfileContentType.projects:
         return ProjectProfileEntry(profile: widget.profile, key: widget.keyList[3]);
-      case ContentType.skills:
+      case ProfileContentType.skills:
         return SkillsProjectEntry(profile: widget.profile, key: widget.keyList[4]);
     }
   }
 }
 
-AppBar ProfileContentAppBar(BuildContext context, ContentType type, String profileName) {
+AppBar ProfileContentAppBar(BuildContext context, ProfileContentType type, String profileName) {
   String title = '';
   if (profileName == '') {
     profileName = 'New Profile';
   }
-  if (type == ContentType.coverLetter) {
+  if (type == ProfileContentType.coverLetter) {
     title = 'Cover Letter - $profileName';
-  } else if (type == ContentType.education) {
+  } else if (type == ProfileContentType.education) {
     title = 'Education - $profileName';
-  } else if (type == ContentType.experience) {
+  } else if (type == ProfileContentType.experience) {
     title = 'Experience - $profileName';
-  } else if (type == ContentType.projects) {
+  } else if (type == ProfileContentType.projects) {
     title = 'Projects - $profileName';
-  } else if (type == ContentType.skills) {
+  } else if (type == ProfileContentType.skills) {
     title = 'Skills - $profileName';
   } else {
     title = 'Content - $profileName';
@@ -71,17 +71,23 @@ AppBar ProfileContentAppBar(BuildContext context, ContentType type, String profi
   );
 }
 
-BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, Profile profile, List<GlobalKey> keyList) {
+BottomAppBar ProfileContentBottomAppBar(BuildContext context, ProfileContentType type, Profile profile, List<GlobalKey> keyList) {
+  String finalDir = '';
+  if (profile.newProfile == true) {
+    finalDir = 'Temp';
+  } else if (profile.newProfile == false) {
+    finalDir = 'Profiles/${profile.name}';
+  }
   String buttonText;
-  if (type == ContentType.coverLetter) {
+  if (type == ProfileContentType.coverLetter) {
     buttonText = 'Save Pitch';
-  } else if (type == ContentType.education) {
+  } else if (type == ProfileContentType.education) {
     buttonText = 'Save Education';
-  } else if (type == ContentType.experience) {
+  } else if (type == ProfileContentType.experience) {
     buttonText = 'Save Experience';
-  } else if (type == ContentType.projects) {
+  } else if (type == ProfileContentType.projects) {
     buttonText = 'Save Projects';
-  } else if (type == ContentType.skills) {
+  } else if (type == ProfileContentType.skills) {
     buttonText = 'Save Skills';
   } else {
     buttonText = 'Save Content';
@@ -94,36 +100,16 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ContentType type, 
         ElevatedButton(
           child: Text(buttonText),
           onPressed: () async {
-            if (type == ContentType.coverLetter) {
-              if (profile.newProfile == true) {
-                await profile.WriteContentToJSON<ProfileCLCont>('Temp/', coverLetterJSONFile, profile.coverLetterContList);
-              } else if (profile.newProfile == false) {
-                await profile.WriteContentToJSON<ProfileCLCont>('Profiles/${profile.name}', coverLetterJSONFile, profile.coverLetterContList);
-              }
-            } else if (type == ContentType.education) {
-              if (profile.newProfile == true) {
-                await profile.WriteContentToJSON<ProfileEduCont>('Temp/', educationJSONFile, profile.eduContList);
-              } else if (profile.newProfile == false) {
-                await profile.WriteContentToJSON<ProfileEduCont>('Profiles/${profile.name}', educationJSONFile, profile.eduContList);
-              }
-            } else if (type == ContentType.experience) {
-              if (profile.newProfile == true) {
-                await profile.WriteContentToJSON<ProfileExpCont>('Temp/', experienceJSONFile, profile.expContList);
-              } else if (profile.newProfile == false) {
-                await profile.WriteContentToJSON<ProfileExpCont>('Profiles/${profile.name}', experienceJSONFile, profile.expContList);
-              }
-            } else if (type == ContentType.projects) {
-              if (profile.newProfile == true) {
-                await profile.WriteContentToJSON<ProfileProjCont>('Temp/', projectsJSONFile, profile.projContList);
-              } else if (profile.newProfile == false) {
-                await profile.WriteContentToJSON<ProfileProjCont>('Profiles/${profile.name}', projectsJSONFile, profile.projContList);
-              }
-            } else if (type == ContentType.skills) {
-              if (profile.newProfile == true) {
-                await profile.WriteContentToJSON<ProfileSkillsCont>('Temp/', skillsJSONFile, profile.skillsContList);
-              } else if (profile.newProfile == false) {
-                await profile.WriteContentToJSON<ProfileSkillsCont>('Profiles/${profile.name}', skillsJSONFile, profile.skillsContList);
-              }
+            if (type == ProfileContentType.coverLetter) {
+              await profile.WriteContentToJSON<ProfileCLCont>(finalDir, coverLetterJSONFile, profile.coverLetterContList);
+            } else if (type == ProfileContentType.education) {
+              await profile.WriteContentToJSON<ProfileEduCont>(finalDir, educationJSONFile, profile.eduContList);
+            } else if (type == ProfileContentType.experience) {
+              await profile.WriteContentToJSON<ProfileExpCont>(finalDir, experienceJSONFile, profile.expContList);
+            } else if (type == ProfileContentType.projects) {
+              await profile.WriteContentToJSON<ProfileProjCont>(finalDir, projectsJSONFile, profile.projContList);
+            } else if (type == ProfileContentType.skills) {
+              await profile.WriteContentToJSON<ProfileSkillsCont>(finalDir, skillsJSONFile, profile.skillsContList);
             }
           },
         ),

@@ -1,10 +1,3 @@
-// Sizes
-double profileTileContainerWidth = 0.6;
-double profileTitleSize = 24.0;
-double profileContainerWidth = 0.8;
-// Titles & Hints
-String createNewProfilePrompt = 'Create New Profile';
-String profileTitle = 'Profile';
 // File Names
 String coverLetterTextFile = 'CLCont.txt';
 String coverLetterJSONFile = 'CLCont.json';
