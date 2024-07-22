@@ -47,6 +47,16 @@ class NewJobPageState extends State<NewJobPage> {
           }
         },
       ),
+      bottomNavigationBar: FutureBuilder<Job>(
+        future: futureJob,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+            return NewJobBottomAppBar(context, snapshot.data!);
+          } else {
+            return Container();
+          }
+        },
+      ),
     );
   }
 }

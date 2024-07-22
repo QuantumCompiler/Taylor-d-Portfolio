@@ -225,13 +225,13 @@ List<Widget> JobOptionsContent(BuildContext context, Job job, List<GlobalKey> ke
     },
   );
   ListTile RoleInfoTile = ListTile(
-    title: Text('Role Information'),
+    title: Text('Role Description'),
     onTap: () async {
-      await Navigator.push(context, MaterialPageRoute(builder: (context) => JobContentPage(job: job, title: 'Role Information Entry', type: JobContentType.role, keyList: keys)));
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => JobContentPage(job: job, title: 'Role Description Entry', type: JobContentType.role, keyList: keys)));
     },
   );
   ListTile SkillsTile = ListTile(
-    title: Text('Skills Information'),
+    title: Text('Skill Requirements'),
     onTap: () async {
       await Navigator.push(context, MaterialPageRoute(builder: (context) => JobContentPage(job: job, title: 'Skill Requirements Entry', type: JobContentType.skills, keyList: keys)));
     },

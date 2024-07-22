@@ -1,5 +1,7 @@
-// import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import '../Globals/GlobalContext.dart';
 import '../../Context/Jobs/JobsContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Jobs/Jobs.dart';
@@ -54,6 +56,123 @@ SingleChildScrollView NewJobContent(BuildContext context, Job job, List<GlobalKe
               ],
             ),
           ),
+        ),
+      ],
+    ),
+  );
+}
+
+BottomAppBar NewJobBottomAppBar(BuildContext context, Job job) {
+  TextEditingController nameController = TextEditingController();
+  return BottomAppBar(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          child: Text('Save Job'),
+          onPressed: () async {
+            await showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: Text(
+                    'Save New Job',
+                    style: TextStyle(
+                      fontSize: appBarTitle,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  content: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Choose A Name For Your New Job',
+                        style: TextStyle(
+                          fontSize: secondaryTitles,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      TextFormField(
+                        controller: nameController,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: 1,
+                        decoration: InputDecoration(hintText: 'Enter name here...'),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          child: Text('Cancel'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                        SizedBox(width: standardSizedBoxWidth),
+                        ElevatedButton(
+                          child: Text('Save Job'),
+                          onPressed: () async {
+                            final masterDir = await getApplicationDocumentsDirectory();
+                            final currDir = Directory('${masterDir.path}/Jobs/${nameController.text}');
+                            if (await currDir.exists()) {
+                              Navigator.of(context).pop();
+                              await showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return GenAlertDialogWithIcon(
+                                    "Job ${nameController.text} Already Exists!",
+                                    "Please select a different name for this job",
+                                    Icons.error,
+                                  );
+                                },
+                              );
+                            } else {
+                              try {
+                                await job.CreateJob(nameController.text);
+                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
+                                await showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return GenAlertDialogWithIcon(
+                                        'Job ${job.name}',
+                                        'Written Successfully',
+                                        Icons.check_circle_outline,
+                                      );
+                                    });
+                              } catch (e) {
+                                await showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: Text('Error'),
+                                      content: Text('An error occurred while creating the job. Please try again. $e'),
+                                      actions: [
+                                        ElevatedButton(
+                                          child: Text('OK'),
+                                          onPressed: () => Navigator.of(context).pop(),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            );
+          },
         ),
       ],
     ),
