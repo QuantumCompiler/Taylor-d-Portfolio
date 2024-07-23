@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-// import '../Utilities/ApplicationsUtils.dart';
-import '../Utilities/JobUtils.dart';
-import '../Utilities/ProfilesUtils.dart';
+import 'ApplicationsUtils.dart';
+import 'JobUtils.dart';
+import 'ProfilesUtils.dart';
 import '../Globals/Globals.dart';
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
@@ -196,24 +196,24 @@ Future<void> DeleteProfile(String profileName) async {
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 
 // Retrieve Applications
-// Future<List<Application>> RetrieveSortedApplications() async {
-//   final appsDir = await GetApplicationsDir();
-//   List<Application> applications = [];
-//   if (appsDir.existsSync()) {
-//     for (var entity in appsDir.listSync()) {
-//       if (entity is Directory) {
-//         String appName = entity.path.split('/').last;
-//         applications.add(Application(
-//           applicationName: appName,
-//           profileName: '',
-//           controllers: List.generate(9, (index) => TextEditingController()),
-//         ));
-//       }
-//     }
-//   }
-//   applications.sort((a, b) => a.applicationName.compareTo(b.applicationName));
-//   return applications;
-// }
+Future<List<Application>> RetrieveSortedApplications() async {
+  final appsDir = await GetApplicationsDir();
+  List<Application> applications = [];
+  if (appsDir.existsSync()) {
+    for (var entity in appsDir.listSync()) {
+      if (entity is Directory) {
+        String appName = entity.path.split('/').last;
+        applications.add(Application(
+          applicationName: appName,
+          profileName: '',
+          controllers: List.generate(9, (index) => TextEditingController()),
+        ));
+      }
+    }
+  }
+  applications.sort((a, b) => a.applicationName.compareTo(b.applicationName));
+  return applications;
+}
 
 // Retrieve Jobs
 Future<List<Job>> RetrieveSortedJobs() async {
@@ -253,6 +253,18 @@ Future<List<Profile>> RetrieveSortedProfiles() async {
   }
   profiles.sort((a, b) => a.name.compareTo(b.name));
   return profiles;
+}
+
+// Retrieve All Content (Applications, Jobs, Profiles)
+Future<List<dynamic>> RetrieveAllContent() async {
+  List<dynamic> content = [];
+  List<Application> apps = await RetrieveSortedApplications();
+  List<Job> jobs = await RetrieveSortedJobs();
+  List<Profile> profiles = await RetrieveSortedProfiles();
+  content.add(apps);
+  content.add(jobs);
+  content.add(profiles);
+  return content;
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
