@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../Applications/Applications.dart';
 import '../../Context/Globals/GlobalContext.dart';
 import '../../Context/Profiles/ProfileContext.dart';
 import '../../Dashboard/Dashboard.dart';
@@ -7,7 +8,7 @@ import '../../Profiles/Profiles.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/ProfilesUtils.dart';
 
-AppBar EditProfileAppBar(BuildContext context, String profileName) {
+AppBar EditProfileAppBar(BuildContext context, String profileName, bool? backToProfile) {
   return AppBar(
     title: Text(
       'Edit Profile $profileName',
@@ -19,7 +20,11 @@ AppBar EditProfileAppBar(BuildContext context, String profileName) {
     leading: IconButton(
       icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () {
-        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+        if (backToProfile == true) {
+          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+        } else if (backToProfile == false) {
+          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+        }
       },
     ),
     actions: [

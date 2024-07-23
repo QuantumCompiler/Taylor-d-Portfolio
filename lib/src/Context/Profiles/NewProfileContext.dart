@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import '../Profiles/ProfileContext.dart';
 import '../Globals/GlobalContext.dart';
+import '../../Applications/Applications.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Utilities/ProfilesUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
 
-AppBar NewProfileAppBar(BuildContext context) {
+AppBar NewProfileAppBar(BuildContext context, bool? backToProfile) {
   return AppBar(
     title: Text(
       'Create New Profile',
@@ -22,7 +23,11 @@ AppBar NewProfileAppBar(BuildContext context) {
       icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () async {
         await CleanDir('Temp');
-        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+        if (backToProfile == true) {
+          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+        } else if (backToProfile == false) {
+          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+        }
       },
     ),
     actions: [
