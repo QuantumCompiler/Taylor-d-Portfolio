@@ -3,7 +3,11 @@ import '../Context/Profiles/NewProfileContext.dart';
 import '../Utilities/ProfilesUtils.dart';
 
 class NewProfilePage extends StatefulWidget {
-  const NewProfilePage({super.key});
+  final bool? backToProfile;
+  const NewProfilePage({
+    super.key,
+    this.backToProfile = true,
+  });
 
   @override
   NewProfilePageState createState() => NewProfilePageState();
@@ -23,7 +27,7 @@ class NewProfilePageState extends State<NewProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: NewProfileAppBar(context),
+      appBar: NewProfileAppBar(context, widget.backToProfile),
       body: FutureBuilder<Profile>(
         future: futureProfile,
         builder: (context, snapshot) {

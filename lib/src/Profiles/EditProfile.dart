@@ -4,9 +4,11 @@ import '../Utilities/ProfilesUtils.dart';
 
 class EditProfilePage extends StatefulWidget {
   late String profileName;
+  final bool? backToProfile;
   EditProfilePage({
     super.key,
     required this.profileName,
+    this.backToProfile = true,
   });
 
   @override
@@ -27,7 +29,7 @@ class EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: EditProfileAppBar(context, widget.profileName),
+      appBar: EditProfileAppBar(context, widget.profileName, widget.backToProfile),
       body: FutureBuilder<Profile>(
         future: previousProfile,
         builder: (context, snapshot) {
