@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../Applications/Applications.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Context/Jobs/JobsContext.dart';
 import '../../Dashboard/Dashboard.dart';
@@ -7,7 +8,7 @@ import '../../Jobs/Jobs.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/JobUtils.dart';
 
-AppBar EditJobAppBar(BuildContext context, String jobName) {
+AppBar EditJobAppBar(BuildContext context, String jobName, bool? backToJobs) {
   return AppBar(
     title: Text(
       'Edit Job $jobName',
@@ -19,7 +20,11 @@ AppBar EditJobAppBar(BuildContext context, String jobName) {
     leading: IconButton(
       icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () {
-        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
+        if (backToJobs == true) {
+          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
+        } else if (backToJobs == false) {
+          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+        }
       },
     ),
     actions: [

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import '../Globals/GlobalContext.dart';
+import '../../Applications/Applications.dart';
 import '../../Context/Jobs/JobsContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Jobs/Jobs.dart';
@@ -9,7 +10,7 @@ import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/JobUtils.dart';
 import '../../Globals/Globals.dart';
 
-AppBar NewJobAppBar(BuildContext context) {
+AppBar NewJobAppBar(BuildContext context, bool? backToJobs) {
   return AppBar(
     title: Text(
       'Create New Job',
@@ -22,7 +23,11 @@ AppBar NewJobAppBar(BuildContext context) {
       icon: Icon(Icons.arrow_back_ios_new_outlined),
       onPressed: () async {
         await CleanDir('Temp');
-        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
+        if (backToJobs == true) {
+          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
+        } else if (backToJobs == false) {
+          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+        }
       },
     ),
     actions: [
