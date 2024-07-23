@@ -43,6 +43,7 @@ import '../Utilities/GlobalUtils.dart';
 class Job {
   // Boolean
   final bool newJob;
+  bool isSelected;
 
   // Files
   late File jobFile;
@@ -68,6 +69,7 @@ class Job {
     required this.roleContList,
     required this.skillsContList,
     required this.nameController,
+    required this.isSelected,
   });
 
   /*  Init - Initializes a job object
@@ -108,6 +110,7 @@ class Job {
       roleContList: roleContList,
       skillsContList: skillsContList,
       nameController: TextEditingController(text: name),
+      isSelected: false,
     );
   }
 
@@ -1194,6 +1197,7 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
     super.initState();
     initializeEntries();
   }
+
   /*  initializeEntries - Initializes the skill entries
         Input:
           None
@@ -1210,6 +1214,7 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
       entries.add(JobSkillsCont());
     }
   }
+
   /*  clearEntry - Clears the skill entry
         Input:
           index - Integer that is the index of the entry

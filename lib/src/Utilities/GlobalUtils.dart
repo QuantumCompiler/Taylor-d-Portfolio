@@ -155,6 +155,24 @@ Future<void> WriteFile(Directory dir, File file, String contents) async {
 //  Delete Objects
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 
+Future<void> DeleteApplication(String appName) async {
+  final appsDir = await GetApplicationsDir();
+  final appDir = Directory('${appsDir.path}/$appName');
+  if (await appDir.exists()) {
+    await appDir.delete(recursive: true);
+  }
+}
+
+Future<void> DeleteAllApplications() async {
+  final appsDir = await GetApplicationsDir();
+  final List<FileSystemEntity> apps = appsDir.listSync();
+  for (final app in apps) {
+    if (app is Directory) {
+      app.deleteSync(recursive: true);
+    }
+  }
+}
+
 Future<void> DeleteAllJobs() async {
   final jobsDir = await GetJobsDir();
   final List<FileSystemEntity> jobs = jobsDir.listSync();
@@ -203,15 +221,15 @@ Future<List<Application>> RetrieveSortedApplications() async {
     for (var entity in appsDir.listSync()) {
       if (entity is Directory) {
         String appName = entity.path.split('/').last;
-        applications.add(Application(
-          applicationName: appName,
-          profileName: '',
-          controllers: List.generate(9, (index) => TextEditingController()),
-        ));
+        Application app = await Application.Init(
+          name: appName,
+          newApp: false,
+        );
+        applications.add(app);
       }
     }
   }
-  applications.sort((a, b) => a.applicationName.compareTo(b.applicationName));
+  applications.sort((a, b) => a.name.compareTo(b.name));
   return applications;
 }
 

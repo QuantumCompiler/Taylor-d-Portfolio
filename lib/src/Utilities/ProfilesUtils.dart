@@ -40,6 +40,7 @@ import '../Utilities/GlobalUtils.dart';
 class Profile {
   // Boolean
   final bool newProfile;
+  bool isSelected;
 
   // Files
   late File proFile;
@@ -67,6 +68,7 @@ class Profile {
     required this.projContList,
     required this.skillsContList,
     required this.nameController,
+    required this.isSelected,
   });
 
   /*  Init - Initializes a profile
@@ -112,6 +114,7 @@ class Profile {
       projContList: projContList,
       skillsContList: skillsContList,
       nameController: TextEditingController(text: name),
+      isSelected: false,
     );
   }
 

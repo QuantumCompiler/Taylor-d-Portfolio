@@ -14,8 +14,10 @@ class ApplicationsPage extends StatefulWidget {
 class ApplicationsPageState extends State<ApplicationsPage> {
   Future<List<dynamic>> contentFuture = RetrieveAllContent();
   List<Application> apps = [];
+  late List<bool> jobsBoxes;
   List<Job> jobs = [];
   List<Profile> profiles = [];
+  late List<bool> profsBoxes;
 
   Future<void> _refreshApps() async {
     List<Application> updatedApps = await RetrieveSortedApplications();
@@ -54,6 +56,8 @@ class ApplicationsPageState extends State<ApplicationsPage> {
   void initState() {
     super.initState();
     _refreshContent();
+    jobsBoxes = List.generate(jobs.length, (index) => false);
+    profsBoxes = List.generate(profiles.length, (index) => false);
   }
 
   @override
