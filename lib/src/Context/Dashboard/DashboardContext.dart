@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../Globals/DashboardGlobals.dart';
 import '../../Globals/Globals.dart';
-// import '../../Applications/Applications.dart';
+import '../../Applications/Applications.dart';
 import '../../Jobs/Jobs.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
@@ -247,9 +247,9 @@ SizedBox desktopDrawer(BuildContext context) {
             IconButton(
               tooltip: applicationToolTip,
               onPressed: () {
-                // Navigator.push(context, MaterialPageRoute(builder: (context) => ApplicationsPage()));
+                Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
               },
-              icon: Icon(Icons.library_add),
+              icon: Icon(Icons.task),
             ),
             Spacer(),
             IconButton(
@@ -257,7 +257,7 @@ SizedBox desktopDrawer(BuildContext context) {
               onPressed: () {
                 Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
               },
-              icon: Icon(Icons.task),
+              icon: Icon(Icons.work),
             ),
             Spacer(),
             IconButton(
@@ -311,16 +311,16 @@ BottomAppBar mobileNavbar(BuildContext context) {
         IconButton(
           tooltip: applicationToolTip,
           onPressed: () {
-            // Navigator.push(context, MaterialPageRoute(builder: (context) => ApplicationsPage()));
+            Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
           },
-          icon: Icon(Icons.library_add),
+          icon: Icon(Icons.task),
         ),
         Spacer(),
         IconButton(
           onPressed: () {
             Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
           },
-          icon: Icon(Icons.task),
+          icon: Icon(Icons.work),
         ),
         Spacer(),
         IconButton(
