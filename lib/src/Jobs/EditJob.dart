@@ -4,7 +4,12 @@ import '../Utilities/JobUtils.dart';
 
 class EditJobPage extends StatefulWidget {
   late String jobName;
-  EditJobPage({super.key, required this.jobName});
+  final bool? backToJobs;
+  EditJobPage({
+    super.key,
+    required this.jobName,
+    this.backToJobs = true,
+  });
 
   @override
   EditJobPageState createState() => EditJobPageState();
@@ -24,7 +29,7 @@ class EditJobPageState extends State<EditJobPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: EditJobAppBar(context, widget.jobName),
+      appBar: EditJobAppBar(context, widget.jobName, widget.backToJobs),
       body: FutureBuilder<Job>(
         future: previousJob,
         builder: (context, snapshot) {

@@ -3,7 +3,11 @@ import '../Context/Jobs/NewJobContext.dart';
 import '../Utilities/JobUtils.dart';
 
 class NewJobPage extends StatefulWidget {
-  const NewJobPage({super.key});
+  final bool? backToJobs;
+  const NewJobPage({
+    super.key,
+    this.backToJobs = true,
+  });
 
   @override
   NewJobPageState createState() => NewJobPageState();
@@ -23,7 +27,7 @@ class NewJobPageState extends State<NewJobPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: NewJobAppBar(context),
+      appBar: NewJobAppBar(context, widget.backToJobs),
       body: FutureBuilder<Job>(
         future: futureJob,
         builder: (context, snapshot) {
