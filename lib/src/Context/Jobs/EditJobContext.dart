@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../Applications/Applications.dart';
 import '../Globals/GlobalContext.dart';
+import '../../Applications/Applications.dart';
 import '../../Context/Jobs/JobsContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
@@ -66,7 +66,7 @@ SingleChildScrollView EditJobContent(BuildContext context, Job job, List<GlobalK
   );
 }
 
-BottomAppBar EditJobBottomAppBar(BuildContext context, Job job, List<GlobalKey> keyList) {
+BottomAppBar EditJobBottomAppBar(BuildContext context, Job job, bool? backToJobs, List<GlobalKey> keyList) {
   return BottomAppBar(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -125,7 +125,11 @@ BottomAppBar EditJobBottomAppBar(BuildContext context, Job job, List<GlobalKey> 
                           onPressed: () async {
                             try {
                               await job.CreateJob(job.nameController.text);
-                              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
+                              if (backToJobs == true) {
+                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
+                              } else if (backToJobs == false) {
+                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+                              }
                               await showDialog(
                                 context: context,
                                 builder: (context) {

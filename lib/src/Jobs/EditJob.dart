@@ -57,7 +57,7 @@ class EditJobPageState extends State<EditJobPage> {
         future: previousJob,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            return EditJobBottomAppBar(context, snapshot.data!, keyList);
+            return EditJobBottomAppBar(context, snapshot.data!, widget.backToJobs, keyList);
           } else {
             return Container();
           }

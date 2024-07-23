@@ -65,7 +65,7 @@ SingleChildScrollView EditProfileContent(BuildContext context, Profile profile, 
   );
 }
 
-BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile profile, List<GlobalKey> keyList) {
+BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile profile, bool? backToProfile, List<GlobalKey> keyList) {
   return BottomAppBar(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -124,7 +124,11 @@ BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile profile, List
                           onPressed: () async {
                             try {
                               await profile.CreateProfile(profile.nameController.text);
-                              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+                              if (backToProfile == true) {
+                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+                              } else if (backToProfile == false) {
+                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+                              }
                               await showDialog(
                                 context: context,
                                 builder: (context) {

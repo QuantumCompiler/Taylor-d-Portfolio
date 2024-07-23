@@ -59,7 +59,7 @@ class EditProfilePageState extends State<EditProfilePage> {
         future: previousProfile,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            return EditProfileBottomAppBar(context, snapshot.data!, keyList);
+            return EditProfileBottomAppBar(context, snapshot.data!, widget.backToProfile, keyList);
           } else {
             return Container();
           }

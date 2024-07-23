@@ -40,6 +40,11 @@ class ThemeProvider with ChangeNotifier {
       ),
       bottomAppBarTheme: BottomAppBarTheme(
         color: Colors.transparent,
+        elevation: 0,
+        height: 60,
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: Colors.transparent,
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: Color.fromARGB(128, 0, 213, 255),

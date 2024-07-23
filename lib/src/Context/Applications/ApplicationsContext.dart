@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:taylord_portfolio/src/Context/Profiles/ProfileContext.dart';
-import '../../Applications/LoadApplication.dart';
-import '../../Applications/NewApplication.dart';
+import 'package:taylord_portfolio/src/Jobs/EditJob.dart';
+import 'package:taylord_portfolio/src/Profiles/EditProfile.dart';
+// import '../../Applications/LoadApplication.dart';
+// import '../../Applications/NewApplication.dart';
 import '../../Dashboard/Dashboard.dart';
-import '../../Globals/ApplicationsGlobals.dart';
+// import '../../Globals/ApplicationsGlobals.dart';
 import '../../Globals/Globals.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
@@ -168,7 +169,9 @@ SingleChildScrollView JobsContent(BuildContext context, List<Job> jobs, Function
                                 onPressed: () => {},
                               ),
                             ),
-                            onTap: () => {},
+                            onTap: () {
+                              Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: EditJobPage(jobName: jobs[index].name, backToJobs: false)), (Route<dynamic> route) => false);
+                            },
                           ),
                         ),
                       );
@@ -239,7 +242,10 @@ SingleChildScrollView ProfilesContent(BuildContext context, List<Profile> profil
                                 onPressed: () => {},
                               ),
                             ),
-                            onTap: () => {},
+                            onTap: () {
+                              Navigator.pushAndRemoveUntil(
+                                  context, RightToLeftPageRoute(page: EditProfilePage(profileName: profiles[index].name, backToProfile: false)), (Route<dynamic> route) => false);
+                            },
                           ),
                         ),
                       );
