@@ -186,70 +186,6 @@ class Profile {
     }
   }
 
-  /*  LoadContent - Loads content from a JSON file into a list
-        Class Definition:
-          T - Type of class list to load:
-            * ProfileCLCont
-            * ProfileEduCont
-            * ProfileExpCont
-            * ProfileProjCont
-            * ProfileSkillsCont
-        Input:
-          fileName - String for the name of the JSON file
-          subDir - String for the subdirectory to load the file from
-          fromJSON - Function to convert JSON to class
-        Algorithm:
-          * Declare empty list
-          * Try to load content
-            * Retrieve directories and file
-            * If the file exists, map the JSON to the list
-          * Catch error if occurs
-        Output:
-          List of class type T
-  */
-  static Future<List<T>> LoadContent<T>(String fileName, String subDir, T Function(Map<String, dynamic>) fromJSON) async {
-    // Declare empty list
-    List<T> ret = [];
-    // Try to load content
-    try {
-      // Retrieve directories and file
-      final masterDir = await getApplicationDocumentsDirectory();
-      final jsonFile = File('${masterDir.path}/$subDir/$fileName');
-      final fileExists = await jsonFile.exists();
-      // If the file exists, map the JSON to the list
-      if (fileExists) {
-        return await MapJSONToList<T>(jsonFile, fromJSON);
-      }
-    }
-    // Catch error if occurs
-    catch (e) {
-      throw ('An error occurred while loading content: $e');
-    }
-    return ret;
-  }
-
-  /*  SetContent - Sets content from one list to another
-        Class Definition:
-          T - Type of class list to set:
-            * ProfileCLCont
-            * ProfileEduCont
-            * ProfileExpCont
-            * ProfileProjCont
-            * ProfileSkillsCont
-        Input:
-          inputList - List of class type T to set from
-          outputList - List of class type T to set to
-        Algorithm:
-          * Clear output list
-          * Add all elements from input list to output list
-        Output:
-          Sets content from one list to another
-  */
-  Future<void> SetContent<T>(List<T> inputList, List<T> outputList) async {
-    outputList.clear();
-    outputList.addAll(inputList);
-  }
-
   /*  SetProfName - Sets the name of the profile
         Input:
           profName - String for the name of the profile
@@ -687,7 +623,7 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
   */
   void initializeEntries() async {
     if (widget.profile.coverLetterContList.isNotEmpty) {
-      await widget.profile.SetContent<ProfileCLCont>(widget.profile.coverLetterContList, entries);
+      await SetContent<ProfileCLCont>(widget.profile.coverLetterContList, entries);
     } else {
       entries.add(ProfileCLCont());
     }
@@ -705,7 +641,7 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
     setState(() {
       entries[index].about.text = '';
     });
-    await widget.profile.SetContent<ProfileCLCont>(entries, widget.profile.coverLetterContList);
+    await SetContent<ProfileCLCont>(entries, widget.profile.coverLetterContList);
   }
 
   @override
@@ -762,7 +698,7 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
                 maxLines: 15,
                 decoration: InputDecoration(hintText: 'Enter details about you here...'),
                 onChanged: (value) async {
-                  await widget.profile.SetContent<ProfileCLCont>(entries, widget.profile.coverLetterContList);
+                  await SetContent<ProfileCLCont>(entries, widget.profile.coverLetterContList);
                 },
               ),
             ],
@@ -925,7 +861,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
   */
   void initializeEntries() async {
     if (widget.profile.eduContList.isNotEmpty) {
-      widget.profile.SetContent<ProfileEduCont>(widget.profile.eduContList, entries);
+      SetContent<ProfileEduCont>(widget.profile.eduContList, entries);
     } else {
       entries.add(ProfileEduCont());
     }
@@ -943,7 +879,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
     setState(() {
       entries.insert(index + 1, ProfileEduCont());
     });
-    await widget.profile.SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+    await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
   }
 
   /*  clearEntry - Clears the entry for the EducationProfileEntry class
@@ -964,7 +900,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
       entries[index].graduated = false;
       entries[index].include = false;
     });
-    await widget.profile.SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+    await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
   }
 
   /*  deleteEntry - Deletes the entry for the EducationProfileEntry class
@@ -981,7 +917,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
       setState(() {
         entries.removeAt(index);
       });
-      await widget.profile.SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+      await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
     }
   }
 
@@ -1045,7 +981,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                       decoration: InputDecoration(hintText: 'Enter name here...'),
                       onChanged: (value) async {
                         setState(() {});
-                        await widget.profile.SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
                       },
                     ),
                   ),
@@ -1059,7 +995,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                         setState(() {
                           entry.graduated = value ?? false;
                         });
-                        await widget.profile.SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
                       },
                     ),
                   ),
@@ -1073,7 +1009,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                         setState(() {
                           entry.include = value ?? false;
                         });
-                        await widget.profile.SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
                       },
                     ),
                   ),
@@ -1085,7 +1021,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
                         entry.start = await SelectDate(context);
-                        await widget.profile.SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
                       },
                     ),
                   ),
@@ -1097,7 +1033,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
                         entry.end = await SelectDate(context);
-                        await widget.profile.SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
                       },
                     ),
                   ),
@@ -1113,7 +1049,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                   hintText: entry.name.text.isNotEmpty ? "Enter degree(s) information for ${entry.name.text} here..." : "Enter degree(s) information for Institution ${index + 1} here...",
                 ),
                 onChanged: (value) async {
-                  await widget.profile.SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                  await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
@@ -1126,7 +1062,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                   hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Institution ${index + 1} here...",
                 ),
                 onChanged: (value) async {
-                  await widget.profile.SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                  await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
@@ -1310,7 +1246,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
   */
   void initializeEntries() {
     if (widget.profile.expContList.isNotEmpty) {
-      widget.profile.SetContent<ProfileExpCont>(widget.profile.expContList, entries);
+      SetContent<ProfileExpCont>(widget.profile.expContList, entries);
     } else {
       entries.add(ProfileExpCont());
     }
@@ -1328,7 +1264,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
     setState(() {
       entries.insert(index + 1, ProfileExpCont());
     });
-    await widget.profile.SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+    await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
   }
 
   /*  clearEntry - Clears the entry for the ExperienceProfileEntry class
@@ -1349,7 +1285,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
       entries[index].working = false;
       entries[index].include = false;
     });
-    await widget.profile.SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+    await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
   }
 
   /*  deleteEntry - Deletes the entry for the ExperienceProfileEntry class
@@ -1366,7 +1302,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
       setState(() {
         entries.removeAt(index);
       });
-      await widget.profile.SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+      await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
     }
   }
 
@@ -1430,7 +1366,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                       decoration: InputDecoration(hintText: 'Enter company name here...'),
                       onChanged: (value) async {
                         setState(() {});
-                        await widget.profile.SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
                       },
                     ),
                   ),
@@ -1444,7 +1380,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                         setState(() {
                           entry.working = value ?? false;
                         });
-                        await widget.profile.SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
                       },
                     ),
                   ),
@@ -1455,7 +1391,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                     child: Checkbox(
                       value: entry.include,
                       onChanged: (bool? value) async {
-                        await widget.profile.SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
                         setState(() {
                           entry.include = value ?? false;
                         });
@@ -1470,7 +1406,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
                         entry.start = await SelectDate(context);
-                        await widget.profile.SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
                       },
                     ),
                   ),
@@ -1482,7 +1418,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
                         entry.end = await SelectDate(context);
-                        await widget.profile.SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
                       },
                     ),
                   ),
@@ -1498,7 +1434,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                   hintText: entry.name.text.isNotEmpty ? "Enter position info for ${entry.name.text} here..." : "Enter position info for Work Experience ${index + 1} here...",
                 ),
                 onChanged: (value) async {
-                  await widget.profile.SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                  await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
@@ -1511,7 +1447,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                   hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Work Experience ${index + 1} here...",
                 ),
                 onChanged: (value) async {
-                  await widget.profile.SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                  await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
@@ -1695,7 +1631,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
   */
   void initializeEntries() {
     if (widget.profile.projContList.isNotEmpty) {
-      widget.profile.SetContent<ProfileProjCont>(widget.profile.projContList, entries);
+      SetContent<ProfileProjCont>(widget.profile.projContList, entries);
     } else {
       entries.add(ProfileProjCont());
     }
@@ -1713,7 +1649,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
     setState(() {
       entries.insert(index + 1, ProfileProjCont());
     });
-    await widget.profile.SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+    await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
   }
 
   /*  clearEntry - Clears the entry for the ProjectProfileEntry class
@@ -1734,7 +1670,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
       entries[index].completed = false;
       entries[index].include = false;
     });
-    await widget.profile.SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+    await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
   }
 
   /*  deleteEntry - Deletes the entry for the ProjectProfileEntry class
@@ -1751,7 +1687,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
       setState(() {
         entries.removeAt(index);
       });
-      await widget.profile.SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+      await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
     }
   }
 
@@ -1815,7 +1751,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                       decoration: InputDecoration(hintText: 'Enter project name here...'),
                       onChanged: (value) async {
                         setState(() {});
-                        await widget.profile.SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
                       },
                     ),
                   ),
@@ -1829,7 +1765,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                         setState(() {
                           entry.completed = value ?? false;
                         });
-                        await widget.profile.SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
                       },
                     ),
                   ),
@@ -1843,7 +1779,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                         setState(() {
                           entry.include = value ?? false;
                         });
-                        await widget.profile.SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
                       },
                     ),
                   ),
@@ -1855,7 +1791,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
                         entry.start = await SelectDate(context);
-                        await widget.profile.SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
                       },
                     ),
                   ),
@@ -1867,7 +1803,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
                         entry.end = await SelectDate(context);
-                        await widget.profile.SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
                       },
                     ),
                   ),
@@ -1883,7 +1819,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                   hintText: entry.name.text.isNotEmpty ? "Enter role info for ${entry.name.text} here..." : "Enter role info for Project ${index + 1} here...",
                 ),
                 onChanged: (value) async {
-                  await widget.profile.SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                  await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
@@ -1896,7 +1832,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                   hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Project ${index + 1} here...",
                 ),
                 onChanged: (value) async {
-                  await widget.profile.SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                  await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
@@ -2060,7 +1996,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
   */
   void initializeEntries() {
     if (widget.profile.skillsContList.isNotEmpty) {
-      widget.profile.SetContent<ProfileSkillsCont>(widget.profile.skillsContList, entries);
+      SetContent<ProfileSkillsCont>(widget.profile.skillsContList, entries);
     } else {
       entries.add(ProfileSkillsCont());
     }
@@ -2078,7 +2014,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
     setState(() {
       entries.insert(index + 1, ProfileSkillsCont());
     });
-    await widget.profile.SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+    await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
   }
 
   /*  clearEntry - Clears the entry for the SkillsProjectEntry class
@@ -2095,7 +2031,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
       entries[index].description.text = '';
       entries[index].include = false;
     });
-    await widget.profile.SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+    await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
   }
 
   /*  deleteEntry - Deletes the entry for the SkillsProjectEntry class
@@ -2112,7 +2048,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
       setState(() {
         entries.removeAt(index);
       });
-      await widget.profile.SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+      await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
     }
   }
 
@@ -2176,7 +2112,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                       decoration: InputDecoration(hintText: 'Enter skill name here...'),
                       onChanged: (value) async {
                         setState(() {});
-                        await widget.profile.SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+                        await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
                       },
                     ),
                   ),
@@ -2190,7 +2126,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                         setState(() {
                           entry.include = value ?? false;
                         });
-                        await widget.profile.SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+                        await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
                       },
                     ),
                   ),
@@ -2206,7 +2142,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                   hintText: entry.name.text.isNotEmpty ? "Enter skills info for ${entry.name.text} here..." : "Enter skills info for Skill Category ${index + 1} here...",
                 ),
                 onChanged: (value) async {
-                  await widget.profile.SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+                  await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),

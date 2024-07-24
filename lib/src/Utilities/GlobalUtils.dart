@@ -286,6 +286,71 @@ Future<List<dynamic>> RetrieveAllContent() async {
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Objects
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+
+/*  LoadContent - Loads content from a JSON file into a list
+        Class Definition:
+          T - Type of class list to load:
+        Input:
+          fileName - String for the name of the JSON file
+          subDir - String for the subdirectory to load the file from
+          fromJSON - Function to convert JSON to class
+        Algorithm:
+          * Declare empty list
+          * Try to load content
+            * Retrieve directories and file
+            * If the file exists, map the JSON to the list
+          * Catch error if occurs
+        Output:
+          List of class type T
+  */
+Future<List<T>> LoadContent<T>(String fileName, String subDir, T Function(Map<String, dynamic>) fromJSON) async {
+  // Declare empty list
+  List<T> ret = [];
+  // Try to load content
+  try {
+    // Retrieve directories and file
+    final masterDir = await getApplicationDocumentsDirectory();
+    final subDirPath = '${masterDir.path}/$subDir';
+    final jsonFile = File('$subDirPath/$fileName');
+    // Check if the sub-directory exists
+    final subDirExists = await Directory(subDirPath).exists();
+    if (!subDirExists) {
+      return ret;
+    }
+    // Check if the file exists
+    final fileExists = await jsonFile.exists();
+    if (fileExists) {
+      return await MapJSONToList<T>(jsonFile, fromJSON);
+    } else {
+      return ret;
+    }
+  }
+  // Catch error if occurs
+  catch (e) {
+    throw ('An error occurred while loading content: $e');
+  }
+}
+
+/*  SetContent - Sets the content of a list
+        Class Definition:
+          T - Type of class list to set:
+        Input:
+          inputList - List of type T that is the input list
+          outputList - List of type T that is the output list
+        Algorithm:
+          * Clear the output list
+          * Add all elements from the input list to the output list
+        Output:
+          Sets the content of a list
+  */
+Future<void> SetContent<T>(List<T> inputList, List<T> outputList) async {
+  outputList.clear();
+  outputList.addAll(inputList);
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Custom Page Route Builders
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 // Left To Right Route

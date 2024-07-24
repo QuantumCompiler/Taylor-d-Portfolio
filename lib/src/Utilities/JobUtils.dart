@@ -114,44 +114,6 @@ class Job {
     );
   }
 
-  /*  LoadContent - Loads content from a JSON file
-        Class T Declaration:
-          * JobDesCont - Job Description Content
-          * JobOtherCont - Job Other Information Content
-          * JobRoleCont - Job Role Content
-          * JobSkillsCont - Job Skills Content
-        Input:
-          fileName - String that is the name of the file
-          subDir - String that is the subdirectory of the file
-          fromJSON - Function that maps JSON to a type
-        Algorithm:
-          * Declare empty list
-          * Try to load content
-            * If the file exists, map the JSON to the list
-        Output:
-          List of type T
-  */
-  static Future<List<T>> LoadContent<T>(String fileName, String subDir, T Function(Map<String, dynamic>) fromJSON) async {
-    // Declare empty list
-    List<T> ret = [];
-    // Try to load content
-    try {
-      // Retrieve directories and file
-      final masterDir = await getApplicationDocumentsDirectory();
-      final jsonFile = File('${masterDir.path}/$subDir/$fileName');
-      final fileExists = await jsonFile.exists();
-      // If the file exists, map the JSON to the list
-      if (fileExists) {
-        return await MapJSONToList<T>(jsonFile, fromJSON);
-      }
-    }
-    // Catch error if occurs
-    catch (e) {
-      throw ('An error occurred while loading content: $e');
-    }
-    return ret;
-  }
-
   /*  CreateJob - Creates a job object
         Input:
           jobName - String that is the name of the job
@@ -219,26 +181,6 @@ class Job {
         throw ('Error occurred in overwriting $name: $e');
       }
     }
-  }
-
-  /*  SetContent - Sets the content of a list
-        Class T Declaration:
-          * JobDesCont - Job Description Content
-          * JobOtherCont - Job Other Information Content
-          * JobRoleCont - Job Role Content
-          * JobSkillsCont - Job Skills Content
-        Input:
-          inputList - List of type T that is the input list
-          outputList - List of type T that is the output list
-        Algorithm:
-          * Clear the output list
-          * Add all elements from the input list to the output list
-        Output:
-          Sets the content of a list
-  */
-  Future<void> SetContent<T>(List<T> inputList, List<T> outputList) async {
-    outputList.clear();
-    outputList.addAll(inputList);
   }
 
   /*  SetJobName - Sets the name of the job
@@ -615,7 +557,7 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
   */
   void initializeEntries() async {
     if (widget.job.descriptionContList.isNotEmpty) {
-      await widget.job.SetContent<JobDesCont>(widget.job.descriptionContList, entries);
+      await SetContent<JobDesCont>(widget.job.descriptionContList, entries);
     } else {
       entries.add(JobDesCont());
     }
@@ -635,7 +577,7 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
     setState(() {
       entries[index].description.text = '';
     });
-    await widget.job.SetContent<JobDesCont>(widget.job.descriptionContList, entries);
+    await SetContent<JobDesCont>(widget.job.descriptionContList, entries);
   }
 
   @override
@@ -695,7 +637,7 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
                 maxLines: 15,
                 decoration: InputDecoration(hintText: 'Enter the job description here...'),
                 onChanged: (value) async {
-                  await widget.job.SetContent<JobDesCont>(entries, widget.job.descriptionContList);
+                  await SetContent<JobDesCont>(entries, widget.job.descriptionContList);
                 },
               ),
             ],
@@ -813,7 +755,7 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
   */
   void initializeEntries() async {
     if (widget.job.otherInfoContList.isNotEmpty) {
-      await widget.job.SetContent<JobOtherCont>(widget.job.otherInfoContList, entries);
+      await SetContent<JobOtherCont>(widget.job.otherInfoContList, entries);
     } else {
       entries.add(JobOtherCont());
     }
@@ -833,7 +775,7 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
     setState(() {
       entries[index].description.text = '';
     });
-    await widget.job.SetContent<JobOtherCont>(widget.job.otherInfoContList, entries);
+    await SetContent<JobOtherCont>(widget.job.otherInfoContList, entries);
   }
 
   @override
@@ -893,7 +835,7 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
                 maxLines: 15,
                 decoration: InputDecoration(hintText: 'Enter the other information here...'),
                 onChanged: (value) async {
-                  await widget.job.SetContent<JobOtherCont>(entries, widget.job.otherInfoContList);
+                  await SetContent<JobOtherCont>(entries, widget.job.otherInfoContList);
                 },
               ),
             ],
@@ -1011,7 +953,7 @@ class RoleJobEntryState extends State<RoleJobEntry> {
   */
   void initializeEntries() async {
     if (widget.job.roleContList.isNotEmpty) {
-      await widget.job.SetContent<JobRoleCont>(widget.job.roleContList, entries);
+      await SetContent<JobRoleCont>(widget.job.roleContList, entries);
     } else {
       entries.add(JobRoleCont());
     }
@@ -1031,7 +973,7 @@ class RoleJobEntryState extends State<RoleJobEntry> {
     setState(() {
       entries[index].description.text = '';
     });
-    await widget.job.SetContent<JobRoleCont>(widget.job.roleContList, entries);
+    await SetContent<JobRoleCont>(widget.job.roleContList, entries);
   }
 
   @override
@@ -1091,7 +1033,7 @@ class RoleJobEntryState extends State<RoleJobEntry> {
                 maxLines: 15,
                 decoration: InputDecoration(hintText: 'Enter role information here...'),
                 onChanged: (value) async {
-                  await widget.job.SetContent<JobRoleCont>(entries, widget.job.roleContList);
+                  await SetContent<JobRoleCont>(entries, widget.job.roleContList);
                 },
               ),
             ],
@@ -1209,7 +1151,7 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
   */
   void initializeEntries() async {
     if (widget.job.skillsContList.isNotEmpty) {
-      await widget.job.SetContent<JobSkillsCont>(widget.job.skillsContList, entries);
+      await SetContent<JobSkillsCont>(widget.job.skillsContList, entries);
     } else {
       entries.add(JobSkillsCont());
     }
@@ -1229,7 +1171,7 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
     setState(() {
       entries[index].description.text = '';
     });
-    await widget.job.SetContent<JobSkillsCont>(widget.job.skillsContList, entries);
+    await SetContent<JobSkillsCont>(widget.job.skillsContList, entries);
   }
 
   @override
@@ -1289,7 +1231,7 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
                 maxLines: 15,
                 decoration: InputDecoration(hintText: 'Enter skill requirements here...'),
                 onChanged: (value) async {
-                  await widget.job.SetContent<JobSkillsCont>(entries, widget.job.skillsContList);
+                  await SetContent<JobSkillsCont>(entries, widget.job.skillsContList);
                 },
               ),
             ],
