@@ -59,7 +59,8 @@ SingleChildScrollView ApplicationsContent(BuildContext context, List<Application
 
 class Apps extends StatefulWidget {
   final List<Application> apps;
-  Apps({required this.apps});
+  const Apps({super.key, required this.apps});
+  @override
   _AppsState createState() => _AppsState();
 }
 
@@ -69,6 +70,7 @@ class _AppsState extends State<Apps> {
     super.initState();
   }
 
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: widget.apps.isNotEmpty
@@ -147,7 +149,7 @@ class _AppsState extends State<Apps> {
 
 class Jobs extends StatefulWidget {
   final List<Job> jobs;
-  Jobs({required this.jobs});
+  const Jobs({super.key, required this.jobs});
 
   @override
   _JobsState createState() => _JobsState();
@@ -267,7 +269,7 @@ class _JobsState extends State<Jobs> {
 
 class Profiles extends StatefulWidget {
   final List<Profile> profiles;
-  Profiles({required this.profiles});
+  const Profiles({super.key, required this.profiles});
 
   @override
   _ProfileState createState() => _ProfileState();
