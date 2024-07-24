@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 // import '../../Applications/LoadApplication.dart';
 // import '../../Applications/NewApplication.dart';
-import '../../Dashboard/Dashboard.dart';
 // import '../../Globals/ApplicationsGlobals.dart';
+import '../../Context/Globals/GlobalContext.dart';
+import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 import '../../Jobs/EditJob.dart';
+import '../../Jobs/NewJob.dart';
 import '../../Profiles/EditProfile.dart';
+import '../../Profiles/NewProfile.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/JobUtils.dart';
@@ -53,6 +56,35 @@ SingleChildScrollView ApplicationsContent(BuildContext context, List<Application
           Profiles(profiles: profiles),
         ],
       ),
+    ),
+  );
+}
+
+BottomAppBar ApplicationsBottomAppBar(BuildContext context, List<Job> jobs, List<Profile> profiles) {
+  return BottomAppBar(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          child: Text('Create New Application'),
+          onPressed: () {
+            bool jobsValid = false;
+            bool profilesValid = false;
+            for (int i = 0; i < profiles.length; i++) {
+              if (profiles[i].isSelected == true) {
+                profilesValid = true;
+                break;
+              }
+            }
+            for (int i = 0; i < jobs.length; i++) {
+              if (jobs[i].isSelected == true) {
+                jobsValid = true;
+              }
+            }
+          },
+        )
+      ],
     ),
   );
 }
@@ -220,7 +252,14 @@ class _JobsState extends State<Jobs> {
                                     message: 'Click To Delete - ${widget.jobs[index].name}',
                                     child: IconButton(
                                       icon: Icon(Icons.delete),
-                                      onPressed: () => {},
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) {
+                                            return DeleteJobDialog(context, widget.jobs, index, setState);
+                                          },
+                                        );
+                                      },
                                     ),
                                   ),
                                 ],
@@ -244,6 +283,35 @@ class _JobsState extends State<Jobs> {
                     ),
                   ),
                 ),
+                SizedBox(height: standardSizedBoxHeight),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Tooltip(
+                      message: 'Create A New Job',
+                      child: IconButton(
+                        icon: Icon(Icons.add_circle_outline_rounded),
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewJobPage(backToJobs: false)), (Route<dynamic> route) => false);
+                        },
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Clear Selection For Jobs',
+                      child: IconButton(
+                        icon: Icon(Icons.clear),
+                        onPressed: () {
+                          for (int i = 0; i < widget.jobs.length; i++) {
+                            setState(() {
+                              widget.jobs[i].isSelected = false;
+                            });
+                          }
+                        },
+                      ),
+                    )
+                  ],
+                ),
               ],
             )
           : Center(
@@ -251,6 +319,7 @@ class _JobsState extends State<Jobs> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
+                  SizedBox(height: 4 * standardSizedBoxHeight),
                   Text(
                     'No Previous Jobs',
                     style: TextStyle(
@@ -260,6 +329,22 @@ class _JobsState extends State<Jobs> {
                   ),
                   SizedBox(height: 4 * standardSizedBoxHeight),
                   CircularProgressIndicator(),
+                  SizedBox(height: 4 * standardSizedBoxHeight),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Tooltip(
+                        message: 'Create A New Job',
+                        child: IconButton(
+                          icon: Icon(Icons.add_circle_outline_rounded),
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewJobPage(backToJobs: false)), (Route<dynamic> route) => false);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -339,10 +424,17 @@ class _ProfileState extends State<Profiles> {
                                         ),
                                       ),
                                       Tooltip(
-                                        message: 'Click To Edit - ${widget.profiles[index].name}',
+                                        message: 'Click To Delete - ${widget.profiles[index].name}',
                                         child: IconButton(
                                           icon: Icon(Icons.delete),
-                                          onPressed: () => {},
+                                          onPressed: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) {
+                                                return DeleteProfileDialog(context, widget.profiles, index, setState);
+                                              },
+                                            );
+                                          },
                                         ),
                                       ),
                                     ],
@@ -360,6 +452,35 @@ class _ProfileState extends State<Profiles> {
                     ),
                   ),
                 ),
+                SizedBox(height: standardSizedBoxHeight),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Tooltip(
+                      message: 'Create A New Profile',
+                      child: IconButton(
+                        icon: Icon(Icons.add_circle_outline_rounded),
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewProfilePage(backToProfile: false)), (Route<dynamic> route) => false);
+                        },
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Clear Selection For Profiles',
+                      child: IconButton(
+                        icon: Icon(Icons.clear),
+                        onPressed: () {
+                          for (int i = 0; i < widget.profiles.length; i++) {
+                            setState(() {
+                              widget.profiles[i].isSelected = false;
+                            });
+                          }
+                        },
+                      ),
+                    )
+                  ],
+                ),
               ],
             )
           : Center(
@@ -367,8 +488,9 @@ class _ProfileState extends State<Profiles> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
+                  SizedBox(height: 4 * standardSizedBoxHeight),
                   Text(
-                    'No Previous Jobs',
+                    'No Previous Profiles',
                     style: TextStyle(
                       fontSize: secondaryTitles,
                       fontWeight: FontWeight.bold,
@@ -376,6 +498,22 @@ class _ProfileState extends State<Profiles> {
                   ),
                   SizedBox(height: 4 * standardSizedBoxHeight),
                   CircularProgressIndicator(),
+                  SizedBox(height: 4 * standardSizedBoxHeight),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Tooltip(
+                        message: 'Create A New Profile',
+                        child: IconButton(
+                          icon: Icon(Icons.add_circle_outline_rounded),
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewProfilePage(backToProfile: false)), (Route<dynamic> route) => false);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
