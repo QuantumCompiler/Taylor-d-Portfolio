@@ -26,7 +26,7 @@ AlertDialog GenAlertDialogWithIcon(String title, String content, IconData? icon)
       children: [
         Icon(
           icon,
-          size: 100.0,
+          size: 50.0,
         ),
         SizedBox(height: standardSizedBoxHeight),
         Text(content),

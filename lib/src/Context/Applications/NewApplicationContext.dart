@@ -1,47 +1,81 @@
-// // import 'package:flutter/foundation.dart';
-// import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import '../../Applications/Applications.dart';
+import '../../Dashboard/Dashboard.dart';
 // import '../../Applications/SaveNewApplication.dart';
-// import '../../Globals/ApplicationsGlobals.dart';
+import '../../Globals/ApplicationsGlobals.dart';
 // import '../../Utilities/ApplicationsUtils.dart';
 // import '../../Jobs/EditJob.dart';
-// import '../../Globals/Globals.dart';
-// // import '../../Profiles/EditProfile.dart';
-// import '../../Themes/Themes.dart';
+import '../../Globals/Globals.dart';
+// import '../../Profiles/EditProfile.dart';
+import '../../Utilities/GlobalUtils.dart';
 
-// AppBar appBar(BuildContext context, Function state) {
-//   return AppBar(
-//     leading: IconButton(
-//       icon: Icon(Icons.arrow_back_ios_new_outlined),
-//       onPressed: () {
-//         Navigator.of(context).pop();
-//         state(() {});
-//       },
-//     ),
-//     actions: <Widget>[
-//       IconButton(
-//         icon: Icon(Icons.dashboard),
-//         onPressed: () {
-//           if (isDesktop()) {
-//             Navigator.of(context).pop();
-//             Navigator.of(context).pop();
-//             Navigator.of(context).pop();
-//           } else if (isMobile()) {
-//             Navigator.of(context).pop();
-//             Navigator.of(context).pop();
-//           }
-//         },
-//       ),
-//     ],
-//     title: Text(
-//       newApplicationTitle,
-//       style: TextStyle(
-//         color: themeTextColor(context),
-//         fontSize: appBarTitle,
-//         fontWeight: FontWeight.bold,
-//       ),
-//     ),
-//   );
-// }
+AppBar NewApplicationAppBar(BuildContext context) {
+  return AppBar(
+    title: Text(
+      'New Application',
+      style: TextStyle(
+        fontSize: appBarTitle,
+        fontWeight: FontWeight.bold,
+      ),
+      textAlign: TextAlign.center,
+    ),
+    leading: IconButton(
+      icon: Icon(Icons.arrow_back_ios_new_outlined),
+      onPressed: () {
+        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+      },
+    ),
+    actions: [
+      Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.dashboard),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
+            },
+          ),
+        ],
+      )
+    ],
+  );
+}
+
+SingleChildScrollView NewApplicationContent(BuildContext context, List<DropdownMenuEntry> menuEntries) {
+  String openAIModel = gpt_4o;
+  return SingleChildScrollView(
+    child: Center(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(height: 4 * standardSizedBoxHeight),
+          DropdownMenu(
+            dropdownMenuEntries: menuEntries,
+            enableFilter: true,
+            initialSelection: gpt_4o,
+            width: MediaQuery.of(context).size.width * 0.4,
+            menuHeight: MediaQuery.of(context).size.height * 0.4,
+            helperText: 'Select Model For OpenAI',
+            onSelected: (value) {
+              openAIModel = value.toString();
+            },
+          ),
+          SizedBox(height: 4 * standardSizedBoxHeight),
+          ElevatedButton(
+            child: Text('Create Portfolio'),
+            onPressed: () {
+              if (kDebugMode) {
+                print('Model that was selected: $openAIModel');
+              }
+              // Prep for OpenAI call here!!!!!!
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
 // SingleChildScrollView loadApplicationContent(BuildContext context, ApplicationContent content, Function state) {
 //   return SingleChildScrollView(

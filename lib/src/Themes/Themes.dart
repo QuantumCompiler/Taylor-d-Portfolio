@@ -84,6 +84,11 @@ class ThemeProvider with ChangeNotifier {
       listTileTheme: ListTileThemeData(
         iconColor: customCyan,
       ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: TextStyle(
+          color: customCyan,
+        ),
+      ),
     );
   }
 }

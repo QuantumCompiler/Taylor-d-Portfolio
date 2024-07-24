@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../Applications/NewApplication.dart';
 // import '../../Applications/LoadApplication.dart';
 // import '../../Applications/NewApplication.dart';
 // import '../../Globals/ApplicationsGlobals.dart';
@@ -69,18 +70,97 @@ BottomAppBar ApplicationsBottomAppBar(BuildContext context, List<Job> jobs, List
         ElevatedButton(
           child: Text('Create New Application'),
           onPressed: () {
-            bool jobsValid = false;
-            bool profilesValid = false;
-            for (int i = 0; i < profiles.length; i++) {
-              if (profiles[i].isSelected == true) {
-                profilesValid = true;
-                break;
-              }
-            }
-            for (int i = 0; i < jobs.length; i++) {
-              if (jobs[i].isSelected == true) {
-                jobsValid = true;
-              }
+            bool jobsValid = jobs.any((job) => job.isSelected);
+            bool profilesValid = profiles.any((profile) => profile.isSelected);
+            int jobIndex = jobs.indexWhere((job) => job.isSelected);
+            int profileIndex = profiles.indexWhere((profile) => profile.isSelected);
+            if (jobsValid && profilesValid) {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text(
+                      'Job And Profile',
+                      style: TextStyle(
+                        fontSize: appBarTitle,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    content: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.question_mark_outlined,
+                            size: 50.0,
+                          ),
+                          SizedBox(height: standardSizedBoxHeight),
+                          Text(
+                            'You have selected ${jobs[jobIndex].name} to apply to.\nYou have selected ${profiles[profileIndex].name} to apply with.',
+                            style: TextStyle(
+                              fontSize: secondaryTitles,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: standardSizedBoxHeight),
+                          Text(
+                            'Would you like to proceed with these?',
+                            style: TextStyle(
+                              fontSize: secondaryTitles,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: standardSizedBoxHeight),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ElevatedButton(
+                                child: Text('No'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                              SizedBox(width: standardSizedBoxWidth),
+                              ElevatedButton(
+                                child: Text('Yes'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewApplicationPage()), (Route<dynamic> route) => false);
+                                },
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            } else if (!jobsValid && profilesValid) {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return GenAlertDialogWithIcon('Job Not Selected!', 'You must select a job to apply to.', Icons.error);
+                },
+              );
+            } else if (jobsValid && !profilesValid) {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return GenAlertDialogWithIcon('Profile Not Selected!', 'You must select a profile to apply with.', Icons.error);
+                },
+              );
+            } else {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return GenAlertDialogWithIcon('Job And Profile Not Selected', 'You must select a job to apply to and a profile to apply with.', Icons.error);
+                },
+              );
             }
           },
         )
