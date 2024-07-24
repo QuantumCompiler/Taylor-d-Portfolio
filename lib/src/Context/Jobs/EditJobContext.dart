@@ -78,77 +78,7 @@ BottomAppBar EditJobBottomAppBar(BuildContext context, Job job, bool? backToJobs
             await showDialog(
               context: context,
               builder: (context) {
-                return AlertDialog(
-                  title: Text(
-                    'Overwrite Job',
-                    style: TextStyle(
-                      fontSize: appBarTitle,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  content: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Choose A Name For Your Job',
-                        style: TextStyle(
-                          fontSize: secondaryTitles,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: standardSizedBoxHeight),
-                      TextFormField(
-                        controller: job.nameController,
-                        keyboardType: TextInputType.multiline,
-                        maxLines: 1,
-                        decoration: InputDecoration(hintText: 'Enter name here...'),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton(
-                          child: Text('Cancel'),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                        SizedBox(width: standardSizedBoxWidth),
-                        ElevatedButton(
-                          child: Text('Overwrite Job'),
-                          onPressed: () async {
-                            try {
-                              await job.CreateJob(job.nameController.text);
-                              if (backToJobs == true) {
-                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
-                              } else if (backToJobs == false) {
-                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-                              }
-                              await showDialog(
-                                context: context,
-                                builder: (context) {
-                                  return GenAlertDialogWithIcon(
-                                    "Job ${job.name}",
-                                    "Written Successfully",
-                                    Icons.check_circle_outline,
-                                  );
-                                },
-                              );
-                            } catch (e) {
-                              throw ("Error occurred in overwriting ${job.nameController.text} job");
-                            }
-                          },
-                        ),
-                      ],
-                    )
-                  ],
-                );
+                return EditJobDialog(context, job, backToJobs);
               },
             );
           },
