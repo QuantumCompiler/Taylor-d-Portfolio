@@ -56,7 +56,7 @@ class NewProfilePageState extends State<NewProfilePage> {
         future: futureProfile,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            return NewProfileBottomAppBar(context, snapshot.data!);
+            return NewProfileBottomAppBar(context, snapshot.data!, widget.backToProfile);
           } else {
             return Container();
           }
