@@ -55,7 +55,7 @@ class NewJobPageState extends State<NewJobPage> {
         future: futureJob,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            return NewJobBottomAppBar(context, snapshot.data!);
+            return NewJobBottomAppBar(context, snapshot.data!, widget.backToJobs);
           } else {
             return Container();
           }
