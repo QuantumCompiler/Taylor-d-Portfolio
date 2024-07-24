@@ -26,7 +26,7 @@ class ThemeProvider with ChangeNotifier {
       brightness: _isDarkTheme ? Brightness.dark : Brightness.light,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
-          backgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? cyanButtonColor : cyanButtonColor),
+          backgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? customCyan : customCyan),
           foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Colors.black : Colors.black),
           textStyle: WidgetStateProperty.all<TextStyle>(
             TextStyle(
@@ -56,6 +56,33 @@ class ThemeProvider with ChangeNotifier {
       cardTheme: CardTheme(
         elevation: 50.0,
         shadowColor: Color.fromARGB(51, 0, 213, 255),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        checkColor: WidgetStateProperty.all<Color?>(Colors.black),
+        fillColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) {
+            if (states.contains(WidgetState.selected)) {
+              return customCyan;
+            }
+            return Colors.transparent;
+          },
+        ),
+      ),
+      iconTheme: IconThemeData(
+        color: customCyan,
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(
+          iconColor: WidgetStateProperty.all<Color?>(customCyan),
+        ),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: customCyan,
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: customCyan,
       ),
     );
   }
