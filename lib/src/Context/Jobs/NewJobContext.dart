@@ -4,11 +4,12 @@ import '../../Applications/Applications.dart';
 import '../../Context/Jobs/JobsContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Jobs/Jobs.dart';
-import '../../Utilities/GlobalUtils.dart';
+import '../../Profiles/Profiles.dart';
+import '../../Settings/Settings.dart';
 import '../../Utilities/JobUtils.dart';
 import '../../Globals/Globals.dart';
 
-AppBar NewJobAppBar(BuildContext context, bool? backToJobs) {
+AppBar NewJobAppBar(BuildContext context, bool backToJobs) {
   return AppBar(
     title: Text(
       'Create New Job',
@@ -17,26 +18,16 @@ AppBar NewJobAppBar(BuildContext context, bool? backToJobs) {
         fontWeight: FontWeight.bold,
       ),
     ),
-    leading: IconButton(
-      icon: Icon(Icons.arrow_back_ios_new_outlined),
-      onPressed: () async {
-        await CleanDir('Temp');
-        if (backToJobs == true) {
-          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
-        } else if (backToJobs == false) {
-          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-        }
-      },
-    ),
+    leading: backToJobs
+        ? NavToPage(context, 'Jobs', Icon(Icons.arrow_back_ios_new_outlined), JobsPage(), false, true)
+        : NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, true),
     actions: [
       Row(
         children: [
-          IconButton(
-            icon: Icon(Icons.dashboard),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
-            },
-          ),
+          backToJobs ? NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, true) : NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, true),
+          NavToPage(context, 'Profiles', Icon(Icons.person), ProfilePage(), true, true),
+          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, true),
+          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, true),
         ],
       ),
     ],

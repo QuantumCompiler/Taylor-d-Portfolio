@@ -4,7 +4,7 @@ import '../Utilities/ProfilesUtils.dart';
 
 class EditProfilePage extends StatefulWidget {
   late String profileName;
-  final bool? backToProfile;
+  final bool backToProfile;
   EditProfilePage({
     super.key,
     required this.profileName,

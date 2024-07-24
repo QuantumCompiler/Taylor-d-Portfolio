@@ -3,7 +3,7 @@ import '../Context/Profiles/NewProfileContext.dart';
 import '../Utilities/ProfilesUtils.dart';
 
 class NewProfilePage extends StatefulWidget {
-  final bool? backToProfile;
+  final bool backToProfile;
   const NewProfilePage({
     super.key,
     this.backToProfile = true,

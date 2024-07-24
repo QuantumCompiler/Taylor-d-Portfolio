@@ -3,7 +3,7 @@ import '../Context/Jobs/NewJobContext.dart';
 import '../Utilities/JobUtils.dart';
 
 class NewJobPage extends StatefulWidget {
-  final bool? backToJobs;
+  final bool backToJobs;
   const NewJobPage({
     super.key,
     this.backToJobs = true,

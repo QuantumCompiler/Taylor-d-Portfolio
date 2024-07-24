@@ -5,6 +5,7 @@ import '../../Applications/Applications.dart';
 import '../../Globals/Globals.dart';
 import '../../Jobs/Jobs.dart';
 import '../../Profiles/Profiles.dart';
+import '../../Settings/Settings.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/JobUtils.dart';
 import '../../Utilities/ProfilesUtils.dart';
@@ -504,6 +505,91 @@ AlertDialog NewJobDialog(BuildContext context, Job job, bool? backToJobs, TextEd
         ],
       ),
     ],
+  );
+}
+
+IconButton NavigateToAppsPage(BuildContext context, Widget icon, bool forwards, bool cleanTemp) {
+  return IconButton(
+    tooltip: 'Go To Applications',
+    icon: icon,
+    onPressed: () async {
+      if (cleanTemp) {
+        await CleanDir('Temp');
+      }
+      if (forwards) {
+        Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+      } else {
+        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+      }
+    },
+  );
+}
+
+IconButton NavigateToJobsPage(BuildContext context, Widget icon, bool forwards, bool cleanTemp) {
+  return IconButton(
+    tooltip: 'Go To Jobs',
+    icon: icon,
+    onPressed: () async {
+      if (cleanTemp) {
+        await CleanDir('Temp');
+      }
+      if (forwards) {
+        Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
+      } else {
+        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
+      }
+    },
+  );
+}
+
+IconButton NavigateToProfilesPage(BuildContext context, Widget icon, bool forwards, bool cleanTemp) {
+  return IconButton(
+    tooltip: 'Go To Profiles',
+    icon: icon,
+    onPressed: () async {
+      if (cleanTemp) {
+        await CleanDir('Temp');
+      }
+      if (forwards) {
+        Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+      } else {
+        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+      }
+    },
+  );
+}
+
+IconButton NavigateToSettingsPage(BuildContext context, Widget icon, bool forwards, bool cleanTemp) {
+  return IconButton(
+    tooltip: 'Navigate To Settings',
+    icon: icon,
+    onPressed: () async {
+      if (cleanTemp) {
+        await CleanDir('Temp');
+      }
+      if (forwards) {
+        Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: SettingsPage()), (Route<dynamic> route) => false);
+      } else {
+        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: SettingsPage()), (Route<dynamic> route) => false);
+      }
+    },
+  );
+}
+
+IconButton NavToPage(BuildContext context, String toolTip, Widget icon, Widget destination, bool forwards, bool cleanTemp) {
+  return IconButton(
+    tooltip: toolTip,
+    icon: icon,
+    onPressed: () async {
+      if (cleanTemp) {
+        await CleanDir('Temp');
+      }
+      if (forwards) {
+        Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: destination), (Route<dynamic> route) => false);
+      } else {
+        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: destination), (Route<dynamic> route) => false);
+      }
+    },
   );
 }
 

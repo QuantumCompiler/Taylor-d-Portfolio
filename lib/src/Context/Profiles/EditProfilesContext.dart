@@ -4,11 +4,12 @@ import '../../Context/Globals/GlobalContext.dart';
 import '../../Context/Profiles/ProfileContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
+import '../../Jobs/Jobs.dart';
 import '../../Profiles/Profiles.dart';
-import '../../Utilities/GlobalUtils.dart';
+import '../../Settings/Settings.dart';
 import '../../Utilities/ProfilesUtils.dart';
 
-AppBar EditProfileAppBar(BuildContext context, String profileName, bool? backToProfile) {
+AppBar EditProfileAppBar(BuildContext context, String profileName, bool backToProfile) {
   return AppBar(
     title: Text(
       'Edit Profile $profileName',
@@ -17,25 +18,16 @@ AppBar EditProfileAppBar(BuildContext context, String profileName, bool? backToP
         fontWeight: FontWeight.bold,
       ),
     ),
-    leading: IconButton(
-      icon: Icon(Icons.arrow_back_ios_new_outlined),
-      onPressed: () {
-        if (backToProfile == true) {
-          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
-        } else if (backToProfile == false) {
-          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-        }
-      },
-    ),
+    leading: backToProfile
+        ? NavToPage(context, 'Profiles', Icon(Icons.arrow_back_ios_new_outlined), ProfilePage(), false, false)
+        : NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, false),
     actions: [
       Row(
         children: [
-          IconButton(
-            icon: Icon(Icons.dashboard),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
-            },
-          ),
+          NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, false),
+          NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, false),
+          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
+          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
         ],
       ),
     ],

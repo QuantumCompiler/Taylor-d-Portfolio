@@ -1,11 +1,15 @@
 // Imports
 import 'package:flutter/material.dart';
+import '../../Applications/Applications.dart';
+import '../../Context/Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/SettingsGlobals.dart';
 import '../../Globals/Globals.dart';
+import '../../Jobs/Jobs.dart';
+import '../../Profiles/Profiles.dart';
+import '../../Themes/Themes.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/SettingsUtilities.dart';
-import '../../Themes/Themes.dart';
 
 /*  appBar - App bar for the settings page
       Input:
@@ -17,24 +21,6 @@ import '../../Themes/Themes.dart';
 */
 AppBar appBar(BuildContext context) {
   return AppBar(
-    leading: IconButton(
-      icon: Icon(Icons.arrow_back_ios_new_outlined),
-      onPressed: () {
-        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
-      },
-    ),
-    actions: [
-      Row(
-        children: [
-          IconButton(
-            icon: Icon(Icons.dashboard),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
-            },
-          ),
-        ],
-      ),
-    ],
     title: Text(
       settingsTitle,
       style: TextStyle(
@@ -42,6 +28,17 @@ AppBar appBar(BuildContext context) {
         fontWeight: FontWeight.bold,
       ),
     ),
+    leading: NavToPage(context, 'Dashboard', Icon(Icons.arrow_back_ios_new_outlined), Dashboard(), false, false),
+    actions: [
+      Row(
+        children: [
+          NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, false),
+          NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, false),
+          NavToPage(context, 'Profiles', Icon(Icons.person), ProfilePage(), true, false),
+          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
+        ],
+      ),
+    ],
   );
 }
 

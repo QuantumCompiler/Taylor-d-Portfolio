@@ -7,9 +7,12 @@ import '../../Context/Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 import '../../Jobs/EditJob.dart';
+import '../../Jobs/Jobs.dart';
 import '../../Jobs/NewJob.dart';
 import '../../Profiles/EditProfile.dart';
 import '../../Profiles/NewProfile.dart';
+import '../../Profiles/Profiles.dart';
+import '../../Settings/Settings.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/JobUtils.dart';
@@ -24,21 +27,14 @@ AppBar ApplicationsAppBar(BuildContext context) {
         fontWeight: FontWeight.bold,
       ),
     ),
-    leading: IconButton(
-      icon: Icon(Icons.arrow_back_ios_new_outlined),
-      onPressed: () {
-        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
-      },
-    ),
+    leading: NavToPage(context, 'Dashboard', Icon(Icons.arrow_back_ios_new_outlined), Dashboard(), false, false),
     actions: [
       Row(
         children: [
-          IconButton(
-            icon: Icon(Icons.dashboard),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
-            },
-          ),
+          NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, false),
+          NavToPage(context, 'Profiles', Icon(Icons.person), ProfilePage(), true, false),
+          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
+          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
         ],
       ),
     ],
@@ -68,7 +64,7 @@ BottomAppBar ApplicationsBottomAppBar(BuildContext context, List<Job> jobs, List
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         ElevatedButton(
-          child: Text('Create New Application'),
+          child: Text('Proceed To OpenAI'),
           onPressed: () {
             bool jobsValid = jobs.any((job) => job.isSelected);
             bool profilesValid = profiles.any((profile) => profile.isSelected);
@@ -80,7 +76,7 @@ BottomAppBar ApplicationsBottomAppBar(BuildContext context, List<Job> jobs, List
                 builder: (context) {
                   return AlertDialog(
                     title: Text(
-                      'Job And Profile',
+                      'Review Selections',
                       style: TextStyle(
                         fontSize: appBarTitle,
                         fontWeight: FontWeight.bold,

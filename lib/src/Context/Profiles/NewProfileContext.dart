@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import '../Profiles/ProfileContext.dart';
 import '../Globals/GlobalContext.dart';
+import '../Profiles/ProfileContext.dart';
 import '../../Applications/Applications.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
+import '../../Jobs/Jobs.dart';
 import '../../Profiles/Profiles.dart';
+import '../../Settings/Settings.dart';
 import '../../Utilities/ProfilesUtils.dart';
-import '../../Utilities/GlobalUtils.dart';
 
-AppBar NewProfileAppBar(BuildContext context, bool? backToProfile) {
+AppBar NewProfileAppBar(BuildContext context, bool backToProfile) {
   return AppBar(
     title: Text(
       'Create New Profile',
@@ -17,29 +18,18 @@ AppBar NewProfileAppBar(BuildContext context, bool? backToProfile) {
         fontWeight: FontWeight.bold,
       ),
     ),
-    leading: IconButton(
-      icon: Icon(Icons.arrow_back_ios_new_outlined),
-      onPressed: () async {
-        await CleanDir('Temp');
-        if (backToProfile == true) {
-          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
-        } else if (backToProfile == false) {
-          Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-        }
-      },
-    ),
+    leading: backToProfile
+        ? NavToPage(context, 'Profiles', Icon(Icons.arrow_back_ios_new_outlined), ProfilePage(), false, true)
+        : NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, true),
     actions: [
       Row(
         children: [
-          IconButton(
-            icon: Icon(Icons.dashboard),
-            onPressed: () async {
-              await CleanDir('Temp');
-              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
-            },
-          ),
+          NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, true),
+          NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, true),
+          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, true),
+          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, true),
         ],
-      )
+      ),
     ],
   );
 }

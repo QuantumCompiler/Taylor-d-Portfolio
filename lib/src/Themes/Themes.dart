@@ -46,13 +46,6 @@ class ThemeProvider with ChangeNotifier {
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.transparent,
       ),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: Color.fromARGB(128, 0, 213, 255),
-        contentTextStyle: TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
       cardTheme: CardTheme(
         elevation: 50.0,
         shadowColor: Color.fromARGB(51, 0, 213, 255),
@@ -68,24 +61,51 @@ class ThemeProvider with ChangeNotifier {
           },
         ),
       ),
-      iconTheme: IconThemeData(
-        color: customCyan,
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: TextStyle(
+          color: customCyan,
+        ),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: ButtonStyle(
           iconColor: WidgetStateProperty.all<Color?>(customCyan),
         ),
       ),
-      tooltipTheme: TooltipThemeData(
-        decoration: BoxDecoration(
-          color: customCyan,
-        ),
+      iconTheme: IconThemeData(
+        color: customCyan,
       ),
       listTileTheme: ListTileThemeData(
         iconColor: customCyan,
       ),
-      dropdownMenuTheme: DropdownMenuThemeData(
-        textStyle: TextStyle(
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: Color.fromARGB(128, 0, 213, 255),
+        contentTextStyle: TextStyle(
+          color: Colors.black,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+          if (states.contains(WidgetState.selected)) {
+            return Colors.black;
+          }
+          return Colors.black;
+        }),
+        trackColor: WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+          if (states.contains(WidgetState.selected)) {
+            return customCyan;
+          }
+          return Colors.grey;
+        }),
+        trackOutlineColor: WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+          if (states.contains(WidgetState.selected)) {
+            return Colors.black;
+          }
+          return Colors.black;
+        }),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
           color: customCyan,
         ),
       ),

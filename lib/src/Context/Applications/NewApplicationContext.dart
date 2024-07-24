@@ -1,14 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../Globals/GlobalContext.dart';
 import '../../Applications/Applications.dart';
 import '../../Dashboard/Dashboard.dart';
 // import '../../Applications/SaveNewApplication.dart';
 import '../../Globals/ApplicationsGlobals.dart';
 // import '../../Utilities/ApplicationsUtils.dart';
-// import '../../Jobs/EditJob.dart';
 import '../../Globals/Globals.dart';
-// import '../../Profiles/EditProfile.dart';
-import '../../Utilities/GlobalUtils.dart';
+import '../../Jobs/Jobs.dart';
+import '../../Profiles/Profiles.dart';
+import '../../Settings/Settings.dart';
 
 AppBar NewApplicationAppBar(BuildContext context) {
   return AppBar(
@@ -20,23 +21,16 @@ AppBar NewApplicationAppBar(BuildContext context) {
       ),
       textAlign: TextAlign.center,
     ),
-    leading: IconButton(
-      icon: Icon(Icons.arrow_back_ios_new_outlined),
-      onPressed: () {
-        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-      },
-    ),
+    leading: NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, false),
     actions: [
       Row(
         children: [
-          IconButton(
-            icon: Icon(Icons.dashboard),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
-            },
-          ),
+          NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, false),
+          NavToPage(context, 'Profiles', Icon(Icons.person), ProfilePage(), true, false),
+          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
+          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
         ],
-      )
+      ),
     ],
   );
 }
@@ -53,7 +47,6 @@ SingleChildScrollView NewApplicationContent(BuildContext context, List<DropdownM
           DropdownMenu(
             dropdownMenuEntries: menuEntries,
             enableFilter: true,
-            initialSelection: gpt_4o,
             width: MediaQuery.of(context).size.width * 0.4,
             menuHeight: MediaQuery.of(context).size.height * 0.4,
             helperText: 'Select Model For OpenAI',

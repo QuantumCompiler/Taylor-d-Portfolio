@@ -4,7 +4,7 @@ import '../Utilities/JobUtils.dart';
 
 class EditJobPage extends StatefulWidget {
   late String jobName;
-  final bool? backToJobs;
+  final bool backToJobs;
   EditJobPage({
     super.key,
     required this.jobName,

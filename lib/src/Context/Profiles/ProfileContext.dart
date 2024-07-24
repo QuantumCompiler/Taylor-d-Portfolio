@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import '../Globals/GlobalContext.dart';
+import '../../Applications/Applications.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
+import '../../Jobs/Jobs.dart';
 import '../../Profiles/EditProfile.dart';
 import '../../Profiles/NewProfile.dart';
 import '../../Profiles/ProfileContent.dart';
+import '../../Settings/Settings.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/ProfilesUtils.dart';
 
@@ -17,21 +20,14 @@ AppBar ProfileAppBar(BuildContext context, List<Profile> profiles) {
         fontWeight: FontWeight.bold,
       ),
     ),
-    leading: IconButton(
-      icon: Icon(Icons.arrow_back_ios_new_outlined),
-      onPressed: () {
-        Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
-      },
-    ),
+    leading: NavToPage(context, 'Dashboard', Icon(Icons.arrow_back_ios_new_outlined), Dashboard(), false, false),
     actions: [
       Row(
         children: [
-          IconButton(
-            icon: Icon(Icons.dashboard),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: Dashboard()), (Route<dynamic> route) => false);
-            },
-          ),
+          NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, false),
+          NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, false),
+          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
+          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
         ],
       ),
     ],
