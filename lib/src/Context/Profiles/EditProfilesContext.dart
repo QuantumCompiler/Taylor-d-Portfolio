@@ -77,77 +77,7 @@ BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile profile, bool
             await showDialog(
               context: context,
               builder: (context) {
-                return AlertDialog(
-                  title: Text(
-                    'Overwrite Profile',
-                    style: TextStyle(
-                      fontSize: appBarTitle,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  content: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Choose A Name For Your Profile',
-                        style: TextStyle(
-                          fontSize: secondaryTitles,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: standardSizedBoxHeight),
-                      TextFormField(
-                        controller: profile.nameController,
-                        keyboardType: TextInputType.multiline,
-                        maxLines: 1,
-                        decoration: InputDecoration(hintText: 'Enter name here...'),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton(
-                          child: Text('Cancel'),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                        SizedBox(width: standardSizedBoxWidth),
-                        ElevatedButton(
-                          child: Text('Overwrite Profile'),
-                          onPressed: () async {
-                            try {
-                              await profile.CreateProfile(profile.nameController.text);
-                              if (backToProfile == true) {
-                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
-                              } else if (backToProfile == false) {
-                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-                              }
-                              await showDialog(
-                                context: context,
-                                builder: (context) {
-                                  return GenAlertDialogWithIcon(
-                                    "Profile ${profile.name}",
-                                    "Written Successfully",
-                                    Icons.check_circle_outline,
-                                  );
-                                },
-                              );
-                            } catch (e) {
-                              throw ("Error occurred in overwriting ${profile.nameController.text} profile");
-                            }
-                          },
-                        ),
-                      ],
-                    )
-                  ],
-                );
+                return EditProfileDialog(context, profile, backToProfile);
               },
             );
           },

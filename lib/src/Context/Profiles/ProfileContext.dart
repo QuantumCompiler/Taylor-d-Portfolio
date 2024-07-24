@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 import '../../Profiles/EditProfile.dart';
@@ -88,63 +89,7 @@ SingleChildScrollView ProfileContent(BuildContext context, List<Profile> profile
                                       showDialog(
                                         context: context,
                                         builder: (context) {
-                                          return AlertDialog(
-                                            content: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.center,
-                                              mainAxisAlignment: MainAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  'Delete Profile ${profiles[index].name}?',
-                                                  style: TextStyle(
-                                                    fontSize: appBarTitle,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                SizedBox(height: standardSizedBoxHeight),
-                                                Icon(
-                                                  Icons.warning,
-                                                  size: 50.0,
-                                                ),
-                                                SizedBox(height: standardSizedBoxHeight),
-                                                Text(
-                                                  'Are you sure that you would like to delete this profile?\nThis cannot be undone.',
-                                                ),
-                                                SizedBox(height: standardSizedBoxHeight),
-                                                Row(
-                                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    ElevatedButton(
-                                                      child: Text(
-                                                        'Cancel',
-                                                      ),
-                                                      onPressed: () {
-                                                        Navigator.of(context).pop();
-                                                      },
-                                                    ),
-                                                    SizedBox(width: standardSizedBoxWidth),
-                                                    ElevatedButton(
-                                                      child: Text('Delete'),
-                                                      onPressed: () async {
-                                                        try {
-                                                          await DeleteProfile(profiles[index].name);
-                                                          setState(
-                                                            () {
-                                                              profiles.removeAt(index);
-                                                            },
-                                                          );
-                                                          Navigator.of(context).pop();
-                                                        } catch (e) {
-                                                          throw ('Error in deleting ${profiles[index].name}');
-                                                        }
-                                                      },
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          );
+                                          return DeleteProfileDialog(context, profiles, index, setState);
                                         },
                                       );
                                     },

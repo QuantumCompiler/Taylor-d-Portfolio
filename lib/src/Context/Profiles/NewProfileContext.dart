@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import '../Profiles/ProfileContext.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Applications/Applications.dart';
@@ -70,7 +68,7 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile profile, L
   );
 }
 
-BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile profile) {
+BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile profile, bool? backToProfile) {
   TextEditingController nameController = TextEditingController();
   return BottomAppBar(
     child: Row(
@@ -79,105 +77,11 @@ BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile profile) {
       children: [
         ElevatedButton(
           child: Text('Save Profile'),
-          onPressed: () async {
-            await showDialog(
+          onPressed: () {
+            showDialog(
               context: context,
               builder: (context) {
-                return AlertDialog(
-                  title: Text(
-                    'Save New Profile',
-                    style: TextStyle(
-                      fontSize: appBarTitle,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  content: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Choose A Name For Your New Profile',
-                        style: TextStyle(
-                          fontSize: secondaryTitles,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      TextFormField(
-                        controller: nameController,
-                        keyboardType: TextInputType.multiline,
-                        maxLines: 1,
-                        decoration: InputDecoration(hintText: 'Enter name here...'),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton(
-                          child: Text('Cancel'),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                        SizedBox(width: standardSizedBoxWidth),
-                        ElevatedButton(
-                          child: Text('Save Profile'),
-                          onPressed: () async {
-                            final masterDir = await getApplicationDocumentsDirectory();
-                            final currDir = Directory('${masterDir.path}/Profiles/${nameController.text}');
-                            if (await currDir.exists()) {
-                              Navigator.of(context).pop();
-                              await showDialog(
-                                context: context,
-                                builder: (context) {
-                                  return GenAlertDialogWithIcon(
-                                    "Profile ${nameController.text} Already Exists!",
-                                    "Please select a different name for this profile",
-                                    Icons.error,
-                                  );
-                                },
-                              );
-                            } else {
-                              try {
-                                await profile.CreateProfile(nameController.text);
-                                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
-                                await showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return GenAlertDialogWithIcon(
-                                        'Profile ${profile.name}',
-                                        'Written Successfully',
-                                        Icons.check_circle_outline,
-                                      );
-                                    });
-                              } catch (e) {
-                                await showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: Text('Error'),
-                                      content: Text('An error occurred while creating the profile. Please try again. $e'),
-                                      actions: [
-                                        ElevatedButton(
-                                          child: Text('OK'),
-                                          onPressed: () => Navigator.of(context).pop(),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                );
+                return NewProfileDialog(context, profile, backToProfile, nameController);
               },
             );
           },
