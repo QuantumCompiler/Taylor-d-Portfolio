@@ -22,7 +22,7 @@ double buttonTitle = 16;
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Colors
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-Color cyanButtonColor = Color.fromARGB(255, 0, 213, 255);
+Color customCyan = Color.fromARGB(255, 0, 213, 255);
 Color whiteButtonColor = Colors.white;
 Color blackTextColor = Colors.black;
 Color whiteTextColor = Colors.white;
