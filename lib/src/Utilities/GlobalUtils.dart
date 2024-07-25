@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'ApplicationsUtils.dart';
 import 'JobUtils.dart';
 import 'ProfilesUtils.dart';
@@ -120,9 +121,32 @@ Future<void> CleanDir(String subDir) async {
   }
 }
 
+// Function to recursively copy directories
+Future<void> CopyDir(Directory sourceDir, Directory destDir, bool delete) async {
+  await for (var entity in sourceDir.list(recursive: false)) {
+    if (entity is Directory) {
+      var newDirectory = Directory(path.join(destDir.path, path.basename(entity.path)));
+      await newDirectory.create(recursive: true);
+      await CopyDir(entity, newDirectory, false);
+    } else if (entity is File) {
+      await CopyFile(entity, destDir);
+    }
+  }
+  if (delete) {
+    await sourceDir.delete(recursive: true);
+  }
+}
+
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Files
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+
+// Function to copy files
+Future<void> CopyFile(File sourceFile, Directory destDir) async {
+  final newFile = File(path.join(destDir.path, path.basename(sourceFile.path)));
+  await newFile.create(recursive: true);
+  await newFile.writeAsBytes(await sourceFile.readAsBytes());
+}
 
 // Read JSON To String
 Future<List<dynamic>> JSONList(File inputFile) async {

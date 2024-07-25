@@ -1,15 +1,9 @@
 // Sizes
-double applicationsTileContainerWidth = 0.6;
-double applicationsTitleSize = 24.0;
 double applicationsContainerWidth = 0.8;
 
-// Titles & Hints
-String applicationsTitle = 'Applications';
-String createNewApplicationTile = 'Create New Application';
-String newApplicationTitle = 'New Application';
-
-// API Key
+// API Stuff
 String apiKey = 'OPENAI_API_KEY';
+const apiURL = 'https://api.openai.com/v1/chat/completions';
 
 // OpenAI Models
 String gpt_3_5_personal = 'ft:gpt-3.5-turbo-1106:personal::9hSa098j';

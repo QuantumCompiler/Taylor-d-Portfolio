@@ -5,11 +5,11 @@ import '../../Applications/Applications.dart';
 import '../../Dashboard/Dashboard.dart';
 // import '../../Applications/SaveNewApplication.dart';
 import '../../Globals/ApplicationsGlobals.dart';
-// import '../../Utilities/ApplicationsUtils.dart';
 import '../../Globals/Globals.dart';
 import '../../Jobs/Jobs.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
+import '../../Utilities/ApplicationsUtils.dart';
 
 AppBar NewApplicationAppBar(BuildContext context) {
   return AppBar(
@@ -21,7 +21,7 @@ AppBar NewApplicationAppBar(BuildContext context) {
       ),
       textAlign: TextAlign.center,
     ),
-    leading: NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, false),
+    leading: NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, true),
     actions: [
       Row(
         children: [
@@ -35,7 +35,7 @@ AppBar NewApplicationAppBar(BuildContext context) {
   );
 }
 
-SingleChildScrollView NewApplicationContent(BuildContext context, List<DropdownMenuEntry> menuEntries) {
+SingleChildScrollView NewApplicationContent(BuildContext context, Application app) {
   String openAIModel = gpt_4o;
   return SingleChildScrollView(
     child: Center(
@@ -45,7 +45,7 @@ SingleChildScrollView NewApplicationContent(BuildContext context, List<DropdownM
         children: [
           SizedBox(height: 4 * standardSizedBoxHeight),
           DropdownMenu(
-            dropdownMenuEntries: menuEntries,
+            dropdownMenuEntries: openAIEntries,
             enableFilter: true,
             width: MediaQuery.of(context).size.width * 0.4,
             menuHeight: MediaQuery.of(context).size.height * 0.4,
@@ -57,11 +57,41 @@ SingleChildScrollView NewApplicationContent(BuildContext context, List<DropdownM
           SizedBox(height: 4 * standardSizedBoxHeight),
           ElevatedButton(
             child: Text('Create Portfolio'),
-            onPressed: () {
+            onPressed: () async {
               if (kDebugMode) {
                 print('Model that was selected: $openAIModel');
               }
-              // Prep for OpenAI call here!!!!!!
+              // OpenAI testCall = OpenAI(
+              //   openAIModel: openAIModel,
+              //   systemRole: 'You are testing an API call.',
+              //   userPrompt: 'Hello ChatGPT, are you working?',
+              //   maxTokens: 100,
+              // );
+              // try {
+              //   Map<String, dynamic> finalResponse = await testCall.testRec();
+              //   if (finalResponse.containsKey('error')) {
+              //     if (kDebugMode) {
+              //       print('Error: ${finalResponse['error']}');
+              //       print('Message: ${finalResponse['message']}');
+              //     }
+              //   } else {
+              //     List<dynamic> choices = finalResponse['choices'];
+              //     if (choices.isNotEmpty) {
+              //       String content = choices[0]['message']['content'];
+              //       if (kDebugMode) {
+              //         print('OpenAI message content response: $content');
+              //       }
+              //     } else {
+              //       if (kDebugMode) {
+              //         print('No choices available in the response');
+              //       }
+              //     }
+              //   }
+              // } catch (e) {
+              //   if (kDebugMode) {
+              //     print('Error: $e');
+              //   }
+              // }
             },
           ),
         ],
@@ -69,158 +99,6 @@ SingleChildScrollView NewApplicationContent(BuildContext context, List<DropdownM
     ),
   );
 }
-
-// SingleChildScrollView loadApplicationContent(BuildContext context, ApplicationContent content, Function state) {
-//   return SingleChildScrollView(
-//     child: Center(
-//       child: Container(
-//         width: MediaQuery.of(context).size.width * applicationsContainerWidth,
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.center,
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             SizedBox(height: standardSizedBoxHeight),
-//             Text(
-//               'Choose A Job To Apply To',
-//               style: TextStyle(
-//                 color: themeTextColor(context),
-//                 fontSize: secondaryTitles,
-//                 fontWeight: FontWeight.bold,
-//               ),
-//             ),
-//             SizedBox(height: standardSizedBoxHeight),
-//             Container(
-//               width: MediaQuery.of(context).size.width * applicationsContainerWidth,
-//               height: MediaQuery.of(context).size.height * 0.5,
-//               child: ListView.builder(
-//                 itemCount: content.jobs.length,
-//                 itemBuilder: (context, index) {
-//                   return StatefulBuilder(
-//                     builder: (BuildContext context, StateSetter setState) {
-//                       return Tooltip(
-//                         message: 'Click To Edit ${content.jobs[index].path.split('/').last}',
-//                         child: MouseRegion(
-//                           cursor: SystemMouseCursors.click,
-//                           child: ListTile(
-//                             title: Text(content.jobs[index].path.split('/').last),
-//                             trailing: Row(
-//                               mainAxisSize: MainAxisSize.min,
-//                               children: [
-//                                 Tooltip(
-//                                   message: 'Select ${content.jobs[index].path.split('/').last}',
-//                                   child: Checkbox(
-//                                     value: content.checkedJobs.contains(content.jobs[index].path.split('/').last),
-//                                     onChanged: (bool? value) {
-//                                       content.updateBoxes(content.checkedJobs, content.jobs[index].path.split('/').last, value, setState);
-//                                     },
-//                                   ),
-//                                 ),
-//                                 Tooltip(
-//                                   message: 'Delete ${content.jobs[index].path.split('/').last}',
-//                                   child: IconButton(
-//                                     icon: Icon(Icons.delete),
-//                                     onPressed: () async {
-//                                       // await DeleteJob(content.jobs[index].path.split('/').last);
-//                                       state(() {});
-//                                     },
-//                                   ),
-//                                 ),
-//                               ],
-//                             ),
-//                             onTap: () {
-//                               Navigator.push(
-//                                 context,
-//                                 MaterialPageRoute(
-//                                   builder: (context) => EditJobPage(jobName: content.jobs[index].path.split('/').last),
-//                                 ),
-//                               ).then(
-//                                 (_) {
-//                                   state(() {});
-//                                 },
-//                               );
-//                             },
-//                           ),
-//                         ),
-//                       );
-//                     },
-//                   );
-//                 },
-//               ),
-//             ),
-//             SizedBox(height: standardSizedBoxHeight),
-//             Text(
-//               'Choose A Profile To Apply With',
-//               style: TextStyle(
-//                 color: themeTextColor(context),
-//                 fontSize: secondaryTitles,
-//                 fontWeight: FontWeight.bold,
-//               ),
-//             ),
-//             SizedBox(height: standardSizedBoxHeight),
-//             Container(
-//               width: MediaQuery.of(context).size.width * applicationsContainerWidth,
-//               height: MediaQuery.of(context).size.height * 0.5,
-//               child: ListView.builder(
-//                 itemCount: content.profiles.length,
-//                 itemBuilder: (context, index) {
-//                   return StatefulBuilder(
-//                     builder: (BuildContext context, StateSetter setState) {
-//                       return Tooltip(
-//                         message: 'Click To Edit ${content.profiles[index].path.split('/').last}',
-//                         child: MouseRegion(
-//                           cursor: SystemMouseCursors.click,
-//                           child: ListTile(
-//                             title: Text(content.profiles[index].path.split('/').last),
-//                             trailing: Row(
-//                               mainAxisSize: MainAxisSize.min,
-//                               children: [
-//                                 Tooltip(
-//                                   message: 'Select ${content.profiles[index].path.split('/').last}',
-//                                   child: Checkbox(
-//                                     value: content.checkedProfiles.contains(content.profiles[index].path.split('/').last),
-//                                     onChanged: (bool? value) {
-//                                       content.updateBoxes(content.checkedProfiles, content.profiles[index].path.split('/').last, value, setState);
-//                                     },
-//                                   ),
-//                                 ),
-//                                 Tooltip(
-//                                   message: 'Delete ${content.profiles[index].path.split('/').last}',
-//                                   child: IconButton(
-//                                     icon: Icon(Icons.delete),
-//                                     onPressed: () async {
-//                                       // await DeleteProfile(content.profiles[index].path.split('/').last);
-//                                       state(() {});
-//                                     },
-//                                   ),
-//                                 ),
-//                               ],
-//                             ),
-//                             onTap: () {
-//                               // Navigator.push(
-//                               //   context,
-//                               //   MaterialPageRoute(
-//                               //     builder: (context) => EditProfilePage(profileName: content.profiles[index].path.split('/').last),
-//                               //   ),
-//                               // ).then(
-//                               //   (_) {
-//                               //     state(() {});
-//                               //   },
-//                               // );
-//                             },
-//                           ),
-//                         ),
-//                       );
-//                     },
-//                   );
-//                 },
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     ),
-//   );
-// }
 
 // BottomAppBar bottomAppBar(BuildContext context, ApplicationContent content, Function state) {
 //   return BottomAppBar(

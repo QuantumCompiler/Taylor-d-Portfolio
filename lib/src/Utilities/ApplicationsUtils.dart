@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-// import 'dart:convert';
+// import 'package:flutter/gestures.dart';
+// import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+// import '../Globals/ApplicationsGlobals.dart';
 // import 'package:archive/archive_io.dart';
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter/material.dart';
-// import 'package:flutter_dotenv/flutter_dotenv.dart';
-// import 'package:http/http.dart' as http;
 // import 'package:path/path.dart' as p;
 // import '../Globals/ApplicationsGlobals.dart';
 // import '../Globals/Globals.dart';
@@ -13,8 +17,8 @@ import 'dart:io';
 // import '../Globals/ProfilesGlobals.dart';
 // import '../Themes/Themes.dart';
 import '../Utilities/GlobalUtils.dart';
-// import '../Utilities/JobUtils.dart';
-// import '../Utilities/ProfilesUtils.dart';
+import '../Utilities/JobUtils.dart';
+import '../Utilities/ProfilesUtils.dart';
 
 class Application {
   // Directories
@@ -30,101 +34,243 @@ class Application {
 
   // Content
   late String name;
+  late Job jobUsed;
+  late Profile profileUsed;
+
+  // Master Files
+  late File coverLetterPDF;
+  late File coverLetterZip;
+  late File jobContFile;
+  late File portfolioPDF;
+  late File portfolioZip;
+  late File profileContFile;
+  late File resumePDF;
+  late File resumeZip;
+
+  // Recommendations Files
+  late File eduRecFile;
+  late File expRecFile;
+  late File frameRecFile;
+  late File mathSkillsRecFile;
+  late File persSkillsRecFile;
+  late File progLangRecFile;
+  late File progSkillsRecFile;
+  late File projRecFile;
+  late File sciRecFile;
+  late File whyJobFile;
+  late File whyMeFile;
 
   // Constructor
   Application._({
     required this.newApp,
     required this.name,
+    required this.jobUsed,
+    required this.profileUsed,
+    required this.coverLetterPDF,
+    required this.coverLetterZip,
+    required this.portfolioPDF,
+    required this.portfolioZip,
+    required this.resumePDF,
+    required this.resumeZip,
+    required this.eduRecFile,
+    required this.expRecFile,
+    required this.frameRecFile,
+    required this.mathSkillsRecFile,
+    required this.persSkillsRecFile,
+    required this.progLangRecFile,
+    required this.progSkillsRecFile,
+    required this.projRecFile,
+    required this.sciRecFile,
+    required this.whyJobFile,
+    required this.whyMeFile,
   });
 
+  // Init
   static Future<Application> Init({String name = '', required bool newApp}) async {
+    final masterDir = getApplicationDocumentsDirectory();
+    Future<Job> futureJob = Job.Init(newJob: false);
+    Future<Profile> futureProfile = Profile.Init(newProfile: false);
+    Job jobUsed = await futureJob;
+    Profile profileUsed = await futureProfile;
+    // Main Files
+    File cPDF = File('$masterDir/Temp/CoverLetter.pdf');
+    File cZip = File('$masterDir/Temp/CoverLetter.zip');
+    File pPDF = File('$masterDir/Temp/Portfolio.pdf');
+    File pZip = File('$masterDir/Temp/Portfolio.zip');
+    File rPDF = File('$masterDir/Temp/Resume.pdf');
+    File rZip = File('$masterDir/Temp/Resume.zip');
+    // Recommendation Files
+    File eduRec = File('$masterDir/Temp/Education.txt');
+    File expRec = File('$masterDir/Temp/Experience.txt');
+    File frameRec = File('$masterDir/Temp/Frameworks.txt');
+    File langRec = File('$masterDir/Temp/Languages.txt');
+    File mathRec = File('$masterDir/Temp/Math.txt');
+    File persRec = File('$masterDir/Temp/Personal.txt');
+    File progRec = File('$masterDir/Temp/Programming.txt');
+    File projRec = File('$masterDir/Temp/Projects.txt');
+    File sciRec = File('$masterDir/Temp/Scientific.txt');
+    File whyJob = File('$masterDir/Temp/WhyJob.txt');
+    File whyMe = File('$masterDir/Temp/WhyMe.txt');
     return Application._(
       newApp: newApp,
       name: name,
+      jobUsed: jobUsed,
+      profileUsed: profileUsed,
+      coverLetterPDF: cPDF,
+      coverLetterZip: cZip,
+      portfolioPDF: pPDF,
+      portfolioZip: pZip,
+      resumePDF: rPDF,
+      resumeZip: rZip,
+      eduRecFile: eduRec,
+      expRecFile: expRec,
+      frameRecFile: frameRec,
+      progLangRecFile: langRec,
+      mathSkillsRecFile: mathRec,
+      persSkillsRecFile: persRec,
+      progSkillsRecFile: progRec,
+      projRecFile: projRec,
+      sciRecFile: sciRec,
+      whyJobFile: whyJob,
+      whyMeFile: whyMe,
     );
   }
 
-  // // Clear Checkboxes
-  // void ClearJobProfBoxes(List<String> checkedJ, List<String> checkedP, Function setState) {
-  //   setState(() {
-  //     checkedJ.clear();
-  //     checkedP.clear();
-  //   });
-  // }
+  // Set Previous Content
+  void SetJobProfile(Job job, Profile profile) async {
+    jobUsed = job;
+    profileUsed = profile;
+    await CopyJobProfileContent('Temp');
+  }
 
-  // // Get Content
-  // List<String> GetJobProfBoxes() {
-  //   List<String> names = [];
-  //   names.add(checkedJobs[0]);
-  //   names.add(checkedProfiles[0]);
-  //   return names;
-  // }
+  // Copy Profile Content
+  Future<void> CopyJobProfileContent(String grandDir) async {
+    final masterDir = await getApplicationDocumentsDirectory();
+    Directory grandParentDir = Directory('${masterDir.path}/$grandDir');
+    if (!grandParentDir.existsSync()) {
+      await grandParentDir.create();
+    }
+    Directory parentDir = Directory('${grandParentDir.path}/Job And Profile Content');
+    if (!parentDir.existsSync()) {
+      await parentDir.create();
+    } else {
+      await parentDir.delete(recursive: true);
+      await parentDir.create();
+    }
+    Directory profDir = Directory('${masterDir.path}/Profiles/${profileUsed.name}');
+    if (!profDir.existsSync()) {
+      return;
+    }
+    Directory jobDir = Directory('${masterDir.path}/Jobs/${jobUsed.name}');
+    if (!jobDir.existsSync()) {
+      return;
+    }
+    Directory profDestDir = Directory('${parentDir.path}/${profileUsed.name}');
+    if (!profDestDir.existsSync()) {
+      await profDestDir.create();
+    } else {
+      await profDestDir.delete(recursive: true);
+      await profDestDir.create();
+    }
+    Directory jobDestDir = Directory('${parentDir.path}/${jobUsed.name}');
+    if (!jobDestDir.existsSync()) {
+      await jobDestDir.create();
+    } else {
+      await jobDestDir.delete(recursive: true);
+      await jobDestDir.create();
+    }
+    await CopyDir(profDir, profDestDir, false);
+    await CopyDir(jobDir, jobDestDir, false);
+  }
 
-  // // Update Checkboxes
-  // void UpdateJobProfBoxes(List<String> checks, String key, bool? value, Function setState) {
-  //   setState(() {
-  //     if (value == true && checks.isEmpty) {
-  //       checks.add(key);
-  //     } else if (value == false && checks.contains(key)) {
-  //       checks.remove(key);
-  //     }
-  //   });
-  // }
-
-  // // Verify Checkboxes
-  // bool VerifyJobProfBoxes() {
-  //   bool jobsValid = checkedJobs.length == 1;
-  //   bool profilesValid = checkedProfiles.length == 1;
-  //   return jobsValid && profilesValid;
-  // }
+  // Set App Name
+  void SetAppName(String appName) {
+    name = appName;
+  }
 }
 
-// Files
-// late File resumeZip;
-// late File resumePDF;
-// late File cletterZip;
-// late File cletterPDF;
-// late File eduRecFile;
-// late File expRecFile;
-// late File framRecFile;
-// late File langRecFile;
-// late File mathRecFile;
-// late File persRecFile;
-// late File progRecFile;
-// late File projRecFile;
-// late File sciRecFile;
+class OpenAI {
+  static final String _apikey = dotenv.env['OPENAI_API_KEY'] ?? '';
+  final String openAIModel;
+  final String systemRole;
+  final String userPrompt;
+  final int maxTokens;
 
-// Strings
-// late String eduRecString;
-// late String expRecString;
-// late String framRecString;
-// late String langRecString;
-// late String mathRecString;
-// late String persRecString;
-// late String progRecString;
-// late String projRecString;
-// late String sciRecString;
+  OpenAI({
+    required this.openAIModel,
+    required this.systemRole,
+    required this.userPrompt,
+    required this.maxTokens,
+  });
 
-// Controllers
-// late TextEditingController eduRecCont;
-// late TextEditingController expRecCont;
-// late TextEditingController framRecCont;
-// late TextEditingController langRecCont;
-// late TextEditingController mathRecCont;
-// late TextEditingController persRecCont;
-// late TextEditingController progRecCont;
-// late TextEditingController projRecCont;
-// late TextEditingController sciRecCont;
+  final callHeaders = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $_apikey',
+  };
 
-// Required Content
-// final String name;
-// final String profileName;
-// final List<TextEditingController> controllers;
+  String get callBody {
+    return jsonEncode({
+      'model': openAIModel,
+      'messages': [
+        {'role': 'system', 'content': systemRole},
+        {'role': 'user', 'content': userPrompt}
+      ],
+      'max_tokens': maxTokens,
+    });
+  }
 
-// Constructor
-// Application({
-//   required this.name,
-// });
+  Future<Map<String, dynamic>> testRec() async {
+    const url = 'https://api.openai.com/v1/chat/completions';
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: callHeaders,
+        body: callBody,
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else {
+        return {
+          'error': 'Error: ${response.statusCode}',
+          'message': response.body,
+        };
+      }
+    } catch (e) {
+      throw Exception('Failed to generate response: $e');
+    }
+  }
+}
+
+// Future<Map<String, dynamic>> getRecs() async {
+//   await prepRecPrompt();
+//   const url = 'https://api.openai.com/v1/chat/completions';
+//   final headers = {
+//     'Content-Type': 'application/json',
+//     'Authorization': 'Bearer $_apikey',
+//   };
+//   final body = jsonEncode({
+//     'model': openAIModel,
+//     'messages': [
+//       {'role': 'system', 'content': _systemRole},
+//       {'role': 'user', 'content': _userPrompt}
+//     ],
+//     'max_tokens': maxTokens,
+//   });
+//   try {
+//     final response = await http.post(Uri.parse(url), headers: headers, body: body);
+//     if (response.statusCode == 200) {
+//       final data = jsonDecode(response.body);
+//       String responseText = data['choices'][0]['message']['content'].trim();
+//       responseText = responseText.replaceAll('```json\n', '').replaceAll('```', '');
+//       Map<String, dynamic> jsonResponse = jsonDecode(responseText);
+//       return jsonResponse;
+//     } else {
+//       throw Exception('Failed to load data: ${response.statusCode} ${response.reasonPhrase}');
+//     }
+//   } catch (e) {
+//     throw Exception('Failed to load data: $e');
+//   }
+// }
 
 // Create New Application
 // Future<void> CreateNewApplication() async {
@@ -285,72 +431,6 @@ class Application {
 //   final masterAppsDir = await appsDir;
 //   final pdfFilePath = '${masterAppsDir.path}/$name/Finished Documents/$subDir/$pdfFileName';
 //   return pdfFilePath;
-// }
-
-// class OpenAI {
-//   static final String _apikey = dotenv.env[apiKey]!;
-//   final ApplicationContent content;
-//   final String openAIModel;
-//   static String? _systemRole;
-//   static String? _userPrompt;
-//   final int maxTokens;
-
-//   OpenAI({
-//     required this.content,
-//     required this.openAIModel,
-//     required this.maxTokens,
-//   });
-
-//   Future<void> prepRecPrompt() async {
-//     List<String> names = content.getContent();
-//     List<List<String>> appContent = await prepContent(names);
-//     final jobContent = prepJobContent(
-//       appContent[0][1],
-//       appContent[0][1],
-//       appContent[0][2],
-//       appContent[0][3],
-//     );
-//     final profContent = prepProfContent(
-//       appContent[1][0],
-//       appContent[1][1],
-//       appContent[1][2],
-//       appContent[1][3],
-//     );
-//     String finalPrompt = "$jobContentPrompt ${jsonEncode(jobContent)}\\n$profContentPrompt ${jsonEncode(profContent)}\\n$returnPrompt";
-//     _systemRole = hiringManagerRole;
-//     _userPrompt = finalPrompt;
-//   }
-
-//   Future<Map<String, dynamic>> getRecs() async {
-//     await prepRecPrompt();
-//     const url = 'https://api.openai.com/v1/chat/completions';
-//     final headers = {
-//       'Content-Type': 'application/json',
-//       'Authorization': 'Bearer $_apikey',
-//     };
-//     final body = jsonEncode({
-//       'model': openAIModel,
-//       'messages': [
-//         {'role': 'system', 'content': _systemRole},
-//         {'role': 'user', 'content': _userPrompt}
-//       ],
-//       'max_tokens': maxTokens,
-//     });
-//     try {
-//       final response = await http.post(Uri.parse(url), headers: headers, body: body);
-//       if (response.statusCode == 200) {
-//         final data = jsonDecode(response.body);
-//         String responseText = data['choices'][0]['message']['content'].trim();
-//         responseText = responseText.replaceAll('```json\n', '').replaceAll('```', '');
-//         Map<String, dynamic> jsonResponse = jsonDecode(responseText);
-//         return jsonResponse;
-//       } else {
-//         throw Exception('Failed to load data: ${response.statusCode} ${response.reasonPhrase}');
-//       }
-//     } catch (e) {
-//       throw Exception('Failed to load data: $e');
-//     }
-//   }
 // }
 
 // Future<List<File>> getJobFiles(String name) async {

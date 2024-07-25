@@ -123,9 +123,12 @@ BottomAppBar ApplicationsBottomAppBar(BuildContext context, List<Job> jobs, List
                               SizedBox(width: standardSizedBoxWidth),
                               ElevatedButton(
                                 child: Text('Yes'),
-                                onPressed: () {
+                                onPressed: () async {
                                   Navigator.of(context).pop();
-                                  Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewApplicationPage()), (Route<dynamic> route) => false);
+                                  Future<Application> futureApp = Application.Init(newApp: true);
+                                  Application app = await futureApp;
+                                  app.SetJobProfile(jobs[jobIndex], profiles[profileIndex]);
+                                  Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewApplicationPage(newApp: app)), (Route<dynamic> route) => false);
                                 },
                               ),
                             ],
@@ -436,6 +439,167 @@ class Profiles extends StatefulWidget {
   _ProfileState createState() => _ProfileState();
 }
 
+// class _ProfileState extends State<Profiles> {
+//   @override
+//   void initState() {
+//     super.initState();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return SingleChildScrollView(
+//       child: widget.profiles.isNotEmpty
+//           ? Column(
+//               crossAxisAlignment: CrossAxisAlignment.center,
+//               mainAxisAlignment: MainAxisAlignment.start,
+//               mainAxisSize: MainAxisSize.min,
+//               children: [
+//                 SizedBox(height: standardSizedBoxHeight),
+//                 Text(
+//                   'Previous Profiles',
+//                   style: TextStyle(
+//                     fontSize: secondaryTitles,
+//                     fontWeight: FontWeight.bold,
+//                   ),
+//                 ),
+//                 SizedBox(height: standardSizedBoxHeight),
+//                 ConstrainedBox(
+//                   constraints: BoxConstraints(
+//                     minHeight: 0,
+//                     maxHeight: MediaQuery.of(context).size.height * 0.40,
+//                   ),
+//                   child: Container(
+//                     width: MediaQuery.of(context).size.width * 0.8,
+//                     child: ListView.builder(
+//                       shrinkWrap: true,
+//                       itemCount: widget.profiles.length,
+//                       itemBuilder: (context, index) {
+//                         return StatefulBuilder(
+//                           builder: (BuildContext context, StateSetter setState) {
+//                             return Tooltip(
+//                               message: 'Click To View ${widget.profiles[index].name}',
+//                               child: MouseRegion(
+//                                 cursor: SystemMouseCursors.click,
+//                                 child: ListTile(
+//                                   title: Text(widget.profiles[index].name),
+//                                   trailing: Row(
+//                                     mainAxisSize: MainAxisSize.min,
+//                                     children: [
+//                                       Tooltip(
+//                                         message: 'Click To Select ${widget.profiles[index].name} For Application',
+//                                         child: Checkbox(
+//                                           value: widget.profiles[index].isSelected,
+//                                           onChanged: (bool? value) {
+//                                             setState(() {
+//                                               for (int i = 0; i < widget.profiles.length; i++) {
+//                                                 if (i == index) {
+//                                                   widget.profiles[i].isSelected = value!;
+//                                                 } else {
+//                                                   widget.profiles[i].isSelected = false;
+//                                                 }
+//                                               }
+//                                             });
+//                                           },
+//                                         ),
+//                                       ),
+//                                       Tooltip(
+//                                         message: 'Click To Delete - ${widget.profiles[index].name}',
+//                                         child: IconButton(
+//                                           icon: Icon(Icons.delete),
+//                                           onPressed: () {
+//                                             showDialog(
+//                                               context: context,
+//                                               builder: (context) {
+//                                                 return DeleteProfileDialog(context, widget.profiles, index, setState);
+//                                               },
+//                                             );
+//                                           },
+//                                         ),
+//                                       ),
+//                                     ],
+//                                   ),
+//                                   onTap: () {
+//                                     Navigator.pushAndRemoveUntil(
+//                                         context, RightToLeftPageRoute(page: EditProfilePage(profileName: widget.profiles[index].name, backToProfile: false)), (Route<dynamic> route) => false);
+//                                   },
+//                                 ),
+//                               ),
+//                             );
+//                           },
+//                         );
+//                       },
+//                     ),
+//                   ),
+//                 ),
+//                 SizedBox(height: standardSizedBoxHeight),
+//                 Row(
+//                   crossAxisAlignment: CrossAxisAlignment.center,
+//                   mainAxisAlignment: MainAxisAlignment.center,
+//                   children: [
+//                     Tooltip(
+//                       message: 'Create A New Profile',
+//                       child: IconButton(
+//                         icon: Icon(Icons.add_circle_outline_rounded),
+//                         onPressed: () {
+//                           Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewProfilePage(backToProfile: false)), (Route<dynamic> route) => false);
+//                         },
+//                       ),
+//                     ),
+//                     Tooltip(
+//                       message: 'Clear Selection For Profiles',
+//                       child: IconButton(
+//                         icon: Icon(Icons.clear),
+//                         onPressed: () {
+//                           for (int i = 0; i < widget.profiles.length; i++) {
+//                             setState(() {
+//                               widget.profiles[i].isSelected = false;
+//                             });
+//                           }
+//                         },
+//                       ),
+//                     )
+//                   ],
+//                 ),
+//               ],
+//             )
+//           : Center(
+//               child: Column(
+//                 crossAxisAlignment: CrossAxisAlignment.center,
+//                 mainAxisAlignment: MainAxisAlignment.start,
+//                 children: [
+//                   SizedBox(height: 4 * standardSizedBoxHeight),
+//                   Text(
+//                     'No Previous Profiles',
+//                     style: TextStyle(
+//                       fontSize: secondaryTitles,
+//                       fontWeight: FontWeight.bold,
+//                     ),
+//                   ),
+//                   SizedBox(height: 4 * standardSizedBoxHeight),
+//                   CircularProgressIndicator(),
+//                   SizedBox(height: 4 * standardSizedBoxHeight),
+//                   Row(
+//                     crossAxisAlignment: CrossAxisAlignment.center,
+//                     mainAxisAlignment: MainAxisAlignment.center,
+//                     children: [
+//                       Tooltip(
+//                         message: 'Create A New Profile',
+//                         child: IconButton(
+//                           icon: Icon(Icons.add_circle_outline_rounded),
+//                           onPressed: () {
+//                             Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewProfilePage(backToProfile: false)), (Route<dynamic> route) => false);
+//                           },
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ],
+//               ),
+//             ),
+//     );
+//   }
+// }
+
 class _ProfileState extends State<Profiles> {
   @override
   void initState() {
@@ -471,58 +635,62 @@ class _ProfileState extends State<Profiles> {
                       shrinkWrap: true,
                       itemCount: widget.profiles.length,
                       itemBuilder: (context, index) {
-                        return StatefulBuilder(
-                          builder: (BuildContext context, StateSetter setState) {
-                            return Tooltip(
-                              message: 'Click To View ${widget.profiles[index].name}',
-                              child: MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: ListTile(
-                                  title: Text(widget.profiles[index].name),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Tooltip(
-                                        message: 'Click To Select ${widget.profiles[index].name} For Application',
-                                        child: Checkbox(
-                                          value: widget.profiles[index].isSelected,
-                                          onChanged: (bool? value) {
-                                            setState(() {
-                                              for (int i = 0; i < widget.profiles.length; i++) {
-                                                if (i == index) {
-                                                  widget.profiles[i].isSelected = value!;
-                                                } else {
-                                                  widget.profiles[i].isSelected = false;
-                                                }
-                                              }
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                      Tooltip(
-                                        message: 'Click To Delete - ${widget.profiles[index].name}',
-                                        child: IconButton(
-                                          icon: Icon(Icons.delete),
-                                          onPressed: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) {
-                                                return DeleteProfileDialog(context, widget.profiles, index, setState);
-                                              },
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ],
+                        return Tooltip(
+                          message: 'Click To View ${widget.profiles[index].name}',
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: ListTile(
+                              title: Text(widget.profiles[index].name),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Tooltip(
+                                    message: 'Click To Select ${widget.profiles[index].name} For Application',
+                                    child: Checkbox(
+                                      value: widget.profiles[index].isSelected,
+                                      onChanged: (bool? value) {
+                                        setState(() {
+                                          for (int i = 0; i < widget.profiles.length; i++) {
+                                            if (i == index) {
+                                              widget.profiles[i].isSelected = value!;
+                                            } else {
+                                              widget.profiles[i].isSelected = false;
+                                            }
+                                          }
+                                        });
+                                      },
+                                    ),
                                   ),
-                                  onTap: () {
-                                    Navigator.pushAndRemoveUntil(
-                                        context, RightToLeftPageRoute(page: EditProfilePage(profileName: widget.profiles[index].name, backToProfile: false)), (Route<dynamic> route) => false);
-                                  },
-                                ),
+                                  Tooltip(
+                                    message: 'Click To Delete - ${widget.profiles[index].name}',
+                                    child: IconButton(
+                                      icon: Icon(Icons.delete),
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) {
+                                            return DeleteProfileDialog(context, widget.profiles, index, setState);
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
-                            );
-                          },
+                              onTap: () {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  RightToLeftPageRoute(
+                                    page: EditProfilePage(
+                                      profileName: widget.profiles[index].name,
+                                      backToProfile: false,
+                                    ),
+                                  ),
+                                  (Route<dynamic> route) => false,
+                                );
+                              },
+                            ),
+                          ),
                         );
                       },
                     ),

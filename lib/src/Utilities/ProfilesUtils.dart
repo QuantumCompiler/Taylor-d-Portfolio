@@ -268,7 +268,7 @@ class Profile {
           if (i == 0) {
             ret += "\nEducation Information:\n";
           }
-          ret += "\nEducation Institution ${i + 1}:\n\nSchool Name: ${jsonData[i]['name']}\n\nDegree(s): ${jsonData[i]['degree']}\n\nDescription: ${jsonData[i]['description']}\n";
+          ret += "\nEducation Institution ${i + 1}:\n\nSchool Name: ${jsonData[i]['name']}\n\nDegree(s): ${jsonData[i]['degree']}\n\nDescription:\n\n${jsonData[i]['description']}\n";
         }
       } catch (e) {
         throw ("Error occurred $e");
@@ -301,7 +301,7 @@ class Profile {
           if (i == 0) {
             ret += "\nExperience Information:\n";
           }
-          ret += "\nExperience Institution ${i + 1}:\n\nCompany Name: ${jsonData[i]['name']}\n\nPosition(s): ${jsonData[i]['position']}\n\nDescription: ${jsonData[i]['description']}\n";
+          ret += "\nExperience Institution ${i + 1}:\n\nCompany Name: ${jsonData[i]['name']}\n\nPosition(s): ${jsonData[i]['position']}\n\nDescription:\n\n${jsonData[i]['description']}\n";
         }
       } catch (e) {
         throw ("Error occurred $e");
@@ -334,7 +334,7 @@ class Profile {
           if (i == 0) {
             ret += "\nProject Information:\n";
           }
-          ret += "\nProject ${i + 1}:\n\nProject Name: ${jsonData[i]['name']}\n\nRole(s): ${jsonData[i]['role']}\n\nDescription: ${jsonData[i]['description']}\n";
+          ret += "\nProject ${i + 1}:\n\nProject Name: ${jsonData[i]['name']}\n\nRole(s): ${jsonData[i]['role']}\n\nDescription:\n\n${jsonData[i]['description']}\n";
         }
       } catch (e) {
         throw ("Error occurred $e");
@@ -367,7 +367,7 @@ class Profile {
           if (i == 0) {
             ret += "\nSkills Information:\n";
           }
-          ret += "\nSkill Category ${i + 1}:\n\nSkill Name: ${jsonData[i]['name']}\n\nDescription: ${jsonData[i]['description']}\n";
+          ret += "\nSkill Category ${i + 1}:\n\nSkill Name: ${jsonData[i]['name']}\n\nDescription:\n\n${jsonData[i]['description']}\n";
         }
       } catch (e) {
         throw ("Error occurred $e");
