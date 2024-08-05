@@ -5,6 +5,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -19,6 +21,8 @@ class MyApp extends StatelessWidget {
 }
 
 class VisibilityToggleExample extends StatefulWidget {
+  const VisibilityToggleExample({super.key});
+
   @override
   _VisibilityToggleExampleState createState() => _VisibilityToggleExampleState();
 }
