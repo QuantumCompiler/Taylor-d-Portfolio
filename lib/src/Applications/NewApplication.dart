@@ -30,6 +30,7 @@ class NewApplicationPageState extends State<NewApplicationPage> {
     return Scaffold(
       appBar: NewApplicationAppBar(context),
       body: finishedRecs ? NewApplicationRecsContent(context, widget.newApp, updateState) : NewApplicationContent(context, widget.newApp, updateState),
+      bottomNavigationBar: finishedRecs ? NewApplicationCompileBottomAppBar(context, widget.newApp, updateState) : NewApplicationBottomAppBar(context, widget.newApp, updateState),
     );
   }
 }

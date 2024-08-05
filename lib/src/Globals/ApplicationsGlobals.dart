@@ -49,6 +49,20 @@ String openAIPSRecsTxtFile = 'OpenAIProgSkillsRecs.txt';
 String openAIProjRecsTxtFile = 'OpenAIProjRecs.txt';
 String openAISciRecsTxtFile = 'OpenAISciRecs.txt';
 
+// Final Portfolio Files
+String finCLAboutFile = 'About.txt';
+String finCLJobFile = 'Job.txt';
+String finCLMeFile = 'Me.txt';
+String finEduRecFile = 'Education.txt';
+String finExpRecFile = 'Experience.txt';
+String finFramFile = 'Frameworks.txt';
+String finLangFile = 'Languages.txt';
+String finMathRecFile = 'Math.txt';
+String finPersRecFile = 'Personal.txt';
+String finProgRecFile = 'Programming.txt';
+String finProjRecFile = 'Projects.txt';
+String finSciRecFile = 'Scientific.txt';
+
 String hiringManagerRole = '''
 You are an assistant that is helping extract structured information from a job posting and portfolio. 
 You are to give recommendations to an applicant that will most likely help them get an interview for a position.

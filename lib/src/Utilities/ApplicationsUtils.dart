@@ -63,6 +63,20 @@ class Application {
   late File whyJobFile;
   late File whyMeFile;
 
+  // Recommendation Controllers
+  TextEditingController aboutMeCont = TextEditingController();
+  TextEditingController eduRecCont = TextEditingController();
+  TextEditingController expRecCont = TextEditingController();
+  TextEditingController framRecCont = TextEditingController();
+  TextEditingController mathSkillsRecCont = TextEditingController();
+  TextEditingController persSkillsRecCont = TextEditingController();
+  TextEditingController progLangRecCont = TextEditingController();
+  TextEditingController progSkillsRecCont = TextEditingController();
+  TextEditingController projRecCont = TextEditingController();
+  TextEditingController sciRecCont = TextEditingController();
+  TextEditingController whyJobCont = TextEditingController();
+  TextEditingController whyMeCont = TextEditingController();
+
   // Mater Recommendations
   late Map<String, dynamic> masterRecs;
   late List<String> recommendations;
@@ -329,6 +343,101 @@ class Application {
     sciRecFile = sciFile;
   }
 
+  Future<void> SetFinalFiles() async {
+    // Master Directories
+    final appDir = await getApplicationDocumentsDirectory();
+    Directory tempDir = Directory('${appDir.path}/Temp');
+    Directory finFiles = Directory('${tempDir.path}/Final Text Files');
+    if (finFiles.existsSync()) {
+      await finFiles.delete(recursive: true);
+    }
+    await finFiles.create();
+    // About File
+    File aboutFile = File('${finFiles.path}/$finCLAboutFile');
+    if (aboutFile.existsSync()) {
+      await aboutFile.delete();
+    }
+    await WriteFile(finFiles, aboutFile, escapeLatex(aboutMeCont.text));
+    aboutMeFile = aboutFile;
+    // Job File
+    File jobFile = File('${finFiles.path}/$finCLJobFile');
+    if (jobFile.existsSync()) {
+      await jobFile.delete();
+    }
+    await WriteFile(finFiles, jobFile, escapeLatex(whyJobCont.text));
+    whyJobFile = jobFile;
+    // Why Me File
+    File meFile = File('${finFiles.path}/$finCLMeFile');
+    if (meFile.existsSync()) {
+      await meFile.exists();
+    }
+    await WriteFile(finFiles, meFile, escapeLatex(whyMeCont.text));
+    whyMeFile = meFile;
+    // Edu Rec File
+    File eduFile = File('${finFiles.path}/$finEduRecFile');
+    if (eduFile.existsSync()) {
+      await eduFile.exists();
+    }
+    await WriteFile(finFiles, eduFile, escapeLatex(eduRecCont.text));
+    eduRecFile = eduFile;
+    // Exp Rec File
+    File expFile = File('${finFiles.path}/$finExpRecFile');
+    if (expFile.existsSync()) {
+      await expFile.delete();
+    }
+    await WriteFile(finFiles, expFile, escapeLatex(expRecCont.text));
+    expRecFile = expFile;
+    // Fram Rec File
+    File framFile = File('${finFiles.path}/$finFramFile');
+    if (framFile.existsSync()) {
+      await framFile.delete();
+    }
+    await WriteFile(finFiles, framFile, escapeLatex(framRecCont.text));
+    frameRecFile = framFile;
+    // Math Rec File
+    File mathFile = File('${finFiles.path}/$finMathRecFile');
+    if (mathFile.existsSync()) {
+      await mathFile.delete();
+    }
+    await WriteFile(finFiles, mathFile, escapeLatex(mathSkillsRecCont.text));
+    mathSkillsRecFile = mathFile;
+    // Pers Rec File
+    File persFile = File('${finFiles.path}/$finPersRecFile');
+    if (persFile.existsSync()) {
+      await persFile.delete();
+    }
+    await WriteFile(finFiles, persFile, escapeLatex(persSkillsRecCont.text));
+    persSkillsRecFile = persFile;
+    // Prog Lang File
+    File langFile = File('${finFiles.path}/$finLangFile');
+    if (langFile.existsSync()) {
+      await langFile.delete();
+    }
+    await WriteFile(finFiles, langFile, escapeLatex(progLangRecCont.text));
+    progLangRecFile = langFile;
+    // Prog Skills File
+    File progFile = File('${finFiles.path}/$finProgRecFile');
+    if (progFile.existsSync()) {
+      await progFile.delete();
+    }
+    await WriteFile(finFiles, progFile, escapeLatex(progSkillsRecCont.text));
+    progSkillsRecFile = progFile;
+    // Proj File
+    File projFile = File('${finFiles.path}/$finProjRecFile');
+    if (projFile.existsSync()) {
+      await projFile.delete();
+    }
+    await WriteFile(finFiles, projFile, escapeLatex(projRecCont.text));
+    projRecFile = projFile;
+    // Sci File
+    File sciFile = File('${finFiles.path}/$finSciRecFile');
+    if (sciFile.existsSync()) {
+      await sciFile.delete();
+    }
+    await WriteFile(finFiles, sciFile, escapeLatex(sciRecCont.text));
+    sciRecFile = sciFile;
+  }
+
   // Set App Name
   void SetAppName(String appName) {
     name = appName;
@@ -470,6 +579,13 @@ Future<List<String>> StringifyRecs(Map<String, dynamic> openAIRecs, Application 
   recs.add(await ConvertIndRecs(openAIRecs, projPrompt));
   recs.add(await ConvertIndRecs(openAIRecs, sciSkillPrompt));
   return recs;
+}
+
+String escapeLatex(String input) {
+  input = input.replaceAll('&', r'\&');
+  input = input.replaceAll('#', r'\#');
+  input = input.replaceAll('%', r'\%');
+  return input;
 }
 
 // Load Previous Application
@@ -680,73 +796,6 @@ Future<List<String>> StringifyRecs(Map<String, dynamic> openAIRecs, Application 
 //   content.add(jobContent);
 //   content.add(profContent);
 //   return content;
-// }
-
-// String prepJobContent(String des, String other, String quals, String role) {
-//   return jsonEncode({
-//     "Job Description:": des,
-//     "Other Information:": other,
-//     "Qualifications Information:": quals,
-//     "Role Information:": role,
-//   });
-// }
-
-// String prepProfContent(String edu, String exp, String proj, String skills) {
-//   return jsonEncode({
-//     "Education:": edu,
-//     "Experience:": exp,
-//     "Projects:": proj,
-//     "Skills:": skills,
-//   });
-// }
-
-// Future<Map<String, dynamic>> getOpenAIRecs(BuildContext context, ApplicationContent content) async {
-//   showLoadingDialog(context, 'Getting OpenAI Recommendations...');
-//   try {
-//     final openAICall = OpenAI(
-//       content: content,
-//       openAIModel: gpt_4o,
-//       maxTokens: 1000,
-//     );
-//     Map<String, dynamic> result = await openAICall.getRecs();
-//     Navigator.of(context).pop();
-//     await showProducedDialog(context, 'Open AI Recommendations Produced!');
-//     return result;
-//   } catch (e) {
-//     if (kDebugMode) {
-//       print('Error: $e');
-//     }
-//     Navigator.of(context).pop();
-//     rethrow;
-//   }
-// }
-
-// List<Widget> openAIEntry(BuildContext context, String title, TextEditingController controller, String hintText, {int? lines = 10}) {
-//   return [
-//     Center(
-//       child: Text(
-//         title,
-//         style: TextStyle(
-//           color: themeTextColor(context),
-//           fontSize: secondaryTitles,
-//           fontWeight: FontWeight.bold,
-//         ),
-//       ),
-//     ),
-//     SizedBox(height: standardSizedBoxHeight),
-//     Center(
-//       child: Container(
-//         width: MediaQuery.of(context).size.width * jobContainerWidth,
-//         child: TextField(
-//           controller: controller,
-//           keyboardType: TextInputType.multiline,
-//           maxLines: lines,
-//           decoration: InputDecoration(hintText: hintText.isEmpty ? null : hintText),
-//         ),
-//       ),
-//     ),
-//     SizedBox(height: 20),
-//   ];
 // }
 
 // String escapeLatex(String input) {
