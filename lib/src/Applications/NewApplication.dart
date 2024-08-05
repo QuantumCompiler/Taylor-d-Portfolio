@@ -17,11 +17,19 @@ class NewApplicationPage extends StatefulWidget {
 }
 
 class NewApplicationPageState extends State<NewApplicationPage> {
+  bool finishedRecs = false;
+
+  void updateState() {
+    setState(() {
+      finishedRecs = !finishedRecs;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: NewApplicationAppBar(context),
-      body: NewApplicationContent(context, widget.newApp),
+      body: finishedRecs ? NewApplicationRecsContent(context, widget.newApp, updateState) : NewApplicationContent(context, widget.newApp, updateState),
     );
   }
 }

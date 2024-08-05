@@ -3,19 +3,20 @@ import 'dart:convert';
 import 'dart:io';
 // import 'package:flutter/gestures.dart';
 // import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import '../Context/Globals/GlobalContext.dart';
+import '../Globals/ApplicationsGlobals.dart';
+import '../Globals/JobsGlobals.dart';
+import '../Globals/ProfilesGlobals.dart';
 // import '../Globals/ApplicationsGlobals.dart';
 // import 'package:archive/archive_io.dart';
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter/material.dart';
 // import 'package:path/path.dart' as p;
-// import '../Globals/ApplicationsGlobals.dart';
 // import '../Globals/Globals.dart';
-// import '../Globals/JobsGlobals.dart';
-// import '../Globals/ProfilesGlobals.dart';
-// import '../Themes/Themes.dart';
 import '../Utilities/GlobalUtils.dart';
 import '../Utilities/JobUtils.dart';
 import '../Utilities/ProfilesUtils.dart';
@@ -48,10 +49,12 @@ class Application {
   late File resumeZip;
 
   // Recommendations Files
+  late File aboutMeFile;
   late File eduRecFile;
   late File expRecFile;
   late File frameRecFile;
   late File mathSkillsRecFile;
+  late File openAIRecFile;
   late File persSkillsRecFile;
   late File progLangRecFile;
   late File progSkillsRecFile;
@@ -59,6 +62,10 @@ class Application {
   late File sciRecFile;
   late File whyJobFile;
   late File whyMeFile;
+
+  // Mater Recommendations
+  late Map<String, dynamic> masterRecs;
+  late List<String> recommendations;
 
   // Constructor
   Application._({
@@ -72,14 +79,18 @@ class Application {
     required this.portfolioZip,
     required this.resumePDF,
     required this.resumeZip,
+    required this.aboutMeFile,
     required this.eduRecFile,
     required this.expRecFile,
     required this.frameRecFile,
+    required this.masterRecs,
     required this.mathSkillsRecFile,
+    required this.openAIRecFile,
     required this.persSkillsRecFile,
     required this.progLangRecFile,
     required this.progSkillsRecFile,
     required this.projRecFile,
+    required this.recommendations,
     required this.sciRecFile,
     required this.whyJobFile,
     required this.whyMeFile,
@@ -100,17 +111,22 @@ class Application {
     File rPDF = File('$masterDir/Temp/Resume.pdf');
     File rZip = File('$masterDir/Temp/Resume.zip');
     // Recommendation Files
-    File eduRec = File('$masterDir/Temp/Education.txt');
-    File expRec = File('$masterDir/Temp/Experience.txt');
-    File frameRec = File('$masterDir/Temp/Frameworks.txt');
-    File langRec = File('$masterDir/Temp/Languages.txt');
-    File mathRec = File('$masterDir/Temp/Math.txt');
-    File persRec = File('$masterDir/Temp/Personal.txt');
-    File progRec = File('$masterDir/Temp/Programming.txt');
-    File projRec = File('$masterDir/Temp/Projects.txt');
-    File sciRec = File('$masterDir/Temp/Scientific.txt');
-    File whyJob = File('$masterDir/Temp/WhyJob.txt');
-    File whyMe = File('$masterDir/Temp/WhyMe.txt');
+    File aboutMe = File('$masterDir/Temp/Open AI Recommendations/About.txt');
+    File eduRec = File('$masterDir/Temp/Open AI Recommendations/Education.txt');
+    File expRec = File('$masterDir/Temp/Open AI Recommendations/Experience.txt');
+    File frameRec = File('$masterDir/Temp/Open AI Recommendations/Frameworks.txt');
+    File langRec = File('$masterDir/Temp/Open AI Recommendations/Languages.txt');
+    File mathRec = File('$masterDir/Temp/Open AI Recommendations/Math.txt');
+    File openAIRec = File('$masterDir/Temp/Open AI Recommendations/OpenAIRecs.json');
+    File persRec = File('$masterDir/Temp/Open AI Recommendations/Personal.txt');
+    File progRec = File('$masterDir/Temp/Open AI Recommendations/Programming.txt');
+    File projRec = File('$masterDir/Temp/Open AI Recommendations/Projects.txt');
+    File sciRec = File('$masterDir/Temp/Open AI Recommendations/Scientific.txt');
+    File whyJob = File('$masterDir/Temp/Open AI Recommendations/WhyJob.txt');
+    File whyMe = File('$masterDir/Temp/Open AI Recommendations/WhyMe.txt');
+    // Recommendations
+    List<String> recs = [];
+    Map<String, dynamic> masterRecs = {};
     return Application._(
       newApp: newApp,
       name: name,
@@ -122,14 +138,18 @@ class Application {
       portfolioZip: pZip,
       resumePDF: rPDF,
       resumeZip: rZip,
+      aboutMeFile: aboutMe,
       eduRecFile: eduRec,
       expRecFile: expRec,
       frameRecFile: frameRec,
-      progLangRecFile: langRec,
+      masterRecs: masterRecs,
       mathSkillsRecFile: mathRec,
+      openAIRecFile: openAIRec,
       persSkillsRecFile: persRec,
+      progLangRecFile: langRec,
       progSkillsRecFile: progRec,
       projRecFile: projRec,
+      recommendations: recs,
       sciRecFile: sciRec,
       whyJobFile: whyJob,
       whyMeFile: whyMe,
@@ -183,6 +203,132 @@ class Application {
     await CopyDir(jobDir, jobDestDir, false);
   }
 
+  // Convert Job Content To String
+  Future<String> ConvertJobCont() async {
+    String ret = '';
+    final appDir = await getApplicationDocumentsDirectory();
+    Directory tempDir = Directory('${appDir.path}/Temp/Job And Profile Content/${jobUsed.name}');
+    File jobContFile = File('${tempDir.path}/$finalJobTextFile');
+    ret = await jobContFile.readAsString();
+    return ret;
+  }
+
+  // Convert Profile Content To String
+  Future<String> ConvertProfCont() async {
+    String ret = '';
+    final appDir = await getApplicationDocumentsDirectory();
+    Directory tempDir = Directory('${appDir.path}/Temp/Job And Profile Content/${profileUsed.name}');
+    File profContFile = File('${tempDir.path}/$finalProfileTextFile');
+    ret = await profContFile.readAsString();
+    return ret;
+  }
+
+  // Set Recommendations
+  Future<void> SetRecs(Map<String, dynamic> recs, List<String> listRecs) async {
+    recommendations = listRecs;
+    masterRecs = recs;
+    // Master directories
+    final appDir = await getApplicationDocumentsDirectory();
+    Directory tempDir = Directory('${appDir.path}/Temp');
+    Directory recsDir = Directory('${tempDir.path}/Open AI Recommendations');
+    // Create recs dir if needed
+    if (recsDir.existsSync()) {
+      await recsDir.delete(recursive: true);
+    }
+    await recsDir.create();
+    // Master JSON file
+    File jsonRecFile = File('${recsDir.path}/$openAIRecsJSONFile');
+    if (jsonRecFile.existsSync()) {
+      await jsonRecFile.delete();
+    }
+    String jsonString = jsonEncode(recs);
+    await WriteFile(recsDir, jsonRecFile, jsonString);
+    openAIRecFile = jsonRecFile;
+    // Cover Letter About Me File
+    File covAboutFile = File('${recsDir.path}/$openAICAboutMeTxtFile');
+    if (covAboutFile.existsSync()) {
+      await covAboutFile.delete();
+    }
+    await WriteFile(recsDir, covAboutFile, recommendations[0]);
+    aboutMeFile = covAboutFile;
+    // Cover Letter Why Job File
+    File covWhyJobFile = File('${recsDir.path}/$openAICLWJRecsTxtFile');
+    if (covWhyJobFile.existsSync()) {
+      await covWhyJobFile.delete();
+    }
+    await WriteFile(recsDir, covWhyJobFile, recommendations[1]);
+    whyJobFile = covWhyJobFile;
+    // Cover Letter Why Me File
+    File covWhyMeFile = File('${recsDir.path}/$openAICLWMRecsTxtFile');
+    if (covWhyMeFile.existsSync()) {
+      await covWhyMeFile.delete();
+    }
+    await WriteFile(recsDir, covWhyMeFile, recommendations[2]);
+    whyMeFile = covWhyMeFile;
+    // Education Rec File
+    File eduFile = File('${recsDir.path}/$openAIEduRecsTxtFile');
+    if (eduFile.existsSync()) {
+      await eduFile.delete();
+    }
+    await WriteFile(recsDir, eduFile, recommendations[3]);
+    eduRecFile = eduFile;
+    // Experience Rec File
+    File expFile = File('${recsDir.path}/$openAIExpRecsTxtFile');
+    if (expFile.existsSync()) {
+      await expFile.delete();
+    }
+    await WriteFile(recsDir, expFile, recommendations[4]);
+    expRecFile = expFile;
+    // Frameworks Rec file
+    File framFile = File('${recsDir.path}/$openAIFramRecsTxtFile');
+    if (framFile.existsSync()) {
+      await framFile.delete();
+    }
+    await WriteFile(recsDir, framFile, recommendations[5]);
+    frameRecFile = framFile;
+    // Math Rec File
+    File mathFile = File('${recsDir.path}/$openAIMathRecsTxtFile');
+    if (mathFile.existsSync()) {
+      await mathFile.delete();
+    }
+    await WriteFile(recsDir, mathFile, recommendations[6]);
+    mathSkillsRecFile = mathFile;
+    // Personal Rec File
+    File persFile = File('${recsDir.path}/$openAIPersRecsTxtFile');
+    if (persFile.existsSync()) {
+      await persFile.delete();
+    }
+    await WriteFile(recsDir, persFile, recommendations[7]);
+    persSkillsRecFile = persFile;
+    // Programming Lang Rec File
+    File progLangFile = File('${recsDir.path}/$openAIPLRecsTxtFile');
+    if (progLangFile.existsSync()) {
+      await progLangFile.delete();
+    }
+    await WriteFile(recsDir, progLangFile, recommendations[8]);
+    progLangRecFile = progLangFile;
+    // Programming Skills Rec File
+    File progSkillsFile = File('${recsDir.path}/$openAIPSRecsTxtFile');
+    if (progSkillsFile.existsSync()) {
+      await progSkillsFile.delete();
+    }
+    await WriteFile(recsDir, progSkillsFile, recommendations[9]);
+    // Projects Rec File
+    File projFile = File('${recsDir.path}/$openAIProjRecsTxtFile');
+    if (projFile.existsSync()) {
+      await projFile.delete();
+    }
+    await WriteFile(recsDir, projFile, recommendations[10]);
+    projRecFile = projFile;
+    // Scientific Rec File
+    File sciFile = File('${recsDir.path}/$openAISciRecsTxtFile');
+    if (sciFile.existsSync()) {
+      await sciFile.delete();
+    }
+    await WriteFile(recsDir, sciFile, recommendations[11]);
+    sciRecFile = sciFile;
+  }
+
   // Set App Name
   void SetAppName(String appName) {
     name = appName;
@@ -219,7 +365,7 @@ class OpenAI {
     });
   }
 
-  Future<Map<String, dynamic>> testRec() async {
+  Future<Map<String, dynamic>> portfolioRec() async {
     const url = 'https://api.openai.com/v1/chat/completions';
     try {
       final response = await http.post(
@@ -241,54 +387,90 @@ class OpenAI {
   }
 }
 
-// Future<Map<String, dynamic>> getRecs() async {
-//   await prepRecPrompt();
-//   const url = 'https://api.openai.com/v1/chat/completions';
-//   final headers = {
-//     'Content-Type': 'application/json',
-//     'Authorization': 'Bearer $_apikey',
-//   };
-//   final body = jsonEncode({
-//     'model': openAIModel,
-//     'messages': [
-//       {'role': 'system', 'content': _systemRole},
-//       {'role': 'user', 'content': _userPrompt}
-//     ],
-//     'max_tokens': maxTokens,
-//   });
-//   try {
-//     final response = await http.post(Uri.parse(url), headers: headers, body: body);
-//     if (response.statusCode == 200) {
-//       final data = jsonDecode(response.body);
-//       String responseText = data['choices'][0]['message']['content'].trim();
-//       responseText = responseText.replaceAll('```json\n', '').replaceAll('```', '');
-//       Map<String, dynamic> jsonResponse = jsonDecode(responseText);
-//       return jsonResponse;
-//     } else {
-//       throw Exception('Failed to load data: ${response.statusCode} ${response.reasonPhrase}');
-//     }
-//   } catch (e) {
-//     throw Exception('Failed to load data: $e');
-//   }
-// }
+Future<String> OpenAIPrompt(Application app) async {
+  String ret = '';
+  String jobCont = await app.ConvertJobCont();
+  String profCont = await app.ConvertProfCont();
+  ret = jobContentPrompt + jobCont + profContentPrompt + profCont + returnPrompt;
+  return ret;
+}
 
-// Create New Application
-// Future<void> CreateNewApplication() async {
-//   await SetAppDir();
-// }
+Future<Map<String, dynamic>> GetOpenAIRecs(BuildContext context, Application app, String openAIModel) async {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return ShowLoadingDialog(context, 'Producing OpenAI Recommendations');
+    },
+  );
+  bool successful = false;
+  Map<String, dynamic> ret = {};
+  String userPrompt = await OpenAIPrompt(app);
+  OpenAI testCall = OpenAI(
+    openAIModel: openAIModel,
+    systemRole: hiringManagerRole,
+    userPrompt: userPrompt,
+    maxTokens: 4000,
+  );
+  try {
+    Map<String, dynamic> finalResponse = await testCall.portfolioRec();
+    if (finalResponse.containsKey('error')) {
+      return ret;
+    } else {
+      List<dynamic> choices = finalResponse['choices'];
+      if (choices.isNotEmpty) {
+        String content = choices[0]['message']['content'];
+        content = content.replaceAll('```json', '').replaceAll('```', '').trim();
+        ret = jsonDecode(content);
+        successful = true;
+        return ret;
+      } else {
+        return ret;
+      }
+    }
+  } catch (e) {
+    return ret;
+  } finally {
+    Navigator.of(context).pop();
+    if (successful) {
+      await ShowProducedDialog(context, 'Recommendations Successfully Produced', 'Proceed With Compiling Portfolio', Icons.done);
+    } else {
+      GenAlertDialogWithIcon('Failure In Producing Recommendations', 'An Error Occurred, Please Try Again', Icons.sms_failed);
+    }
+  }
+}
 
-// Set App Dir
-// Future<void> SetAppDir() async {
-//   final parentDir = await appsDir;
-//   Directory appNameDir = Directory('${(await appsDir).path}/$name');
-//   String recs = 'Recommendations';
-//   String zips = 'Zip Files';
-//   String docs = 'Finished Documents';
-//   await CreateDir(parentDir, name);
-//   await CreateDir(appNameDir, recs);
-//   await CreateDir(appNameDir, zips);
-//   await CreateDir(appNameDir, docs);
-// }
+Future<String> ConvertIndRecs(Map<String, dynamic> map, String section) async {
+  String ret = '';
+  for (int i = 0; i < map[section].length; i++) {
+    if (i < map[section].length - 1) {
+      if ((section == covLetWhyJobPrompt) || (section == covLetWhyMePrompt)) {
+        ret += map[section][i] + '\n';
+      } else {
+        ret += map[section][i] + ', ';
+      }
+    } else {
+      ret += map[section][i];
+    }
+  }
+  return ret;
+}
+
+Future<List<String>> StringifyRecs(Map<String, dynamic> openAIRecs, Application app) async {
+  List<String> recs = [];
+  recs.add(app.profileUsed.coverLetterContList[0].about.text);
+  recs.add(await ConvertIndRecs(openAIRecs, covLetWhyJobPrompt));
+  recs.add(await ConvertIndRecs(openAIRecs, covLetWhyMePrompt));
+  recs.add(await ConvertIndRecs(openAIRecs, eduRecPrompt));
+  recs.add(await ConvertIndRecs(openAIRecs, expRecPrompt));
+  recs.add(await ConvertIndRecs(openAIRecs, framRecPrompt));
+  recs.add(await ConvertIndRecs(openAIRecs, mathSkillPrompt));
+  recs.add(await ConvertIndRecs(openAIRecs, persSkillPrompt));
+  recs.add(await ConvertIndRecs(openAIRecs, progLangPrompt));
+  recs.add(await ConvertIndRecs(openAIRecs, progSkillPrompt));
+  recs.add(await ConvertIndRecs(openAIRecs, projPrompt));
+  recs.add(await ConvertIndRecs(openAIRecs, sciSkillPrompt));
+  return recs;
+}
 
 // Load Previous Application
 // Future<void> LoadAppData() async {
@@ -660,19 +842,6 @@ class OpenAI {
 //   return File(zipFilePath);
 // }
 
-// Future<void> cleanTempResume() async {
-//   Directory appDocDir = await GetAppDir();
-//   Directory tempDir = Directory('${appDocDir.path}/Temp');
-//   List<FileSystemEntity> tempEntities = tempDir.listSync();
-//   for (FileSystemEntity entity in tempEntities) {
-//     if (entity is File) {
-//       if (p.extension(entity.path) == '.txt') {
-//         entity.deleteSync();
-//       }
-//     }
-//   }
-// }
-
 // Future<void> CreateNewApplication(ApplicationContent content, List<TextEditingController> controllers) async {
 //   Application newApp = Application(
 //     name: content.checkedJobs[0].toString(),
@@ -685,49 +854,4 @@ class OpenAI {
 //     newDir.deleteSync(recursive: true);
 //   }
 //   newApp.CreateNewApplication();
-// }
-
-// void showLoadingDialog(BuildContext context, String content) {
-//   showDialog(
-//     context: context,
-//     barrierDismissible: false,
-//     builder: (BuildContext context) {
-//       return Dialog(
-//         child: Padding(
-//           padding: const EdgeInsets.all(16.0),
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               Text(content),
-//               SizedBox(width: standardSizedBoxHeight),
-//               CircularProgressIndicator(),
-//             ],
-//           ),
-//         ),
-//       );
-//     },
-//   );
-// }
-
-// Future<void> showProducedDialog(BuildContext context, String content) async {
-//   Timer? timer;
-//   await showDialog(
-//     context: context,
-//     barrierDismissible: true,
-//     builder: (BuildContext context) {
-//       timer = Timer(Duration(seconds: 2), () {
-//         Navigator.of(context).pop();
-//       });
-//       return Dialog(
-//         child: Padding(
-//           padding: const EdgeInsets.all(16.0),
-//           child: Row(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [SizedBox(width: 16), Text(content)],
-//           ),
-//         ),
-//       );
-//     },
-//   );
-//   timer?.cancel();
 // }

@@ -21,110 +21,154 @@ String gpt_4_turbo_turbo_preview = 'gpt-4-turbo-preview';
 String gpt_4o = 'gpt-4o';
 String gpt_4o_2024_05_13 = 'gpt-4o-2024-05-13';
 
-// String hiringManagerRole = '''
-// You are an assistant that is helping extract structured information from a job posting and portfolio. 
-// You are to give recommendations to an applicant that will most likely help them get an interview for a position.
-// You are going to achieve this by comparing the job content to the applicant's portfolio and then providing recommendations.
-// ''';
+// Prompts
+String covLetWhyMePrompt = "Why_Me_Pitch";
+String covLetWhyJobPrompt = "Why_Job_Pitch";
+String eduRecPrompt = "Education_Recommendations";
+String expRecPrompt = "Experience_Recommendations";
+String framRecPrompt = "Framework_Recommendations";
+String mathSkillPrompt = "Math_Skills_Recommendations";
+String persSkillPrompt = "Personal_Skills_Recommendations";
+String projPrompt = "Project_Recommendations";
+String progLangPrompt = "Programming_Languages_Recommendations";
+String progSkillPrompt = "Programming_Skills_Recommendations";
+String sciSkillPrompt = "Scientific_Skills_Recommendations";
 
-// String jobContentPrompt = '''Extract the following information from the job content, just digest it for now:''';
+// Files
+String openAIRecsJSONFile = 'OpenAIRecs.json';
+String openAICAboutMeTxtFile = 'OpenAICovLetAbout.txt';
+String openAICLWJRecsTxtFile = 'OpenAICovLetWhyJob.txt';
+String openAICLWMRecsTxtFile = 'OpenAICovLetWhyMe.txt';
+String openAIEduRecsTxtFile = 'OpenAIEduRecs.txt';
+String openAIExpRecsTxtFile = 'OpenAIExpRecs.txt';
+String openAIFramRecsTxtFile = 'OpenAIFramRecs.txt';
+String openAIMathRecsTxtFile = 'OpenAIMathRecs.txt';
+String openAIPersRecsTxtFile = 'OpenAIPersRecs.txt';
+String openAIPLRecsTxtFile = 'OpenAIProgLangRecs.txt';
+String openAIPSRecsTxtFile = 'OpenAIProgSkillsRecs.txt';
+String openAIProjRecsTxtFile = 'OpenAIProjRecs.txt';
+String openAISciRecsTxtFile = 'OpenAISciRecs.txt';
 
-// String profContentPrompt = '''Extract the following information from the user's portfolio, just digest it for now:''';
+String hiringManagerRole = '''
+You are an assistant that is helping extract structured information from a job posting and portfolio. 
+You are to give recommendations to an applicant that will most likely help them get an interview for a position.
+You are going to achieve this by comparing the job content to the applicant's portfolio and then providing recommendations.
+''';
 
-// String returnPrompt = '''
-// Return the recommendations in the following JSON format. 
-// Ensure each field contains only the recommended names or items as specified, without any additional text or explanations. Capitalize each word. Keep each recommendation short and concise (one to four words). Sort the recommendations in alphabetical order.
+String jobContentPrompt = '''Extract the following information from the job content, just digest it for now:\n''';
 
-// Ensure there are exactly:
-//   - 2 education recommendations (CU Boulder and Colorado Mesa University)
-//   - 3 experience recommendations
-//   - 4 project recommendations (Include Taylor'd Portfolio every time)
-//   - 15 math skill recommendations
-//   - 15 personal skill recommendations
-//   - All frameworks from the portfolio
-//   - All programming languages from the portfolio
-//   - 20 programming skill recommendations
-//   - 15 scientific skill recommendations
+String profContentPrompt = '''Extract the following information from the user's portfolio, just digest it for now:\n''';
 
-// If any category does not meet the required number of recommendations, fill in the remainder with relevant skills for the job posting.
+String returnPrompt = '''
+Return the recommendations in the following JSON format. Ensure each field contains only the recommended names or items as specified, without any additional text or explanations. Capitalize each word. Keep each recommendation short and concise (one to four words). Sort the recommendations in alphabetical order.
 
-// Format your response as a JSON object:
-// {
-//     "Education_Recommendations": ["CU Boulder", "Colorado Mesa University"],
-//     "Experience_Recommendations": ["Applied Materials", "University Of Oklahoma", "Mesa Lavender Farms"],
-//     "Projects_Recommendations": ["Taylor'd Portfolio", "Project 2", "Project 3", "Project 4"],
-//     "Math_Skills_Recommendations": ["Math Skill 1", "Math Skill 2", ..., "Math Skill 20"],
-//     "Personal_Skills_Recommendations": ["Personal Skill 1", "Personal Skill 2", ..., "Personal Skill 15"],
-//     "Framework_Recommendations": ["Framework 1", "Framework 2", ..., "Framework n"],
-//     "Programming_Languages_Recommendations": ["Language 1", "Language 2", ..., "Language n"],
-//     "Programming_Skills_Recommendations": ["Programming Skill 1", "Programming Skill 2", ..., "Programming Skill 20"],
-//     "Scientific_Skills_Recommendations": ["Scientific Skill 1", "Scientific Skill 2", ..., "Scientific Skill 15"]
-// }
-// Ensure the response is a valid JSON object and nothing else.
-// ''';
+Ensure there are exactly:
+  - $covLetWhyMePrompt: A two paragraph cover letter entry for why the applicant would be a good candidate (each paragraph should be five sentences)
+  - $covLetWhyJobPrompt: A two paragraph cover letter entry for why the applicant would want to work at the job ((each paragraph should be five sentences))
+  - $eduRecPrompt: 2 education recommendations (the name of the school, prioritize experiences were degrees were rewarded and those currently in progress)
+  - $expRecPrompt: 3 experience recommendations (the name of the workplace, prioritize experiences that closely align to the job being applied to)
+  - $framRecPrompt: All frameworks from the portfolio
+  - $mathSkillPrompt: 15 math skill recommendations
+  - $persSkillPrompt: 15 personal skill recommendations
+  - $projPrompt: 4 project recommendations (Prioritize full stack applications / projects)
+  - $progLangPrompt: All programming languages from the portfolio
+  - $progSkillPrompt: 20 programming skill recommendations
+  - $sciSkillPrompt: 15 scientific skill recommendations
 
-// final Map<String, dynamic> testOpenAIResults = {
-//   "Education_Recommendations": ["The University Of Colorado At Boulder", "Colorado Mesa University"],
-//   "Experience_Recommendations": ["Applied Materials", "University Of Oklahoma", "Mesa Lavender Farms"],
-//   "Projects_Recommendations": ["Celestial Bodies In Space", "Formulator Pro", "RSA"],
-//   "Math_Skills_Recommendations": [
-//     "Computational Mathematics",
-//     "Differential Equations",
-//     "Fourier Analysis",
-//     "Linear Algebra",
-//     "Mathematical Modeling",
-//     "Multivariate Calculus",
-//     "Numerical Analysis",
-//     "Probability Theory",
-//     "Statistics",
-//     "Tensor Analysis"
-//   ],
-//   "Personal_Skills_Recommendations": [
-//     "Adaptability",
-//     "Attention To Detail",
-//     "Communication",
-//     "Conflict Resolution",
-//     "Critical Thinking",
-//     "Decision Making",
-//     "Leadership",
-//     "Multitasking",
-//     "Organization",
-//     "Presentation Skills",
-//     "Problem Solving",
-//     "Project Management",
-//     "Research Skills",
-//     "Resourcefulness",
-//     "Time Management"
-//   ],
-//   "Framework_Recommendations": ["ElectronJS", "Flutter", "Qt"],
-//   "Programming_Languages_Recommendations": ["Python", "C/C++", "JavaScript", "Java", "Dart", "Assembly (x86)", "HTML", "CSS", "LATEX"],
-//   "Programming_Skills_Recommendations": [
-//     "Algorithms & Data Structures",
-//     "Desktop & Mobile App Development",
-//     "Documentation",
-//     "Dynamic Programming",
-//     "OOP Design",
-//     "Quality Assurance",
-//     "Scientific Programming",
-//     "Software Design",
-//     "Systems Level Development",
-//     "Testing & Debugging",
-//     "Unit Testing",
-//     "Version Control",
-//     "Web Development"
-//   ],
-//   "Scientific_Skills_Recommendations": [
-//     "Computational Problem Solving",
-//     "Data Analysis & Visualization",
-//     "Error Analysis",
-//     "Experimental Design",
-//     "Laboratory Techniques",
-//     "Literature Review",
-//     "Plotting",
-//     "Precision Measurement",
-//     "Risk Assessment",
-//     "Scientific Communication",
-//     "Statistical Analysis",
-//     "Technical Writing"
-//   ]
-// };
+If any category does not meet the required number of recommendations, fill in the remainder with relevant skills for the job posting.
+
+Format your response as a JSON object:
+{
+  "$covLetWhyMePrompt": ["Why me cover letter pitch."],
+  "$covLetWhyJobPrompt": ["Why job cover letter pitch"],
+  "$eduRecPrompt": ["Education Recommendation 1", "Education Recommendation 2"],
+  "$expRecPrompt": ["Experience Recommendation 1", "Experience Recommendation 2", "Experience Recommendation 3"],
+  "$framRecPrompt": ["Framework 1", ..., "Framework n"],
+  "$mathSkillPrompt": ["Math Skill 1", ..., "Math Skill 20"],
+  "$persSkillPrompt": ["Personal Skill 1", ..., "Personal Skill 15"],
+  "$projPrompt": ["Project 1", ..., "Project 4"],
+  "$progLangPrompt": ["Language 1", ..., "Language n"],
+  "$progSkillPrompt": ["Programming Skill 1", ..., "Programming Skill 20"],
+  "$sciSkillPrompt": ["Scientific Skill 1", ..., "Scientific Skill 15"]
+}
+Ensure the response is a valid JSON object and nothing else.
+''';
+
+final Map<String, dynamic> testOpenAIResults = {
+  "Why_Me_Pitch": [
+    "With a strong background in computer science and over two years of experience tackling complex problems in software development, I am excited about the opportunity to contribute to the Platform Engineering team at TrainingPeaks. My proficiency with various cloud and DevOps technologies such as AWS, Kubernetes, and Docker, combined with my scripting skills in Python and Bash, make me an ideal candidate to build and maintain reliable and scalable platforms.",
+    "I have developed my expertise in continuous integration/deployment, infrastructure as code, and system monitoring through various roles and personal projects. This, coupled with my commitment to continuous learning and improving both myself and the teams I work with, positions me to add immediate value to your team. I look forward to the opportunity to bring my skills and passion to TrainingPeaks."
+  ],
+  "Why_Job_Pitch": [
+    "Working at TrainingPeaks aligns perfectly with my career goals as it offers the chance to create impactful solutions for a rapidly growing user base of athletes and coaches. The opportunity to collaborate closely with other talented engineers and contribute to an ever-evolving platform that improves users' training experiences is exciting and motivating.",
+    "I am particularly drawn to TrainingPeaks due to its reputation for innovation and dedication to building the world's best training platform. The diversity of brands under the Peaksware umbrella indicates a dynamic work environment and a commitment to excellence across various domains, from endurance training to music education. I am enthusiastic about joining such a collaborative and forward-thinking team."
+  ],
+  "Education_Recommendations": ["The University Of Colorado At Boulder", "Colorado Mesa University"],
+  "Experience_Recommendations": ["Applied Materials", "Mesa Lavender Farms", "University Of Oklahoma"],
+  "Framework_Recommendations": ["ElectronJS", "Flask", "Flutter", "Qt", "React"],
+  "Math_Skills_Recommendations": [
+    "Computational Mathematics",
+    "Differential Equations",
+    "Discrete Mathematics",
+    "Fourier Analysis",
+    "Linear Algebra",
+    "Mathematical Modeling",
+    "Multivariate Calculus",
+    "Numerical Analysis",
+    "Probability Theory",
+    "Statistics"
+  ],
+  "Personal_Skills_Recommendations": [
+    "Adaptability",
+    "Attention To Detail",
+    "Communication",
+    "Conflict Resolution",
+    "Critical Thinking",
+    "Decision Making",
+    "Leadership",
+    "Multitasking",
+    "Organization",
+    "Presentation Skills",
+    "Problem Solving",
+    "Project Management",
+    "Research Skills",
+    "Resourcefulness",
+    "Time Management"
+  ],
+  "Project_Recommendations": ["Celestial Bodies In Space", "Formulator Pro", "Recipe Genie", "Taylor'd Portfolio"],
+  "Programming_Languages_Recommendations": ["Assembly (x86)", "C/C++", "CSS", "Dart", "HTML", "Java", "JavaScript", "LATEX", "Python", "Scala"],
+  "Programming_Skills_Recommendations": [
+    "AI and Machine Learning",
+    "Agile Development",
+    "Algorithms",
+    "Data Cleaning and Preprocessing",
+    "Data Structures",
+    "Data Visualization",
+    "Desktop & Mobile App Development",
+    "Documentation",
+    "Formal Logic and Proof Techniques",
+    "Graph Algorithms",
+    "OOP Design",
+    "Process Management",
+    "Quality Assurance and Testing",
+    "Regression Analysis",
+    "Software Design",
+    "Systems Level Development",
+    "Version Control",
+    "Web Development"
+  ],
+  "Scientific_Skills_Recommendations": [
+    "Computational Problem Solving",
+    "Data Analysis & Visualization",
+    "Error Analysis",
+    "Experimental Design",
+    "Laboratory Techniques",
+    "Literature Review",
+    "Plotting",
+    "Precision Measurement",
+    "Risk Assessment",
+    "Scientific Communication",
+    "Statistical Analysis",
+    "Technical Writing"
+  ]
+};

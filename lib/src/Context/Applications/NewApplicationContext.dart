@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Applications/Applications.dart';
@@ -35,7 +34,7 @@ AppBar NewApplicationAppBar(BuildContext context) {
   );
 }
 
-SingleChildScrollView NewApplicationContent(BuildContext context, Application app) {
+SingleChildScrollView NewApplicationContent(BuildContext context, Application app, Function updateState) {
   String openAIModel = gpt_4o;
   return SingleChildScrollView(
     child: Center(
@@ -58,40 +57,40 @@ SingleChildScrollView NewApplicationContent(BuildContext context, Application ap
           ElevatedButton(
             child: Text('Create Portfolio'),
             onPressed: () async {
-              if (kDebugMode) {
-                print('Model that was selected: $openAIModel');
-              }
-              // OpenAI testCall = OpenAI(
-              //   openAIModel: openAIModel,
-              //   systemRole: 'You are testing an API call.',
-              //   userPrompt: 'Hello ChatGPT, are you working?',
-              //   maxTokens: 100,
-              // );
-              // try {
-              //   Map<String, dynamic> finalResponse = await testCall.testRec();
-              //   if (finalResponse.containsKey('error')) {
-              //     if (kDebugMode) {
-              //       print('Error: ${finalResponse['error']}');
-              //       print('Message: ${finalResponse['message']}');
-              //     }
-              //   } else {
-              //     List<dynamic> choices = finalResponse['choices'];
-              //     if (choices.isNotEmpty) {
-              //       String content = choices[0]['message']['content'];
-              //       if (kDebugMode) {
-              //         print('OpenAI message content response: $content');
-              //       }
-              //     } else {
-              //       if (kDebugMode) {
-              //         print('No choices available in the response');
-              //       }
-              //     }
-              //   }
-              // } catch (e) {
-              //   if (kDebugMode) {
-              //     print('Error: $e');
-              //   }
-              // }
+              // Map<String, dynamic> recs = await GetOpenAIRecs(context, app, openAIModel);
+              Map<String, dynamic> recs = testOpenAIResults;
+              List<String> finRecs = await StringifyRecs(recs, app);
+              app.SetRecs(recs, finRecs);
+              updateState();
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+SingleChildScrollView NewApplicationRecsContent(BuildContext context, Application app, Function updateState) {
+  return SingleChildScrollView(
+    child: Center(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(height: standardSizedBoxHeight),
+          Text(
+            'OpenAI Recommendations',
+            style: TextStyle(
+              fontSize: appBarTitle,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: standardSizedBoxHeight),
+          ElevatedButton(
+            child: Text('Compile Portfolio'),
+            onPressed: () async {
+              updateState();
             },
           ),
         ],

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -505,6 +506,42 @@ AlertDialog NewJobDialog(BuildContext context, Job job, bool? backToJobs, TextEd
       ),
     ],
   );
+}
+
+AlertDialog ShowLoadingDialog(BuildContext context, String content) {
+  return AlertDialog(
+    title: Text(
+      content,
+      style: TextStyle(
+        fontSize: secondaryTitles,
+        fontWeight: FontWeight.bold,
+      ),
+      textAlign: TextAlign.center,
+    ),
+    content: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(height: standardSizedBoxHeight),
+        CircularProgressIndicator(),
+      ],
+    ),
+  );
+}
+
+Future<void> ShowProducedDialog(BuildContext context, String title, String content, IconData? icon) async {
+  Timer? timer;
+  await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      timer = Timer(Duration(seconds: 2), () {
+        Navigator.of(context).pop();
+      });
+      return GenAlertDialogWithIcon(title, content, icon);
+    },
+  );
+  timer?.cancel();
 }
 
 Future<DateTime?> SelectDate(BuildContext context) async {

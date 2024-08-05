@@ -227,7 +227,7 @@ class _DescriptionCardState extends State<DescriptionCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'New Job Description' : 'Job Description - ${widget.job.name}',
+                        widget.job.newJob ? 'New Job Description' : 'Edit Job Description',
                         style: TextStyle(
                           fontSize: constraints.maxWidth * 0.06,
                           fontWeight: FontWeight.bold,
@@ -244,7 +244,7 @@ class _DescriptionCardState extends State<DescriptionCard> {
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'Enter description details for the job' : 'Edit your description details for - ${widget.job.name}',
+                        widget.job.newJob ? 'Enter description details for the job' : 'Edit your description details for the job',
                         style: TextStyle(fontSize: constraints.maxWidth * 0.035),
                       ),
                     ),
@@ -309,7 +309,7 @@ class _OtherInfoCardState extends State<OtherInfoCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'New Other Info' : 'Other Info Job - ${widget.job.name}',
+                        widget.job.newJob ? 'New Other Info' : 'Edit Other Info',
                         style: TextStyle(
                           fontSize: constraints.maxWidth * 0.06,
                           fontWeight: FontWeight.bold,
@@ -326,7 +326,7 @@ class _OtherInfoCardState extends State<OtherInfoCard> {
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'Enter other information for the job' : 'Edit the other information for job - ${widget.job.name}',
+                        widget.job.newJob ? 'Enter other information for the job' : 'Edit other information for the job.',
                         style: TextStyle(fontSize: constraints.maxWidth * 0.035),
                       ),
                     ),
@@ -391,7 +391,7 @@ class _RoleCardState extends State<RoleCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'New Role Description' : 'Role Description Job - ${widget.job.name}',
+                        widget.job.newJob ? 'New Role Description' : 'Edit Role Description',
                         style: TextStyle(
                           fontSize: constraints.maxWidth * 0.06,
                           fontWeight: FontWeight.bold,
@@ -408,7 +408,7 @@ class _RoleCardState extends State<RoleCard> {
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'Enter the role description for the job' : 'Edit the role description for job - ${widget.job.name}',
+                        widget.job.newJob ? 'Enter the role description for the job' : 'Edit the role description for the job',
                         style: TextStyle(fontSize: constraints.maxWidth * 0.035),
                       ),
                     ),
@@ -473,7 +473,7 @@ class _SkillsCardState extends State<SkillsCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'New Skill Requirements' : 'Skill Requirements Job - ${widget.job.name}',
+                        widget.job.newJob ? 'New Skill Requirements' : 'Edit Skill Requirements',
                         style: TextStyle(
                           fontSize: constraints.maxWidth * 0.06,
                           fontWeight: FontWeight.bold,
@@ -490,7 +490,7 @@ class _SkillsCardState extends State<SkillsCard> {
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'Enter the skill requirements for the job' : 'Edit the skill requirements for job - ${widget.job.name}',
+                        widget.job.newJob ? 'Enter the skill requirements for the job' : 'Edit the skill requirements for the job',
                         style: TextStyle(fontSize: constraints.maxWidth * 0.035),
                       ),
                     ),
