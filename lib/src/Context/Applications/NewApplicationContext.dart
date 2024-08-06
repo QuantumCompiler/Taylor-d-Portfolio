@@ -136,19 +136,7 @@ BottomAppBar NewApplicationCompileBottomAppBar(BuildContext context, Application
           child: Text('Compile Portfolio'),
           onPressed: () async {
             await app.SetFinalFiles();
-            // updateState();
-            // print(app.aboutMeCont.text);
-            // print(app.whyJobCont.text);
-            // print(app.whyMeCont.text);
-            // print(app.eduRecCont.text);
-            // print(app.expRecCont.text);
-            // print(app.framRecCont.text);
-            // print(app.mathSkillsRecCont.text);
-            // print(app.persSkillsRecCont.text);
-            // print(app.progLangRecCont.text);
-            // print(app.progSkillsRecCont.text);
-            // print(app.projRecCont.text);
-            // print(app.sciRecCont.text);
+            await PrepLaTeXDirs();
           },
         ),
       ],

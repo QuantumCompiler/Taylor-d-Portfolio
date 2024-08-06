@@ -51,6 +51,7 @@ String openAISciRecsTxtFile = 'OpenAISciRecs.txt';
 
 // Final Portfolio Files
 String finCLAboutFile = 'About.txt';
+String finCLCompFile = 'Company.txt';
 String finCLJobFile = 'Job.txt';
 String finCLMeFile = 'Me.txt';
 String finEduRecFile = 'Education.txt';

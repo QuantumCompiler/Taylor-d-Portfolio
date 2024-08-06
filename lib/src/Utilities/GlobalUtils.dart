@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -121,7 +122,7 @@ Future<void> CleanDir(String subDir) async {
   }
 }
 
-// Function to recursively copy directories
+// Copy Dir
 Future<void> CopyDir(Directory sourceDir, Directory destDir, bool delete) async {
   await for (var entity in sourceDir.list(recursive: false)) {
     if (entity is Directory) {
@@ -136,6 +137,52 @@ Future<void> CopyDir(Directory sourceDir, Directory destDir, bool delete) async 
     await sourceDir.delete(recursive: true);
   }
 }
+
+// Zip Dir
+Future<void> ZipDir(Directory sourceDir, Directory destDir, bool delete) async {
+  final zipFilePath = '${sourceDir.path.trimRight()}.zip';
+  final zipFile = File(zipFilePath);
+  final archive = Archive();
+  List<FileSystemEntity> entities = Directory(sourceDir.path).listSync(recursive: true);
+  for (FileSystemEntity entity in entities) {
+    if (entity is File) {
+      final fileName = path.relative(entity.path, from: sourceDir.path);
+      final data = entity.readAsBytesSync();
+      archive.addFile(ArchiveFile(fileName, data.length, data));
+    }
+  }
+  final bytes = ZipEncoder().encode(archive);
+  if (bytes != null) {
+    zipFile.writeAsBytesSync(bytes);
+  }
+  await CopyFile(zipFile, destDir);
+  if (delete) {
+    await zipFile.delete(recursive: true);
+  }
+}
+
+// Future<void> unzipFile(String sourceSubDir, String targetSubDir, String zipName, bool deleteSrc) async {
+//   final masterAppDir = await appDir;
+//   Directory sourceDir = Directory('${masterAppDir.path}/$sourceSubDir/$zipName');
+//   Directory targetDir = Directory('${masterAppDir.path}/$targetSubDir');
+//   final bytes = File(sourceDir.path).readAsBytesSync();
+//   final archive = ZipDecoder().decodeBytes(bytes);
+//   for (final file in archive) {
+//     final filename = p.join(targetDir.path, file.name);
+//     if (file.isFile) {
+//       final data = file.content as List<int>;
+//       File(filename)
+//         ..createSync(recursive: true)
+//         ..writeAsBytesSync(data);
+//     } else {
+//       Directory(filename).createSync(recursive: true);
+//     }
+//   }
+//   if (deleteSrc) {
+//     final File oldZip = File(sourceDir.path);
+//     await oldZip.delete();
+//   }
+// }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Files
@@ -168,6 +215,27 @@ Future<File> RetJSONFile(String subDir, String fileName) async {
   final masterDir = await getApplicationDocumentsDirectory();
   File jsonFile = File('${masterDir.path}/$subDir/$fileName');
   return jsonFile;
+}
+
+// Unzip File
+Future<void> UnzipFile(Directory sourceDir, Directory destDir, String zipName, bool delete) async {
+  File zipFile = File('${sourceDir.path}/$zipName');
+  final bytes = zipFile.readAsBytesSync();
+  final archive = ZipDecoder().decodeBytes(bytes);
+  for (final file in archive) {
+    final filename = path.join(destDir.path, file.name);
+    if (file.isFile) {
+      final data = file.content as List<int>;
+      File(filename)
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(data);
+    } else {
+      Directory(filename).createSync(recursive: true);
+    }
+  }
+  if (delete) {
+    await zipFile.delete();
+  }
 }
 
 // Write New File
