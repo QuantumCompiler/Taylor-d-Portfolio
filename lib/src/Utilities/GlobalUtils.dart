@@ -161,29 +161,6 @@ Future<void> ZipDir(Directory sourceDir, Directory destDir, bool delete) async {
   }
 }
 
-// Future<void> unzipFile(String sourceSubDir, String targetSubDir, String zipName, bool deleteSrc) async {
-//   final masterAppDir = await appDir;
-//   Directory sourceDir = Directory('${masterAppDir.path}/$sourceSubDir/$zipName');
-//   Directory targetDir = Directory('${masterAppDir.path}/$targetSubDir');
-//   final bytes = File(sourceDir.path).readAsBytesSync();
-//   final archive = ZipDecoder().decodeBytes(bytes);
-//   for (final file in archive) {
-//     final filename = p.join(targetDir.path, file.name);
-//     if (file.isFile) {
-//       final data = file.content as List<int>;
-//       File(filename)
-//         ..createSync(recursive: true)
-//         ..writeAsBytesSync(data);
-//     } else {
-//       Directory(filename).createSync(recursive: true);
-//     }
-//   }
-//   if (deleteSrc) {
-//     final File oldZip = File(sourceDir.path);
-//     await oldZip.delete();
-//   }
-// }
-
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Files
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----

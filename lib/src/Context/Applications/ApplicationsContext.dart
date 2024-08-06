@@ -218,14 +218,26 @@ class _AppsState extends State<Apps> {
                                 cursor: SystemMouseCursors.click,
                                 child: ListTile(
                                   title: Text(widget.apps[index].name),
-                                  trailing: Tooltip(
-                                    message: 'Click To Delete - ${widget.apps[index].name}',
-                                    child: IconButton(
-                                      icon: Icon(Icons.delete),
-                                      onPressed: () => {},
-                                    ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Tooltip(
+                                        message: 'Click To Delete - ${widget.apps[index].name}',
+                                        child: IconButton(
+                                          icon: Icon(Icons.delete),
+                                          onPressed: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) {
+                                                return DeleteApplicationDialog(context, widget.apps, index, setState);
+                                              },
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  onTap: () => {},
+                                  onTap: () {},
                                 ),
                               ),
                             );

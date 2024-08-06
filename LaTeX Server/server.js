@@ -24,6 +24,13 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 async function unZipInput(inputFileName) {
     return new Promise((resolve, reject) => {
+        const inputFilePath = path.join('uploads', inputFileName);
+        console.log(`Unzipping file: ${inputFilePath}`);
+        
+        if (!fs.existsSync(inputFilePath)) {
+            return reject(new Error(`File not found: ${inputFilePath}`));
+        }
+
         process.chdir('uploads/');
         exec(`rm -rf Input && mkdir Input && unzip "${inputFileName}" -d Input && rm -rf "${inputFileName}"`, (error, stdout, stderr) => {
             if (error) {
@@ -44,15 +51,12 @@ async function unZipInput(inputFileName) {
 async function compileLaTeX() {
     return new Promise((resolve, reject) => {
         process.chdir('uploads/Input/');
-        exec('lualatex main.tex', (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Compile error: ${error}`);
-                reject(error);
-            } else {
-                console.log('LaTeX file compiled successfully.');
-                process.chdir('../..');
-                resolve(stdout || stderr);
-            }
+        exec('lualatex main.tex && lualatex main.tex', (error, stdout, stderr) => {
+            console.log(`stdout: ${stdout}`);
+            console.log('LaTeX file compiled successfully.')
+            process.chdir('..');
+            process.chdir('..');
+            resolve(stdout);
         });
     });
 }

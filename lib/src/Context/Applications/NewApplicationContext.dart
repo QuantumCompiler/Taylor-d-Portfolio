@@ -127,6 +127,7 @@ BottomAppBar NewApplicationBottomAppBar(BuildContext context, Application app, F
 }
 
 BottomAppBar NewApplicationCompileBottomAppBar(BuildContext context, Application app, Function updateState) {
+  TextEditingController nameController = TextEditingController();
   return BottomAppBar(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -135,8 +136,12 @@ BottomAppBar NewApplicationCompileBottomAppBar(BuildContext context, Application
         ElevatedButton(
           child: Text('Compile Portfolio'),
           onPressed: () async {
-            await app.SetFinalFiles();
-            await PrepLaTeXDirs();
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return NewApplicationDialog(context, app, nameController);
+              },
+            );
           },
         ),
       ],

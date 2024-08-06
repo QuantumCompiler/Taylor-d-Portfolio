@@ -5,6 +5,9 @@ double applicationsContainerWidth = 0.8;
 String apiKey = 'OPENAI_API_KEY';
 const apiURL = 'https://api.openai.com/v1/chat/completions';
 
+// Server Address
+const latexServer = 'http://82.180.161.189:3000/compile';
+
 // OpenAI Models
 String gpt_3_5_personal = 'ft:gpt-3.5-turbo-1106:personal::9hSa098j';
 String gpt_3_5_turbo = 'gpt-3.5-turbo';

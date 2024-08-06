@@ -6,6 +6,7 @@ import '../../Applications/Applications.dart';
 import '../../Globals/Globals.dart';
 import '../../Jobs/Jobs.dart';
 import '../../Profiles/Profiles.dart';
+import '../../Utilities/ApplicationsUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/JobUtils.dart';
 import '../../Utilities/ProfilesUtils.dart';
@@ -36,105 +37,63 @@ AlertDialog GenAlertDialogWithIcon(String title, String content, IconData? icon)
   );
 }
 
-AlertDialog NewProfileDialog(BuildContext context, Profile profile, bool? backToProfile, TextEditingController nameController) {
+AlertDialog DeleteApplicationDialog(BuildContext context, List<Application> apps, int index, Function setState) {
   return AlertDialog(
-    title: Text(
-      'Save New Profile',
-      style: TextStyle(
-        fontSize: appBarTitle,
-        fontWeight: FontWeight.bold,
-      ),
-      textAlign: TextAlign.center,
-    ),
     content: Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Choose A Name For Your New Profile',
+          'Delete Application ${apps[index].name}?',
           style: TextStyle(
-            fontSize: secondaryTitles,
+            fontSize: appBarTitle,
+            fontWeight: FontWeight.bold,
           ),
-          textAlign: TextAlign.center,
         ),
-        TextFormField(
-          controller: nameController,
-          keyboardType: TextInputType.multiline,
-          maxLines: 1,
-          decoration: InputDecoration(hintText: 'Enter name here...'),
+        SizedBox(height: standardSizedBoxHeight),
+        Icon(
+          Icons.warning,
+          size: 50.0,
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Text(
+          'Are you sure that you would like to delete this application?\nThis cannot be undone.',
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              child: Text(
+                'Cancel',
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            SizedBox(width: standardSizedBoxWidth),
+            ElevatedButton(
+              child: Text('Delete'),
+              onPressed: () async {
+                try {
+                  await DeleteApplication(apps[index].name);
+                  setState(
+                    () {
+                      apps.removeAt(index);
+                    },
+                  );
+                  Navigator.of(context).pop();
+                } catch (e) {
+                  throw ('Error in deleting ${apps[index].name}');
+                }
+              },
+            ),
+          ],
         ),
       ],
     ),
-    actions: [
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ElevatedButton(
-            child: Text('Cancel'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          SizedBox(width: standardSizedBoxWidth),
-          ElevatedButton(
-            child: Text('Save Profile'),
-            onPressed: () async {
-              final masterDir = await getApplicationDocumentsDirectory();
-              final currDir = Directory('${masterDir.path}/Profiles/${nameController.text}');
-              if (await currDir.exists()) {
-                Navigator.of(context).pop();
-                await showDialog(
-                  context: context,
-                  builder: (context) {
-                    return GenAlertDialogWithIcon(
-                      "Profile ${nameController.text} Already Exists!",
-                      "Please select a different name for this profile",
-                      Icons.error,
-                    );
-                  },
-                );
-              } else {
-                try {
-                  await profile.CreateProfile(nameController.text);
-                  if (backToProfile == true) {
-                    Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
-                  } else if (backToProfile == false) {
-                    Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-                  }
-                  await showDialog(
-                      context: context,
-                      builder: (context) {
-                        return GenAlertDialogWithIcon(
-                          'Profile ${profile.name}',
-                          'Written Successfully',
-                          Icons.check_circle_outline,
-                        );
-                      });
-                } catch (e) {
-                  await showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: Text('Error'),
-                        content: Text('An error occurred while creating the profile. Please try again. $e'),
-                        actions: [
-                          ElevatedButton(
-                            child: Text('OK'),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                }
-              }
-            },
-          ),
-        ],
-      ),
-    ],
   );
 }
 
@@ -406,6 +365,94 @@ AlertDialog EditProfileDialog(BuildContext context, Profile profile, bool? backT
   );
 }
 
+AlertDialog NewApplicationDialog(BuildContext context, Application app, TextEditingController nameController) {
+  return AlertDialog(
+    title: Text(
+      'Save New Application',
+      style: TextStyle(
+        fontSize: appBarTitle,
+        fontWeight: FontWeight.bold,
+      ),
+      textAlign: TextAlign.center,
+    ),
+    content: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Choose A Name For Your New Application',
+          style: TextStyle(
+            fontSize: secondaryTitles,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        TextFormField(
+          controller: nameController,
+          keyboardType: TextInputType.multiline,
+          maxLines: 1,
+          decoration: InputDecoration(hintText: 'Enter name here...'),
+        ),
+      ],
+    ),
+    actions: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ElevatedButton(
+            child: Text('Cancel'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          SizedBox(width: standardSizedBoxWidth),
+          ElevatedButton(
+            child: Text('Save Application'),
+            onPressed: () async {
+              final masterDir = await getApplicationDocumentsDirectory();
+              final currDir = Directory('${masterDir.path}/Applications/${nameController.text}');
+              if (await currDir.exists()) {
+                Navigator.of(context).pop();
+                await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return GenAlertDialogWithIcon(
+                      "Application ${nameController.text} Already Exists!",
+                      "Please select a different name for this application.",
+                      Icons.error,
+                    );
+                  },
+                );
+              } else {
+                try {
+                  await app.CreateApplication(context, nameController.text);
+                } catch (e) {
+                  await showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Error'),
+                        content: Text('An error occurred while creating the job. Please try again. $e'),
+                        actions: [
+                          ElevatedButton(
+                            child: Text('OK'),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
 AlertDialog NewJobDialog(BuildContext context, Job job, bool? backToJobs, TextEditingController nameController) {
   return AlertDialog(
     title: Text(
@@ -489,6 +536,108 @@ AlertDialog NewJobDialog(BuildContext context, Job job, bool? backToJobs, TextEd
                       return AlertDialog(
                         title: Text('Error'),
                         content: Text('An error occurred while creating the job. Please try again. $e'),
+                        actions: [
+                          ElevatedButton(
+                            child: Text('OK'),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+AlertDialog NewProfileDialog(BuildContext context, Profile profile, bool? backToProfile, TextEditingController nameController) {
+  return AlertDialog(
+    title: Text(
+      'Save New Profile',
+      style: TextStyle(
+        fontSize: appBarTitle,
+        fontWeight: FontWeight.bold,
+      ),
+      textAlign: TextAlign.center,
+    ),
+    content: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Choose A Name For Your New Profile',
+          style: TextStyle(
+            fontSize: secondaryTitles,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        TextFormField(
+          controller: nameController,
+          keyboardType: TextInputType.multiline,
+          maxLines: 1,
+          decoration: InputDecoration(hintText: 'Enter name here...'),
+        ),
+      ],
+    ),
+    actions: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ElevatedButton(
+            child: Text('Cancel'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          SizedBox(width: standardSizedBoxWidth),
+          ElevatedButton(
+            child: Text('Save Profile'),
+            onPressed: () async {
+              final masterDir = await getApplicationDocumentsDirectory();
+              final currDir = Directory('${masterDir.path}/Profiles/${nameController.text}');
+              if (await currDir.exists()) {
+                Navigator.of(context).pop();
+                await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return GenAlertDialogWithIcon(
+                      "Profile ${nameController.text} Already Exists!",
+                      "Please select a different name for this profile",
+                      Icons.error,
+                    );
+                  },
+                );
+              } else {
+                try {
+                  await profile.CreateProfile(nameController.text);
+                  if (backToProfile == true) {
+                    Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
+                  } else if (backToProfile == false) {
+                    Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+                  }
+                  await showDialog(
+                      context: context,
+                      builder: (context) {
+                        return GenAlertDialogWithIcon(
+                          'Profile ${profile.name}',
+                          'Written Successfully',
+                          Icons.check_circle_outline,
+                        );
+                      });
+                } catch (e) {
+                  await showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Error'),
+                        content: Text('An error occurred while creating the profile. Please try again. $e'),
                         actions: [
                           ElevatedButton(
                             child: Text('OK'),

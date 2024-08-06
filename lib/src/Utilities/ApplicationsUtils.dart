@@ -8,6 +8,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import '../Applications/Applications.dart';
 import '../Context/Globals/GlobalContext.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/JobsGlobals.dart';
@@ -41,13 +42,10 @@ class Application {
 
   // Master Files
   late File coverLetterPDF;
-  late File coverLetterZip;
   late File jobContFile;
   late File portfolioPDF;
-  late File portfolioZip;
   late File profileContFile;
   late File resumePDF;
-  late File resumeZip;
 
   // Recommendations Files
   late File aboutMeFile;
@@ -90,11 +88,8 @@ class Application {
     required this.jobUsed,
     required this.profileUsed,
     required this.coverLetterPDF,
-    required this.coverLetterZip,
     required this.portfolioPDF,
-    required this.portfolioZip,
     required this.resumePDF,
-    required this.resumeZip,
     required this.aboutMeFile,
     required this.companyFile,
     required this.eduRecFile,
@@ -122,11 +117,8 @@ class Application {
     Profile profileUsed = await futureProfile;
     // Main Files
     File cPDF = File('$masterDir/Temp/CoverLetter.pdf');
-    File cZip = File('$masterDir/Temp/CoverLetter.zip');
     File pPDF = File('$masterDir/Temp/Portfolio.pdf');
-    File pZip = File('$masterDir/Temp/Portfolio.zip');
     File rPDF = File('$masterDir/Temp/Resume.pdf');
-    File rZip = File('$masterDir/Temp/Resume.zip');
     // Recommendation Files
     File aboutMe = File('$masterDir/Temp/Open AI Recommendations/About.txt');
     File company = File('$masterDir/Temp/Open AI Recommendations/Company.txt');
@@ -151,11 +143,8 @@ class Application {
       jobUsed: jobUsed,
       profileUsed: profileUsed,
       coverLetterPDF: cPDF,
-      coverLetterZip: cZip,
       portfolioPDF: pPDF,
-      portfolioZip: pZip,
       resumePDF: rPDF,
-      resumeZip: rZip,
       aboutMeFile: aboutMe,
       companyFile: company,
       eduRecFile: eduRec,
@@ -173,6 +162,28 @@ class Application {
       whyJobFile: whyJob,
       whyMeFile: whyMe,
     );
+  }
+
+  Future<void> CreateApplication(BuildContext context, String appName) async {
+    // Set Name And Files
+    SetAppName(appName);
+    await SetFinalFiles();
+    await CompileDocuments(context);
+    Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
+    // Directories
+    final appDir = await getApplicationDocumentsDirectory();
+    Directory tempDir = Directory('${appDir.path}/Temp');
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory newDir = Directory('${appsDir.path}/$name');
+    // Create New Directory
+    if (newDir.existsSync()) {
+      await newDir.delete(recursive: true);
+    }
+    await newDir.create();
+    // Copy Temp Directory Contents
+    await CopyDir(tempDir, newDir, false);
+    await CleanDir('Temp');
+    await ShowProducedDialog(context, 'Application $name Created', 'Application $name Created Successfully', Icons.check);
   }
 
   // Set Previous Content
@@ -348,6 +359,7 @@ class Application {
     sciRecFile = sciFile;
   }
 
+  // Set Final Files
   Future<void> SetFinalFiles() async {
     // Master Directories
     final appDir = await getApplicationDocumentsDirectory();
@@ -362,94 +374,95 @@ class Application {
     if (aboutFile.existsSync()) {
       await aboutFile.delete();
     }
-    await WriteFile(finFiles, aboutFile, escapeLatex(aboutMeCont.text));
+    await WriteFile(finFiles, aboutFile, EscapeLatex(aboutMeCont.text));
     aboutMeFile = aboutFile;
     // Company File
     File compFile = File('${finFiles.path}/$finCLCompFile');
     if (compFile.existsSync()) {
       await compFile.delete();
     }
-    await WriteFile(finFiles, compFile, escapeLatex(jobUsed.name));
+    await WriteFile(finFiles, compFile, EscapeLatex(jobUsed.name));
     companyFile = compFile;
     // Job File
     File jobFile = File('${finFiles.path}/$finCLJobFile');
     if (jobFile.existsSync()) {
       await jobFile.delete();
     }
-    await WriteFile(finFiles, jobFile, escapeLatex(whyJobCont.text));
+    await WriteFile(finFiles, jobFile, EscapeLatex(whyJobCont.text));
     whyJobFile = jobFile;
     // Why Me File
     File meFile = File('${finFiles.path}/$finCLMeFile');
     if (meFile.existsSync()) {
       await meFile.exists();
     }
-    await WriteFile(finFiles, meFile, escapeLatex(whyMeCont.text));
+    await WriteFile(finFiles, meFile, EscapeLatex(whyMeCont.text));
     whyMeFile = meFile;
     // Edu Rec File
     File eduFile = File('${finFiles.path}/$finEduRecFile');
     if (eduFile.existsSync()) {
       await eduFile.exists();
     }
-    await WriteFile(finFiles, eduFile, escapeLatex(eduRecCont.text));
+    await WriteFile(finFiles, eduFile, EscapeLatex(eduRecCont.text));
     eduRecFile = eduFile;
     // Exp Rec File
     File expFile = File('${finFiles.path}/$finExpRecFile');
     if (expFile.existsSync()) {
       await expFile.delete();
     }
-    await WriteFile(finFiles, expFile, escapeLatex(expRecCont.text));
+    await WriteFile(finFiles, expFile, EscapeLatex(expRecCont.text));
     expRecFile = expFile;
     // Fram Rec File
     File framFile = File('${finFiles.path}/$finFramFile');
     if (framFile.existsSync()) {
       await framFile.delete();
     }
-    await WriteFile(finFiles, framFile, escapeLatex(framRecCont.text));
+    await WriteFile(finFiles, framFile, EscapeLatex(framRecCont.text));
     frameRecFile = framFile;
     // Math Rec File
     File mathFile = File('${finFiles.path}/$finMathRecFile');
     if (mathFile.existsSync()) {
       await mathFile.delete();
     }
-    await WriteFile(finFiles, mathFile, escapeLatex(mathSkillsRecCont.text));
+    await WriteFile(finFiles, mathFile, EscapeLatex(mathSkillsRecCont.text));
     mathSkillsRecFile = mathFile;
     // Pers Rec File
     File persFile = File('${finFiles.path}/$finPersRecFile');
     if (persFile.existsSync()) {
       await persFile.delete();
     }
-    await WriteFile(finFiles, persFile, escapeLatex(persSkillsRecCont.text));
+    await WriteFile(finFiles, persFile, EscapeLatex(persSkillsRecCont.text));
     persSkillsRecFile = persFile;
     // Prog Lang File
     File langFile = File('${finFiles.path}/$finLangFile');
     if (langFile.existsSync()) {
       await langFile.delete();
     }
-    await WriteFile(finFiles, langFile, escapeLatex(progLangRecCont.text));
+    await WriteFile(finFiles, langFile, EscapeLatex(progLangRecCont.text));
     progLangRecFile = langFile;
     // Prog Skills File
     File progFile = File('${finFiles.path}/$finProgRecFile');
     if (progFile.existsSync()) {
       await progFile.delete();
     }
-    await WriteFile(finFiles, progFile, escapeLatex(progSkillsRecCont.text));
+    await WriteFile(finFiles, progFile, EscapeLatex(progSkillsRecCont.text));
     progSkillsRecFile = progFile;
     // Proj File
     File projFile = File('${finFiles.path}/$finProjRecFile');
     if (projFile.existsSync()) {
       await projFile.delete();
     }
-    await WriteFile(finFiles, projFile, escapeLatex(projRecCont.text));
+    await WriteFile(finFiles, projFile, EscapeLatex(projRecCont.text));
     projRecFile = projFile;
     // Sci File
     File sciFile = File('${finFiles.path}/$finSciRecFile');
     if (sciFile.existsSync()) {
       await sciFile.delete();
     }
-    await WriteFile(finFiles, sciFile, escapeLatex(sciRecCont.text));
+    await WriteFile(finFiles, sciFile, EscapeLatex(sciRecCont.text));
     sciRecFile = sciFile;
     // Setup LaTeX
     await InitializeLaTeX();
+    await PrepLaTeXDirs();
   }
 
   // Set App Name
@@ -521,6 +534,7 @@ Future<String> OpenAIPrompt(Application app) async {
 Future<Map<String, dynamic>> GetOpenAIRecs(BuildContext context, Application app, String openAIModel) async {
   showDialog(
     context: context,
+    barrierDismissible: false,
     builder: (BuildContext context) {
       return ShowLoadingDialog(context, 'Producing OpenAI Recommendations');
     },
@@ -595,7 +609,7 @@ Future<List<String>> StringifyRecs(Map<String, dynamic> openAIRecs, Application 
   return recs;
 }
 
-String escapeLatex(String input) {
+String EscapeLatex(String input) {
   input = input.replaceAll('&', r'\&');
   input = input.replaceAll('#', r'\#');
   input = input.replaceAll('%', r'\%');
@@ -694,77 +708,109 @@ Future<void> PrepLaTeXDirs() async {
   await ZipDir(coverLetterDir, zipDir, true);
   await ZipDir(portfolioDir, zipDir, true);
   await ZipDir(resumeDir, zipDir, true);
-  File clZip = File('${zipDir.path}/Cover Letter.zip');
-  await LaTeXCompile(clZip, 'Cover Letter.zip', 'Cover Letter.zip', tempDir);
 }
 
-Future<void> LaTeXCompile(File zipFile, String inputZipName, String outputZipName, Directory destDir) async {
+Future<void> CompileDocuments(BuildContext context) async {
+  // Master Directories
+  final appDir = await getApplicationDocumentsDirectory();
+  Directory tempDir = Directory('${appDir.path}/Temp');
+  Directory origZipDir = Directory('${tempDir.path}/Original Zip');
+  Directory finZipDir = Directory('${tempDir.path}/Zip');
+  Directory latexDir = Directory('${tempDir.path}/LaTeX Documents');
+  Directory finTextDir = Directory('${tempDir.path}/Final Text Files');
+  Directory pdfDir = Directory('${tempDir.path}/PDFs');
+  // Erase And Create Zip Directory
+  if (finZipDir.existsSync()) {
+    await finZipDir.delete(recursive: true);
+  }
+  await finZipDir.create();
+  File coverLetter = File('${origZipDir.path}/Cover Letter.zip');
+  File portfolio = File('${origZipDir.path}/Portfolio.zip');
+  File resume = File('${origZipDir.path}/Resume.zip');
+  // Compile Documents
+  await LaTeXCompile(context, coverLetter, 'Cover Letter.zip', 'Cover Letter.zip', finZipDir, 'Compiling Cover Letter', 'Cover Letter Compiled Successfully');
+  await LaTeXCompile(context, portfolio, 'Portfolio.zip', 'Portfolio.zip', finZipDir, 'Compiling Portfolio', 'Portfolio Compiled Successfully');
+  await LaTeXCompile(context, resume, 'Resume.zip', 'Resume.zip', finZipDir, 'Compiling Resume', 'Resume Compiled Successfully');
+  // Delete Old Zip Directory
+  await origZipDir.delete(recursive: true);
+  // Delete Text Files Directory
+  await finTextDir.delete(recursive: true);
+  // Erase And Create Latex Directory
+  if (latexDir.existsSync()) {
+    await latexDir.delete(recursive: true);
+  }
+  await latexDir.create();
+  // Copy Zip Files
+  coverLetter = File('${finZipDir.path}/Cover Letter.zip');
+  portfolio = File('${finZipDir.path}/Portfolio.zip');
+  resume = File('${finZipDir.path}/Resume.zip');
+  await CopyFile(coverLetter, latexDir);
+  await CopyFile(portfolio, latexDir);
+  await CopyFile(resume, latexDir);
+  // Delete Zip Directory
+  await finZipDir.delete(recursive: true);
+  // Unzip Files In LaTeX
+  coverLetter = File('${latexDir.path}/Cover Letter.zip');
+  portfolio = File('${latexDir.path}/Portfolio.zip');
+  resume = File('${latexDir.path}/Resume.zip');
+  await UnzipFile(latexDir, latexDir, 'Cover Letter.zip', true);
+  await UnzipFile(latexDir, latexDir, 'Portfolio.zip', true);
+  await UnzipFile(latexDir, latexDir, 'Resume.zip', true);
+  // Copy PDFs Over
+  File coverLetterPDF = File('${latexDir.path}/Cover Letter/main.pdf');
+  File portfolioPDF = File('${latexDir.path}/Portfolio/main.pdf');
+  File resumePDF = File('${latexDir.path}/Resume/main.pdf');
+  if (pdfDir.existsSync()) {
+    await pdfDir.delete(recursive: true);
+  }
+  await pdfDir.create();
+  // Cover Letter
+  await CopyFile(coverLetterPDF, pdfDir);
+  coverLetterPDF = File('${pdfDir.path}/main.pdf');
+  await coverLetterPDF.rename('${pdfDir.path}/Cover Letter.pdf');
+  // Portfolio
+  await CopyFile(portfolioPDF, pdfDir);
+  portfolioPDF = File('${pdfDir.path}/main.pdf');
+  await portfolioPDF.rename('${pdfDir.path}/Portfolio.pdf');
+  // Resume
+  await CopyFile(resumePDF, pdfDir);
+  resumePDF = File('${pdfDir.path}/main.pdf');
+  await resumePDF.rename('${pdfDir.path}/Resume.pdf');
+}
+
+Future<void> LaTeXCompile(BuildContext context, File zipFile, String inputZipName, String outputZipName, Directory destDir, String inProgressMessage, String completedMessage) async {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return ShowLoadingDialog(context, inProgressMessage);
+    },
+  );
+  bool successful = false;
   var uri = Uri.parse('http://localhost:3000/compile').replace(queryParameters: {
     'inputFileName': inputZipName,
     'returnFileName': outputZipName,
   });
-
   var request = http.MultipartRequest('POST', uri);
   var multipartFile = await http.MultipartFile.fromPath('file', zipFile.path);
   request.files.add(multipartFile);
-
   try {
-    print('Sending request to URI: $uri');
-    print('Uploading file: ${zipFile.path}');
-    print('Expected input zip name: $inputZipName');
-    print('Expected output zip name: $outputZipName');
-
     var response = await request.send();
     if (response.statusCode == 200) {
       var responseBody = await response.stream.toBytes();
       String filePath = path.join(destDir.path, outputZipName);
       File file = File(filePath);
       await file.writeAsBytes(responseBody);
-      print('File downloaded and saved at $filePath');
-    } else {
-      print('Failed to upload and compile file. Status code: ${response.statusCode}');
+      successful = true;
     }
   } catch (e) {
-    print('Error occurred: $e');
     throw ('Error occurred: $e');
+  } finally {
+    Navigator.of(context).pop();
+    if (successful) {
+      await ShowProducedDialog(context, 'Completed Successfully', completedMessage, Icons.done);
+    } else {
+      await ShowProducedDialog(context, 'Completed Unsuccessfully', 'An Error Has Occurred, Please Try Again', Icons.sms_failed);
+    }
   }
 }
-
-
-// Future<String> retrievePDFDir(String subDir, String pdfFileName) async {
-//   final masterAppsDir = await appsDir;
-//   final pdfFilePath = '${masterAppsDir.path}/$name/Finished Documents/$subDir/$pdfFileName';
-//   return pdfFilePath;
-// }
-
-// Future<void> compilePortfolio(BuildContext context, List<TextEditingController> controllers) async {
-//   showLoadingDialog(context, 'Compiling Portfolio');
-//   await getSkillsRecs(controllers);
-//   await copyRecsToMainResumeLaTeX(controllers);
-//   Directory mainLaTeXDir = await GetLaTeXDir();
-//   Directory resumeDir = Directory('${mainLaTeXDir.path}/Main LaTeX/Resume/');
-//   File resumeZip = await zipResume(resumeDir);
-//   try {
-//     await uploadZipFile(resumeZip);
-//     Navigator.of(context).pop();
-//     await showProducedDialog(context, 'Portfolio Compiled Successfully.');
-//   } catch (e) {
-//     if (kDebugMode) {
-//       print('Error: $e');
-//     }
-//   }
-// }
-
-// Future<void> uploadZipFile(File zipFile) async {
-//   var request = http.MultipartRequest('POST', Uri.parse('http://82.180.161.189:3000/compile'));
-//   request.files.add(await http.MultipartFile.fromPath('file', zipFile.path));
-//   var response = await request.send();
-//   if (response.statusCode == 200) {
-//     var responseBody = await response.stream.toBytes();
-//     Directory appDir = await GetAppDir();
-//     String filePath = p.join("${appDir.path}/Temp", 'Return.zip');
-//     File file = File(filePath);
-//     await file.writeAsBytes(responseBody);
-//   }
-//   zipFile.deleteSync();
-// }
