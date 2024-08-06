@@ -695,21 +695,29 @@ Future<void> PrepLaTeXDirs() async {
   await ZipDir(portfolioDir, zipDir, true);
   await ZipDir(resumeDir, zipDir, true);
   File clZip = File('${zipDir.path}/Cover Letter.zip');
-  await LaTeXCompile(clZip, "Cover Letter.zip", tempDir.path.toString());
+  await LaTeXCompile(clZip, 'Cover Letter.zip', 'Cover Letter.zip', tempDir);
 }
 
-Future<void> LaTeXCompile(File zipFile, String outputZipName, String downloadDir) async {
-  var uri = Uri.parse('http://localhost:3000/compile');
+Future<void> LaTeXCompile(File zipFile, String inputZipName, String outputZipName, Directory destDir) async {
+  var uri = Uri.parse('http://localhost:3000/compile').replace(queryParameters: {
+    'inputFileName': inputZipName,
+    'returnFileName': outputZipName,
+  });
+
   var request = http.MultipartRequest('POST', uri);
   var multipartFile = await http.MultipartFile.fromPath('file', zipFile.path);
   request.files.add(multipartFile);
+
   try {
+    print('Sending request to URI: $uri');
+    print('Uploading file: ${zipFile.path}');
+    print('Expected input zip name: $inputZipName');
+    print('Expected output zip name: $outputZipName');
+
     var response = await request.send();
     if (response.statusCode == 200) {
-      print('File uploaded and compiled successfully.');
       var responseBody = await response.stream.toBytes();
-      Directory appDir = await getApplicationDocumentsDirectory();
-      String filePath = path.join("${appDir.path}/Temp", 'Return.zip');
+      String filePath = path.join(destDir.path, outputZipName);
       File file = File(filePath);
       await file.writeAsBytes(responseBody);
       print('File downloaded and saved at $filePath');
@@ -718,6 +726,7 @@ Future<void> LaTeXCompile(File zipFile, String outputZipName, String downloadDir
     }
   } catch (e) {
     print('Error occurred: $e');
+    throw ('Error occurred: $e');
   }
 }
 
