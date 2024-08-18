@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Applications/Applications.dart';
 import '../../Dashboard/Dashboard.dart';
-// import '../../Applications/SaveNewApplication.dart';
 import '../../Globals/ApplicationsGlobals.dart';
 import '../../Globals/Globals.dart';
 import '../../Settings/Settings.dart';
@@ -47,6 +46,7 @@ SingleChildScrollView NewApplicationContent(BuildContext context, Application ap
             helperText: 'Select Model For OpenAI',
             onSelected: (value) {
               openAIModel = value.toString();
+              app.openAIModel = openAIModel;
             },
           ),
         ],
@@ -110,7 +110,7 @@ BottomAppBar NewApplicationBottomAppBar(BuildContext context, Application app, F
         ElevatedButton(
           child: Text('Get Recommendations'),
           onPressed: () async {
-            // Map<String, dynamic> recs = await GetOpenAIRecs(context, app, openAIModel);
+            // Map<String, dynamic> recs = await GetOpenAIRecs(context, app, app.openAIModel);
             Map<String, dynamic> recs = testOpenAIResults;
             List<String> finRecs = await StringifyRecs(recs, app);
             app.SetRecs(recs, finRecs);

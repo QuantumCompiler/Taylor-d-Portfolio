@@ -81,6 +81,9 @@ class Application {
   late Map<String, dynamic> masterRecs;
   late List<String> recommendations;
 
+  // OpenAI Specific
+  String openAIModel = gpt_4o;
+
   // Constructor
   Application._({
     required this.newApp,
@@ -184,6 +187,58 @@ class Application {
     await CopyDir(tempDir, newDir, false);
     await CleanDir('Temp');
     await ShowProducedDialog(context, 'Application $name Created', 'Application $name Created Successfully', Icons.check);
+  }
+
+  Future<void> LoadApplication() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory jobsDir = Directory('${appDir.path}/Jobs');
+    Directory profsDir = Directory('${appDir.path}/Profiles');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory jobProfDir = Directory('${currDir.path}/Job And Profile Content');
+    String job = '';
+    String profile = '';
+    List<String> appContNames = [];
+    if (jobProfDir.existsSync()) {
+      List<FileSystemEntity> entities = jobProfDir.listSync();
+      for (var entity in entities) {
+        if (entity is Directory) {
+          String directoryName = entity.path.split('/').last;
+          appContNames.add(directoryName);
+        }
+      }
+    }
+    List<String> jobsNames = [];
+    jobsDir.listSync().forEach((entity) {
+      if (entity is Directory) {
+        String directoryName = entity.path.split('/').last;
+        jobsNames.add(directoryName);
+      }
+    });
+    List<String> profsNames = [];
+    profsDir.listSync().forEach((entity) {
+      if (entity is Directory) {
+        String directoryName = entity.path.split('/').last;
+        profsNames.add(directoryName);
+      }
+    });
+    for (int i = 0; i < appContNames.length; i++) {
+      for (int j = 0; j < jobsNames.length; j++) {
+        if (jobsNames[j] == appContNames[i]) {
+          job = appContNames[i];
+          break;
+        }
+      }
+      for (int j = 0; j < profsNames.length; j++) {
+        if (profsNames[j] == appContNames[i]) {
+          profile = appContNames[i];
+          break;
+        }
+      }
+    }
+    Job jobUsed = await Job.Init(name: job, newJob: false);
+    Profile profUsed = await Profile.Init(name: profile, newProfile: false);
+    SetJobProfile(jobUsed, profUsed);
   }
 
   // Set Previous Content

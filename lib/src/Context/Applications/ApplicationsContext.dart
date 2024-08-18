@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../Applications/NewApplication.dart';
+import '../../Applications/ViewApplication.dart';
 // import '../../Applications/LoadApplication.dart';
 // import '../../Applications/NewApplication.dart';
 // import '../../Globals/ApplicationsGlobals.dart';
@@ -239,7 +240,16 @@ class _AppsState extends State<Apps> {
                                       ),
                                     ],
                                   ),
-                                  onTap: () {},
+                                  onTap: () {
+                                    Navigator.pushAndRemoveUntil(
+                                        context,
+                                        RightToLeftPageRoute(
+                                          page: ViewApplicationPage(
+                                            app: widget.apps[index],
+                                          ),
+                                        ),
+                                        (Route<dynamic> route) => false);
+                                  },
                                 ),
                               ),
                             );
