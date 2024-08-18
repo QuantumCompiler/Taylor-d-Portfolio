@@ -7,7 +7,6 @@ import '../../Context/Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
 import '../../Jobs/EditJob.dart';
-import '../../Jobs/Jobs.dart';
 import '../../Jobs/NewJob.dart';
 import '../../Profiles/EditProfile.dart';
 import '../../Profiles/NewProfile.dart';
@@ -31,7 +30,6 @@ AppBar ApplicationsAppBar(BuildContext context) {
     actions: [
       Row(
         children: [
-          NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, false),
           NavToPage(context, 'Profiles', Icon(Icons.person), ProfilePage(), true, false),
           NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
           NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
@@ -235,8 +233,7 @@ class _AppsState extends State<Apps> {
                                             showDialog(
                                               context: context,
                                               builder: (context) {
-                                                // return DeleteApplicationDialog(context, widget.apps, index, updateState);
-                                                return DeleteAppDialog(context, widget.apps, index, updateState);
+                                                return DeleteApplicationDialog(context, widget.apps, index, updateState);
                                               },
                                             );
                                           },
@@ -289,6 +286,12 @@ class _JobsState extends State<Jobs> {
   @override
   void initState() {
     super.initState();
+  }
+
+  void updateState(int index) {
+    setState(() {
+      widget.jobs.removeAt(index);
+    });
   }
 
   @override
@@ -354,7 +357,7 @@ class _JobsState extends State<Jobs> {
                                         showDialog(
                                           context: context,
                                           builder: (context) {
-                                            return DeleteJobDialog(context, widget.jobs, index, setState);
+                                            return DeleteJobDialog(context, widget.jobs, index, updateState);
                                           },
                                         );
                                       },

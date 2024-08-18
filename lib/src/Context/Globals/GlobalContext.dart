@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../Applications/Applications.dart';
 import '../../Globals/Globals.dart';
-import '../../Jobs/Jobs.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
@@ -37,7 +36,7 @@ AlertDialog GenAlertDialogWithIcon(String title, String content, IconData? icon)
   );
 }
 
-AlertDialog DeleteAppDialog(BuildContext context, List<Application> apps, int index, Function update) {
+AlertDialog DeleteApplicationDialog(BuildContext context, List<Application> apps, int index, Function update) {
   return AlertDialog(
     content: Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -93,67 +92,7 @@ AlertDialog DeleteAppDialog(BuildContext context, List<Application> apps, int in
   );
 }
 
-AlertDialog DeleteApplicationDialog(BuildContext context, List<Application> apps, int index, Function setState) {
-  return AlertDialog(
-    content: Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Delete Application ${apps[index].name}?',
-          style: TextStyle(
-            fontSize: appBarTitle,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        Icon(
-          Icons.warning,
-          size: 50.0,
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        Text(
-          'Are you sure that you would like to delete this application?\nThis cannot be undone.',
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              child: Text(
-                'Cancel',
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            SizedBox(width: standardSizedBoxWidth),
-            ElevatedButton(
-              child: Text('Delete'),
-              onPressed: () async {
-                try {
-                  await DeleteApplication(apps[index].name);
-                  setState(
-                    () {
-                      apps.removeAt(index);
-                    },
-                  );
-                  Navigator.of(context).pop();
-                } catch (e) {
-                  throw ('Error in deleting ${apps[index].name}');
-                }
-              },
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-AlertDialog DeleteJobDialog(BuildContext context, List<Job> jobs, int index, Function setState) {
+AlertDialog DeleteJobDialog(BuildContext context, List<Job> jobs, int index, Function update) {
   return AlertDialog(
     content: Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -195,11 +134,7 @@ AlertDialog DeleteJobDialog(BuildContext context, List<Job> jobs, int index, Fun
               onPressed: () async {
                 try {
                   await DeleteJob(jobs[index].name);
-                  setState(
-                    () {
-                      jobs.removeAt(index);
-                    },
-                  );
+                  update(index);
                   Navigator.of(context).pop();
                 } catch (e) {
                   throw ('Error in deleting ${jobs[index].name}');
@@ -321,11 +256,7 @@ AlertDialog EditJobDialog(BuildContext context, Job job, bool? backToJobs) {
             onPressed: () async {
               try {
                 await job.CreateJob(job.nameController.text);
-                if (backToJobs == true) {
-                  Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
-                } else if (backToJobs == false) {
-                  Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-                }
+                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
                 await showDialog(
                   context: context,
                   builder: (context) {
@@ -571,11 +502,7 @@ AlertDialog NewJobDialog(BuildContext context, Job job, bool? backToJobs, TextEd
               } else {
                 try {
                   await job.CreateJob(nameController.text);
-                  if (backToJobs == true) {
-                    Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: JobsPage()), (Route<dynamic> route) => false);
-                  } else if (backToJobs == false) {
-                    Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-                  }
+                  Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
                   await showDialog(
                       context: context,
                       builder: (context) {

@@ -3,7 +3,6 @@ import '../Globals/GlobalContext.dart';
 import '../../Applications/Applications.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
-import '../../Jobs/Jobs.dart';
 import '../../Profiles/EditProfile.dart';
 import '../../Profiles/NewProfile.dart';
 import '../../Profiles/ProfileContent.dart';
@@ -25,7 +24,6 @@ AppBar ProfileAppBar(BuildContext context, List<Profile> profiles) {
       Row(
         children: [
           NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, false),
-          NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, false),
           NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
           NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
         ],

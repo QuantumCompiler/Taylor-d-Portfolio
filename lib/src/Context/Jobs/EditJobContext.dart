@@ -3,8 +3,6 @@ import '../Globals/GlobalContext.dart';
 import '../../Applications/Applications.dart';
 import '../../Context/Jobs/JobsContext.dart';
 import '../../Dashboard/Dashboard.dart';
-import '../../Jobs/Jobs.dart';
-import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
 import '../../Globals/Globals.dart';
 import '../../Utilities/JobUtils.dart';
@@ -18,14 +16,10 @@ AppBar EditJobAppBar(BuildContext context, String jobName, bool backToJobs) {
         fontWeight: FontWeight.bold,
       ),
     ),
-    leading: backToJobs
-        ? NavToPage(context, 'Jobs', Icon(Icons.arrow_back_ios_new_outlined), JobsPage(), false, false)
-        : NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, false),
+    leading: NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, false),
     actions: [
       Row(
         children: [
-          backToJobs ? NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, false) : NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, false),
-          NavToPage(context, 'Profiles', Icon(Icons.person), ProfilePage(), true, false),
           NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
           NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
         ],

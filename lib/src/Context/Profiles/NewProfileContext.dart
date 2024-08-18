@@ -4,7 +4,6 @@ import '../Profiles/ProfileContext.dart';
 import '../../Applications/Applications.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
-import '../../Jobs/Jobs.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
 import '../../Utilities/ProfilesUtils.dart';
@@ -25,7 +24,6 @@ AppBar NewProfileAppBar(BuildContext context, bool backToProfile) {
       Row(
         children: [
           NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, true),
-          NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, true),
           NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, true),
           NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, true),
         ],

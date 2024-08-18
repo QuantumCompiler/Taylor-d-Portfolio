@@ -5,7 +5,6 @@ import '../../Dashboard/Dashboard.dart';
 // import '../../Applications/SaveNewApplication.dart';
 import '../../Globals/ApplicationsGlobals.dart';
 import '../../Globals/Globals.dart';
-import '../../Jobs/Jobs.dart';
 import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
 import '../../Utilities/ApplicationsUtils.dart';
@@ -24,7 +23,6 @@ AppBar NewApplicationAppBar(BuildContext context) {
     actions: [
       Row(
         children: [
-          NavToPage(context, 'Jobs', Icon(Icons.work), JobsPage(), true, false),
           NavToPage(context, 'Profiles', Icon(Icons.person), ProfilePage(), true, false),
           NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
           NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
