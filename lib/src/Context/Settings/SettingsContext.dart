@@ -5,7 +5,6 @@ import '../../Context/Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/SettingsGlobals.dart';
 import '../../Globals/Globals.dart';
-import '../../Profiles/Profiles.dart';
 import '../../Themes/Themes.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/SettingsUtilities.dart';
@@ -32,7 +31,6 @@ AppBar appBar(BuildContext context) {
       Row(
         children: [
           NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, false),
-          NavToPage(context, 'Profiles', Icon(Icons.person), ProfilePage(), true, false),
           NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
         ],
       ),

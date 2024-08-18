@@ -10,7 +10,6 @@ import '../../Jobs/EditJob.dart';
 import '../../Jobs/NewJob.dart';
 import '../../Profiles/EditProfile.dart';
 import '../../Profiles/NewProfile.dart';
-import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
@@ -30,7 +29,6 @@ AppBar ApplicationsAppBar(BuildContext context) {
     actions: [
       Row(
         children: [
-          NavToPage(context, 'Profiles', Icon(Icons.person), ProfilePage(), true, false),
           NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
           NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
         ],

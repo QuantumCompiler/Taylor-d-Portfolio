@@ -4,7 +4,6 @@ import '../Profiles/ProfileContext.dart';
 import '../../Applications/Applications.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
-import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
 import '../../Utilities/ProfilesUtils.dart';
 
@@ -17,9 +16,7 @@ AppBar NewProfileAppBar(BuildContext context, bool backToProfile) {
         fontWeight: FontWeight.bold,
       ),
     ),
-    leading: backToProfile
-        ? NavToPage(context, 'Profiles', Icon(Icons.arrow_back_ios_new_outlined), ProfilePage(), false, true)
-        : NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, true),
+    leading: NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, true),
     actions: [
       Row(
         children: [

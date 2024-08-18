@@ -4,7 +4,6 @@ import '../../Context/Globals/GlobalContext.dart';
 import '../../Context/Profiles/ProfileContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
-import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
 import '../../Utilities/ProfilesUtils.dart';
 
@@ -17,9 +16,7 @@ AppBar EditProfileAppBar(BuildContext context, String profileName, bool backToPr
         fontWeight: FontWeight.bold,
       ),
     ),
-    leading: backToProfile
-        ? NavToPage(context, 'Profiles', Icon(Icons.arrow_back_ios_new_outlined), ProfilePage(), false, false)
-        : NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, false),
+    leading: NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, false),
     actions: [
       Row(
         children: [

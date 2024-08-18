@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../Globals/DashboardGlobals.dart';
 import '../../Globals/Globals.dart';
 import '../../Applications/Applications.dart';
-import '../../Profiles/Profiles.dart';
 import '../../Settings/Settings.dart';
 import '../../Utilities/GlobalUtils.dart';
 
@@ -252,14 +251,6 @@ SizedBox desktopDrawer(BuildContext context) {
             ),
             Spacer(),
             IconButton(
-              tooltip: profileToolTip,
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
-              },
-              icon: Icon(Icons.person),
-            ),
-            Spacer(),
-            IconButton(
               tooltip: settingsToolTip,
               onPressed: () {
                 Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: SettingsPage()), (Route<dynamic> route) => false);
@@ -305,13 +296,6 @@ BottomAppBar mobileNavbar(BuildContext context) {
             Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
           },
           icon: Icon(Icons.task),
-        ),
-        Spacer(),
-        IconButton(
-          onPressed: () {
-            Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
-          },
-          icon: Icon(Icons.person),
         ),
         Spacer(),
         IconButton(

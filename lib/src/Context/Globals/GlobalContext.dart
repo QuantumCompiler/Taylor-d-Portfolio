@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../Applications/Applications.dart';
 import '../../Globals/Globals.dart';
-import '../../Profiles/Profiles.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/JobUtils.dart';
@@ -326,11 +325,7 @@ AlertDialog EditProfileDialog(BuildContext context, Profile profile, bool? backT
             onPressed: () async {
               try {
                 await profile.CreateProfile(profile.nameController.text);
-                if (backToProfile == true) {
-                  Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
-                } else if (backToProfile == false) {
-                  Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-                }
+                Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
                 await showDialog(
                   context: context,
                   builder: (context) {
@@ -600,11 +595,7 @@ AlertDialog NewProfileDialog(BuildContext context, Profile profile, bool? backTo
               } else {
                 try {
                   await profile.CreateProfile(nameController.text);
-                  if (backToProfile == true) {
-                    Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ProfilePage()), (Route<dynamic> route) => false);
-                  } else if (backToProfile == false) {
-                    Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-                  }
+                  Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
                   await showDialog(
                       context: context,
                       builder: (context) {
