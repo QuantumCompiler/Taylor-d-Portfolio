@@ -594,7 +594,11 @@ Future<String> ConvertIndRecs(Map<String, dynamic> map, String section) async {
 
 Future<List<String>> StringifyRecs(Map<String, dynamic> openAIRecs, Application app) async {
   List<String> recs = [];
-  recs.add(app.profileUsed.coverLetterContList[0].about.text);
+  if (app.profileUsed.coverLetterContList.isNotEmpty) {
+    recs.add(app.profileUsed.coverLetterContList[0].about.text);
+  } else {
+    recs.add('');
+  }
   recs.add(await ConvertIndRecs(openAIRecs, covLetWhyJobPrompt));
   recs.add(await ConvertIndRecs(openAIRecs, covLetWhyMePrompt));
   recs.add(await ConvertIndRecs(openAIRecs, eduRecPrompt));

@@ -37,6 +37,62 @@ AlertDialog GenAlertDialogWithIcon(String title, String content, IconData? icon)
   );
 }
 
+AlertDialog DeleteAppDialog(BuildContext context, List<Application> apps, int index, Function update) {
+  return AlertDialog(
+    content: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Delete Application ${apps[index].name}?',
+          style: TextStyle(
+            fontSize: appBarTitle,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Icon(
+          Icons.warning,
+          size: 50.0,
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Text(
+          'Are you sure that you would like to delete this application?\nThis cannot be undone.',
+        ),
+        SizedBox(height: standardSizedBoxHeight),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              child: Text(
+                'Cancel',
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            SizedBox(width: standardSizedBoxWidth),
+            ElevatedButton(
+              child: Text('Delete'),
+              onPressed: () async {
+                try {
+                  await DeleteApplication(apps[index].name);
+                  update(index);
+                  Navigator.of(context).pop();
+                } catch (e) {
+                  throw ('Error in deleting ${apps[index].name}');
+                }
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
 AlertDialog DeleteApplicationDialog(BuildContext context, List<Application> apps, int index, Function setState) {
   return AlertDialog(
     content: Column(

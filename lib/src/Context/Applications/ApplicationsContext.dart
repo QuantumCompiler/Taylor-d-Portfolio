@@ -181,6 +181,12 @@ class _AppsState extends State<Apps> {
     super.initState();
   }
 
+  void updateState(int index) {
+    setState(() {
+      widget.apps.removeAt(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -229,7 +235,8 @@ class _AppsState extends State<Apps> {
                                             showDialog(
                                               context: context,
                                               builder: (context) {
-                                                return DeleteApplicationDialog(context, widget.apps, index, setState);
+                                                // return DeleteApplicationDialog(context, widget.apps, index, updateState);
+                                                return DeleteAppDialog(context, widget.apps, index, updateState);
                                               },
                                             );
                                           },
