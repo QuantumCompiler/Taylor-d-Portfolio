@@ -465,6 +465,12 @@ class _ProfileState extends State<Profiles> {
     super.initState();
   }
 
+  void updateState(int index) {
+    setState(() {
+      widget.profiles.removeAt(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -528,7 +534,7 @@ class _ProfileState extends State<Profiles> {
                                         showDialog(
                                           context: context,
                                           builder: (context) {
-                                            return DeleteProfileDialog(context, widget.profiles, index, setState);
+                                            return DeleteProfileDialog(context, widget.profiles, index, updateState);
                                           },
                                         );
                                       },

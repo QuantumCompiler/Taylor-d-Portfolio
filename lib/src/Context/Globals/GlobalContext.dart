@@ -147,7 +147,7 @@ AlertDialog DeleteJobDialog(BuildContext context, List<Job> jobs, int index, Fun
   );
 }
 
-AlertDialog DeleteProfileDialog(BuildContext context, List<Profile> profiles, int index, Function setState) {
+AlertDialog DeleteProfileDialog(BuildContext context, List<Profile> profiles, int index, Function update) {
   return AlertDialog(
     content: Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -189,11 +189,7 @@ AlertDialog DeleteProfileDialog(BuildContext context, List<Profile> profiles, in
               onPressed: () async {
                 try {
                   await DeleteProfile(profiles[index].name);
-                  setState(
-                    () {
-                      profiles.removeAt(index);
-                    },
-                  );
+                  update(index);
                   Navigator.of(context).pop();
                 } catch (e) {
                   throw ('Error in deleting ${profiles[index].name}');
