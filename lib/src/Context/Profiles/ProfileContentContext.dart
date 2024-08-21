@@ -8,11 +8,13 @@ class ProfileContentEntry extends StatefulWidget {
   final Profile profile;
   final ProfileContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const ProfileContentEntry({
     super.key,
     required this.profile,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -24,15 +26,15 @@ class ProfileContentEntryState extends State<ProfileContentEntry> {
   Widget build(BuildContext context) {
     switch (widget.type) {
       case ProfileContentType.coverLetter:
-        return CoverLetterProfilePitchEntry(profile: widget.profile, key: widget.keyList[0]);
+        return CoverLetterProfilePitchEntry(profile: widget.profile, key: widget.keyList[0], viewing: widget.viewing);
       case ProfileContentType.education:
-        return EducationProfileEntry(profile: widget.profile, key: widget.keyList[1]);
+        return EducationProfileEntry(profile: widget.profile, key: widget.keyList[1], viewing: widget.viewing);
       case ProfileContentType.experience:
-        return ExperienceProfileEntry(profile: widget.profile, key: widget.keyList[2]);
+        return ExperienceProfileEntry(profile: widget.profile, key: widget.keyList[2], viewing: widget.viewing);
       case ProfileContentType.projects:
-        return ProjectProfileEntry(profile: widget.profile, key: widget.keyList[3]);
+        return ProjectProfileEntry(profile: widget.profile, key: widget.keyList[3], viewing: widget.viewing);
       case ProfileContentType.skills:
-        return SkillsProjectEntry(profile: widget.profile, key: widget.keyList[4]);
+        return SkillsProjectEntry(profile: widget.profile, key: widget.keyList[4], viewing: widget.viewing);
     }
   }
 }

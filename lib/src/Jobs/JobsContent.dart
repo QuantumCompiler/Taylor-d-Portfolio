@@ -23,12 +23,7 @@ class JobContentPage extends StatelessWidget {
     return Scaffold(
       appBar: JobContentAppBar(context, type, job.name),
       body: JobContentEntry(job: job, type: type, keyList: keyList, viewing: viewing),
-      bottomNavigationBar: !viewing
-          ? JobContentBottomAppBar(context, type, job, keyList)
-          : Container(
-              width: 0,
-              height: 0,
-            ),
+      bottomNavigationBar: !viewing ? JobContentBottomAppBar(context, type, job, keyList) : Container(width: 0, height: 0),
     );
   }
 }

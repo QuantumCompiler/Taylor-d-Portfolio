@@ -581,10 +581,12 @@ class ProfileCLCont {
 */
 class CoverLetterProfilePitchEntry extends StatefulWidget {
   final Profile profile;
+  final bool viewing;
 
   const CoverLetterProfilePitchEntry({
     super.key,
     required this.profile,
+    required this.viewing,
   });
 
   @override
@@ -697,6 +699,7 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
                 keyboardType: TextInputType.multiline,
                 minLines: 1,
                 maxLines: 100,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(hintText: 'Enter details about you here...'),
                 onChanged: (value) async {
                   await SetContent<ProfileCLCont>(entries, widget.profile.coverLetterContList);
@@ -706,22 +709,24 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
           ),
         ),
         SizedBox(height: standardSizedBoxHeight),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Tooltip for clear Entry
-            Tooltip(
-              message: 'Clear Cover Letter About',
-              child: IconButton(
-                icon: Icon(Icons.clear),
-                onPressed: () async {
-                  clearEntry(index);
-                },
-              ),
-            ),
-          ],
-        ),
+        !widget.viewing
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Tooltip for clear Entry
+                  Tooltip(
+                    message: 'Clear Cover Letter About',
+                    child: IconButton(
+                      icon: Icon(Icons.clear),
+                      onPressed: () async {
+                        clearEntry(index);
+                      },
+                    ),
+                  ),
+                ],
+              )
+            : Container(width: 0, height: 0),
       ],
     );
   }
@@ -818,10 +823,12 @@ class ProfileEduCont {
 */
 class EducationProfileEntry extends StatefulWidget {
   final Profile profile;
+  final bool viewing;
 
   const EducationProfileEntry({
     super.key,
     required this.profile,
+    required this.viewing,
   });
 
   @override
@@ -979,6 +986,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                       controller: entry.name,
                       keyboardType: TextInputType.multiline,
                       maxLines: 1,
+                      readOnly: widget.viewing,
                       decoration: InputDecoration(hintText: 'Enter name here...'),
                       onChanged: (value) async {
                         setState(() {});
@@ -993,10 +1001,12 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                     child: Checkbox(
                       value: entry.graduated,
                       onChanged: (bool? value) async {
-                        setState(() {
-                          entry.graduated = value ?? false;
-                        });
-                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        if (!widget.viewing) {
+                          setState(() {
+                            entry.graduated = value ?? false;
+                          });
+                          await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        }
                       },
                     ),
                   ),
@@ -1007,10 +1017,12 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                     child: Checkbox(
                       value: entry.include,
                       onChanged: (bool? value) async {
-                        setState(() {
-                          entry.include = value ?? false;
-                        });
-                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        if (!widget.viewing) {
+                          setState(() {
+                            entry.include = value ?? false;
+                          });
+                          await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        }
                       },
                     ),
                   ),
@@ -1021,8 +1033,10 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        entry.start = await SelectDate(context);
-                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        if (!widget.viewing) {
+                          entry.start = await SelectDate(context);
+                          await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        }
                       },
                     ),
                   ),
@@ -1033,8 +1047,10 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        entry.end = await SelectDate(context);
-                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        if (!widget.viewing) {
+                          entry.end = await SelectDate(context);
+                          await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        }
                       },
                     ),
                   ),
@@ -1046,6 +1062,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                 controller: entry.degree,
                 keyboardType: TextInputType.multiline,
                 maxLines: 1,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter degree(s) information for ${entry.name.text} here..." : "Enter degree(s) information for Institution ${index + 1} here...",
                 ),
@@ -1060,6 +1077,7 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                 keyboardType: TextInputType.multiline,
                 minLines: 10,
                 maxLines: 100,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Institution ${index + 1} here...",
                 ),
@@ -1068,43 +1086,45 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Tooltip for Add Entry
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Institution ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.add),
-                      onPressed: () async {
-                        addEntry(index);
-                      },
-                    ),
-                  ),
-                  // Tooltip for Clear Entry
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Institution ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () async {
-                        clearEntry(index);
-                      },
-                    ),
-                  ),
-                  if (entries.length > 1)
-                    // Tooltip for Delete Entry
-                    Tooltip(
-                      message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Institution ${index + 1}",
-                      child: IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () async {
-                          deleteEntry(index);
-                        },
-                      ),
-                    ),
-                ],
-              ),
+              !widget.viewing
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Tooltip for Add Entry
+                        Tooltip(
+                          message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Institution ${index + 1}",
+                          child: IconButton(
+                            icon: Icon(Icons.add),
+                            onPressed: () async {
+                              addEntry(index);
+                            },
+                          ),
+                        ),
+                        // Tooltip for Clear Entry
+                        Tooltip(
+                          message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Institution ${index + 1}",
+                          child: IconButton(
+                            icon: Icon(Icons.clear),
+                            onPressed: () async {
+                              clearEntry(index);
+                            },
+                          ),
+                        ),
+                        if (entries.length > 1)
+                          // Tooltip for Delete Entry
+                          Tooltip(
+                            message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Institution ${index + 1}",
+                            child: IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () async {
+                                deleteEntry(index);
+                              },
+                            ),
+                          ),
+                      ],
+                    )
+                  : Container(width: 0, height: 0),
             ],
           ),
         ),
@@ -1204,10 +1224,12 @@ class ProfileExpCont {
 */
 class ExperienceProfileEntry extends StatefulWidget {
   final Profile profile;
+  final bool viewing;
 
   const ExperienceProfileEntry({
     super.key,
     required this.profile,
+    required this.viewing,
   });
 
   @override
@@ -1365,6 +1387,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                       controller: entry.name,
                       keyboardType: TextInputType.multiline,
                       maxLines: 1,
+                      readOnly: widget.viewing,
                       decoration: InputDecoration(hintText: 'Enter company name here...'),
                       onChanged: (value) async {
                         setState(() {});
@@ -1379,10 +1402,12 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                     child: Checkbox(
                       value: entry.working,
                       onChanged: (bool? value) async {
-                        setState(() {
-                          entry.working = value ?? false;
-                        });
-                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        if (!widget.viewing) {
+                          setState(() {
+                            entry.working = value ?? false;
+                          });
+                          await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        }
                       },
                     ),
                   ),
@@ -1393,10 +1418,12 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                     child: Checkbox(
                       value: entry.include,
                       onChanged: (bool? value) async {
-                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
-                        setState(() {
-                          entry.include = value ?? false;
-                        });
+                        if (!widget.viewing) {
+                          await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                          setState(() {
+                            entry.include = value ?? false;
+                          });
+                        }
                       },
                     ),
                   ),
@@ -1407,8 +1434,10 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        entry.start = await SelectDate(context);
-                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        if (!widget.viewing) {
+                          entry.start = await SelectDate(context);
+                          await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        }
                       },
                     ),
                   ),
@@ -1419,8 +1448,10 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        entry.end = await SelectDate(context);
-                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        if (!widget.viewing) {
+                          entry.end = await SelectDate(context);
+                          await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        }
                       },
                     ),
                   ),
@@ -1432,6 +1463,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                 controller: entry.position,
                 keyboardType: TextInputType.multiline,
                 maxLines: 1,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter position info for ${entry.name.text} here..." : "Enter position info for Work Experience ${index + 1} here...",
                 ),
@@ -1446,6 +1478,7 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                 keyboardType: TextInputType.multiline,
                 minLines: 10,
                 maxLines: 100,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Work Experience ${index + 1} here...",
                 ),
@@ -1454,43 +1487,45 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Tooltip for Add Entry
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Work Experience ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.add),
-                      onPressed: () async {
-                        addEntry(index);
-                      },
-                    ),
-                  ),
-                  // Tooltip for Clear Entry
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Work Experience ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () async {
-                        clearEntry(index);
-                      },
-                    ),
-                  ),
-                  if (entries.length > 1)
-                    // Tooltip for Delete Entry
-                    Tooltip(
-                      message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Work Experience ${index + 1}",
-                      child: IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () async {
-                          deleteEntry(index);
-                        },
-                      ),
-                    ),
-                ],
-              ),
+              !widget.viewing
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Tooltip for Add Entry
+                        Tooltip(
+                          message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Work Experience ${index + 1}",
+                          child: IconButton(
+                            icon: Icon(Icons.add),
+                            onPressed: () async {
+                              addEntry(index);
+                            },
+                          ),
+                        ),
+                        // Tooltip for Clear Entry
+                        Tooltip(
+                          message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Work Experience ${index + 1}",
+                          child: IconButton(
+                            icon: Icon(Icons.clear),
+                            onPressed: () async {
+                              clearEntry(index);
+                            },
+                          ),
+                        ),
+                        if (entries.length > 1)
+                          // Tooltip for Delete Entry
+                          Tooltip(
+                            message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Work Experience ${index + 1}",
+                            child: IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () async {
+                                deleteEntry(index);
+                              },
+                            ),
+                          ),
+                      ],
+                    )
+                  : Container(width: 0, height: 0),
             ],
           ),
         ),
@@ -1590,10 +1625,12 @@ class ProfileProjCont {
 */
 class ProjectProfileEntry extends StatefulWidget {
   final Profile profile;
+  final bool viewing;
 
   const ProjectProfileEntry({
     super.key,
     required this.profile,
+    required this.viewing,
   });
 
   @override
@@ -1751,6 +1788,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                       controller: entry.name,
                       keyboardType: TextInputType.multiline,
                       maxLines: 1,
+                      readOnly: widget.viewing,
                       decoration: InputDecoration(hintText: 'Enter project name here...'),
                       onChanged: (value) async {
                         setState(() {});
@@ -1765,10 +1803,12 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                     child: Checkbox(
                       value: entry.completed,
                       onChanged: (bool? value) async {
-                        setState(() {
-                          entry.completed = value ?? false;
-                        });
-                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        if (!widget.viewing) {
+                          setState(() {
+                            entry.completed = value ?? false;
+                          });
+                          await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        }
                       },
                     ),
                   ),
@@ -1779,10 +1819,12 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                     child: Checkbox(
                       value: entry.include,
                       onChanged: (bool? value) async {
-                        setState(() {
-                          entry.include = value ?? false;
-                        });
-                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        if (!widget.viewing) {
+                          setState(() {
+                            entry.include = value ?? false;
+                          });
+                          await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        }
                       },
                     ),
                   ),
@@ -1793,8 +1835,10 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        entry.start = await SelectDate(context);
-                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        if (!widget.viewing) {
+                          entry.start = await SelectDate(context);
+                          await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        }
                       },
                     ),
                   ),
@@ -1805,8 +1849,10 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                     child: IconButton(
                       icon: Icon(Icons.date_range),
                       onPressed: () async {
-                        entry.end = await SelectDate(context);
-                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        if (!widget.viewing) {
+                          entry.end = await SelectDate(context);
+                          await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        }
                       },
                     ),
                   ),
@@ -1818,6 +1864,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                 controller: entry.role,
                 keyboardType: TextInputType.multiline,
                 maxLines: 1,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter role info for ${entry.name.text} here..." : "Enter role info for Project ${index + 1} here...",
                 ),
@@ -1832,6 +1879,7 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                 keyboardType: TextInputType.multiline,
                 minLines: 10,
                 maxLines: 100,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Project ${index + 1} here...",
                 ),
@@ -1840,43 +1888,45 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Tooltip for Add Entry
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Project ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.add),
-                      onPressed: () async {
-                        addEntry(index);
-                      },
-                    ),
-                  ),
-                  // Tooltip for Clear Entry
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Project ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () async {
-                        clearEntry(index);
-                      },
-                    ),
-                  ),
-                  if (entries.length > 1)
-                    // Tooltip for Delete Entry
-                    Tooltip(
-                      message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Project ${index + 1}",
-                      child: IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () async {
-                          deleteEntry(index);
-                        },
-                      ),
-                    ),
-                ],
-              ),
+              !widget.viewing
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Tooltip for Add Entry
+                        Tooltip(
+                          message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Project ${index + 1}",
+                          child: IconButton(
+                            icon: Icon(Icons.add),
+                            onPressed: () async {
+                              addEntry(index);
+                            },
+                          ),
+                        ),
+                        // Tooltip for Clear Entry
+                        Tooltip(
+                          message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Project ${index + 1}",
+                          child: IconButton(
+                            icon: Icon(Icons.clear),
+                            onPressed: () async {
+                              clearEntry(index);
+                            },
+                          ),
+                        ),
+                        if (entries.length > 1)
+                          // Tooltip for Delete Entry
+                          Tooltip(
+                            message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Project ${index + 1}",
+                            child: IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () async {
+                                deleteEntry(index);
+                              },
+                            ),
+                          ),
+                      ],
+                    )
+                  : Container(width: 0, height: 0),
             ],
           ),
         ),
@@ -1956,10 +2006,12 @@ class ProfileSkillsCont {
 */
 class SkillsProjectEntry extends StatefulWidget {
   final Profile profile;
+  final bool viewing;
 
   const SkillsProjectEntry({
     super.key,
     required this.profile,
+    required this.viewing,
   });
 
   @override
@@ -2113,6 +2165,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                       controller: entry.name,
                       keyboardType: TextInputType.multiline,
                       maxLines: 1,
+                      readOnly: widget.viewing,
                       decoration: InputDecoration(hintText: 'Enter skill name here...'),
                       onChanged: (value) async {
                         setState(() {});
@@ -2127,10 +2180,12 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                     child: Checkbox(
                       value: entry.include,
                       onChanged: (bool? value) async {
-                        setState(() {
-                          entry.include = value ?? false;
-                        });
-                        await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+                        if (!widget.viewing) {
+                          setState(() {
+                            entry.include = value ?? false;
+                          });
+                          await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+                        }
                       },
                     ),
                   ),
@@ -2143,6 +2198,7 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                 keyboardType: TextInputType.multiline,
                 minLines: 10,
                 maxLines: 100,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter skills info for ${entry.name.text} here..." : "Enter skills info for Skill Category ${index + 1} here...",
                 ),
@@ -2151,43 +2207,45 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
                 },
               ),
               SizedBox(height: standardSizedBoxHeight),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Tooltip for Add Entry
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Skill Category ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.add),
-                      onPressed: () {
-                        addEntry(index);
-                      },
-                    ),
-                  ),
-                  // Tooltip for Clear Entry
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Skill Category ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () {
-                        clearEntry(index);
-                      },
-                    ),
-                  ),
-                  if (entries.length > 1)
-                    // Tooltip for Delete Entry
-                    Tooltip(
-                      message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Skill Category ${index + 1}",
-                      child: IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () {
-                          deleteEntry(index);
-                        },
-                      ),
-                    ),
-                ],
-              ),
+              !widget.viewing
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Tooltip for Add Entry
+                        Tooltip(
+                          message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Skill Category ${index + 1}",
+                          child: IconButton(
+                            icon: Icon(Icons.add),
+                            onPressed: () {
+                              addEntry(index);
+                            },
+                          ),
+                        ),
+                        // Tooltip for Clear Entry
+                        Tooltip(
+                          message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Skill Category ${index + 1}",
+                          child: IconButton(
+                            icon: Icon(Icons.clear),
+                            onPressed: () {
+                              clearEntry(index);
+                            },
+                          ),
+                        ),
+                        if (entries.length > 1)
+                          // Tooltip for Delete Entry
+                          Tooltip(
+                            message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Skill Category ${index + 1}",
+                            child: IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () {
+                                deleteEntry(index);
+                              },
+                            ),
+                          ),
+                      ],
+                    )
+                  : Container(width: 0, height: 0),
             ],
           ),
         ),

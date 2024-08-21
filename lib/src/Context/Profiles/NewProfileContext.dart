@@ -43,7 +43,7 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile profile, L
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 SizedBox(height: standardSizedBoxHeight),
-                ...ProfileOptionsContent(context, profile, keys),
+                ...ProfileOptionsContent(context, profile, keys, false),
               ],
             ),
           ),

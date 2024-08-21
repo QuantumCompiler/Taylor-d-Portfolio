@@ -1,14 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:taylord_portfolio/src/Jobs/ViewJob.dart';
-import 'package:taylord_portfolio/src/Profiles/EditProfile.dart';
+import '../../Profiles/ViewProfile.dart';
+import '../../Jobs/ViewJob.dart';
 import '../../Applications/ViewApplication.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Applications/Applications.dart';
 import '../../Context/Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
-import '../../Jobs/EditJob.dart';
 import '../../Settings/Settings.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Globals/Globals.dart';
@@ -143,7 +142,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                             title: Text(widget.app.profileUsed.name),
                             onTap: () async {
                               Navigator.of(context)
-                                  .pushAndRemoveUntil(RightToLeftPageRoute(page: EditProfilePage(profileName: widget.app.profileUsed.name, backToProfile: false)), (Route<dynamic> route) => false);
+                                  .pushAndRemoveUntil(RightToLeftPageRoute(page: ViewProfilePage(app: widget.app, profileName: widget.app.profileUsed.name)), (Route<dynamic> route) => false);
                             },
                           ),
                         ),

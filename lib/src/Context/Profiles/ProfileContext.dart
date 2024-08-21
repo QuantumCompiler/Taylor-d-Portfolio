@@ -3,25 +3,25 @@ import '../../Globals/Globals.dart';
 import '../../Profiles/ProfileContent.dart';
 import '../../Utilities/ProfilesUtils.dart';
 
-List<Widget> ProfileOptionsContent(BuildContext context, Profile profile, List<GlobalKey> keys) {
+List<Widget> ProfileOptionsContent(BuildContext context, Profile profile, List<GlobalKey> keys, bool viewing) {
   List<Widget> ret = [];
-  CoverLetterCard coverLetter = CoverLetterCard(profile: profile, type: ProfileContentType.coverLetter, keyList: keys);
+  CoverLetterCard coverLetter = CoverLetterCard(profile: profile, type: ProfileContentType.coverLetter, keyList: keys, viewing: viewing);
   Row eduAndExp = Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      EducationCard(profile: profile, type: ProfileContentType.education, keyList: keys),
+      EducationCard(profile: profile, type: ProfileContentType.education, keyList: keys, viewing: viewing),
       Spacer(),
-      ExperienceCard(profile: profile, type: ProfileContentType.experience, keyList: keys),
+      ExperienceCard(profile: profile, type: ProfileContentType.experience, keyList: keys, viewing: viewing),
     ],
   );
   Row projAndSkills = Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      ProjectsCard(profile: profile, type: ProfileContentType.projects, keyList: keys),
+      ProjectsCard(profile: profile, type: ProfileContentType.projects, keyList: keys, viewing: viewing),
       Spacer(),
-      SkillsCard(profile: profile, type: ProfileContentType.skills, keyList: keys),
+      SkillsCard(profile: profile, type: ProfileContentType.skills, keyList: keys, viewing: viewing),
     ],
   );
   ret.add(coverLetter);
@@ -34,11 +34,13 @@ class CoverLetterCard extends StatefulWidget {
   final Profile profile;
   final ProfileContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const CoverLetterCard({
     super.key,
     required this.profile,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -73,6 +75,7 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
                   title: 'Cover Letter Pitch',
                   type: ProfileContentType.coverLetter,
                   keyList: widget.keyList,
+                  viewing: widget.viewing,
                 ),
               ),
             );
@@ -89,7 +92,11 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.profile.newProfile ? 'New Cover Letter Pitch' : 'Edit Cover Letter Pitch',
+                        widget.profile.newProfile
+                            ? 'New Cover Letter Pitch'
+                            : widget.viewing
+                                ? 'View Cover Letter Pitch'
+                                : 'Edit Cover Letter Pitch',
                         style: TextStyle(
                           fontSize: constraints.maxWidth * 0.025,
                           fontWeight: FontWeight.bold,
@@ -106,7 +113,11 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.profile.newProfile ? 'Enter details for why you think you would be a good candidate.' : 'Edit your cover letter pitch for your profile.',
+                        widget.profile.newProfile
+                            ? 'Enter details for why you think you would be a good candidate.'
+                            : widget.viewing
+                                ? 'View details for why you said you would be a good candidate.'
+                                : 'Edit your cover letter pitch for your profile.',
                         style: TextStyle(fontSize: constraints.maxWidth * 0.015),
                       ),
                     ),
@@ -125,11 +136,13 @@ class EducationCard extends StatefulWidget {
   final Profile profile;
   final ProfileContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const EducationCard({
     super.key,
     required this.profile,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -157,7 +170,15 @@ class _EducationCardState extends State<EducationCard> {
         child: InkWell(
           onTap: () async {
             await Navigator.push(
-                context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: widget.profile, title: 'Education Entries', type: ProfileContentType.education, keyList: widget.keyList)));
+                context,
+                MaterialPageRoute(
+                    builder: (context) => ProfileContentPage(
+                          profile: widget.profile,
+                          title: 'Education Entries',
+                          type: ProfileContentType.education,
+                          keyList: widget.keyList,
+                          viewing: widget.viewing,
+                        )));
           },
           child: Container(
             width: MediaQuery.of(context).size.width * 0.35,
@@ -171,7 +192,11 @@ class _EducationCardState extends State<EducationCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.profile.newProfile ? 'New Education Entries' : 'Edit Education Entries',
+                        widget.profile.newProfile
+                            ? 'New Education Entries'
+                            : widget.viewing
+                                ? 'View Education Entries'
+                                : 'Edit Education Entries',
                         style: TextStyle(
                           fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
@@ -188,7 +213,11 @@ class _EducationCardState extends State<EducationCard> {
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.profile.newProfile ? 'Enter details pertaining to your education.' : 'Edit your education details for your profile.',
+                        widget.profile.newProfile
+                            ? 'Enter details pertaining to your education.'
+                            : widget.viewing
+                                ? 'View you education details for your profile.'
+                                : 'Edit your education details for your profile.',
                         style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
@@ -207,11 +236,13 @@ class ExperienceCard extends StatefulWidget {
   final Profile profile;
   final ProfileContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const ExperienceCard({
     super.key,
     required this.profile,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -238,8 +269,16 @@ class _ExperienceCardState extends State<ExperienceCard> {
         shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
         child: InkWell(
           onTap: () async {
-            await Navigator.push(context,
-                MaterialPageRoute(builder: (context) => ProfileContentPage(profile: widget.profile, title: 'Experience Entries', type: ProfileContentType.experience, keyList: widget.keyList)));
+            await Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => ProfileContentPage(
+                          profile: widget.profile,
+                          title: 'Experience Entries',
+                          type: ProfileContentType.experience,
+                          keyList: widget.keyList,
+                          viewing: widget.viewing,
+                        )));
           },
           child: Container(
             width: MediaQuery.of(context).size.width * 0.35,
@@ -253,7 +292,11 @@ class _ExperienceCardState extends State<ExperienceCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.profile.newProfile ? 'New Experience Entries' : 'Edit Experience Entries',
+                        widget.profile.newProfile
+                            ? 'New Experience Entries'
+                            : widget.viewing
+                                ? 'View Experience Entries'
+                                : 'Edit Experience Entries',
                         style: TextStyle(
                           fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
@@ -270,7 +313,11 @@ class _ExperienceCardState extends State<ExperienceCard> {
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.profile.newProfile ? 'Enter details pertaining to your experience.' : 'Edit your experience details for your profile.',
+                        widget.profile.newProfile
+                            ? 'Enter details pertaining to your experience.'
+                            : widget.viewing
+                                ? 'View your experience details for your profile.'
+                                : 'Edit your experience details for your profile.',
                         style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
@@ -289,11 +336,13 @@ class ProjectsCard extends StatefulWidget {
   final Profile profile;
   final ProfileContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const ProjectsCard({
     super.key,
     required this.profile,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -321,7 +370,15 @@ class _ProjectsCardState extends State<ProjectsCard> {
         child: InkWell(
           onTap: () async {
             await Navigator.push(
-                context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: widget.profile, title: 'Project Entries', type: ProfileContentType.projects, keyList: widget.keyList)));
+                context,
+                MaterialPageRoute(
+                    builder: (context) => ProfileContentPage(
+                          profile: widget.profile,
+                          title: 'Project Entries',
+                          type: ProfileContentType.projects,
+                          keyList: widget.keyList,
+                          viewing: widget.viewing,
+                        )));
           },
           child: Container(
             width: MediaQuery.of(context).size.width * 0.35,
@@ -335,7 +392,11 @@ class _ProjectsCardState extends State<ProjectsCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.profile.newProfile ? 'New Project Entries' : 'Edit Project Entries',
+                        widget.profile.newProfile
+                            ? 'New Project Entries'
+                            : widget.viewing
+                                ? 'View Project Entries'
+                                : 'Edit Project Entries',
                         style: TextStyle(
                           fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
@@ -352,7 +413,11 @@ class _ProjectsCardState extends State<ProjectsCard> {
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.profile.newProfile ? 'Enter the projects that you have worked on.' : 'Edit the projects for your profile.',
+                        widget.profile.newProfile
+                            ? 'Enter the projects that you have worked on.'
+                            : widget.viewing
+                                ? 'View the projects for your profile.'
+                                : 'Edit the projects for your profile.',
                         style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
@@ -371,11 +436,13 @@ class SkillsCard extends StatefulWidget {
   final Profile profile;
   final ProfileContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const SkillsCard({
     super.key,
     required this.profile,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -403,7 +470,15 @@ class _SkillsCardState extends State<SkillsCard> {
         child: InkWell(
           onTap: () async {
             await Navigator.push(
-                context, MaterialPageRoute(builder: (context) => ProfileContentPage(profile: widget.profile, title: 'Skill Entries', type: ProfileContentType.skills, keyList: widget.keyList)));
+                context,
+                MaterialPageRoute(
+                    builder: (context) => ProfileContentPage(
+                          profile: widget.profile,
+                          title: 'Skill Entries',
+                          type: ProfileContentType.skills,
+                          keyList: widget.keyList,
+                          viewing: widget.viewing,
+                        )));
           },
           child: Container(
             width: MediaQuery.of(context).size.width * 0.35,
@@ -417,7 +492,11 @@ class _SkillsCardState extends State<SkillsCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.profile.newProfile ? 'New Skills Entries' : 'Edit Skills Entries',
+                        widget.profile.newProfile
+                            ? 'New Skills Entries'
+                            : widget.viewing
+                                ? 'View Skill Entires'
+                                : 'Edit Skills Entries',
                         style: TextStyle(
                           fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
@@ -434,7 +513,11 @@ class _SkillsCardState extends State<SkillsCard> {
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.profile.newProfile ? 'Enter the skills that you posses.' : 'Edit the skills for your profile.',
+                        widget.profile.newProfile
+                            ? 'Enter the skills that you posses.'
+                            : widget.viewing
+                                ? 'View the skills for your profile.'
+                                : 'Edit the skills for your profile.',
                         style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
