@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:taylord_portfolio/src/Jobs/ViewJob.dart';
 import 'package:taylord_portfolio/src/Profiles/EditProfile.dart';
 import '../../Applications/ViewApplication.dart';
 import '../../Utilities/GlobalUtils.dart';
@@ -132,7 +133,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                           child: ListTile(
                             title: Text(widget.app.jobUsed.name),
                             onTap: () async {
-                              Navigator.of(context).pushAndRemoveUntil(RightToLeftPageRoute(page: EditJobPage(jobName: widget.app.jobUsed.name, backToJobs: false)), (Route<dynamic> route) => false);
+                              Navigator.of(context).pushAndRemoveUntil(RightToLeftPageRoute(page: ViewJobPage(app: widget.app, jobName: widget.app.jobUsed.name)), (Route<dynamic> route) => false);
                             },
                           ),
                         ),

@@ -91,7 +91,7 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
                       child: Text(
                         widget.profile.newProfile ? 'New Cover Letter Pitch' : 'Edit Cover Letter Pitch',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.02,
+                          fontSize: constraints.maxWidth * 0.025,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -100,14 +100,14 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
                     Center(
                       child: Icon(
                         Icons.draw_outlined,
-                        size: constraints.maxHeight * 0.30,
+                        size: constraints.maxHeight * 0.40,
                       ),
                     ),
                     Spacer(),
                     Center(
                       child: Text(
                         widget.profile.newProfile ? 'Enter details for why you think you would be a good candidate.' : 'Edit your cover letter pitch for your profile.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.012),
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.015),
                       ),
                     ),
                   ],
@@ -173,7 +173,7 @@ class _EducationCardState extends State<EducationCard> {
                       child: Text(
                         widget.profile.newProfile ? 'New Education Entries' : 'Edit Education Entries',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.04,
+                          fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -182,14 +182,14 @@ class _EducationCardState extends State<EducationCard> {
                     Center(
                       child: Icon(
                         Icons.school,
-                        size: constraints.maxHeight * 0.30,
+                        size: constraints.maxHeight * 0.40,
                       ),
                     ),
                     Spacer(),
                     Center(
                       child: Text(
                         widget.profile.newProfile ? 'Enter details pertaining to your education.' : 'Edit your education details for your profile.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.025),
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
                   ],
@@ -255,7 +255,7 @@ class _ExperienceCardState extends State<ExperienceCard> {
                       child: Text(
                         widget.profile.newProfile ? 'New Experience Entries' : 'Edit Experience Entries',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.04,
+                          fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -264,14 +264,14 @@ class _ExperienceCardState extends State<ExperienceCard> {
                     Center(
                       child: Icon(
                         Icons.work,
-                        size: constraints.maxHeight * 0.30,
+                        size: constraints.maxHeight * 0.40,
                       ),
                     ),
                     Spacer(),
                     Center(
                       child: Text(
                         widget.profile.newProfile ? 'Enter details pertaining to your experience.' : 'Edit your experience details for your profile.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.025),
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
                   ],
@@ -337,7 +337,7 @@ class _ProjectsCardState extends State<ProjectsCard> {
                       child: Text(
                         widget.profile.newProfile ? 'New Project Entries' : 'Edit Project Entries',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.04,
+                          fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -346,14 +346,14 @@ class _ProjectsCardState extends State<ProjectsCard> {
                     Center(
                       child: Icon(
                         Icons.assignment,
-                        size: constraints.maxHeight * 0.30,
+                        size: constraints.maxHeight * 0.40,
                       ),
                     ),
                     Spacer(),
                     Center(
                       child: Text(
                         widget.profile.newProfile ? 'Enter the projects that you have worked on.' : 'Edit the projects for your profile.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.025),
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
                   ],
@@ -419,7 +419,7 @@ class _SkillsCardState extends State<SkillsCard> {
                       child: Text(
                         widget.profile.newProfile ? 'New Skills Entries' : 'Edit Skills Entries',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.04,
+                          fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -428,14 +428,14 @@ class _SkillsCardState extends State<SkillsCard> {
                     Center(
                       child: Icon(
                         Icons.hardware,
-                        size: constraints.maxHeight * 0.30,
+                        size: constraints.maxHeight * 0.40,
                       ),
                     ),
                     Spacer(),
                     Center(
                       child: Text(
                         widget.profile.newProfile ? 'Enter the skills that you posses.' : 'Edit the skills for your profile.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.025),
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
                   ],

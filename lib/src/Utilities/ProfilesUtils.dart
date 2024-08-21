@@ -695,7 +695,8 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
               TextFormField(
                 controller: entry.about,
                 keyboardType: TextInputType.multiline,
-                maxLines: 15,
+                minLines: 1,
+                maxLines: 100,
                 decoration: InputDecoration(hintText: 'Enter details about you here...'),
                 onChanged: (value) async {
                   await SetContent<ProfileCLCont>(entries, widget.profile.coverLetterContList);
@@ -1057,7 +1058,8 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
-                maxLines: 10,
+                minLines: 10,
+                maxLines: 100,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Institution ${index + 1} here...",
                 ),
@@ -1442,7 +1444,8 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
-                maxLines: 10,
+                minLines: 10,
+                maxLines: 100,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Work Experience ${index + 1} here...",
                 ),
@@ -1827,7 +1830,8 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
-                maxLines: 10,
+                minLines: 10,
+                maxLines: 100,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Project ${index + 1} here...",
                 ),
@@ -2137,7 +2141,8 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
-                maxLines: 10,
+                minLines: 10,
+                maxLines: 100,
                 decoration: InputDecoration(
                   hintText: entry.name.text.isNotEmpty ? "Enter skills info for ${entry.name.text} here..." : "Enter skills info for Skill Category ${index + 1} here...",
                 ),

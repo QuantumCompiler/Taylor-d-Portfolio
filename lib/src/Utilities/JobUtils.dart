@@ -527,10 +527,12 @@ class JobDesCont {
 */
 class DescriptionJobEntry extends StatefulWidget {
   final Job job;
+  final bool viewing;
 
   const DescriptionJobEntry({
     super.key,
     required this.job,
+    required this.viewing,
   });
 
   @override
@@ -616,7 +618,7 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
         // Title
         Center(
           child: Text(
-            'Enter Job Description',
+            widget.viewing ? 'Job Description' : 'Enter Job Description',
             style: TextStyle(
               fontSize: secondaryTitles,
               fontWeight: FontWeight.bold,
@@ -634,7 +636,9 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
-                maxLines: 15,
+                minLines: 10,
+                maxLines: 100,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(hintText: 'Enter the job description here...'),
                 onChanged: (value) async {
                   await SetContent<JobDesCont>(entries, widget.job.descriptionContList);
@@ -644,22 +648,24 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
           ),
         ),
         SizedBox(height: standardSizedBoxHeight),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Clear Button
-            Tooltip(
-              message: 'Clear Description Entry',
-              child: IconButton(
-                icon: Icon(Icons.clear),
-                onPressed: () async {
-                  clearEntry(index);
-                },
-              ),
-            ),
-          ],
-        ),
+        !widget.viewing
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Clear Button
+                  Tooltip(
+                    message: 'Clear Description Entry',
+                    child: IconButton(
+                      icon: Icon(Icons.clear),
+                      onPressed: () async {
+                        clearEntry(index);
+                      },
+                    ),
+                  ),
+                ],
+              )
+            : Container(width: 0, height: 0),
       ],
     );
   }
@@ -725,10 +731,12 @@ class JobOtherCont {
 */
 class OtherInfoJobEntry extends StatefulWidget {
   final Job job;
+  final bool viewing;
 
   const OtherInfoJobEntry({
     super.key,
     required this.job,
+    required this.viewing,
   });
 
   @override
@@ -814,7 +822,7 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
         // Title
         Center(
           child: Text(
-            'Enter Other Information',
+            widget.viewing ? 'Other Information' : 'Enter Other Information',
             style: TextStyle(
               fontSize: secondaryTitles,
               fontWeight: FontWeight.bold,
@@ -832,7 +840,9 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
-                maxLines: 15,
+                minLines: 10,
+                maxLines: 100,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(hintText: 'Enter the other information here...'),
                 onChanged: (value) async {
                   await SetContent<JobOtherCont>(entries, widget.job.otherInfoContList);
@@ -842,22 +852,24 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
           ),
         ),
         SizedBox(height: standardSizedBoxHeight),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Clear Button
-            Tooltip(
-              message: 'Clear Other Info Entry',
-              child: IconButton(
-                icon: Icon(Icons.clear),
-                onPressed: () async {
-                  clearEntry(index);
-                },
-              ),
-            ),
-          ],
-        ),
+        !widget.viewing
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Clear Button
+                  Tooltip(
+                    message: 'Clear Other Info Entry',
+                    child: IconButton(
+                      icon: Icon(Icons.clear),
+                      onPressed: () async {
+                        clearEntry(index);
+                      },
+                    ),
+                  ),
+                ],
+              )
+            : Container(width: 0, height: 0),
       ],
     );
   }
@@ -923,10 +935,12 @@ class JobRoleCont {
 */
 class RoleJobEntry extends StatefulWidget {
   final Job job;
+  final bool viewing;
 
   const RoleJobEntry({
     super.key,
     required this.job,
+    required this.viewing,
   });
 
   @override
@@ -1012,7 +1026,7 @@ class RoleJobEntryState extends State<RoleJobEntry> {
         // Title
         Center(
           child: Text(
-            'Enter Role Information',
+            widget.viewing ? 'Role Information' : 'Enter Role Information',
             style: TextStyle(
               fontSize: secondaryTitles,
               fontWeight: FontWeight.bold,
@@ -1030,7 +1044,9 @@ class RoleJobEntryState extends State<RoleJobEntry> {
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
-                maxLines: 15,
+                minLines: 10,
+                maxLines: 100,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(hintText: 'Enter role information here...'),
                 onChanged: (value) async {
                   await SetContent<JobRoleCont>(entries, widget.job.roleContList);
@@ -1040,22 +1056,24 @@ class RoleJobEntryState extends State<RoleJobEntry> {
           ),
         ),
         SizedBox(height: standardSizedBoxHeight),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Clear Button
-            Tooltip(
-              message: 'Clear Role Info Entry',
-              child: IconButton(
-                icon: Icon(Icons.clear),
-                onPressed: () async {
-                  clearEntry(index);
-                },
-              ),
-            ),
-          ],
-        ),
+        !widget.viewing
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Clear Button
+                  Tooltip(
+                    message: 'Clear Role Info Entry',
+                    child: IconButton(
+                      icon: Icon(Icons.clear),
+                      onPressed: () async {
+                        clearEntry(index);
+                      },
+                    ),
+                  ),
+                ],
+              )
+            : Container(width: 0, height: 0),
       ],
     );
   }
@@ -1121,10 +1139,12 @@ class JobSkillsCont {
 */
 class SkillsJobEntry extends StatefulWidget {
   final Job job;
+  final bool viewing;
 
   const SkillsJobEntry({
     super.key,
     required this.job,
+    required this.viewing,
   });
 
   @override
@@ -1210,7 +1230,7 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
         // Title
         Center(
           child: Text(
-            'Enter Skill Requirements',
+            widget.viewing ? 'Skill Requirements' : 'Enter Skill Requirements',
             style: TextStyle(
               fontSize: secondaryTitles,
               fontWeight: FontWeight.bold,
@@ -1228,7 +1248,9 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
               TextFormField(
                 controller: entry.description,
                 keyboardType: TextInputType.multiline,
-                maxLines: 15,
+                minLines: 10,
+                maxLines: 100,
+                readOnly: widget.viewing,
                 decoration: InputDecoration(hintText: 'Enter skill requirements here...'),
                 onChanged: (value) async {
                   await SetContent<JobSkillsCont>(entries, widget.job.skillsContList);
@@ -1238,22 +1260,24 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
           ),
         ),
         SizedBox(height: standardSizedBoxHeight),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Clear Button
-            Tooltip(
-              message: 'Clear Skill Requirements Entry',
-              child: IconButton(
-                icon: Icon(Icons.clear),
-                onPressed: () async {
-                  clearEntry(index);
-                },
-              ),
-            ),
-          ],
-        ),
+        !widget.viewing
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Clear Button
+                  Tooltip(
+                    message: 'Clear Skill Requirements Entry',
+                    child: IconButton(
+                      icon: Icon(Icons.clear),
+                      onPressed: () async {
+                        clearEntry(index);
+                      },
+                    ),
+                  ),
+                ],
+              )
+            : Container(width: 0, height: 0),
       ],
     );
   }

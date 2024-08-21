@@ -3,24 +3,24 @@ import '../../Globals/Globals.dart';
 import '../../Jobs/JobsContent.dart';
 import '../../Utilities/JobUtils.dart';
 
-List<Widget> JobOptionsContent(BuildContext context, Job job, List<GlobalKey> keys) {
+List<Widget> JobOptionsContent(BuildContext context, Job job, List<GlobalKey> keys, bool viewing) {
   List<Widget> ret = [];
   Row desAndOtherRow = Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     mainAxisAlignment: MainAxisAlignment.start,
     children: [
-      DescriptionCard(job: job, type: JobContentType.description, keyList: keys),
+      DescriptionCard(job: job, type: JobContentType.description, keyList: keys, viewing: viewing),
       Spacer(),
-      OtherInfoCard(job: job, type: JobContentType.other, keyList: keys),
+      OtherInfoCard(job: job, type: JobContentType.other, keyList: keys, viewing: viewing),
     ],
   );
   Row roleAndSkillsRow = Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     mainAxisAlignment: MainAxisAlignment.start,
     children: [
-      RoleCard(job: job, type: JobContentType.description, keyList: keys),
+      RoleCard(job: job, type: JobContentType.description, keyList: keys, viewing: viewing),
       Spacer(),
-      SkillsCard(job: job, type: JobContentType.other, keyList: keys),
+      SkillsCard(job: job, type: JobContentType.other, keyList: keys, viewing: viewing),
     ],
   );
   ret.add(desAndOtherRow);
@@ -32,11 +32,13 @@ class DescriptionCard extends StatefulWidget {
   final Job job;
   final JobContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const DescriptionCard({
     super.key,
     required this.job,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -64,7 +66,15 @@ class _DescriptionCardState extends State<DescriptionCard> {
         child: InkWell(
           onTap: () async {
             await Navigator.push(
-                context, MaterialPageRoute(builder: (context) => JobContentPage(job: widget.job, title: 'Job Description Entry', type: JobContentType.description, keyList: widget.keyList)));
+                context,
+                MaterialPageRoute(
+                    builder: (context) => JobContentPage(
+                          job: widget.job,
+                          title: 'Job Description Entry',
+                          type: JobContentType.description,
+                          keyList: widget.keyList,
+                          viewing: widget.viewing,
+                        )));
           },
           child: Container(
             width: MediaQuery.of(context).size.width * 0.35,
@@ -78,9 +88,13 @@ class _DescriptionCardState extends State<DescriptionCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'New Job Description' : 'Edit Job Description',
+                        widget.job.newJob
+                            ? 'New Job Description'
+                            : widget.viewing
+                                ? 'View Job Description'
+                                : 'Edit Job Description',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -89,14 +103,18 @@ class _DescriptionCardState extends State<DescriptionCard> {
                     Center(
                       child: Icon(
                         Icons.info,
-                        size: constraints.maxHeight * 0.30,
+                        size: constraints.maxHeight * 0.40,
                       ),
                     ),
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'Enter description details for the job' : 'Edit your description details for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.035),
+                        widget.job.newJob
+                            ? 'Enter description details for the job'
+                            : widget.viewing
+                                ? 'View description details for the job'
+                                : 'Edit your description details for the job',
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
                   ],
@@ -114,11 +132,13 @@ class OtherInfoCard extends StatefulWidget {
   final Job job;
   final JobContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const OtherInfoCard({
     super.key,
     required this.job,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -146,7 +166,15 @@ class _OtherInfoCardState extends State<OtherInfoCard> {
         child: InkWell(
           onTap: () async {
             await Navigator.push(
-                context, MaterialPageRoute(builder: (context) => JobContentPage(job: widget.job, title: 'Other Information Entry', type: JobContentType.other, keyList: widget.keyList)));
+                context,
+                MaterialPageRoute(
+                    builder: (context) => JobContentPage(
+                          job: widget.job,
+                          title: 'Other Information Entry',
+                          type: JobContentType.other,
+                          keyList: widget.keyList,
+                          viewing: widget.viewing,
+                        )));
           },
           child: Container(
             width: MediaQuery.of(context).size.width * 0.35,
@@ -160,9 +188,13 @@ class _OtherInfoCardState extends State<OtherInfoCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'New Other Info' : 'Edit Other Info',
+                        widget.job.newJob
+                            ? 'New Other Info'
+                            : widget.viewing
+                                ? 'View Other Info'
+                                : 'Edit Other Info',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -171,14 +203,18 @@ class _OtherInfoCardState extends State<OtherInfoCard> {
                     Center(
                       child: Icon(
                         Icons.question_mark,
-                        size: constraints.maxHeight * 0.30,
+                        size: constraints.maxHeight * 0.40,
                       ),
                     ),
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'Enter other information for the job' : 'Edit other information for the job.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.035),
+                        widget.job.newJob
+                            ? 'Enter other information for the job'
+                            : widget.viewing
+                                ? 'View other information for the job'
+                                : 'Edit other information for the job',
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
                   ],
@@ -196,11 +232,13 @@ class RoleCard extends StatefulWidget {
   final Job job;
   final JobContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const RoleCard({
     super.key,
     required this.job,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -228,7 +266,15 @@ class _RoleCardState extends State<RoleCard> {
         child: InkWell(
           onTap: () async {
             await Navigator.push(
-                context, MaterialPageRoute(builder: (context) => JobContentPage(job: widget.job, title: 'Role Description Entry', type: JobContentType.role, keyList: widget.keyList)));
+                context,
+                MaterialPageRoute(
+                    builder: (context) => JobContentPage(
+                          job: widget.job,
+                          title: 'Role Description Entry',
+                          type: JobContentType.role,
+                          keyList: widget.keyList,
+                          viewing: widget.viewing,
+                        )));
           },
           child: Container(
             width: MediaQuery.of(context).size.width * 0.35,
@@ -242,9 +288,13 @@ class _RoleCardState extends State<RoleCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'New Role Description' : 'Edit Role Description',
+                        widget.job.newJob
+                            ? 'New Role Description'
+                            : widget.viewing
+                                ? 'View Role Description'
+                                : 'Edit Role Description',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -253,14 +303,18 @@ class _RoleCardState extends State<RoleCard> {
                     Center(
                       child: Icon(
                         Icons.assignment_ind,
-                        size: constraints.maxHeight * 0.30,
+                        size: constraints.maxHeight * 0.40,
                       ),
                     ),
                     Spacer(),
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'Enter the role description for the job' : 'Edit the role description for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.035),
+                        widget.job.newJob
+                            ? 'Enter the role description for the job'
+                            : widget.viewing
+                                ? 'View the role description for the job'
+                                : 'Edit the role description for the job',
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
                   ],
@@ -278,11 +332,13 @@ class SkillsCard extends StatefulWidget {
   final Job job;
   final JobContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const SkillsCard({
     super.key,
     required this.job,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -310,7 +366,15 @@ class _SkillsCardState extends State<SkillsCard> {
         child: InkWell(
           onTap: () async {
             await Navigator.push(
-                context, MaterialPageRoute(builder: (context) => JobContentPage(job: widget.job, title: 'Skill Requirements Entry', type: JobContentType.skills, keyList: widget.keyList)));
+                context,
+                MaterialPageRoute(
+                    builder: (context) => JobContentPage(
+                          job: widget.job,
+                          title: 'Skill Requirements Entry',
+                          type: JobContentType.skills,
+                          keyList: widget.keyList,
+                          viewing: widget.viewing,
+                        )));
           },
           child: Container(
             width: MediaQuery.of(context).size.width * 0.35,
@@ -324,9 +388,13 @@ class _SkillsCardState extends State<SkillsCard> {
                   children: [
                     Center(
                       child: Text(
-                        widget.job.newJob ? 'New Skill Requirements' : 'Edit Skill Requirements',
+                        widget.job.newJob
+                            ? 'New Skill Requirements'
+                            : widget.viewing
+                                ? 'View Skill Requirements'
+                                : 'Edit Skill Requirements',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: constraints.maxWidth * 0.05,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -335,14 +403,14 @@ class _SkillsCardState extends State<SkillsCard> {
                     Center(
                       child: Icon(
                         Icons.hardware,
-                        size: constraints.maxHeight * 0.30,
+                        size: constraints.maxHeight * 0.40,
                       ),
                     ),
                     Spacer(),
                     Center(
                       child: Text(
                         widget.job.newJob ? 'Enter the skill requirements for the job' : 'Edit the skill requirements for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.035),
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
                       ),
                     ),
                   ],

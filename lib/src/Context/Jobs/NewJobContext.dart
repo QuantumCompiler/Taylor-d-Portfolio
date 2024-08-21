@@ -40,7 +40,7 @@ SingleChildScrollView NewJobContent(BuildContext context, Job job, List<GlobalKe
             child: Column(
               children: [
                 SizedBox(height: standardSizedBoxHeight),
-                ...JobOptionsContent(context, job, keys),
+                ...JobOptionsContent(context, job, keys, false),
               ],
             ),
           ),

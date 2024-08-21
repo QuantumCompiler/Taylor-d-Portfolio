@@ -8,11 +8,13 @@ class JobContentEntry extends StatefulWidget {
   final Job job;
   final JobContentType type;
   final List<GlobalKey> keyList;
+  final bool viewing;
   const JobContentEntry({
     super.key,
     required this.job,
     required this.type,
     required this.keyList,
+    required this.viewing,
   });
 
   @override
@@ -24,13 +26,13 @@ class JobContentEntryState extends State<JobContentEntry> {
   Widget build(BuildContext context) {
     switch (widget.type) {
       case JobContentType.description:
-        return DescriptionJobEntry(job: widget.job, key: widget.keyList[0]);
+        return DescriptionJobEntry(job: widget.job, key: widget.keyList[0], viewing: widget.viewing);
       case JobContentType.other:
-        return OtherInfoJobEntry(job: widget.job, key: widget.keyList[1]);
+        return OtherInfoJobEntry(job: widget.job, key: widget.keyList[1], viewing: widget.viewing);
       case JobContentType.role:
-        return RoleJobEntry(job: widget.job, key: widget.keyList[2]);
+        return RoleJobEntry(job: widget.job, key: widget.keyList[2], viewing: widget.viewing);
       case JobContentType.skills:
-        return SkillsJobEntry(job: widget.job, key: widget.keyList[3]);
+        return SkillsJobEntry(job: widget.job, key: widget.keyList[3], viewing: widget.viewing);
     }
   }
 }

@@ -72,29 +72,29 @@ SingleChildScrollView NewApplicationRecsContent(BuildContext context, Applicatio
             textAlign: TextAlign.center,
           ),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Cover Letter About Applicant', content: app.recommendations[0], cardController: app.aboutMeCont, height: 0.5, width: 0.8, cardLines: 7),
+          RecCard(app: app, title: 'Cover Letter About Applicant', content: app.recommendations[0]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Cover Letter Recommendation For Job', content: app.recommendations[1], cardController: app.whyJobCont, height: 0.5, width: 0.8, cardLines: 7),
+          RecCard(app: app, title: 'Cover Letter Recommendation For Job', content: app.recommendations[1]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Cover Letter Recommendation For Applicant', content: app.recommendations[2], cardController: app.whyMeCont, height: 0.5, width: 0.8, cardLines: 7),
+          RecCard(app: app, title: 'Cover Letter Recommendation For Applicant', content: app.recommendations[2]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Education Recommendations For Applicant', content: app.recommendations[3], cardController: app.eduRecCont, height: 0.4, width: 0.8, cardLines: 3),
+          RecCard(app: app, title: 'Education Recommendations For Applicant', content: app.recommendations[3]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Experience Recommendations For Applicant', content: app.recommendations[4], cardController: app.expRecCont, height: 0.4, width: 0.8, cardLines: 3),
+          RecCard(app: app, title: 'Experience Recommendations', content: app.recommendations[4]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Framework Recommendations For Applicant', content: app.recommendations[5], cardController: app.framRecCont, height: 0.4, width: 0.8, cardLines: 3),
+          RecCard(app: app, title: 'Framework Recommendations', content: app.recommendations[5]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Math Skills Recommendations For Applicant', content: app.recommendations[6], cardController: app.mathSkillsRecCont, height: 0.4, width: 0.8, cardLines: 3),
+          RecCard(app: app, title: 'Math Skill Recommendations', content: app.recommendations[6]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Personal Skills Recommendations For Applicant', content: app.recommendations[7], cardController: app.persSkillsRecCont, height: 0.4, width: 0.8, cardLines: 3),
+          RecCard(app: app, title: 'Personal Skill Recommendations', content: app.recommendations[7]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Programming Languages Recommendations For Applicant', content: app.recommendations[8], cardController: app.progLangRecCont, height: 0.4, width: 0.8, cardLines: 3),
+          RecCard(app: app, title: 'Programming Language Recommendations', content: app.recommendations[8]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Programming Skills Recommendations For Applicant', content: app.recommendations[9], cardController: app.progSkillsRecCont, height: 0.4, width: 0.8, cardLines: 3),
+          RecCard(app: app, title: 'Programming Skill Recommendations', content: app.recommendations[9]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Project Recommendations For Applicant', content: app.recommendations[10], cardController: app.projRecCont, height: 0.4, width: 0.8, cardLines: 3),
+          RecCard(app: app, title: 'Project Recommendations', content: app.recommendations[10]),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(title: 'Scientific Skills Recommendations For Applicant', content: app.recommendations[11], cardController: app.sciRecCont, height: 0.4, width: 0.8, cardLines: 3),
+          RecCard(app: app, title: 'Scientific Skill Recommendations', content: app.recommendations[11]),
         ],
       ),
     ),
@@ -110,7 +110,8 @@ BottomAppBar NewApplicationBottomAppBar(BuildContext context, Application app, F
         ElevatedButton(
           child: Text('Get Recommendations'),
           onPressed: () async {
-            Map<String, dynamic> recs = await GetOpenAIRecs(context, app, app.openAIModel);
+            // Map<String, dynamic> recs = await GetOpenAIRecs(context, app, app.openAIModel);
+            Map<String, dynamic> recs = testOpenAIResults;
             List<String> finRecs = await StringifyRecs(recs, app);
             app.SetRecs(recs, finRecs);
             updateState();
@@ -145,20 +146,14 @@ BottomAppBar NewApplicationCompileBottomAppBar(BuildContext context, Application
 }
 
 class RecCard extends StatefulWidget {
+  final Application app;
   final String title;
-  String content;
-  TextEditingController cardController;
-  final double height;
-  final double width;
-  final int cardLines;
-  RecCard({
+  final String content;
+  const RecCard({
     super.key,
+    required this.app,
     required this.title,
     required this.content,
-    required this.cardController,
-    required this.height,
-    required this.width,
-    required this.cardLines,
   });
 
   @override
@@ -167,6 +162,8 @@ class RecCard extends StatefulWidget {
 
 class _RecCardState extends State<RecCard> {
   bool _isHovered = false;
+  late TextEditingController cont;
+
   void _updateHover(bool isHovered) {
     setState(() {
       _isHovered = isHovered;
@@ -176,7 +173,7 @@ class _RecCardState extends State<RecCard> {
   @override
   void initState() {
     super.initState();
-    widget.cardController.text = widget.content;
+    cont = TextEditingController(text: widget.content);
   }
 
   @override
@@ -189,10 +186,9 @@ class _RecCardState extends State<RecCard> {
         elevation: _isHovered ? 80.0 : cardTheme.elevation,
         shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
         child: InkWell(
-          onTap: () {},
+          onTap: () async {},
           child: Container(
-            width: MediaQuery.of(context).size.width * widget.width,
-            height: MediaQuery.of(context).size.height * widget.height,
+            width: MediaQuery.of(context).size.width * 0.75,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -204,16 +200,43 @@ class _RecCardState extends State<RecCard> {
                       child: Text(
                         widget.title,
                         style: TextStyle(
-                          fontSize: secondaryTitles,
+                          fontSize: constraints.maxWidth * 0.03,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     SizedBox(height: standardSizedBoxHeight),
-                    TextField(
-                      controller: widget.cardController,
-                      maxLines: widget.cardLines,
-                    )
+                    TextFormField(
+                      controller: cont,
+                      minLines: 1,
+                      maxLines: 100,
+                    ),
+                    SizedBox(height: standardSizedBoxHeight),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Tooltip(
+                          message: 'Click To Clear Content',
+                          child: IconButton(
+                            icon: Icon(Icons.clear),
+                            onPressed: () {
+                              cont.clear();
+                            },
+                          ),
+                        ),
+                        SizedBox(width: standardSizedBoxWidth),
+                        Tooltip(
+                          message: 'Click To Reset Content',
+                          child: IconButton(
+                            icon: Icon(Icons.restore_outlined),
+                            onPressed: () {
+                              cont.text = widget.content;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 );
               },
@@ -224,3 +247,84 @@ class _RecCardState extends State<RecCard> {
     );
   }
 }
+
+// class RecCard extends StatefulWidget {
+//   final String title;
+//   String content;
+//   TextEditingController cardController;
+//   final double height;
+//   final double width;
+//   final int cardLines;
+//   RecCard({
+//     super.key,
+//     required this.title,
+//     required this.content,
+//     required this.cardController,
+//     required this.height,
+//     required this.width,
+//     required this.cardLines,
+//   });
+
+//   @override
+//   _RecCardState createState() => _RecCardState();
+// }
+
+// class _RecCardState extends State<RecCard> {
+//   bool _isHovered = false;
+//   void _updateHover(bool isHovered) {
+//     setState(() {
+//       _isHovered = isHovered;
+//     });
+//   }
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     widget.cardController.text = widget.content;
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final cardTheme = Theme.of(context).cardTheme;
+//     return MouseRegion(
+//       onEnter: (event) => _updateHover(true),
+//       onExit: (event) => _updateHover(false),
+//       child: Card(
+//         elevation: _isHovered ? 80.0 : cardTheme.elevation,
+//         shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+//         child: InkWell(
+//           onTap: () {},
+//           child: Container(
+//             width: MediaQuery.of(context).size.width * widget.width,
+//             height: MediaQuery.of(context).size.height * widget.height,
+//             margin: EdgeInsets.all(15.0),
+//             child: LayoutBuilder(
+//               builder: (context, constraints) {
+//                 return Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   mainAxisAlignment: MainAxisAlignment.start,
+//                   children: [
+//                     Center(
+//                       child: Text(
+//                         widget.title,
+//                         style: TextStyle(
+//                           fontSize: secondaryTitles,
+//                           fontWeight: FontWeight.bold,
+//                         ),
+//                       ),
+//                     ),
+//                     SizedBox(height: standardSizedBoxHeight),
+//                     TextField(
+//                       controller: widget.cardController,
+//                       maxLines: widget.cardLines,
+//                     )
+//                   ],
+//                 );
+//               },
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
