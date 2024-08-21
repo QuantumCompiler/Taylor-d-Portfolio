@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:taylord_portfolio/src/Profiles/EditProfile.dart';
 import '../../Applications/ViewApplication.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Applications/Applications.dart';
 import '../../Context/Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
+import '../../Jobs/EditJob.dart';
 import '../../Settings/Settings.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Globals/Globals.dart';
@@ -34,7 +36,7 @@ AppBar ViewApplicationAppBar(BuildContext context, Application app) {
 class ViewApplicationContent extends StatefulWidget {
   final Application app;
 
-  const ViewApplicationContent({Key? key, required this.app}) : super(key: key);
+  const ViewApplicationContent({super.key, required this.app});
 
   @override
   _ViewApplicationContentState createState() => _ViewApplicationContentState();
@@ -51,6 +53,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
 
   Future<List<File>> _loadFiles() async {
     await widget.app.GetRecs();
+    await widget.app.LoadApplication();
     return [
       widget.app.aboutMeFile,
       widget.app.whyJobFile,
@@ -91,7 +94,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                   SizedBox(height: standardSizedBoxHeight),
                   Center(
                     child: Text(
-                      'Documents Created:',
+                      'Documents Created',
                       style: TextStyle(
                         fontSize: secondaryTitles,
                         fontWeight: FontWeight.bold,
@@ -107,6 +110,44 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                       PortfolioCard(app: widget.app),
                       ResumeCard(app: widget.app),
                     ],
+                  ),
+                  SizedBox(height: standardSizedBoxHeight),
+                  Center(
+                    child: Text(
+                      'Job And Profile',
+                      style: TextStyle(
+                        fontSize: secondaryTitles,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: standardSizedBoxHeight),
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.75,
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [
+                        Tooltip(
+                          message: 'Click To View Job Used',
+                          child: ListTile(
+                            title: Text(widget.app.jobUsed.name),
+                            onTap: () async {
+                              Navigator.of(context).pushAndRemoveUntil(RightToLeftPageRoute(page: EditJobPage(jobName: widget.app.jobUsed.name, backToJobs: false)), (Route<dynamic> route) => false);
+                            },
+                          ),
+                        ),
+                        Tooltip(
+                          message: 'Click To View Profile Used',
+                          child: ListTile(
+                            title: Text(widget.app.profileUsed.name),
+                            onTap: () async {
+                              Navigator.of(context)
+                                  .pushAndRemoveUntil(RightToLeftPageRoute(page: EditProfilePage(profileName: widget.app.profileUsed.name, backToProfile: false)), (Route<dynamic> route) => false);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   SizedBox(height: standardSizedBoxHeight),
                   Center(
