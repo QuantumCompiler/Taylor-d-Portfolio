@@ -67,6 +67,10 @@ String finProgRecFile = 'Programming.txt';
 String finProjRecFile = 'Projects.txt';
 String finSciRecFile = 'Scientific.txt';
 
+// Backend Stuff
+String localLaTeX = 'http://localhost:3000/compile';
+String vpsLaTeX = 'http://82.180.161.189:3000/compile';
+
 String hiringManagerRole = '''
 You are an assistant that is helping extract structured information from a job posting and portfolio. 
 You are to give recommendations to an applicant that will most likely help them get an interview for a position.
@@ -81,8 +85,8 @@ String returnPrompt = '''
 Return the recommendations in the following JSON format. Ensure each field contains only the recommended names or items as specified, without any additional text or explanations. Capitalize each word. Keep each recommendation short and concise (one to four words). Sort the recommendations in alphabetical order.
 
 Ensure there are exactly:
-  - $covLetWhyMePrompt: A two paragraph cover letter entry for why the applicant would be a good candidate (each paragraph should be five sentences)
-  - $covLetWhyJobPrompt: A two paragraph cover letter entry for why the applicant would want to work at the job ((each paragraph should be five sentences))
+  - $covLetWhyMePrompt: A 400 word cover letter entry for why the applicant would be a good candidate (make sure to create line breaks for each separate paragraph)
+  - $covLetWhyJobPrompt: A 400 word cover letter entry for why the applicant would want to work at the job (make sure to create line breaks for each separate paragraph)
   - $eduRecPrompt: 2 education recommendations (the name of the school, prioritize experiences were degrees were rewarded and those currently in progress)
   - $expRecPrompt: 3 experience recommendations (the name of the workplace, prioritize experiences that closely align to the job being applied to)
   - $framRecPrompt: All frameworks from the portfolio

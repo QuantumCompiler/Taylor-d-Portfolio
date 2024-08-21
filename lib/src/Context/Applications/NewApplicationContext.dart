@@ -110,8 +110,7 @@ BottomAppBar NewApplicationBottomAppBar(BuildContext context, Application app, F
         ElevatedButton(
           child: Text('Get Recommendations'),
           onPressed: () async {
-            // Map<String, dynamic> recs = await GetOpenAIRecs(context, app, app.openAIModel);
-            Map<String, dynamic> recs = testOpenAIResults;
+            Map<String, dynamic> recs = await GetOpenAIRecs(context, app, app.openAIModel);
             List<String> finRecs = await StringifyRecs(recs, app);
             app.SetRecs(recs, finRecs);
             updateState();

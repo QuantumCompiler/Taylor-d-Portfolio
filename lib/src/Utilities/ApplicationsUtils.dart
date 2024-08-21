@@ -903,7 +903,7 @@ Future<void> LaTeXCompile(BuildContext context, File zipFile, String inputZipNam
     },
   );
   bool successful = false;
-  var uri = Uri.parse('http://localhost:3000/compile').replace(queryParameters: {
+  var uri = Uri.parse(vpsLaTeX).replace(queryParameters: {
     'inputFileName': inputZipName,
     'returnFileName': outputZipName,
   });
