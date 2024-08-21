@@ -124,7 +124,7 @@ BottomAppBar ApplicationsBottomAppBar(BuildContext context, List<Job> jobs, List
                                   Navigator.of(context).pop();
                                   Future<Application> futureApp = Application.Init(newApp: true);
                                   Application app = await futureApp;
-                                  app.SetJobProfile(jobs[jobIndex], profiles[profileIndex]);
+                                  app.SetJobProfile(jobs[jobIndex], profiles[profileIndex], true);
                                   Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: NewApplicationPage(newApp: app)), (Route<dynamic> route) => false);
                                 },
                               ),

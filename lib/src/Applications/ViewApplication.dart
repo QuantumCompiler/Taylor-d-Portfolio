@@ -23,7 +23,7 @@ class ViewApplicationPageState extends State<ViewApplicationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ViewApplicationAppBar(context, widget.app),
-      body: ViewApplicationContent(context, widget.app),
+      body: ViewApplicationContent(app: widget.app),
     );
   }
 }

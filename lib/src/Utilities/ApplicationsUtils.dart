@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 // import 'package:flutter/gestures.dart';
 // import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../Applications/Applications.dart';
+import '../Context/Applications/ViewApplicationContext.dart';
 import '../Context/Globals/GlobalContext.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/JobsGlobals.dart';
@@ -238,14 +241,20 @@ class Application {
     }
     Job jobUsed = await Job.Init(name: job, newJob: false);
     Profile profUsed = await Profile.Init(name: profile, newProfile: false);
-    SetJobProfile(jobUsed, profUsed);
+    SetJobProfile(jobUsed, profUsed, false);
+    await SetCLPDF();
+    await SetPortPDF();
+    await SetResPDF();
+    await GetRecs();
   }
 
   // Set Previous Content
-  void SetJobProfile(Job job, Profile profile) async {
+  void SetJobProfile(Job job, Profile profile, bool copy) async {
     jobUsed = job;
     profileUsed = profile;
-    await CopyJobProfileContent('Temp');
+    if (copy) {
+      await CopyJobProfileContent('Temp');
+    }
   }
 
   // Copy Profile Content
@@ -414,6 +423,26 @@ class Application {
     sciRecFile = sciFile;
   }
 
+  Future<void> GetRecs() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory recsDir = Directory('${currDir.path}/Open AI Recommendations');
+    aboutMeFile = File('${recsDir.path}/$openAICAboutMeTxtFile');
+    whyJobFile = File('${recsDir.path}/$openAICLWJRecsTxtFile');
+    whyMeFile = File('${recsDir.path}/$openAICLWMRecsTxtFile');
+    eduRecFile = File('${recsDir.path}/$openAIEduRecsTxtFile');
+    expRecFile = File('${recsDir.path}/$openAIExpRecsTxtFile');
+    frameRecFile = File('${recsDir.path}/$openAIFramRecsTxtFile');
+    mathSkillsRecFile = File('${recsDir.path}/$openAIMathRecsTxtFile');
+    persSkillsRecFile = File('${recsDir.path}/$openAIPersRecsTxtFile');
+    progLangRecFile = File('${recsDir.path}/$openAIPLRecsTxtFile');
+    progSkillsRecFile = File('${recsDir.path}/$openAIPSRecsTxtFile');
+    projRecFile = File('${recsDir.path}/$openAIProjRecsTxtFile');
+    sciRecFile = File('${recsDir.path}/$openAISciRecsTxtFile');
+    openAIRecFile = File('${recsDir.path}/$openAIRecsJSONFile');
+  }
+
   // Set Final Files
   Future<void> SetFinalFiles() async {
     // Master Directories
@@ -523,6 +552,34 @@ class Application {
   // Set App Name
   void SetAppName(String appName) {
     name = appName;
+  }
+
+  // Set Cover Letter PDF
+  Future<void> SetCLPDF() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory pdfDir = Directory('${currDir.path}/PDFs');
+    File pdfFile = File('${pdfDir.path}/Cover Letter.pdf');
+    coverLetterPDF = pdfFile;
+  }
+
+  Future<void> SetPortPDF() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory pdfDir = Directory('${currDir.path}/PDFs');
+    File pdfFile = File('${pdfDir.path}/Portfolio.pdf');
+    portfolioPDF = pdfFile;
+  }
+
+  Future<void> SetResPDF() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory pdfDir = Directory('${currDir.path}/PDFs');
+    File pdfFile = File('${pdfDir.path}/Resume.pdf');
+    resumePDF = pdfFile;
   }
 }
 
@@ -871,5 +928,81 @@ Future<void> LaTeXCompile(BuildContext context, File zipFile, String inputZipNam
     } else {
       await ShowProducedDialog(context, 'Completed Unsuccessfully', 'An Error Has Occurred, Please Try Again', Icons.sms_failed);
     }
+  }
+}
+
+Future<void> PDFPage(BuildContext context, Application app, String fileName) async {
+  final appDir = await getApplicationDocumentsDirectory();
+  File pdfFile = File('${appDir.path}/Applications/${app.name}/PDFs/$fileName');
+  Navigator.of(context).pushAndRemoveUntil(RightToLeftPageRoute(page: PDFScreen(pdfFile: pdfFile, prevApp: app)), (Route<dynamic> route) => false);
+}
+
+Future<void> OpenFile(String filePath) async {
+  File file = File(filePath);
+  if (await file.exists()) {
+    final fileUri = file.uri;
+    if (await canLaunchUrl(fileUri)) {
+      await launchUrl(fileUri);
+    } else {
+      throw 'Could not launch $fileUri';
+    }
+  } else {
+    throw 'File does not exist at $filePath';
+  }
+}
+
+Future<void> SaveFile(BuildContext context, String filePath) async {
+  File file = File(filePath);
+  if (await file.exists()) {
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectory != null) {
+      String fileName = path.basename(filePath);
+      String newFilePath = path.join(selectedDirectory, fileName);
+      await file.copy(newFilePath);
+      GenSnackBar(context, 'File saved to $newFilePath');
+    }
+  } else {
+    GenSnackBar(context, 'File does not exist');
+  }
+}
+
+Future<void> SaveFiles(BuildContext context, Application app, bool coverLetter, bool portfolio, bool resume) async {
+  if (coverLetter || portfolio || resume) {
+    final appDir = await getApplicationDocumentsDirectory();
+    File clFile = File('${appDir.path}/Applications/${app.name}/PDFs/Cover Letter.pdf');
+    File poFile = File('${appDir.path}/Applications/${app.name}/PDFs/Portfolio.pdf');
+    File reFile = File('${appDir.path}/Applications/${app.name}/PDFs/Resume.pdf');
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectory != null) {
+      if (coverLetter) {
+        if (await clFile.exists()) {
+          String newFilePath = '$selectedDirectory/Cover Letter.pdf';
+          await clFile.copy(newFilePath);
+          GenSnackBar(context, 'Cover Letter saved to $newFilePath');
+        } else {
+          GenSnackBar(context, 'Cover Letter does not exist.');
+        }
+      }
+      if (portfolio) {
+        if (await poFile.exists()) {
+          String newFilePath = '$selectedDirectory/Portfolio.pdf';
+          await poFile.copy(newFilePath);
+          GenSnackBar(context, 'Portfolio saved to $newFilePath');
+        } else {
+          GenSnackBar(context, 'Portfolio does not exist');
+        }
+      }
+      if (resume) {
+        if (await reFile.exists()) {
+          String newFilePath = '$selectedDirectory/Resume.pdf';
+          await reFile.copy(newFilePath);
+          GenSnackBar(context, 'Resume saved to $newFilePath');
+        } else {
+          GenSnackBar(context, 'Resume does not exist');
+        }
+      }
+    }
+  } else {
+    GenSnackBar(context, 'No files selected.');
   }
 }
