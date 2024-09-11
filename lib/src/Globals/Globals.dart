@@ -37,6 +37,7 @@ String applicationsMasterDir = 'Applications';
 String jobsMasterDir = 'Jobs';
 String latexMasterDir = 'LaTeX';
 String profilesMasterDir = 'Profiles';
+String tempMasterDir = 'Temp';
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Size Box Parameters

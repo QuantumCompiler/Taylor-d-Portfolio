@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive_io.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'ApplicationsUtils.dart';
@@ -63,6 +65,16 @@ Future<Directory> GetProfilesDir() async {
   return profilesDir;
 }
 
+// Temp Directory
+Future<Directory> GetTempDir() async {
+  final appDir = await getApplicationDocumentsDirectory();
+  final tempDir = Directory('${appDir.path}/$tempMasterDir');
+  if (!tempDir.existsSync()) {
+    tempDir.createSync();
+  }
+  return tempDir;
+}
+
 // Support Directory
 Future<Directory> GetSupportDir() async {
   return await getApplicationSupportDirectory();
@@ -102,6 +114,34 @@ Future<void> CreateLaTeXDir() async {
 Future<void> CreateProfileDir() async {
   Directory appDir = await GetAppDir();
   CreateDir(appDir, profilesMasterDir);
+}
+
+// Create Temp Directory
+Future<void> CreateTempDir() async {
+  Directory appDir = await GetAppDir();
+  CreateDir(appDir, tempMasterDir);
+}
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+//  Start Up Functions
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+
+// Start Up
+Future<void> StartUp() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
+  CreateApplicationsDir();
+  CreateJobsDir();
+  CreateLaTeXDir();
+  CreateProfileDir();
+  CreateTempDir();
+  if (kDebugMode) {
+    print('Applications Directory: ${await GetApplicationsDir()}');
+    print('Jobs Directory: ${await GetJobsDir()}');
+    print('LaTeX Directory: ${await GetLaTeXDir()}');
+    print('Profiles Directory: ${await GetProfilesDir()}');
+    print('Temp Directory: ${await GetTempDir()}');
+  }
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
