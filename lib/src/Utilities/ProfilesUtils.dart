@@ -145,7 +145,7 @@ class Profile {
       try {
         // Write profile
         await WriteProfile("Profiles/$name", "Profiles/$name");
-        final masterDir = await getApplicationDocumentsDirectory();
+        final masterDir = await GetAppDir();
         final tempDir = Directory('${masterDir.path}/Temp');
         // If the temp directory exists, clean it
         if (await tempDir.exists()) {
@@ -165,7 +165,7 @@ class Profile {
       // Grab name of profile from the controller
       final newName = nameController.text;
       // Get directories for master, old, and existing
-      final masterDir = await getApplicationDocumentsDirectory();
+      final masterDir = await GetAppDir();
       final oldDir = Directory('${masterDir.path}/Profiles/$name');
       final existing = Directory('${masterDir.path}/Profiles/$newName');
       Directory newDir;
@@ -209,7 +209,7 @@ class Profile {
           Sets the directory for the profile
   */
   Future<void> SetProfDir() async {
-    final masterDir = await getApplicationDocumentsDirectory();
+    final masterDir = await GetAppDir();
     Directory parentDir = Directory('${masterDir.path}/Profiles/');
     CreateDir(parentDir, name);
   }
@@ -396,7 +396,7 @@ class Profile {
   */
   Future<void> WriteProfile(String jsonDir, String destDir) async {
     // Grab master directory
-    final masterDir = await getApplicationDocumentsDirectory();
+    final masterDir = await GetAppDir();
     // Write profile JSON files
     final File covFile = File('${masterDir.path}/$jsonDir/$coverLetterJSONFile');
     final File eduFile = File('${masterDir.path}/$jsonDir/$educationJSONFile');
@@ -478,7 +478,7 @@ class Profile {
   */
   Future<void> WriteContentToJSON<T>(String subDir, String fileName, List<T> list) async {
     // Grab master directory
-    final masterDir = await getApplicationDocumentsDirectory();
+    final masterDir = await GetAppDir();
     Directory desDir = Directory('${masterDir.path}/$subDir');
     // If the directory does not exist, create it
     if (!desDir.existsSync()) {

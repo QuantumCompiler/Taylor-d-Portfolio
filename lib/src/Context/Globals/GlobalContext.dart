@@ -388,7 +388,7 @@ AlertDialog NewApplicationDialog(BuildContext context, Application app, TextEdit
           ElevatedButton(
             child: Text('Save Application'),
             onPressed: () async {
-              final masterDir = await getApplicationDocumentsDirectory();
+              final masterDir = await GetAppDir();
               final currDir = Directory('${masterDir.path}/Applications/${nameController.text}');
               if (await currDir.exists()) {
                 Navigator.of(context).pop();
@@ -476,7 +476,7 @@ AlertDialog NewJobDialog(BuildContext context, Job job, bool? backToJobs, TextEd
           ElevatedButton(
             child: Text('Save Job'),
             onPressed: () async {
-              final masterDir = await getApplicationDocumentsDirectory();
+              final masterDir = await GetAppDir();
               final currDir = Directory('${masterDir.path}/Jobs/${nameController.text}');
               if (await currDir.exists()) {
                 Navigator.of(context).pop();
@@ -574,7 +574,7 @@ AlertDialog NewProfileDialog(BuildContext context, Profile profile, bool? backTo
           ElevatedButton(
             child: Text('Save Profile'),
             onPressed: () async {
-              final masterDir = await getApplicationDocumentsDirectory();
+              final masterDir = await GetAppDir();
               final currDir = Directory('${masterDir.path}/Profiles/${nameController.text}');
               if (await currDir.exists()) {
                 Navigator.of(context).pop();

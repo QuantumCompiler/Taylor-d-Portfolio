@@ -142,7 +142,7 @@ class Job {
       try {
         // Write profile
         await WriteJob("Jobs/$name", "Jobs/$name");
-        final masterDir = await getApplicationDocumentsDirectory();
+        final masterDir = await GetAppDir();
         final tempDir = Directory('${masterDir.path}/Temp');
         // If the temp directory exists, clean it
         if (await tempDir.exists()) {
@@ -162,7 +162,7 @@ class Job {
       // Grab name of job from the controller
       final newName = nameController.text;
       // Get directories for master, old, and existing
-      final masterDir = await getApplicationDocumentsDirectory();
+      final masterDir = await GetAppDir();
       final oldDir = Directory('${masterDir.path}/Jobs/$name');
       final existing = Directory('${masterDir.path}/Jobs/$newName');
       Directory newDir;
@@ -206,7 +206,7 @@ class Job {
           Sets the directory of the job
   */
   Future<void> SetJobDir() async {
-    final masterDir = await getApplicationDocumentsDirectory();
+    final masterDir = await GetAppDir();
     Directory parentDir = Directory('${masterDir.path}/Jobs/');
     CreateDir(parentDir, name);
   }
@@ -352,7 +352,7 @@ class Job {
   */
   Future<void> WriteJob(String jsonDir, String destDir) async {
     // Grab master directory
-    final masterDir = await getApplicationDocumentsDirectory();
+    final masterDir = await GetAppDir();
     // Write profile JSON files
     final File desFile = File('${masterDir.path}/$jsonDir/$descriptionJSONFile');
     final File othFile = File('${masterDir.path}/$jsonDir/$otherJSONFile');
@@ -426,7 +426,7 @@ class Job {
   */
   Future<void> WriteContentToJSON<T>(String subDir, String fileName, List<T> list) async {
     // Grab master directory
-    final masterDir = await getApplicationDocumentsDirectory();
+    final masterDir = await GetAppDir();
     Directory desDir = Directory('${masterDir.path}/$subDir');
     // If the directory does not exist, create it
     if (!desDir.existsSync()) {

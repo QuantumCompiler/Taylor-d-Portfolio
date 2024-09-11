@@ -72,29 +72,29 @@ SingleChildScrollView NewApplicationRecsContent(BuildContext context, Applicatio
             textAlign: TextAlign.center,
           ),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Cover Letter About Applicant', content: app.recommendations[0]),
+          RecCard(app: app, title: 'Cover Letter About Applicant', content: app.recommendations[0], val: 0),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Cover Letter Recommendation For Job', content: app.recommendations[1]),
+          RecCard(app: app, title: 'Cover Letter Recommendation For Job', content: app.recommendations[1], val: 1),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Cover Letter Recommendation For Applicant', content: app.recommendations[2]),
+          RecCard(app: app, title: 'Cover Letter Recommendation For Applicant', content: app.recommendations[2], val: 2),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Education Recommendations For Applicant', content: app.recommendations[3]),
+          RecCard(app: app, title: 'Education Recommendations For Applicant', content: app.recommendations[3], val: 3),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Experience Recommendations', content: app.recommendations[4]),
+          RecCard(app: app, title: 'Experience Recommendations', content: app.recommendations[4], val: 4),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Framework Recommendations', content: app.recommendations[5]),
+          RecCard(app: app, title: 'Framework Recommendations', content: app.recommendations[5], val: 5),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Math Skill Recommendations', content: app.recommendations[6]),
+          RecCard(app: app, title: 'Math Skill Recommendations', content: app.recommendations[6], val: 6),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Personal Skill Recommendations', content: app.recommendations[7]),
+          RecCard(app: app, title: 'Personal Skill Recommendations', content: app.recommendations[7], val: 7),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Programming Language Recommendations', content: app.recommendations[8]),
+          RecCard(app: app, title: 'Programming Language Recommendations', content: app.recommendations[8], val: 8),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Programming Skill Recommendations', content: app.recommendations[9]),
+          RecCard(app: app, title: 'Programming Skill Recommendations', content: app.recommendations[9], val: 9),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Project Recommendations', content: app.recommendations[10]),
+          RecCard(app: app, title: 'Project Recommendations', content: app.recommendations[10], val: 10),
           SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Scientific Skill Recommendations', content: app.recommendations[11]),
+          RecCard(app: app, title: 'Scientific Skill Recommendations', content: app.recommendations[11], val: 11),
         ],
       ),
     ),
@@ -110,8 +110,8 @@ BottomAppBar NewApplicationBottomAppBar(BuildContext context, Application app, F
         ElevatedButton(
           child: Text('Get Recommendations'),
           onPressed: () async {
-            // Map<String, dynamic> recs = await GetOpenAIRecs(context, app, app.openAIModel);
-            Map<String, dynamic> recs = testOpenAIResults;
+            Map<String, dynamic> recs = await GetOpenAIRecs(context, app, app.openAIModel);
+            // Map<String, dynamic> recs = testOpenAIResults;
             List<String> finRecs = await StringifyRecs(recs, app);
             app.SetRecs(recs, finRecs);
             updateState();
@@ -149,11 +149,13 @@ class RecCard extends StatefulWidget {
   final Application app;
   final String title;
   final String content;
+  final int val;
   const RecCard({
     super.key,
     required this.app,
     required this.title,
     required this.content,
+    required this.val,
   });
 
   @override
@@ -173,7 +175,33 @@ class _RecCardState extends State<RecCard> {
   @override
   void initState() {
     super.initState();
-    cont = TextEditingController(text: widget.content);
+    cont = TextEditingController();
+    cont.text = widget.content;
+    if (widget.val == 0) {
+      widget.app.aboutMeCont.text = widget.content;
+    } else if (widget.val == 1) {
+      widget.app.whyJobCont.text = widget.content;
+    } else if (widget.val == 2) {
+      widget.app.whyMeCont.text = widget.content;
+    } else if (widget.val == 3) {
+      widget.app.eduRecCont.text = widget.content;
+    } else if (widget.val == 4) {
+      widget.app.expRecCont.text = widget.content;
+    } else if (widget.val == 5) {
+      widget.app.framRecCont.text = widget.content;
+    } else if (widget.val == 6) {
+      widget.app.mathSkillsRecCont.text = widget.content;
+    } else if (widget.val == 7) {
+      widget.app.persSkillsRecCont.text = widget.content;
+    } else if (widget.val == 8) {
+      widget.app.progLangRecCont.text = widget.content;
+    } else if (widget.val == 9) {
+      widget.app.progSkillsRecCont.text = widget.content;
+    } else if (widget.val == 10) {
+      widget.app.projRecCont.text = widget.content;
+    } else if (widget.val == 11) {
+      widget.app.sciRecCont.text = widget.content;
+    }
   }
 
   @override
@@ -210,6 +238,33 @@ class _RecCardState extends State<RecCard> {
                       controller: cont,
                       minLines: 1,
                       maxLines: 100,
+                      onChanged: (value) {
+                        if (widget.val == 0) {
+                          widget.app.aboutMeCont.text = cont.text;
+                        } else if (widget.val == 1) {
+                          widget.app.whyJobCont.text = cont.text;
+                        } else if (widget.val == 2) {
+                          widget.app.whyMeCont.text = cont.text;
+                        } else if (widget.val == 3) {
+                          widget.app.eduRecCont.text = cont.text;
+                        } else if (widget.val == 4) {
+                          widget.app.expRecCont.text = cont.text;
+                        } else if (widget.val == 5) {
+                          widget.app.framRecCont.text = cont.text;
+                        } else if (widget.val == 6) {
+                          widget.app.mathSkillsRecCont.text = cont.text;
+                        } else if (widget.val == 7) {
+                          widget.app.persSkillsRecCont.text = cont.text;
+                        } else if (widget.val == 8) {
+                          widget.app.progLangRecCont.text = cont.text;
+                        } else if (widget.val == 9) {
+                          widget.app.progSkillsRecCont.text = cont.text;
+                        } else if (widget.val == 10) {
+                          widget.app.projRecCont.text = cont.text;
+                        } else if (widget.val == 11) {
+                          widget.app.sciRecCont.text = cont.text;
+                        }
+                      },
                     ),
                     SizedBox(height: standardSizedBoxHeight),
                     Row(
@@ -247,84 +302,3 @@ class _RecCardState extends State<RecCard> {
     );
   }
 }
-
-// class RecCard extends StatefulWidget {
-//   final String title;
-//   String content;
-//   TextEditingController cardController;
-//   final double height;
-//   final double width;
-//   final int cardLines;
-//   RecCard({
-//     super.key,
-//     required this.title,
-//     required this.content,
-//     required this.cardController,
-//     required this.height,
-//     required this.width,
-//     required this.cardLines,
-//   });
-
-//   @override
-//   _RecCardState createState() => _RecCardState();
-// }
-
-// class _RecCardState extends State<RecCard> {
-//   bool _isHovered = false;
-//   void _updateHover(bool isHovered) {
-//     setState(() {
-//       _isHovered = isHovered;
-//     });
-//   }
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     widget.cardController.text = widget.content;
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final cardTheme = Theme.of(context).cardTheme;
-//     return MouseRegion(
-//       onEnter: (event) => _updateHover(true),
-//       onExit: (event) => _updateHover(false),
-//       child: Card(
-//         elevation: _isHovered ? 80.0 : cardTheme.elevation,
-//         shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
-//         child: InkWell(
-//           onTap: () {},
-//           child: Container(
-//             width: MediaQuery.of(context).size.width * widget.width,
-//             height: MediaQuery.of(context).size.height * widget.height,
-//             margin: EdgeInsets.all(15.0),
-//             child: LayoutBuilder(
-//               builder: (context, constraints) {
-//                 return Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   mainAxisAlignment: MainAxisAlignment.start,
-//                   children: [
-//                     Center(
-//                       child: Text(
-//                         widget.title,
-//                         style: TextStyle(
-//                           fontSize: secondaryTitles,
-//                           fontWeight: FontWeight.bold,
-//                         ),
-//                       ),
-//                     ),
-//                     SizedBox(height: standardSizedBoxHeight),
-//                     TextField(
-//                       controller: widget.cardController,
-//                       maxLines: widget.cardLines,
-//                     )
-//                   ],
-//                 );
-//               },
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }

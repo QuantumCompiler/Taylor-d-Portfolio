@@ -116,7 +116,7 @@ class Application {
 
   // Init
   static Future<Application> Init({String name = '', required bool newApp}) async {
-    final masterDir = getApplicationDocumentsDirectory();
+    final masterDir = GetAppDir();
     Future<Job> futureJob = Job.Init(newJob: false);
     Future<Profile> futureProfile = Profile.Init(newProfile: false);
     Job jobUsed = await futureJob;
@@ -177,7 +177,7 @@ class Application {
     await CompileDocuments(context);
     Navigator.pushAndRemoveUntil(context, LeftToRightPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
     // Directories
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     Directory tempDir = Directory('${appDir.path}/Temp');
     Directory appsDir = Directory('${appDir.path}/Applications');
     Directory newDir = Directory('${appsDir.path}/$name');
@@ -193,7 +193,7 @@ class Application {
   }
 
   Future<void> LoadApplication() async {
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     Directory appsDir = Directory('${appDir.path}/Applications');
     Directory jobsDir = Directory('${appDir.path}/Jobs');
     Directory profsDir = Directory('${appDir.path}/Profiles');
@@ -259,7 +259,7 @@ class Application {
 
   // Copy Profile Content
   Future<void> CopyJobProfileContent(String grandDir) async {
-    final masterDir = await getApplicationDocumentsDirectory();
+    final masterDir = await GetAppDir();
     Directory grandParentDir = Directory('${masterDir.path}/$grandDir');
     if (!grandParentDir.existsSync()) {
       await grandParentDir.create();
@@ -300,7 +300,7 @@ class Application {
   // Convert Job Content To String
   Future<String> ConvertJobCont() async {
     String ret = '';
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     Directory tempDir = Directory('${appDir.path}/Temp/Job And Profile Content/${jobUsed.name}');
     File jobContFile = File('${tempDir.path}/$finalJobTextFile');
     ret = await jobContFile.readAsString();
@@ -310,7 +310,7 @@ class Application {
   // Convert Profile Content To String
   Future<String> ConvertProfCont() async {
     String ret = '';
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     Directory tempDir = Directory('${appDir.path}/Temp/Job And Profile Content/${profileUsed.name}');
     File profContFile = File('${tempDir.path}/$finalProfileTextFile');
     ret = await profContFile.readAsString();
@@ -322,7 +322,7 @@ class Application {
     recommendations = listRecs;
     masterRecs = recs;
     // Master directories
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     Directory tempDir = Directory('${appDir.path}/Temp');
     Directory recsDir = Directory('${tempDir.path}/Open AI Recommendations');
     // Create recs dir if needed
@@ -424,7 +424,7 @@ class Application {
   }
 
   Future<void> GetRecs() async {
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     Directory appsDir = Directory('${appDir.path}/Applications');
     Directory currDir = Directory('${appsDir.path}/$name');
     Directory recsDir = Directory('${currDir.path}/Open AI Recommendations');
@@ -446,7 +446,7 @@ class Application {
   // Set Final Files
   Future<void> SetFinalFiles() async {
     // Master Directories
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     Directory tempDir = Directory('${appDir.path}/Temp');
     Directory finFiles = Directory('${tempDir.path}/Final Text Files');
     if (finFiles.existsSync()) {
@@ -556,7 +556,7 @@ class Application {
 
   // Set Cover Letter PDF
   Future<void> SetCLPDF() async {
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     Directory appsDir = Directory('${appDir.path}/Applications');
     Directory currDir = Directory('${appsDir.path}/$name');
     Directory pdfDir = Directory('${currDir.path}/PDFs');
@@ -565,7 +565,7 @@ class Application {
   }
 
   Future<void> SetPortPDF() async {
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     Directory appsDir = Directory('${appDir.path}/Applications');
     Directory currDir = Directory('${appsDir.path}/$name');
     Directory pdfDir = Directory('${currDir.path}/PDFs');
@@ -574,7 +574,7 @@ class Application {
   }
 
   Future<void> SetResPDF() async {
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     Directory appsDir = Directory('${appDir.path}/Applications');
     Directory currDir = Directory('${appsDir.path}/$name');
     Directory pdfDir = Directory('${currDir.path}/PDFs');
@@ -734,7 +734,7 @@ String EscapeLatex(String input) {
 
 Future<void> InitializeLaTeX() async {
   // Master Directories
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await GetAppDir();
   final latexDir = await GetLaTeXDir();
   Directory mainLatexDir = Directory('${latexDir.path}/Main LaTeX');
   Directory latexDocsDir = Directory('${appDir.path}/Temp/LaTeX Documents');
@@ -810,7 +810,7 @@ Future<void> InitializeLaTeX() async {
 }
 
 Future<void> PrepLaTeXDirs() async {
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await GetAppDir();
   Directory tempDir = Directory('${appDir.path}/Temp');
   Directory latexDir = Directory('${tempDir.path}/LaTeX Documents');
   Directory zipDir = Directory('${appDir.path}/Temp/Original Zip');
@@ -828,7 +828,7 @@ Future<void> PrepLaTeXDirs() async {
 
 Future<void> CompileDocuments(BuildContext context) async {
   // Master Directories
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await GetAppDir();
   Directory tempDir = Directory('${appDir.path}/Temp');
   Directory origZipDir = Directory('${tempDir.path}/Original Zip');
   Directory finZipDir = Directory('${tempDir.path}/Zip');
@@ -932,7 +932,7 @@ Future<void> LaTeXCompile(BuildContext context, File zipFile, String inputZipNam
 }
 
 Future<void> PDFPage(BuildContext context, Application app, String fileName) async {
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await GetAppDir();
   File pdfFile = File('${appDir.path}/Applications/${app.name}/PDFs/$fileName');
   Navigator.of(context).pushAndRemoveUntil(RightToLeftPageRoute(page: PDFScreen(pdfFile: pdfFile, prevApp: app)), (Route<dynamic> route) => false);
 }
@@ -968,7 +968,7 @@ Future<void> SaveFile(BuildContext context, String filePath) async {
 
 Future<void> SaveFiles(BuildContext context, Application app, bool coverLetter, bool portfolio, bool resume) async {
   if (coverLetter || portfolio || resume) {
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await GetAppDir();
     File clFile = File('${appDir.path}/Applications/${app.name}/PDFs/Cover Letter.pdf');
     File poFile = File('${appDir.path}/Applications/${app.name}/PDFs/Portfolio.pdf');
     File reFile = File('${appDir.path}/Applications/${app.name}/PDFs/Resume.pdf');

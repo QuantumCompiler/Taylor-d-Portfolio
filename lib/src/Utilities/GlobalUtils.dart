@@ -17,7 +17,9 @@ import '../Globals/Globals.dart';
 
 // Application Directory
 Future<Directory> GetAppDir() async {
-  return await getApplicationDocumentsDirectory();
+  final appDir = await getApplicationDocumentsDirectory();
+  Directory masterDir = Directory("${appDir.path}/Taylor'd Portfolio");
+  return masterDir;
 }
 
 // Cache Directory
@@ -27,7 +29,7 @@ Future<Directory> GetCacheDir() async {
 
 // Applications Directory
 Future<Directory> GetApplicationsDir() async {
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await GetAppDir();
   final applicationsDir = Directory('${appDir.path}/$applicationsMasterDir');
   if (!applicationsDir.existsSync()) {
     applicationsDir.create();
@@ -37,7 +39,7 @@ Future<Directory> GetApplicationsDir() async {
 
 // Jobs Directory
 Future<Directory> GetJobsDir() async {
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await GetAppDir();
   final jobsDir = Directory('${appDir.path}/$jobsMasterDir');
   if (!jobsDir.existsSync()) {
     jobsDir.createSync();
@@ -47,7 +49,7 @@ Future<Directory> GetJobsDir() async {
 
 // LaTeX Directory
 Future<Directory> GetLaTeXDir() async {
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await GetAppDir();
   final latexDir = Directory('${appDir.path}/$latexMasterDir');
   if (!latexDir.existsSync()) {
     latexDir.createSync();
@@ -57,7 +59,7 @@ Future<Directory> GetLaTeXDir() async {
 
 // Profiles Directory
 Future<Directory> GetProfilesDir() async {
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await GetAppDir();
   final profilesDir = Directory('${appDir.path}/$profilesMasterDir');
   if (!profilesDir.existsSync()) {
     profilesDir.createSync();
@@ -67,7 +69,7 @@ Future<Directory> GetProfilesDir() async {
 
 // Temp Directory
 Future<Directory> GetTempDir() async {
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await GetAppDir();
   final tempDir = Directory('${appDir.path}/$tempMasterDir');
   if (!tempDir.existsSync()) {
     tempDir.createSync();
@@ -94,8 +96,8 @@ Future<void> CreateDir(Directory parentDir, String dirName) async {
 
 // Create Applications Directory
 Future<void> CreateApplicationsDir() async {
-  Directory appDir = await GetAppDir();
-  CreateDir(appDir, applicationsMasterDir);
+  Directory appDir = await getApplicationDocumentsDirectory();
+  CreateDir(appDir, "Taylor'd Portfolio");
 }
 
 // Create Jobs Directory
@@ -150,7 +152,7 @@ Future<void> StartUp() async {
 
 // Clean Directory
 Future<void> CleanDir(String subDir) async {
-  final masterDir = await getApplicationDocumentsDirectory();
+  final masterDir = await GetAppDir();
   final dir = Directory('${masterDir.path}/$subDir');
   final contents = dir.listSync();
   for (var entity in contents) {
@@ -229,7 +231,7 @@ Future<List<T>> MapJSONToList<T>(File inputFile, T Function(Map<String, dynamic>
 
 // Retrieve JSON File
 Future<File> RetJSONFile(String subDir, String fileName) async {
-  final masterDir = await getApplicationDocumentsDirectory();
+  final masterDir = await GetAppDir();
   File jsonFile = File('${masterDir.path}/$subDir/$fileName');
   return jsonFile;
 }
@@ -420,7 +422,7 @@ Future<List<T>> LoadContent<T>(String fileName, String subDir, T Function(Map<St
   // Try to load content
   try {
     // Retrieve directories and file
-    final masterDir = await getApplicationDocumentsDirectory();
+    final masterDir = await GetAppDir();
     final subDirPath = '${masterDir.path}/$subDir';
     final jsonFile = File('$subDirPath/$fileName');
     // Check if the sub-directory exists
