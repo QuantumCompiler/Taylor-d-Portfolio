@@ -50,6 +50,7 @@ dependencies:
   uri: ^1.0.0
   url_launcher: ^6.3.0
   open_file: ^3.5.3
+  accordion: ^2.6.0
 
 dev_dependencies:
   flutter_test:

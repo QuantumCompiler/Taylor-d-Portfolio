@@ -28,6 +28,7 @@ Color whiteButtonColor = Colors.white;
 Color blackTextColor = Colors.black;
 Color whiteTextColor = Colors.white;
 Color cardHoverColor = Color.fromARGB(255, 0, 255, 60);
+Color customWhite = Color.fromARGB(255, 233, 233, 233);
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Directories

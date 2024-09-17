@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'src/Dashboard/Dashboard.dart';
 import 'src/Utilities/GlobalUtils.dart';
 import 'src/Themes/Themes.dart';
+import 'package:get/get.dart';
 
 void main() async {
+  Get.config(enableLog: false);
   await StartUp();
   runApp(
     ChangeNotifierProvider(

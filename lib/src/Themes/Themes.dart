@@ -24,9 +24,9 @@ class ThemeProvider with ChangeNotifier {
   ThemeData get themeData {
     return ThemeData(
       brightness: _isDarkTheme ? Brightness.dark : Brightness.light,
-      scaffoldBackgroundColor: isDarkTheme ? Color.fromARGB(255, 0, 0, 0) : Color.fromARGB(255, 233, 233, 233),
+      scaffoldBackgroundColor: isDarkTheme ? Color.fromARGB(255, 0, 0, 0) : customWhite,
       drawerTheme: DrawerThemeData(
-        backgroundColor: isDarkTheme ? Color.fromARGB(255, 0, 0, 0) : Color.fromARGB(255, 233, 233, 233),
+        backgroundColor: isDarkTheme ? Color.fromARGB(255, 0, 0, 0) : customWhite,
       ),
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
@@ -53,6 +53,13 @@ class ThemeProvider with ChangeNotifier {
           width: 50.0,
           height: 30.0,
         ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+          side: BorderSide(
+            color: _isDarkTheme ? Colors.white : Colors.black,
+            width: 1.5,
+          ),
+        ),
       ),
       appBarTheme: AppBarTheme(
         color: Colors.transparent,
@@ -67,7 +74,15 @@ class ThemeProvider with ChangeNotifier {
       ),
       cardTheme: CardTheme(
         elevation: 50.0,
-        shadowColor: Color.fromARGB(51, 0, 213, 255),
+        shadowColor: _isDarkTheme ? Color.fromARGB(86, 255, 255, 255) : Color.fromARGB(142, 0, 0, 0),
+        color: _isDarkTheme ? Colors.black : customWhite,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+          side: BorderSide(
+            color: _isDarkTheme ? Colors.white : Colors.black,
+            width: 1.5,
+          ),
+        ),
       ),
       checkboxTheme: CheckboxThemeData(
         checkColor: WidgetStateProperty.all<Color?>(Colors.white),
@@ -99,9 +114,9 @@ class ThemeProvider with ChangeNotifier {
         iconColor: _isDarkTheme ? Colors.white : Colors.black,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: Color.fromARGB(128, 0, 213, 255),
+        backgroundColor: Colors.transparent,
         contentTextStyle: TextStyle(
-          color: Colors.black,
+          color: _isDarkTheme ? Colors.white : Colors.black,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -125,18 +140,37 @@ class ThemeProvider with ChangeNotifier {
           return Colors.black;
         }),
       ),
+      inputDecorationTheme: InputDecorationTheme(
+          hintStyle: TextStyle(
+        color: _isDarkTheme ? Colors.white : Colors.black,
+      )),
       tooltipTheme: TooltipThemeData(
-        decoration: BoxDecoration(
-          color: _isDarkTheme ? const Color.fromARGB(129, 255, 255, 255) : const Color.fromARGB(114, 0, 0, 0),
-          border: Border(
-            top: BorderSide(width: 2.5),
-            left: BorderSide(width: 2.5),
-            right: BorderSide(width: 2.5),
-            bottom: BorderSide(width: 2.5),
+          decoration: BoxDecoration(
+            color: _isDarkTheme ? Color.fromARGB(0, 0, 0, 0) : Color.fromARGB(0, 0, 0, 0),
+            border: Border(
+              top: BorderSide(
+                width: 2.5,
+                color: _isDarkTheme ? Colors.white : Colors.black,
+              ),
+              left: BorderSide(
+                width: 2.5,
+                color: _isDarkTheme ? Colors.white : Colors.black,
+              ),
+              right: BorderSide(
+                width: 2.5,
+                color: _isDarkTheme ? Colors.white : Colors.black,
+              ),
+              bottom: BorderSide(
+                width: 2.5,
+                color: _isDarkTheme ? Colors.white : Colors.black,
+              ),
+            ),
+            borderRadius: BorderRadius.circular(50),
           ),
-          borderRadius: BorderRadius.circular(50),
-        ),
-      ),
+          textStyle: TextStyle(
+            color: _isDarkTheme ? Colors.white : Colors.black,
+            fontSize: 12.0,
+          )),
     );
   }
 }

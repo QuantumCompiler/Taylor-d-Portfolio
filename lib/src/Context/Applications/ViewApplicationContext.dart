@@ -1,6 +1,8 @@
+import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:accordion/accordion.dart';
 import '../../Profiles/ViewProfile.dart';
 import '../../Jobs/ViewJob.dart';
 import '../../Applications/ViewApplication.dart';
@@ -225,12 +227,12 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       TextButton(
-                        child: Text('Clear Selections'),
+                        child: Text('Select / Unselect All'),
                         onPressed: () => {
                           setState(() {
-                            coverLetterChecked = false;
-                            portfolioChecked = false;
-                            resumeChecked = false;
+                            coverLetterChecked = !coverLetterChecked;
+                            portfolioChecked = !portfolioChecked;
+                            resumeChecked = !resumeChecked;
                           }),
                         },
                       ),
@@ -244,17 +246,6 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                             portfolioChecked = false;
                             resumeChecked = false;
                           });
-                        },
-                      ),
-                      SizedBox(width: standardSizedBoxWidth),
-                      TextButton(
-                        child: Text('Select All'),
-                        onPressed: () => {
-                          setState(() {
-                            coverLetterChecked = true;
-                            portfolioChecked = true;
-                            resumeChecked = true;
-                          }),
                         },
                       ),
                       SizedBox(width: standardSizedBoxWidth),
@@ -279,18 +270,88 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                     ),
                   ),
                   SizedBox(height: standardSizedBoxHeight),
-                  RecCard(app: widget.app, file: files[0], title: 'About Applicant'),
-                  RecCard(app: widget.app, file: files[1], title: 'Why The Job'),
-                  RecCard(app: widget.app, file: files[2], title: 'Why You'),
-                  RecCard(app: widget.app, file: files[3], title: 'Education Recommendations'),
-                  RecCard(app: widget.app, file: files[4], title: 'Experience Recommendations'),
-                  RecCard(app: widget.app, file: files[5], title: 'Framework Recommendations'),
-                  RecCard(app: widget.app, file: files[6], title: 'Math Skill Recommendations'),
-                  RecCard(app: widget.app, file: files[7], title: 'Personal Skill Recommendations'),
-                  RecCard(app: widget.app, file: files[8], title: 'Programming Language Recommendations'),
-                  RecCard(app: widget.app, file: files[9], title: 'Programming Skill Recommendations'),
-                  RecCard(app: widget.app, file: files[10], title: 'Projects Recommendations'),
-                  RecCard(app: widget.app, file: files[11], title: 'Scientific Skill Recommendations'),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    ),
+                    child: Accordion(
+                      headerBackgroundColor: Colors.transparent,
+                      headerPadding: EdgeInsets.all(10.0),
+                      contentBackgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : customWhite,
+                      contentBorderColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                      rightIcon: Icon(
+                        Icons.arrow_drop_down_circle_outlined,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                      ),
+                      children: [
+                        AccordionSection(
+                          header: Text(
+                            'OpenAI Results',
+                          ),
+                          content: Accordion(
+                            headerBackgroundColor: Colors.transparent,
+                            headerPadding: EdgeInsets.all(10.0),
+                            contentBackgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : customWhite,
+                            contentBorderColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                            rightIcon: Icon(
+                              Icons.arrow_drop_down_circle_outlined,
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                            ),
+                            children: [
+                              AccordionSection(
+                                header: Text('About The Applicant'),
+                                content: RecCard(app: widget.app, file: files[0], title: 'About Applicant'),
+                              ),
+                              AccordionSection(
+                                header: Text('Education Recommendations'),
+                                content: RecCard(app: widget.app, file: files[3], title: 'Education Recommendations'),
+                              ),
+                              AccordionSection(
+                                header: Text('Experience Recommendations'),
+                                content: RecCard(app: widget.app, file: files[4], title: 'Experience Recommendations'),
+                              ),
+                              AccordionSection(
+                                header: Text('Framework Recommendations'),
+                                content: RecCard(app: widget.app, file: files[5], title: 'Framework Recommendations'),
+                              ),
+                              AccordionSection(
+                                header: Text('Math Skill Recommendations'),
+                                content: RecCard(app: widget.app, file: files[6], title: 'Math Skill Recommendations'),
+                              ),
+                              AccordionSection(
+                                header: Text('Personal Skill Recommendations'),
+                                content: RecCard(app: widget.app, file: files[7], title: 'Personal Skill Recommendations'),
+                              ),
+                              AccordionSection(
+                                header: Text('Programming Language Recommendations'),
+                                content: RecCard(app: widget.app, file: files[8], title: 'Programming Language Recommendations'),
+                              ),
+                              AccordionSection(
+                                header: Text('Programming Skill Recommendations'),
+                                content: RecCard(app: widget.app, file: files[9], title: 'Programming Skill Recommendations'),
+                              ),
+                              AccordionSection(
+                                header: Text('Project Recommendations'),
+                                content: RecCard(app: widget.app, file: files[10], title: 'Project Recommendations'),
+                              ),
+                              AccordionSection(
+                                header: Text('Scientific Skill Recommendations'),
+                                content: RecCard(app: widget.app, file: files[11], title: 'Scientific Skill Recommendations'),
+                              ),
+                              AccordionSection(
+                                header: Text('Why The Applicant'),
+                                content: RecCard(app: widget.app, file: files[2], title: 'Why The Applicant'),
+                              ),
+                              AccordionSection(
+                                header: Text('Why The Job'),
+                                content: RecCard(app: widget.app, file: files[1], title: 'Why The Job'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -361,15 +422,28 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
                       ),
                     ),
                     Spacer(),
-                    Center(
-                      child: FloatingActionButton(
-                        heroTag: 'Open CV Dir',
-                        onPressed: () async {
-                          String path = widget.app.coverLetterPDF.path;
-                          OpenFileDir(path);
-                        },
-                        child: Icon(Icons.add),
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FloatingActionButton(
+                          heroTag: 'Open CV Dir',
+                          onPressed: () async {
+                            String path = widget.app.coverLetterPDF.path;
+                            OpenFileDir(path);
+                          },
+                          child: Icon(Icons.file_open),
+                        ),
+                        SizedBox(width: standardSizedBoxWidth),
+                        FloatingActionButton(
+                          heroTag: 'Download CV File',
+                          onPressed: () async {
+                            String path = widget.app.coverLetterPDF.path;
+                            await SaveFile(context, path);
+                          },
+                          child: Icon(Icons.download),
+                        ),
+                      ],
                     ),
                     Spacer(),
                   ],
@@ -443,15 +517,28 @@ class _PortfolioCardState extends State<PortfolioCard> {
                       ),
                     ),
                     Spacer(),
-                    Center(
-                      child: FloatingActionButton(
-                        heroTag: 'Open Portfolio Dir',
-                        onPressed: () async {
-                          String path = widget.app.portfolioPDF.path;
-                          OpenFileDir(path);
-                        },
-                        child: Icon(Icons.add),
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FloatingActionButton(
+                          heroTag: 'Open Portfolio Dir',
+                          onPressed: () async {
+                            String path = widget.app.portfolioPDF.path;
+                            OpenFileDir(path);
+                          },
+                          child: Icon(Icons.file_open),
+                        ),
+                        SizedBox(width: standardSizedBoxWidth),
+                        FloatingActionButton(
+                          heroTag: 'Download Portfolio PDF',
+                          onPressed: () async {
+                            String path = widget.app.portfolioPDF.path;
+                            await SaveFile(context, path);
+                          },
+                          child: Icon(Icons.download),
+                        ),
+                      ],
                     ),
                     Spacer(),
                   ],
@@ -605,15 +692,28 @@ class _ResumeCardState extends State<ResumeCard> {
                       ),
                     ),
                     Spacer(),
-                    Center(
-                      child: FloatingActionButton(
-                        heroTag: 'Open Resume Dir',
-                        onPressed: () async {
-                          String path = widget.app.resumePDF.path;
-                          OpenFileDir(path);
-                        },
-                        child: Icon(Icons.add),
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FloatingActionButton(
+                          heroTag: 'Open Resume Dir',
+                          onPressed: () async {
+                            String path = widget.app.resumePDF.path;
+                            OpenFileDir(path);
+                          },
+                          child: Icon(Icons.file_open),
+                        ),
+                        SizedBox(width: standardSizedBoxWidth),
+                        FloatingActionButton(
+                          heroTag: 'Download Resume PDF',
+                          onPressed: () async {
+                            String path = widget.app.resumePDF.path;
+                            await SaveFile(context, path);
+                          },
+                          child: Icon(Icons.download),
+                        ),
+                      ],
                     ),
                     Spacer(),
                   ],
