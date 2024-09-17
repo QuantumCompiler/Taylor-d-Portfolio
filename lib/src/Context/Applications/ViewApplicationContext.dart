@@ -224,7 +224,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      ElevatedButton(
+                      TextButton(
                         child: Text('Clear Selections'),
                         onPressed: () => {
                           setState(() {
@@ -235,7 +235,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                         },
                       ),
                       SizedBox(width: standardSizedBoxWidth),
-                      ElevatedButton(
+                      TextButton(
                         child: Text('Download Files'),
                         onPressed: () async {
                           await SaveFiles(context, widget.app, coverLetterChecked, portfolioChecked, resumeChecked);
@@ -247,7 +247,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                         },
                       ),
                       SizedBox(width: standardSizedBoxWidth),
-                      ElevatedButton(
+                      TextButton(
                         child: Text('Select All'),
                         onPressed: () => {
                           setState(() {
@@ -255,6 +255,15 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                             portfolioChecked = true;
                             resumeChecked = true;
                           }),
+                        },
+                      ),
+                      SizedBox(width: standardSizedBoxWidth),
+                      TextButton(
+                        child: Text('Open LaTeX Files'),
+                        onPressed: () async {
+                          String path = widget.app.resumePDF.parent.parent.path;
+                          path += '/LaTeX Documents';
+                          OpenFileDir(path);
                         },
                       ),
                     ],
@@ -352,6 +361,17 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
                       ),
                     ),
                     Spacer(),
+                    Center(
+                      child: FloatingActionButton(
+                        heroTag: 'Open CV Dir',
+                        onPressed: () async {
+                          String path = widget.app.coverLetterPDF.path;
+                          OpenFileDir(path);
+                        },
+                        child: Icon(Icons.add),
+                      ),
+                    ),
+                    Spacer(),
                   ],
                 );
               },
@@ -420,6 +440,17 @@ class _PortfolioCardState extends State<PortfolioCard> {
                       child: Icon(
                         Icons.file_present,
                         size: constraints.maxHeight * 0.40,
+                      ),
+                    ),
+                    Spacer(),
+                    Center(
+                      child: FloatingActionButton(
+                        heroTag: 'Open Portfolio Dir',
+                        onPressed: () async {
+                          String path = widget.app.portfolioPDF.path;
+                          OpenFileDir(path);
+                        },
+                        child: Icon(Icons.add),
                       ),
                     ),
                     Spacer(),
@@ -574,6 +605,17 @@ class _ResumeCardState extends State<ResumeCard> {
                       ),
                     ),
                     Spacer(),
+                    Center(
+                      child: FloatingActionButton(
+                        heroTag: 'Open Resume Dir',
+                        onPressed: () async {
+                          String path = widget.app.resumePDF.path;
+                          OpenFileDir(path);
+                        },
+                        child: Icon(Icons.add),
+                      ),
+                    ),
+                    Spacer(),
                   ],
                 );
               },
@@ -648,14 +690,14 @@ class PDFScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
+            TextButton(
               child: Text('Download File'),
               onPressed: () async {
                 await SaveFile(context, pdfFile.path);
               },
             ),
             SizedBox(width: standardSizedBoxWidth),
-            ElevatedButton(
+            TextButton(
               child: Text('View Externally'),
               onPressed: () async {
                 await OpenFile(pdfFile.path);

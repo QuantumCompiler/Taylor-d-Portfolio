@@ -57,7 +57,7 @@ BottomAppBar NewJobBottomAppBar(BuildContext context, Job job, bool? backToJobs)
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(
+        TextButton(
           child: Text('Save Job'),
           onPressed: () {
             showDialog(

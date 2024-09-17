@@ -58,7 +58,7 @@ BottomAppBar EditProfileBottomAppBar(BuildContext context, Profile profile, bool
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(
+        TextButton(
           child: Text('Overwrite Profile'),
           onPressed: () async {
             await showDialog(

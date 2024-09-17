@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart' as open_file;
 import 'package:path/path.dart' as path;
 import 'ApplicationsUtils.dart';
 import 'JobUtils.dart';
@@ -260,6 +261,25 @@ Future<void> UnzipFile(Directory sourceDir, Directory destDir, String zipName, b
 // Write New File
 Future<void> WriteFile(Directory dir, File file, String contents) async {
   await file.writeAsString(contents);
+}
+
+void OpenFileDir(String path) async {
+  final finPath = File(path).existsSync() ? File(path).parent.path : path;
+  try {
+    if (Platform.isMacOS) {
+      await Process.run('open', [finPath]);
+    } else if (Platform.isWindows) {
+      await Process.run('explorer', [finPath]);
+    } else if (Platform.isLinux) {
+      await Process.run('xdg-open', [finPath]);
+    } else {
+      return;
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error occurred: $e');
+    }
+  }
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----

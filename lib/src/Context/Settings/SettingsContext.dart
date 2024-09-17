@@ -163,7 +163,7 @@ ListTile setLatexDirectory(BuildContext context) {
         context: BuildContext
         func: VoidCallback
       Algorithm:
-          * If the platform is desktop, return an ElevatedButton for cancel and delete
+          * If the platform is desktop, return an TextButton for cancel and delete
           * If the platform is mobile, return an IconButton for cancel and delete
       Output:
           Returns a Row with the appropriate buttons for the platform
@@ -174,7 +174,7 @@ Row platformDetect(BuildContext context, VoidCallback func) {
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
       if (isDesktop()) ...[
-        ElevatedButton(
+        TextButton(
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -192,7 +192,7 @@ Row platformDetect(BuildContext context, VoidCallback func) {
       ],
       SizedBox(width: standardSizedBoxWidth),
       if (isDesktop()) ...[
-        ElevatedButton(
+        TextButton(
           onPressed: () {
             func();
             Navigator.of(context).pop();

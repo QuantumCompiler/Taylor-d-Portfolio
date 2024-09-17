@@ -195,3 +195,90 @@ final Map<String, dynamic> testOpenAIResults = {
     "Technical Writing"
   ]
 };
+
+final Map<String, dynamic> testOpenAIResults2 = {
+  "Why_Me_Pitch": [
+    "As a passionate Platform Engineer with extensive experience in solving complex problems and creating impactful solutions, I am drawn to the opportunity at TrainingPeaks. Graduating Cum Laude with a B.S. in Physics and a minor in Mathematics, my analytical skills and rigorous problem-solving approach have been honed over years of academic and professional experience. Currently furthering my expertise in computer science through CU Boulder’s online post-baccalaureate program, I blend physics, mathematics, and computer science to approach challenges from multiple perspectives, driving innovation across disciplines.",
+    "At Applied Materials, I automated processes using Python, enhancing efficiency in daily tasks. As a Formulation Scientist and Software Developer at Mesa Lavender Farms, I developed full-stack applications that streamlined operations and improved productivity. My experience in teaching and scientific analysis, combined with software development, enables me to contribute effectively to a collaborative team environment.",
+    "My background aligns with the requirements of a Platform Engineer. My familiarity with modern Cloud/DevOps topics, including AWS, Kubernetes, Docker, and Terraform, alongside proficiency in scripting languages such as Python, demonstrates my capability to build and maintain reliable platforms. Additionally, my commitment to continuous learning and improvement is evident through my proactive approach to personal and professional development.",
+    "Joining TrainingPeaks would allow me to work on innovative projects that impact millions of users, fostering a culture of collaboration and excellence. I look forward to contributing my expertise to enhance the platform's infrastructure, ensuring it meets the growing demands of athletes and coaches. Together, we can build the world’s best training platform, driving progress and achieving remarkable success."
+  ],
+  "Why_Job_Pitch": [
+    "The opportunity to work at TrainingPeaks excites me because of its impact on millions of athletes and coaches worldwide. The prospect of joining a team dedicated to building the best training platform aligns with my passion for creating impactful solutions. TrainingPeaks’ commitment to innovation and collaboration is particularly appealing, as it resonates with my approach to continuous learning and improvement.",
+    "Being part of an organization under the Peaksware umbrella allows me to contribute to diverse projects across different brands like MakeMusic, TrainHeroic, and Alfred Music. This aligns with my interdisciplinary background, blending physics, mathematics, and computer science, enabling me to innovate across various domains.",
+    "Joining TrainingPeaks represents an opportunity to work on complex challenges alongside skilled professionals, fostering a culture of excellence and teamwork. Collaborating closely with Product Managers, Software Engineers, and QA to design and maintain essential platforms aligns perfectly with my professional aspirations and skills.",
+    "The inclusive and diverse workplace environment at TrainingPeaks, offering equal opportunity regardless of gender, race, or background, reassures me that my contributions will be valued and supported. I am eager to be part of a team that values adaptability, continuous learning, and a dedication to excellence, contributing to the growth and success of TrainingPeaks."
+  ],
+  "Education_Recommendations": ["The University Of Colorado At Boulder", "Colorado Mesa University"],
+  "Experience_Recommendations": ["Applied Materials", "Mesa Lavender Farms", "University Of Oklahoma"],
+  "Framework_Recommendations": ["ElectronJS", "Flask", "Flutter", "Qt", "React"],
+  "Math_Skills_Recommendations": [
+    "Computational Mathematics",
+    "Discrete Mathematics",
+    "Differential Equations",
+    "Fourier Analysis",
+    "Linear Algebra",
+    "Mathematical Modeling",
+    "Mathematical Physics",
+    "Multivariate Calculus",
+    "Numerical Analysis",
+    "Probability Theory",
+    "Statistics",
+    "Tensor Analysis"
+  ],
+  "Personal_Skills_Recommendations": [
+    "Adaptability",
+    "Attention To Detail",
+    "Communication",
+    "Conflict Resolution",
+    "Critical Thinking",
+    "Decision Making",
+    "Leadership",
+    "Multitasking",
+    "Organization",
+    "Presentation Skills",
+    "Problem Solving",
+    "Project Management",
+    "Research Skills",
+    "Resourcefulness",
+    "Time Management"
+  ],
+  "Project_Recommendations": ["EZ-Blackjack", "Formulator Pro", "Recipe Genie", "Taylor'd Portfolio"],
+  "Programming_Languages_Recommendations": ["Assembly (x86)", "C/C++", "CSS", "Dart", "HTML", "Java", "JavaScript", "LATEX", "Python", "Scala"],
+  "Programming_Skills_Recommendations": [
+    "AI And Machine Learning",
+    "Agile Development",
+    "Algorithms",
+    "Clustering And Classification",
+    "Concurrency",
+    "Cryptography",
+    "Data Cleaning And Preprocessing",
+    "Data Structures",
+    "Data Visualization",
+    "Debugging Tools",
+    "Formal Logic And Proof Techniques",
+    "Functional Programming",
+    "Graph Algorithms And Theory",
+    "Inductive Definitions And Type Systems",
+    "Natural Language Processing",
+    "Network Flow And Shortest Path Algorithms",
+    "Object-Oriented Programming Design",
+    "Python For AI",
+    "Regression Analysis",
+    "Version Control"
+  ],
+  "Scientific_Skills_Recommendations": [
+    "Computational Problem Solving",
+    "Data Analysis And Visualization",
+    "Error Analysis",
+    "Experimental Design",
+    "Laboratory Techniques",
+    "Literature Review",
+    "Plotting",
+    "Precision Measurement",
+    "Risk Assessment",
+    "Scientific Communication",
+    "Statistical Analysis",
+    "Technical Writing"
+  ]
+};

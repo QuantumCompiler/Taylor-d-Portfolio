@@ -24,15 +24,34 @@ class ThemeProvider with ChangeNotifier {
   ThemeData get themeData {
     return ThemeData(
       brightness: _isDarkTheme ? Brightness.dark : Brightness.light,
-      elevatedButtonTheme: ElevatedButtonThemeData(
+      scaffoldBackgroundColor: isDarkTheme ? Color.fromARGB(255, 0, 0, 0) : Color.fromARGB(255, 233, 233, 233),
+      drawerTheme: DrawerThemeData(
+        backgroundColor: isDarkTheme ? Color.fromARGB(255, 0, 0, 0) : Color.fromARGB(255, 233, 233, 233),
+      ),
+      textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
-          backgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? customCyan : customCyan),
-          foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Colors.black : Colors.black),
-          textStyle: WidgetStateProperty.all<TextStyle>(
-            TextStyle(
-              fontWeight: FontWeight.bold,
+          foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Colors.white : Colors.black),
+          side: WidgetStateProperty.all<BorderSide>(
+            BorderSide(
+              color: _isDarkTheme ? Colors.white : Colors.black,
+              width: 1.5,
             ),
           ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Colors.white : Colors.black),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: _isDarkTheme ? Colors.black : Colors.white,
+        foregroundColor: _isDarkTheme ? Colors.white : Colors.black,
+        splashColor: _isDarkTheme ? Colors.white : Colors.black,
+        iconSize: 20.0,
+        sizeConstraints: BoxConstraints.tightFor(
+          width: 50.0,
+          height: 30.0,
         ),
       ),
       appBarTheme: AppBarTheme(
@@ -51,11 +70,11 @@ class ThemeProvider with ChangeNotifier {
         shadowColor: Color.fromARGB(51, 0, 213, 255),
       ),
       checkboxTheme: CheckboxThemeData(
-        checkColor: WidgetStateProperty.all<Color?>(Colors.black),
+        checkColor: WidgetStateProperty.all<Color?>(Colors.white),
         fillColor: WidgetStateProperty.resolveWith<Color?>(
           (Set<WidgetState> states) {
             if (states.contains(WidgetState.selected)) {
-              return customCyan;
+              return Colors.black;
             }
             return Colors.transparent;
           },
@@ -63,19 +82,21 @@ class ThemeProvider with ChangeNotifier {
       ),
       dropdownMenuTheme: DropdownMenuThemeData(
         textStyle: TextStyle(
-          color: customCyan,
+          color: _isDarkTheme ? Colors.white : Colors.black,
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: ButtonStyle(
-          iconColor: WidgetStateProperty.all<Color?>(customCyan),
+          iconColor: WidgetStateProperty.all<Color?>(
+            _isDarkTheme ? Colors.white : Colors.black,
+          ),
         ),
       ),
       iconTheme: IconThemeData(
-        color: customCyan,
+        color: _isDarkTheme ? Colors.white : Colors.black,
       ),
       listTileTheme: ListTileThemeData(
-        iconColor: customCyan,
+        iconColor: _isDarkTheme ? Colors.white : Colors.black,
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: Color.fromARGB(128, 0, 213, 255),
@@ -93,7 +114,7 @@ class ThemeProvider with ChangeNotifier {
         }),
         trackColor: WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
           if (states.contains(WidgetState.selected)) {
-            return customCyan;
+            return Colors.white;
           }
           return Colors.grey;
         }),
@@ -106,7 +127,14 @@ class ThemeProvider with ChangeNotifier {
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
-          color: customCyan,
+          color: _isDarkTheme ? const Color.fromARGB(129, 255, 255, 255) : const Color.fromARGB(114, 0, 0, 0),
+          border: Border(
+            top: BorderSide(width: 2.5),
+            left: BorderSide(width: 2.5),
+            right: BorderSide(width: 2.5),
+            bottom: BorderSide(width: 2.5),
+          ),
+          borderRadius: BorderRadius.circular(50),
         ),
       ),
     );

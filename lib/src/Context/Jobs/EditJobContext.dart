@@ -58,7 +58,7 @@ BottomAppBar EditJobBottomAppBar(BuildContext context, Job job, bool? backToJobs
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(
+        TextButton(
           child: Text('Overwrite Job'),
           onPressed: () async {
             await showDialog(

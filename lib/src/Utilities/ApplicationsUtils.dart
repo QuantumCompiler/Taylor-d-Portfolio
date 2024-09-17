@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../Applications/Applications.dart';
 import '../Context/Applications/ViewApplicationContext.dart';
@@ -669,8 +668,15 @@ Future<Map<String, dynamic>> GetOpenAIRecs(BuildContext context, Application app
       if (choices.isNotEmpty) {
         String content = choices[0]['message']['content'];
         content = content.replaceAll('```json', '').replaceAll('```', '').trim();
-        ret = jsonDecode(content);
-        successful = true;
+        content = content.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '');
+        content = content.replaceAll('â', '');
+        content = content.replaceAll('', '');
+        try {
+          ret = jsonDecode(content);
+          successful = true;
+        } catch (e) {
+          print('JSON decoding error: $e');
+        }
         return ret;
       } else {
         return ret;
@@ -690,15 +696,18 @@ Future<Map<String, dynamic>> GetOpenAIRecs(BuildContext context, Application app
 
 Future<String> ConvertIndRecs(Map<String, dynamic> map, String section) async {
   String ret = '';
-  for (int i = 0; i < map[section].length; i++) {
-    if (i < map[section].length - 1) {
-      if ((section == covLetWhyJobPrompt) || (section == covLetWhyMePrompt)) {
-        ret += map[section][i] + '\n';
+  var sectionContent = map[section];
+  if (sectionContent != null && sectionContent.length != null) {
+    for (int i = 0; i < sectionContent.length; i++) {
+      if (i < sectionContent.length - 1) {
+        if ((section == covLetWhyJobPrompt) || (section == covLetWhyMePrompt)) {
+          ret += sectionContent[i] + '\n';
+        } else {
+          ret += sectionContent[i] + ', ';
+        }
       } else {
-        ret += map[section][i] + ', ';
+        ret += sectionContent[i];
       }
-    } else {
-      ret += map[section][i];
     }
   }
   return ret;

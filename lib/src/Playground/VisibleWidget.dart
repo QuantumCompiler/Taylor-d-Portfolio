@@ -36,7 +36,7 @@ class _VisibilityToggleExampleState extends State<VisibilityToggleExample> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ElevatedButton(
+          TextButton(
             onPressed: () {
               setState(() {
                 _isVisible = !_isVisible;

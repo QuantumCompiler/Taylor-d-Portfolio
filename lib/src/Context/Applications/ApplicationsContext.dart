@@ -60,7 +60,7 @@ BottomAppBar ApplicationsBottomAppBar(BuildContext context, List<Job> jobs, List
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(
+        TextButton(
           child: Text('Proceed To OpenAI'),
           onPressed: () {
             bool jobsValid = jobs.any((job) => job.isSelected);
@@ -111,14 +111,14 @@ BottomAppBar ApplicationsBottomAppBar(BuildContext context, List<Job> jobs, List
                             crossAxisAlignment: CrossAxisAlignment.center,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              ElevatedButton(
+                              TextButton(
                                 child: Text('No'),
                                 onPressed: () {
                                   Navigator.of(context).pop();
                                 },
                               ),
                               SizedBox(width: standardSizedBoxWidth),
-                              ElevatedButton(
+                              TextButton(
                                 child: Text('Yes'),
                                 onPressed: () async {
                                   Navigator.of(context).pop();

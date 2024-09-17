@@ -100,7 +100,7 @@ BottomAppBar ProfileContentBottomAppBar(BuildContext context, ProfileContentType
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(
+        TextButton(
           child: Text(buttonText),
           onPressed: () async {
             if (type == ProfileContentType.coverLetter) {

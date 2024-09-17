@@ -92,7 +92,7 @@ BottomAppBar JobContentBottomAppBar(BuildContext context, JobContentType type, J
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(
+        TextButton(
           child: Text(buttonText),
           onPressed: () async {
             if (type == JobContentType.description) {

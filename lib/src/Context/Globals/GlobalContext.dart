@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../Applications/Applications.dart';
 import '../../Globals/Globals.dart';
 import '../../Utilities/ApplicationsUtils.dart';
@@ -63,7 +62,7 @@ AlertDialog DeleteApplicationDialog(BuildContext context, List<Application> apps
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
+            TextButton(
               child: Text(
                 'Cancel',
               ),
@@ -72,7 +71,7 @@ AlertDialog DeleteApplicationDialog(BuildContext context, List<Application> apps
               },
             ),
             SizedBox(width: standardSizedBoxWidth),
-            ElevatedButton(
+            TextButton(
               child: Text('Delete'),
               onPressed: () async {
                 try {
@@ -119,7 +118,7 @@ AlertDialog DeleteJobDialog(BuildContext context, List<Job> jobs, int index, Fun
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
+            TextButton(
               child: Text(
                 'Cancel',
               ),
@@ -128,7 +127,7 @@ AlertDialog DeleteJobDialog(BuildContext context, List<Job> jobs, int index, Fun
               },
             ),
             SizedBox(width: standardSizedBoxWidth),
-            ElevatedButton(
+            TextButton(
               child: Text('Delete'),
               onPressed: () async {
                 try {
@@ -175,7 +174,7 @@ AlertDialog DeleteProfileDialog(BuildContext context, List<Profile> profiles, in
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
+            TextButton(
               child: Text(
                 'Cancel',
               ),
@@ -184,7 +183,7 @@ AlertDialog DeleteProfileDialog(BuildContext context, List<Profile> profiles, in
               },
             ),
             SizedBox(width: standardSizedBoxWidth),
-            ElevatedButton(
+            TextButton(
               child: Text('Delete'),
               onPressed: () async {
                 try {
@@ -239,14 +238,14 @@ AlertDialog EditJobDialog(BuildContext context, Job job, bool? backToJobs) {
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ElevatedButton(
+          TextButton(
             child: Text('Cancel'),
             onPressed: () {
               Navigator.of(context).pop();
             },
           ),
           SizedBox(width: standardSizedBoxWidth),
-          ElevatedButton(
+          TextButton(
             child: Text('Overwrite Job'),
             onPressed: () async {
               try {
@@ -309,14 +308,14 @@ AlertDialog EditProfileDialog(BuildContext context, Profile profile, bool? backT
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ElevatedButton(
+          TextButton(
             child: Text('Cancel'),
             onPressed: () {
               Navigator.of(context).pop();
             },
           ),
           SizedBox(width: standardSizedBoxWidth),
-          ElevatedButton(
+          TextButton(
             child: Text('Overwrite Profile'),
             onPressed: () async {
               try {
@@ -378,14 +377,14 @@ AlertDialog NewApplicationDialog(BuildContext context, Application app, TextEdit
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ElevatedButton(
+          TextButton(
             child: Text('Cancel'),
             onPressed: () {
               Navigator.of(context).pop();
             },
           ),
           SizedBox(width: standardSizedBoxWidth),
-          ElevatedButton(
+          TextButton(
             child: Text('Save Application'),
             onPressed: () async {
               final masterDir = await GetAppDir();
@@ -413,7 +412,7 @@ AlertDialog NewApplicationDialog(BuildContext context, Application app, TextEdit
                         title: Text('Error'),
                         content: Text('An error occurred while creating the job. Please try again. $e'),
                         actions: [
-                          ElevatedButton(
+                          TextButton(
                             child: Text('OK'),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
@@ -466,14 +465,14 @@ AlertDialog NewJobDialog(BuildContext context, Job job, bool? backToJobs, TextEd
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ElevatedButton(
+          TextButton(
             child: Text('Cancel'),
             onPressed: () {
               Navigator.of(context).pop();
             },
           ),
           SizedBox(width: standardSizedBoxWidth),
-          ElevatedButton(
+          TextButton(
             child: Text('Save Job'),
             onPressed: () async {
               final masterDir = await GetAppDir();
@@ -511,7 +510,7 @@ AlertDialog NewJobDialog(BuildContext context, Job job, bool? backToJobs, TextEd
                         title: Text('Error'),
                         content: Text('An error occurred while creating the job. Please try again. $e'),
                         actions: [
-                          ElevatedButton(
+                          TextButton(
                             child: Text('OK'),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
@@ -564,14 +563,14 @@ AlertDialog NewProfileDialog(BuildContext context, Profile profile, bool? backTo
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ElevatedButton(
+          TextButton(
             child: Text('Cancel'),
             onPressed: () {
               Navigator.of(context).pop();
             },
           ),
           SizedBox(width: standardSizedBoxWidth),
-          ElevatedButton(
+          TextButton(
             child: Text('Save Profile'),
             onPressed: () async {
               final masterDir = await GetAppDir();
@@ -609,7 +608,7 @@ AlertDialog NewProfileDialog(BuildContext context, Profile profile, bool? backTo
                         title: Text('Error'),
                         content: Text('An error occurred while creating the profile. Please try again. $e'),
                         actions: [
-                          ElevatedButton(
+                          TextButton(
                             child: Text('OK'),
                             onPressed: () => Navigator.of(context).pop(),
                           ),

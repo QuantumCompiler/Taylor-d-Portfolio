@@ -60,7 +60,7 @@ BottomAppBar NewProfileBottomAppBar(BuildContext context, Profile profile, bool?
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(
+        TextButton(
           child: Text('Save Profile'),
           onPressed: () {
             showDialog(

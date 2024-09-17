@@ -81,7 +81,7 @@ class _PdfTextExtractorPageState extends State<PdfTextExtractorPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            ElevatedButton(
+            TextButton(
               onPressed: pickAndExtractText,
               child: Text('Pick PDF and Extract Text'),
             ),
