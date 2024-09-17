@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-// import 'package:flutter/gestures.dart';
-// import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -15,12 +13,6 @@ import '../Context/Globals/GlobalContext.dart';
 import '../Globals/ApplicationsGlobals.dart';
 import '../Globals/JobsGlobals.dart';
 import '../Globals/ProfilesGlobals.dart';
-// import '../Globals/ApplicationsGlobals.dart';
-// import 'package:archive/archive_io.dart';
-// import 'package:flutter/foundation.dart';
-// import 'package:flutter/material.dart';
-// import 'package:path/path.dart' as p;
-// import '../Globals/Globals.dart';
 import '../Utilities/GlobalUtils.dart';
 import '../Utilities/JobUtils.dart';
 import '../Utilities/ProfilesUtils.dart';
@@ -65,6 +57,9 @@ class Application {
   late File whyJobFile;
   late File whyMeFile;
 
+  // Application Information
+  String appURL = '';
+
   // Recommendation Controllers
   TextEditingController aboutMeCont = TextEditingController();
   TextEditingController eduRecCont = TextEditingController();
@@ -79,7 +74,7 @@ class Application {
   TextEditingController whyJobCont = TextEditingController();
   TextEditingController whyMeCont = TextEditingController();
 
-  // Mater Recommendations
+  // Master Recommendations
   late Map<String, dynamic> masterRecs;
   late List<String> recommendations;
 
@@ -111,34 +106,65 @@ class Application {
     required this.sciRecFile,
     required this.whyJobFile,
     required this.whyMeFile,
+    required this.appURL,
   });
 
   // Init
   static Future<Application> Init({String name = '', required bool newApp}) async {
-    final masterDir = GetAppDir();
+    // Directories etc.
+    final masterDir = await GetAppDir();
+    Directory appsDir = Directory('${masterDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
     Future<Job> futureJob = Job.Init(newJob: false);
     Future<Profile> futureProfile = Profile.Init(newProfile: false);
     Job jobUsed = await futureJob;
     Profile profileUsed = await futureProfile;
+    // Sub Directory
+    String pdfDir = '';
+    if (!newApp) {
+      pdfDir = '${currDir.path}/PDFs';
+    } else {
+      pdfDir = '${masterDir.path}/Temp';
+    }
     // Main Files
-    File cPDF = File('$masterDir/Temp/CoverLetter.pdf');
-    File pPDF = File('$masterDir/Temp/Portfolio.pdf');
-    File rPDF = File('$masterDir/Temp/Resume.pdf');
+    File cPDF = File('$pdfDir/CoverLetter.pdf');
+    File pPDF = File('$pdfDir/Portfolio.pdf');
+    File rPDF = File('$pdfDir/Resume.pdf');
     // Recommendation Files
-    File aboutMe = File('$masterDir/Temp/Open AI Recommendations/About.txt');
-    File company = File('$masterDir/Temp/Open AI Recommendations/Company.txt');
-    File eduRec = File('$masterDir/Temp/Open AI Recommendations/Education.txt');
-    File expRec = File('$masterDir/Temp/Open AI Recommendations/Experience.txt');
-    File frameRec = File('$masterDir/Temp/Open AI Recommendations/Frameworks.txt');
-    File langRec = File('$masterDir/Temp/Open AI Recommendations/Languages.txt');
-    File mathRec = File('$masterDir/Temp/Open AI Recommendations/Math.txt');
-    File openAIRec = File('$masterDir/Temp/Open AI Recommendations/OpenAIRecs.json');
-    File persRec = File('$masterDir/Temp/Open AI Recommendations/Personal.txt');
-    File progRec = File('$masterDir/Temp/Open AI Recommendations/Programming.txt');
-    File projRec = File('$masterDir/Temp/Open AI Recommendations/Projects.txt');
-    File sciRec = File('$masterDir/Temp/Open AI Recommendations/Scientific.txt');
-    File whyJob = File('$masterDir/Temp/Open AI Recommendations/WhyJob.txt');
-    File whyMe = File('$masterDir/Temp/Open AI Recommendations/WhyMe.txt');
+    String recDir = '';
+    if (!newApp) {
+      recDir = '${currDir.path}/Open AI Recommendations';
+    } else {
+      recDir = '${masterDir.path}/Temp/Open AI Recommendations';
+    }
+    File aboutMe = File('$recDir/About.txt');
+    File company = File('$recDir/Company.txt');
+    File eduRec = File('$recDir/Education.txt');
+    File expRec = File('$recDir/Experience.txt');
+    File frameRec = File('$recDir/Frameworks.txt');
+    File langRec = File('$recDir/Languages.txt');
+    File mathRec = File('$recDir/Math.txt');
+    File openAIRec = File('$recDir/OpenAIRecs.json');
+    File persRec = File('$recDir/Personal.txt');
+    File progRec = File('$recDir/Programming.txt');
+    File projRec = File('$recDir/Projects.txt');
+    File sciRec = File('$recDir/Scientific.txt');
+    File whyJob = File('$recDir/WhyJob.txt');
+    File whyMe = File('$recDir/WhyMe.txt');
+    // Strings
+    String addDir = '';
+    if (!newApp) {
+      addDir = '${currDir.path}/Additional';
+    } else {
+      addDir = '${masterDir.path}/Temp';
+    }
+    File urlFile = File('$addDir/URL.txt');
+    String appURL = '';
+    if (urlFile.existsSync()) {
+      appURL = await urlFile.readAsString();
+    } else {
+      appURL = '';
+    }
     // Recommendations
     List<String> recs = [];
     Map<String, dynamic> masterRecs = {};
@@ -166,6 +192,7 @@ class Application {
       sciRecFile: sciRec,
       whyJobFile: whyJob,
       whyMeFile: whyMe,
+      appURL: appURL,
     );
   }
 
@@ -245,6 +272,7 @@ class Application {
     await SetPortPDF();
     await SetResPDF();
     await GetRecs();
+    await GetURL();
   }
 
   // Set Previous Content
@@ -422,6 +450,7 @@ class Application {
     sciRecFile = sciFile;
   }
 
+  // Get Recs
   Future<void> GetRecs() async {
     final appDir = await GetAppDir();
     Directory appsDir = Directory('${appDir.path}/Applications');
@@ -579,6 +608,30 @@ class Application {
     Directory pdfDir = Directory('${currDir.path}/PDFs');
     File pdfFile = File('${pdfDir.path}/Resume.pdf');
     resumePDF = pdfFile;
+  }
+
+  Future<void> GetURL() async {
+    final appDir = await GetAppDir();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory addDir = Directory('${currDir.path}/Additional');
+    if (!addDir.existsSync()) {
+      return;
+    }
+    File file = File('${addDir.path}/URL.txt');
+    appURL = file.readAsStringSync();
+  }
+
+  Future<void> SetURL(String url) async {
+    final appDir = await GetAppDir();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory addDir = Directory('${currDir.path}/Additional');
+    if (!addDir.existsSync()) {
+      await addDir.create();
+    }
+    File file = File('${addDir.path}/URL.txt');
+    await WriteFile(addDir, file, url);
   }
 }
 

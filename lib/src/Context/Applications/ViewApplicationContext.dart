@@ -1,8 +1,11 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:accordion/accordion.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../Profiles/ViewProfile.dart';
 import '../../Jobs/ViewJob.dart';
 import '../../Applications/ViewApplication.dart';
@@ -38,7 +41,7 @@ AppBar ViewApplicationAppBar(BuildContext context, Application app) {
 class ViewApplicationContent extends StatefulWidget {
   final Application app;
 
-  const ViewApplicationContent({super.key, required this.app});
+  ViewApplicationContent({super.key, required this.app});
 
   @override
   _ViewApplicationContentState createState() => _ViewApplicationContentState();
@@ -46,12 +49,6 @@ class ViewApplicationContent extends StatefulWidget {
 
 class _ViewApplicationContentState extends State<ViewApplicationContent> {
   late Future<List<File>> _filesFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _filesFuture = _loadFiles();
-  }
 
   Future<List<File>> _loadFiles() async {
     await widget.app.GetRecs();
@@ -75,6 +72,17 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
   bool coverLetterChecked = false;
   bool portfolioChecked = false;
   bool resumeChecked = false;
+  bool infoOpen = false;
+
+  TextEditingController urlCont = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _filesFuture = _loadFiles();
+    widget.app.LoadApplication();
+    urlCont.text = widget.app.appURL;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -345,6 +353,85 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                               AccordionSection(
                                 header: Text('Why The Job'),
                                 content: RecCard(app: widget.app, file: files[1], title: 'Why The Job'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        AccordionSection(
+                          header: Text('Additional Info'),
+                          isOpen: true,
+                          onOpenSection: () {
+                            infoOpen = true;
+                          },
+                          onCloseSection: () {
+                            infoOpen = false;
+                          },
+                          content: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  Text(
+                                    'Application URL',
+                                    style: TextStyle(
+                                      fontSize: secondaryTitles,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          maxWidth: MediaQuery.of(context).size.width * 0.55,
+                                        ),
+                                        child: TextFormField(
+                                          controller: urlCont,
+                                          minLines: 1,
+                                          maxLines: 1,
+                                          decoration: InputDecoration(hintText: 'Enter url for the application...'),
+                                          onChanged: (value) {
+                                            widget.app.appURL = urlCont.text;
+                                          },
+                                        ),
+                                      ),
+                                      SizedBox(width: standardSizedBoxWidth),
+                                      IconButton(
+                                        icon: Icon(Icons.save),
+                                        onPressed: () async {
+                                          await widget.app.SetURL(urlCont.text);
+                                        },
+                                      ),
+                                      SizedBox(width: standardSizedBoxWidth),
+                                      IconButton(
+                                        icon: Icon(Icons.view_kanban),
+                                        onPressed: () async {
+                                          await launchUrl(Uri.parse(widget.app.appURL));
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  Text(
+                                    'Application Details',
+                                    style: TextStyle(
+                                      fontSize: secondaryTitles,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [],
+                                  ),
+                                ],
                               ),
                             ],
                           ),
