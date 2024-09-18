@@ -662,17 +662,17 @@ Future<void> ShowProducedDialog(BuildContext context, String title, String conte
   timer?.cancel();
 }
 
-Future<DateTime?> SelectDate(BuildContext context) async {
+Future<DateTime?> SelectDate(BuildContext context, {DateTime? initialDate}) async {
   final DateTime? pickedDate = await showDatePicker(
     context: context,
-    initialDate: DateTime.now(),
+    initialDate: initialDate ?? DateTime.now(),
     firstDate: DateTime(1900),
     lastDate: DateTime(3000),
   );
   if (pickedDate != null) {
-    return DateTime(pickedDate.year, pickedDate.month, pickedDate.day);
+    return DateTime(pickedDate.year, pickedDate.month, pickedDate.day, DateTime.now().hour, DateTime.now().minute, DateTime.now().second);
   }
-  return DateTime.now();
+  return initialDate ?? DateTime.now();
 }
 
 IconButton NavToPage(BuildContext context, String toolTip, Widget icon, Widget destination, bool forwards, bool cleanTemp) {

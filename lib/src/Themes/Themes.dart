@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Globals/Globals.dart';
 
@@ -95,10 +96,31 @@ class ThemeProvider with ChangeNotifier {
           },
         ),
       ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: _isDarkTheme ? Colors.black : customWhite,
+        dayBackgroundColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) {
+            if (states.contains(WidgetState.selected)) {
+              return Colors.green;
+            } else {
+              return _isDarkTheme ? Colors.black : Colors.white;
+            }
+          },
+        ),
+        todayBackgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Colors.white : Colors.black),
+      ),
       dropdownMenuTheme: DropdownMenuThemeData(
         textStyle: TextStyle(
           color: _isDarkTheme ? Colors.white : Colors.black,
         ),
+      ),
+      expansionTileTheme: ExpansionTileThemeData(
+        backgroundColor: _isDarkTheme ? Colors.black : customWhite,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+        ),
+        collapsedIconColor: _isDarkTheme ? Colors.white : Colors.black,
+        iconColor: Colors.green,
       ),
       iconButtonTheme: IconButtonThemeData(
         style: ButtonStyle(
@@ -141,9 +163,10 @@ class ThemeProvider with ChangeNotifier {
         }),
       ),
       inputDecorationTheme: InputDecorationTheme(
-          hintStyle: TextStyle(
-        color: _isDarkTheme ? Colors.white : Colors.black,
-      )),
+        hintStyle: TextStyle(
+          color: _isDarkTheme ? Colors.white : Colors.black,
+        ),
+      ),
       tooltipTheme: TooltipThemeData(
           decoration: BoxDecoration(
             color: _isDarkTheme ? Color.fromARGB(0, 0, 0, 0) : Color.fromARGB(0, 0, 0, 0),

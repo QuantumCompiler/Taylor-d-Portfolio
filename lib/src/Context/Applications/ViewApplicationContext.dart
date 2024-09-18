@@ -1,10 +1,7 @@
-import 'dart:ffi';
 import 'dart:io';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:accordion/accordion.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../Profiles/ViewProfile.dart';
 import '../../Jobs/ViewJob.dart';
@@ -122,9 +119,10 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                     ],
                   ),
                   SizedBox(height: standardSizedBoxHeight),
+                  SizedBox(height: standardSizedBoxHeight),
                   Center(
                     child: Text(
-                      'Job And Profile',
+                      'Application Contents',
                       style: TextStyle(
                         fontSize: secondaryTitles,
                         fontWeight: FontWeight.bold,
@@ -132,140 +130,403 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                     ),
                   ),
                   SizedBox(height: standardSizedBoxHeight),
-                  Container(
-                    width: MediaQuery.of(context).size.width * 0.75,
-                    child: ListView(
-                      shrinkWrap: true,
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    ),
+                    child: ExpansionTile(
+                      title: Text('Application Information'),
+                      initiallyExpanded: false,
                       children: [
-                        Tooltip(
-                          message: 'Click To View Job Used',
-                          child: ListTile(
-                            title: Text(widget.app.jobUsed.name),
-                            onTap: () async {
-                              Navigator.of(context).pushAndRemoveUntil(RightToLeftPageRoute(page: ViewJobPage(app: widget.app, jobName: widget.app.jobUsed.name)), (Route<dynamic> route) => false);
-                            },
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width * 0.70,
                           ),
-                        ),
-                        Tooltip(
-                          message: 'Click To View Profile Used',
-                          child: ListTile(
-                            title: Text(widget.app.profileUsed.name),
-                            onTap: () async {
-                              Navigator.of(context)
-                                  .pushAndRemoveUntil(RightToLeftPageRoute(page: ViewProfilePage(app: widget.app, profileName: widget.app.profileUsed.name)), (Route<dynamic> route) => false);
-                            },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(height: standardSizedBoxHeight),
+                              ExpansionTile(
+                                title: Text('Application Content'),
+                                children: [
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  Container(
+                                    width: MediaQuery.of(context).size.width * 0.60,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        ListTile(
+                                          title: Text(widget.app.jobUsed.name),
+                                          onTap: () async {
+                                            Navigator.of(context)
+                                                .pushAndRemoveUntil(RightToLeftPageRoute(page: ViewJobPage(app: widget.app, jobName: widget.app.jobUsed.name)), (Route<dynamic> route) => false);
+                                          },
+                                        ),
+                                        ListTile(
+                                          title: Text(widget.app.profileUsed.name),
+                                          onTap: () async {
+                                            Navigator.of(context).pushAndRemoveUntil(
+                                                RightToLeftPageRoute(page: ViewProfilePage(app: widget.app, profileName: widget.app.profileUsed.name)), (Route<dynamic> route) => false);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: standardSizedBoxHeight),
+                                ],
+                              ),
+                              ExpansionTile(
+                                title: Text('Application Files'),
+                                children: [
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  Text(
+                                    'Application Files',
+                                    style: TextStyle(
+                                      fontSize: secondaryTitles,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.65),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                            maxWidth: MediaQuery.of(context).size.width * 0.65,
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              ListTile(
+                                                title: Text('Cover Letter'),
+                                                trailing: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      icon: Icon(Icons.download),
+                                                      onPressed: () async {
+                                                        String path = widget.app.coverLetterPDF.path;
+                                                        await SaveFile(context, path);
+                                                      },
+                                                    ),
+                                                    IconButton(
+                                                      icon: Icon(Icons.view_carousel),
+                                                      onPressed: () async {
+                                                        String path = widget.app.coverLetterPDF.path;
+                                                        await OpenFile(path);
+                                                      },
+                                                    ),
+                                                    IconButton(
+                                                      icon: Icon(Icons.open_in_new),
+                                                      onPressed: () async {
+                                                        String path = widget.app.coverLetterPDF.path;
+                                                        OpenFileDir(path);
+                                                      },
+                                                    ),
+                                                    Checkbox(
+                                                      value: coverLetterChecked,
+                                                      onChanged: (value) {
+                                                        setState(() {
+                                                          coverLetterChecked = value!;
+                                                        });
+                                                      },
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                              ListTile(
+                                                title: Text('Portfolio'),
+                                                trailing: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      icon: Icon(Icons.download),
+                                                      onPressed: () async {
+                                                        String path = widget.app.portfolioPDF.path;
+                                                        await SaveFile(context, path);
+                                                      },
+                                                    ),
+                                                    IconButton(
+                                                      icon: Icon(Icons.view_carousel),
+                                                      onPressed: () async {
+                                                        String path = widget.app.portfolioPDF.path;
+                                                        await OpenFile(path);
+                                                      },
+                                                    ),
+                                                    IconButton(
+                                                      icon: Icon(Icons.open_in_new),
+                                                      onPressed: () async {
+                                                        String path = widget.app.portfolioPDF.path;
+                                                        OpenFileDir(path);
+                                                      },
+                                                    ),
+                                                    Checkbox(
+                                                      value: portfolioChecked,
+                                                      onChanged: (value) {
+                                                        setState(() {
+                                                          portfolioChecked = value!;
+                                                        });
+                                                      },
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                              ListTile(
+                                                title: Text('Resume'),
+                                                trailing: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      icon: Icon(Icons.download),
+                                                      onPressed: () async {
+                                                        String path = widget.app.resumePDF.path;
+                                                        await SaveFile(context, path);
+                                                      },
+                                                    ),
+                                                    IconButton(
+                                                      icon: Icon(Icons.view_carousel),
+                                                      onPressed: () async {
+                                                        String path = widget.app.resumePDF.path;
+                                                        await OpenFile(path);
+                                                      },
+                                                    ),
+                                                    IconButton(
+                                                      icon: Icon(Icons.open_in_new),
+                                                      onPressed: () async {
+                                                        String path = widget.app.resumePDF.path;
+                                                        OpenFileDir(path);
+                                                      },
+                                                    ),
+                                                    Checkbox(
+                                                      value: resumeChecked,
+                                                      onChanged: (value) {
+                                                        setState(() {
+                                                          resumeChecked = value!;
+                                                        });
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              ListTile(
+                                                title: Text('LaTeX Files'),
+                                                trailing: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      icon: Icon(Icons.open_in_new),
+                                                      onPressed: () async {
+                                                        final masterDir = await GetAppDir();
+                                                        Directory appsDir = Directory('${masterDir.path}/Applications');
+                                                        Directory currDir = Directory('${appsDir.path}/${widget.app.name}');
+                                                        Directory latexDir = Directory('${currDir.path}/LaTeX Documents');
+                                                        OpenFileDir(latexDir.path);
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(height: standardSizedBoxHeight),
+                                              Row(
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  TextButton(
+                                                    child: Text('Select / Unselect All'),
+                                                    onPressed: () => {
+                                                      setState(() {
+                                                        if (coverLetterChecked || portfolioChecked || resumeChecked) {
+                                                          coverLetterChecked = false;
+                                                          portfolioChecked = false;
+                                                          resumeChecked = false;
+                                                        } else {
+                                                          coverLetterChecked = true;
+                                                          portfolioChecked = true;
+                                                          resumeChecked = true;
+                                                        }
+                                                      }),
+                                                    },
+                                                  ),
+                                                  SizedBox(width: standardSizedBoxWidth),
+                                                  TextButton(
+                                                    child: Text('Download Files'),
+                                                    onPressed: () async {
+                                                      await SaveFiles(context, widget.app, coverLetterChecked, portfolioChecked, resumeChecked);
+                                                      setState(() {
+                                                        coverLetterChecked = false;
+                                                        portfolioChecked = false;
+                                                        resumeChecked = false;
+                                                      });
+                                                    },
+                                                  ),
+                                                  SizedBox(width: standardSizedBoxWidth),
+                                                  TextButton(
+                                                    child: Text('Open LaTeX Files'),
+                                                    onPressed: () async {
+                                                      String path = widget.app.resumePDF.parent.parent.path;
+                                                      path += '/LaTeX Documents';
+                                                      OpenFileDir(path);
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: standardSizedBoxHeight),
+                                ],
+                              ),
+                              ExpansionTile(
+                                title: Text('Application Logistics'),
+                                children: [
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  Text(
+                                    'Application Logistics',
+                                    style: TextStyle(
+                                      fontSize: secondaryTitles,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('Applied?'),
+                                      // Applied
+                                      Checkbox(
+                                        value: widget.app.applied,
+                                        onChanged: (value) async {
+                                          setState(() {
+                                            widget.app.SetApplied(value!);
+                                          });
+                                          await widget.app.SetAdditional();
+                                        },
+                                      ),
+                                      // Interviewed
+                                      SizedBox(width: standardSizedBoxWidth),
+                                      Text('Interview?'),
+                                      Checkbox(
+                                        value: widget.app.interview,
+                                        onChanged: (value) async {
+                                          setState(() {
+                                            widget.app.SetInterview(value!);
+                                          });
+                                          await widget.app.SetAdditional();
+                                        },
+                                      ),
+                                      // Offer
+                                      SizedBox(width: standardSizedBoxWidth),
+                                      Text('Offer?'),
+                                      Checkbox(
+                                        value: widget.app.offer,
+                                        onChanged: (value) async {
+                                          setState(() {
+                                            widget.app.SetOffer(value!);
+                                          });
+                                          await widget.app.SetAdditional();
+                                        },
+                                      ),
+                                      // Application Date
+                                      SizedBox(width: standardSizedBoxWidth),
+                                      Text('Application Date:'),
+                                      widget.app.appDate != null ? Text(' ${widget.app.appDate?.month}/${widget.app.appDate?.day}/${widget.app.appDate?.year}') : Text(''),
+                                      IconButton(
+                                        icon: Icon(Icons.date_range),
+                                        onPressed: () async {
+                                          DateTime? date = await SelectDate(context, initialDate: widget.app.appDate ?? DateTime.now());
+                                          setState(() {
+                                            widget.app.SetDate(date);
+                                          });
+                                          await widget.app.SetAdditional();
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  InkWell(
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: TextStyle(
+                                          fontSize: secondaryTitles,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        children: [
+                                          TextSpan(
+                                            text: 'Application URL:',
+                                          ),
+                                          if (widget.app.appURL != "")
+                                            TextSpan(
+                                              text: ' Link',
+                                              style: TextStyle(
+                                                color: Colors.blue,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    onTap: () async {
+                                      if (widget.app.appURL != "") {
+                                        await launchUrl(Uri.parse(widget.app.appURL));
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(height: standardSizedBoxHeight),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          maxWidth: MediaQuery.of(context).size.width * 0.55,
+                                        ),
+                                        child: TextFormField(
+                                          controller: urlCont,
+                                          minLines: 1,
+                                          maxLines: 1,
+                                          decoration: InputDecoration(hintText: 'Enter url for the application...'),
+                                          onChanged: (value) async {
+                                            setState(() {
+                                              widget.app.SetURL(value);
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.save),
+                                        onPressed: () async {
+                                          setState(() {
+                                            widget.app.SetURL(urlCont.text);
+                                          });
+                                          await widget.app.SetAdditional();
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.view_kanban),
+                                        onPressed: () async {
+                                          await launchUrl(Uri.parse(widget.app.appURL));
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: standardSizedBoxHeight),
+                                ],
+                              ),
+                              SizedBox(height: standardSizedBoxHeight),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  SizedBox(height: standardSizedBoxHeight),
-                  Center(
-                    child: Text(
-                      'Application Files',
-                      style: TextStyle(
-                        fontSize: secondaryTitles,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: standardSizedBoxHeight),
-                  Container(
-                    width: MediaQuery.of(context).size.width * 0.75,
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: [
-                        Tooltip(
-                          message: 'Click To Download Cover Letter',
-                          child: ListTile(
-                            title: Text('Cover Letter'),
-                            trailing: Checkbox(
-                              value: coverLetterChecked,
-                              onChanged: (value) {
-                                setState(() {
-                                  coverLetterChecked = value!;
-                                });
-                              },
-                            ),
-                            onTap: () async {
-                              await SaveFile(context, widget.app.coverLetterPDF.path);
-                            },
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Click To Download Portfolio',
-                          child: ListTile(
-                            title: Text('Portfolio'),
-                            trailing: Checkbox(
-                              value: portfolioChecked,
-                              onChanged: (value) {
-                                setState(() {
-                                  portfolioChecked = value!;
-                                });
-                              },
-                            ),
-                            onTap: () async {
-                              await SaveFile(context, widget.app.portfolioPDF.path);
-                            },
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Click To Download Resume',
-                          child: ListTile(
-                            title: Text('Resume'),
-                            trailing: Checkbox(
-                              value: resumeChecked,
-                              onChanged: (value) {
-                                setState(() {
-                                  resumeChecked = value!;
-                                });
-                              },
-                            ),
-                            onTap: () async {
-                              await SaveFile(context, widget.app.resumePDF.path);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: standardSizedBoxHeight),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextButton(
-                        child: Text('Select / Unselect All'),
-                        onPressed: () => {
-                          setState(() {
-                            coverLetterChecked = !coverLetterChecked;
-                            portfolioChecked = !portfolioChecked;
-                            resumeChecked = !resumeChecked;
-                          }),
-                        },
-                      ),
-                      SizedBox(width: standardSizedBoxWidth),
-                      TextButton(
-                        child: Text('Download Files'),
-                        onPressed: () async {
-                          await SaveFiles(context, widget.app, coverLetterChecked, portfolioChecked, resumeChecked);
-                          setState(() {
-                            coverLetterChecked = false;
-                            portfolioChecked = false;
-                            resumeChecked = false;
-                          });
-                        },
-                      ),
-                      SizedBox(width: standardSizedBoxWidth),
-                      TextButton(
-                        child: Text('Open LaTeX Files'),
-                        onPressed: () async {
-                          String path = widget.app.resumePDF.parent.parent.path;
-                          path += '/LaTeX Documents';
-                          OpenFileDir(path);
-                        },
-                      ),
-                    ],
                   ),
                   SizedBox(height: standardSizedBoxHeight),
                   Center(
@@ -282,159 +543,124 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                     constraints: BoxConstraints(
                       maxWidth: MediaQuery.of(context).size.width * 0.75,
                     ),
-                    child: Accordion(
-                      headerBackgroundColor: Colors.transparent,
-                      headerPadding: EdgeInsets.all(10.0),
-                      contentBackgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : customWhite,
-                      contentBorderColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
-                      rightIcon: Icon(
-                        Icons.arrow_drop_down_circle_outlined,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        AccordionSection(
-                          header: Text(
-                            'OpenAI Results',
-                          ),
-                          content: Accordion(
-                            headerBackgroundColor: Colors.transparent,
-                            headerPadding: EdgeInsets.all(10.0),
-                            contentBackgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : customWhite,
-                            contentBorderColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
-                            rightIcon: Icon(
-                              Icons.arrow_drop_down_circle_outlined,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
-                            ),
-                            children: [
-                              AccordionSection(
-                                header: Text('About The Applicant'),
-                                content: RecCard(app: widget.app, file: files[0], title: 'About Applicant'),
+                        ExpansionTile(
+                          title: Text('Recommendations'),
+                          initiallyExpanded: false,
+                          children: [
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.of(context).size.width * 0.70,
                               ),
-                              AccordionSection(
-                                header: Text('Education Recommendations'),
-                                content: RecCard(app: widget.app, file: files[3], title: 'Education Recommendations'),
-                              ),
-                              AccordionSection(
-                                header: Text('Experience Recommendations'),
-                                content: RecCard(app: widget.app, file: files[4], title: 'Experience Recommendations'),
-                              ),
-                              AccordionSection(
-                                header: Text('Framework Recommendations'),
-                                content: RecCard(app: widget.app, file: files[5], title: 'Framework Recommendations'),
-                              ),
-                              AccordionSection(
-                                header: Text('Math Skill Recommendations'),
-                                content: RecCard(app: widget.app, file: files[6], title: 'Math Skill Recommendations'),
-                              ),
-                              AccordionSection(
-                                header: Text('Personal Skill Recommendations'),
-                                content: RecCard(app: widget.app, file: files[7], title: 'Personal Skill Recommendations'),
-                              ),
-                              AccordionSection(
-                                header: Text('Programming Language Recommendations'),
-                                content: RecCard(app: widget.app, file: files[8], title: 'Programming Language Recommendations'),
-                              ),
-                              AccordionSection(
-                                header: Text('Programming Skill Recommendations'),
-                                content: RecCard(app: widget.app, file: files[9], title: 'Programming Skill Recommendations'),
-                              ),
-                              AccordionSection(
-                                header: Text('Project Recommendations'),
-                                content: RecCard(app: widget.app, file: files[10], title: 'Project Recommendations'),
-                              ),
-                              AccordionSection(
-                                header: Text('Scientific Skill Recommendations'),
-                                content: RecCard(app: widget.app, file: files[11], title: 'Scientific Skill Recommendations'),
-                              ),
-                              AccordionSection(
-                                header: Text('Why The Applicant'),
-                                content: RecCard(app: widget.app, file: files[2], title: 'Why The Applicant'),
-                              ),
-                              AccordionSection(
-                                header: Text('Why The Job'),
-                                content: RecCard(app: widget.app, file: files[1], title: 'Why The Job'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        AccordionSection(
-                          header: Text('Additional Info'),
-                          isOpen: true,
-                          onOpenSection: () {
-                            infoOpen = true;
-                          },
-                          onCloseSection: () {
-                            infoOpen = false;
-                          },
-                          content: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Column(
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   SizedBox(height: standardSizedBoxHeight),
-                                  Text(
-                                    'Application URL',
-                                    style: TextStyle(
-                                      fontSize: secondaryTitles,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: standardSizedBoxHeight),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                  ExpansionTile(
+                                    title: Text('About You'),
                                     children: [
-                                      ConstrainedBox(
-                                        constraints: BoxConstraints(
-                                          maxWidth: MediaQuery.of(context).size.width * 0.55,
-                                        ),
-                                        child: TextFormField(
-                                          controller: urlCont,
-                                          minLines: 1,
-                                          maxLines: 1,
-                                          decoration: InputDecoration(hintText: 'Enter url for the application...'),
-                                          onChanged: (value) {
-                                            widget.app.appURL = urlCont.text;
-                                          },
-                                        ),
-                                      ),
-                                      SizedBox(width: standardSizedBoxWidth),
-                                      IconButton(
-                                        icon: Icon(Icons.save),
-                                        onPressed: () async {
-                                          await widget.app.SetURL(urlCont.text);
-                                        },
-                                      ),
-                                      SizedBox(width: standardSizedBoxWidth),
-                                      IconButton(
-                                        icon: Icon(Icons.view_kanban),
-                                        onPressed: () async {
-                                          await launchUrl(Uri.parse(widget.app.appURL));
-                                        },
-                                      ),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[0], title: 'About You'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Education'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[3], title: 'Education Recommendations'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Experience'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[4], title: 'Experience Recommendations'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Frameworks'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[5], title: 'Framework Recommendations'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Math Skills'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[6], title: 'Math Skill Recommendations'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Personal Skills'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[7], title: 'Personal Skill Recommendations'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Programming Languages'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[8], title: 'Programming Language Recommendations'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Programming Skills'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[9], title: 'Programming Skill Recommendations'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Projects'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[10], title: 'Project Recommendations'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Scientific Skills'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[11], title: 'Scientific Skill Recommendations'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Why You'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[2], title: 'Why You'),
+                                      SizedBox(height: standardSizedBoxHeight),
+                                    ],
+                                  ),
+                                  ExpansionTile(
+                                    title: Text('Why The Job'),
+                                    children: [
+                                      SizedBox(height: standardSizedBoxHeight),
+                                      RecCard(app: widget.app, file: files[1], title: 'Why The Job'),
+                                      SizedBox(height: standardSizedBoxHeight),
                                     ],
                                   ),
                                   SizedBox(height: standardSizedBoxHeight),
-                                  Text(
-                                    'Application Details',
-                                    style: TextStyle(
-                                      fontSize: secondaryTitles,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: standardSizedBoxHeight),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [],
-                                  ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

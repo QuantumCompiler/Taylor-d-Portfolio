@@ -28,6 +28,9 @@ class Application {
 
   // Booleans
   final bool newApp;
+  late bool applied;
+  late bool interview;
+  late bool offer;
 
   // Content
   late String name;
@@ -59,6 +62,7 @@ class Application {
 
   // Application Information
   String appURL = '';
+  DateTime? appDate;
 
   // Recommendation Controllers
   TextEditingController aboutMeCont = TextEditingController();
@@ -107,6 +111,10 @@ class Application {
     required this.whyJobFile,
     required this.whyMeFile,
     required this.appURL,
+    required this.applied,
+    required this.interview,
+    required this.offer,
+    required this.appDate,
   });
 
   // Init
@@ -151,20 +159,12 @@ class Application {
     File sciRec = File('$recDir/Scientific.txt');
     File whyJob = File('$recDir/WhyJob.txt');
     File whyMe = File('$recDir/WhyMe.txt');
-    // Strings
-    String addDir = '';
-    if (!newApp) {
-      addDir = '${currDir.path}/Additional';
-    } else {
-      addDir = '${masterDir.path}/Temp';
-    }
-    File urlFile = File('$addDir/URL.txt');
-    String appURL = '';
-    if (urlFile.existsSync()) {
-      appURL = await urlFile.readAsString();
-    } else {
-      appURL = '';
-    }
+    // Additional Information
+    String appURL = await GetURL(name);
+    bool applied = await GetApplied(name);
+    bool interview = await GetInterview(name);
+    bool offer = await GetOffer(name);
+    DateTime? appDate = await GetDate(name);
     // Recommendations
     List<String> recs = [];
     Map<String, dynamic> masterRecs = {};
@@ -193,6 +193,10 @@ class Application {
       whyJobFile: whyJob,
       whyMeFile: whyMe,
       appURL: appURL,
+      applied: applied,
+      interview: interview,
+      offer: offer,
+      appDate: appDate,
     );
   }
 
@@ -272,7 +276,6 @@ class Application {
     await SetPortPDF();
     await SetResPDF();
     await GetRecs();
-    await GetURL();
   }
 
   // Set Previous Content
@@ -610,18 +613,6 @@ class Application {
     resumePDF = pdfFile;
   }
 
-  Future<void> GetURL() async {
-    final appDir = await GetAppDir();
-    Directory appsDir = Directory('${appDir.path}/Applications');
-    Directory currDir = Directory('${appsDir.path}/$name');
-    Directory addDir = Directory('${currDir.path}/Additional');
-    if (!addDir.existsSync()) {
-      return;
-    }
-    File file = File('${addDir.path}/URL.txt');
-    appURL = file.readAsStringSync();
-  }
-
   Future<void> SetURL(String url) async {
     final appDir = await GetAppDir();
     Directory appsDir = Directory('${appDir.path}/Applications');
@@ -631,7 +622,134 @@ class Application {
       await addDir.create();
     }
     File file = File('${addDir.path}/URL.txt');
+    appURL = url;
     await WriteFile(addDir, file, url);
+  }
+
+  static Future<String> GetURL(String name) async {
+    String ret = '';
+    final appDir = await GetAppDir();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory addDir = Directory('${currDir.path}/Additional');
+    if (!addDir.existsSync()) {
+      await addDir.create();
+    }
+    File file = File('${addDir.path}/Summary.json');
+    if (file.existsSync()) {
+      String jsonString = await file.readAsString();
+      Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+      ret = jsonMap['App-URL'] ?? '';
+    }
+    return ret;
+  }
+
+  static Future<bool> GetApplied(String name) async {
+    final appDir = await GetAppDir();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory addDir = Directory('${currDir.path}/Additional');
+    if (!addDir.existsSync()) {
+      await addDir.create();
+    }
+    File file = File('${addDir.path}/Summary.json');
+    if (file.existsSync()) {
+      String jsonString = await file.readAsString();
+      Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+      bool ret = jsonMap['App-Applied'] ?? false;
+      return ret;
+    }
+    return false;
+  }
+
+  void SetApplied(bool val) {
+    applied = val;
+  }
+
+  static Future<bool> GetInterview(String name) async {
+    final appDir = await GetAppDir();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory addDir = Directory('${currDir.path}/Additional');
+    if (!addDir.existsSync()) {
+      await addDir.create();
+    }
+    File file = File('${addDir.path}/Summary.json');
+    if (file.existsSync()) {
+      String jsonString = await file.readAsString();
+      Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+      bool ret = jsonMap['App-Interview'] ?? false;
+      return ret;
+    }
+    return false;
+  }
+
+  void SetInterview(bool val) {
+    interview = val;
+  }
+
+  static Future<bool> GetOffer(String name) async {
+    final appDir = await GetAppDir();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory addDir = Directory('${currDir.path}/Additional');
+    if (!addDir.existsSync()) {
+      await addDir.create();
+    }
+    File file = File('${addDir.path}/Summary.json');
+    if (file.existsSync()) {
+      String jsonString = await file.readAsString();
+      Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+      bool ret = jsonMap['App-Offer'] ?? false;
+      return ret;
+    }
+    return false;
+  }
+
+  void SetOffer(bool val) {
+    offer = val;
+  }
+
+  static Future<DateTime?> GetDate(String name) async {
+    final appDir = await GetAppDir();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory addDir = Directory('${currDir.path}/Additional');
+    if (!addDir.existsSync()) {
+      await addDir.create();
+    }
+    File file = File('${addDir.path}/Summary.json');
+    if (file.existsSync()) {
+      String jsonString = await file.readAsString();
+      Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+      DateTime? ret = jsonMap['App-Date'] != null ? DateTime.parse(jsonMap['App-Date']) : null;
+      return ret;
+    }
+    return DateTime.now();
+  }
+
+  void SetDate(DateTime? date) {
+    appDate = date;
+  }
+
+  Future<void> SetAdditional() async {
+    final appDir = await GetAppDir();
+    Directory appsDir = Directory('${appDir.path}/Applications');
+    Directory currDir = Directory('${appsDir.path}/$name');
+    Directory addDir = Directory('${currDir.path}/Additional');
+    if (!addDir.existsSync()) {
+      await addDir.create();
+    }
+    File file = File('${addDir.path}/Summary.json');
+    Map<String, dynamic> summary = {
+      'App-URL': appURL,
+      'App-Applied': applied,
+      'App-Interview': interview,
+      'App-Offer': offer,
+      'App-Date': appDate?.toIso8601String(),
+    };
+    String jsonString = jsonEncode(summary);
+    await file.writeAsString(jsonString);
   }
 }
 
