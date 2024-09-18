@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -846,7 +847,9 @@ Future<Map<String, dynamic>> GetOpenAIRecs(BuildContext context, Application app
           ret = jsonDecode(content);
           successful = true;
         } catch (e) {
-          print('JSON decoding error: $e');
+          if (kDebugMode) {
+            print('JSON decoding error: $e');
+          }
         }
         return ret;
       } else {

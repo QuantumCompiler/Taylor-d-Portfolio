@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../Profiles/ViewProfile.dart';
@@ -38,7 +37,7 @@ AppBar ViewApplicationAppBar(BuildContext context, Application app) {
 class ViewApplicationContent extends StatefulWidget {
   final Application app;
 
-  ViewApplicationContent({super.key, required this.app});
+  const ViewApplicationContent({super.key, required this.app});
 
   @override
   _ViewApplicationContentState createState() => _ViewApplicationContentState();

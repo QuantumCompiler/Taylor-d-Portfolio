@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -37,7 +38,9 @@ class _MyHomePageState extends State<MyHomePage> {
   };
 
   static void _handleCmdS() {
-    print('Cmd + S is pressed');
+    if (kDebugMode) {
+      print('Cmd + S is pressed');
+    }
     // Perform your action here
   }
 

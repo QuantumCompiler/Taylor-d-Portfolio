@@ -6,76 +6,86 @@ import '../../Applications/Applications.dart';
 import '../../Settings/Settings.dart';
 import '../../Utilities/GlobalUtils.dart';
 
-/*  ResumeCard - Card for the Resume section of the Dashboard
-      Input:
-        key: Key for the Resume Card
-      Algorithm:
-        * Create a ConstrainedBox with the following constraints:
-          * maxHeight: MediaQuery.of(context).size.height * singleCardMinWidth
-          * minHeight: MediaQuery.of(context).size.width * singleCardMinHeight
-          * maxWidth: MediaQuery.of(context).size.width * singleCardMaxWidth
-          * minWidth: MediaQuery.of(context).size.width * singleCardMinWidth
-        * Create a Card with the following children:
-          * Padding with the following padding:
-            * EdgeInsets.all(singleCardPadding)
-          * Column with the following properties:
-            * crossAxisAlignment: CrossAxisAlignment.stretch
-            * mainAxisAlignment: MainAxisAlignment.spaceBetween
-            * Children:
-              * Center with the following children:
-                * Text with the following properties:
-                  * Text: resumesGenTitle
-                  * Style: TextStyle with the following properties:
-                    * fontSize: secondaryTitles
-                    * fontWeight: FontWeight.bold
-                  * TextAlign: TextAlign.center
-              * Center with the following children:
-                * Text with the following properties:
-                  * Text: '$resumesGenerated'
-                  * Style: TextStyle with the following properties:
-                    * fontSize: secondaryTitles
-                  * TextAlign: TextAlign.center
-      Output:
-          Returns a ConstrainedBox containing a Card with the Resume Card content
-*/
-class ResumeCard extends StatelessWidget {
-  const ResumeCard({super.key});
+class SmallDisplayCard extends StatefulWidget {
+  final String title;
+  final String type;
+  final Icon icon;
+  const SmallDisplayCard({
+    super.key,
+    required this.title,
+    required this.type,
+    required this.icon,
+  });
+
+  @override
+  _SmallDisplayCardState createState() => _SmallDisplayCardState();
+}
+
+class _SmallDisplayCardState extends State<SmallDisplayCard> {
+  bool _isHovered = false;
+  int fileCount = 0;
+
+  void _updateHover(bool isHovered) {
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _countFiles();
+  }
+
+  Future<void> _countFiles() async {
+    String input = '${widget.type}.pdf';
+    int count = await CountAllPDFs(input);
+    setState(() {
+      fileCount = count;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * singleCardMinWidth,
-        minHeight: MediaQuery.of(context).size.width * singleCardMinHeight,
-        maxWidth: MediaQuery.of(context).size.width * singleCardMaxWidth,
-        minWidth: MediaQuery.of(context).size.width * singleCardMinWidth,
-      ),
+    final cardTheme = Theme.of(context).cardTheme;
+    return MouseRegion(
+      onEnter: (event) => _updateHover(true),
+      onExit: (event) => _updateHover(false),
       child: Card(
-        child: Padding(
-          padding: EdgeInsets.all(singleCardPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Center(
-                child: Text(
-                  resumesGenTitle,
-                  style: TextStyle(
-                    fontSize: secondaryTitles,
-                    fontWeight: FontWeight.bold,
+        elevation: _isHovered ? 80.0 : cardTheme.elevation,
+        shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.20,
+          margin: EdgeInsets.all(15.0),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Text(
+                      widget.title,
+                      style: TextStyle(
+                        fontSize: constraints.maxWidth * 0.075,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Center(
-                child: Text(
-                  '$resumesGenerated',
-                  style: TextStyle(
-                    fontSize: secondaryTitles,
+                  SizedBox(height: standardSizedBoxHeight),
+                  Center(
+                    child: Icon(
+                      widget.icon.icon,
+                      size: constraints.maxWidth * 0.15,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
+                  SizedBox(height: standardSizedBoxHeight),
+                  Center(
+                    child: Text('$fileCount'),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -83,91 +93,6 @@ class ResumeCard extends StatelessWidget {
   }
 }
 
-/*  CoverLetterCard - Card for the Cover Letter section of the Dashboard
-      Input:
-        key: Key for the Cover Letter Card
-      Algorithm:
-        * Create a ConstrainedBox with the following constraints:
-          * maxHeight: MediaQuery.of(context).size.height * singleCardMaxHeight
-          * minHeight: MediaQuery.of(context).size.height * singleCardMinHeight
-          * maxWidth: MediaQuery.of(context).size.width * singleCardMaxWidth
-          * minWidth: MediaQuery.of(context).size.width * singleCardMinWidth
-        * Create a Card with the following children:
-          * Padding with the following padding:
-            * EdgeInsets.all(singleCardPadding)
-          * Column with the following properties:
-            * crossAxisAlignment: CrossAxisAlignment.stretch
-            * mainAxisAlignment: MainAxisAlignment.spaceBetween
-            * Children:
-              * Center with the following children:
-                * Text with the following properties:
-                  * Text: coverLettersGenTitle
-                  * Style: TextStyle with the following properties:
-                    * fontSize: secondaryTitles
-                    * fontWeight: FontWeight.bold
-                  * TextAlign: TextAlign.center
-              * Center with the following children:
-                * Text with the following properties:
-                  * Text: '$coverLettersGenerated'
-                  * Style: TextStyle with the following properties:
-                    * fontSize: secondaryTitles
-                  * TextAlign: TextAlign.center
-      Output:
-          Returns a ConstrainedBox containing a Card with the Cover Letter Card content
-*/
-class CoverLetterCard extends StatelessWidget {
-  const CoverLetterCard({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * singleCardMaxHeight,
-        minHeight: MediaQuery.of(context).size.height * singleCardMinHeight,
-        maxWidth: MediaQuery.of(context).size.width * singleCardMaxWidth,
-        minWidth: MediaQuery.of(context).size.width * singleCardMinWidth,
-      ),
-      child: Card(
-        child: Padding(
-          padding: EdgeInsets.all(singleCardPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Center(
-                child: Text(
-                  coverLettersGenTitle,
-                  style: TextStyle(
-                    fontSize: secondaryTitles,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Center(
-                child: Text(
-                  '$coverLettersGenerated',
-                  style: TextStyle(
-                    fontSize: secondaryTitles,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/*  appBar - App bar for the dashboard page
-      Input:
-        context: BuildContext of the application
-      Algorithm:
-          * Return an AppBar with the title of the dashboard
-      Output:
-          Returns an AppBar with the title of the dashboard
-*/
 AppBar appBar(BuildContext context) {
   return AppBar(
     title: Text(
@@ -180,52 +105,34 @@ AppBar appBar(BuildContext context) {
   );
 }
 
-/*  dashBoardContent - Column containing the Resume and Cover Letter Cards
-      Input:
-        context: BuildContext
-      Algorithm:
-        * Create a column for the rows of content
-        * Create a row for the Resume and Cover Letter Cards
-      Output:
-          Returns a SingleChildScrollView containing the Resume and Cover Letter Cards
-*/
 SingleChildScrollView dashBoardContent(BuildContext context) {
   return SingleChildScrollView(
     child: Column(
-      children: <Widget>[
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(height: standardSizedBoxHeight),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            ResumeCard(),
-            SizedBox(
-              width: MediaQuery.of(context).size.width * singleCardWidthBox,
-            ),
-            CoverLetterCard(),
+          children: [
+            SmallDisplayCard(title: 'Cover Letters', type: 'Cover Letter', icon: Icon(Icons.drafts)),
+            SmallDisplayCard(title: 'Portfolios', type: 'Portfolio', icon: Icon(Icons.work)),
+            SmallDisplayCard(title: 'Resumes', type: 'Resume', icon: Icon(Icons.attach_file)),
           ],
         ),
+        SizedBox(height: standardSizedBoxHeight),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [],
+        ),
+        SizedBox(height: standardSizedBoxHeight),
       ],
     ),
   );
 }
 
-/*  desktopDrawer - Drawer for the Desktop version of the application
-      Input:
-        context: BuildContext of the application
-      Algorithm:
-        * Create a SizedBox with the width of the drawer
-        * Create a Drawer with the following items:
-          * Dashboard
-          * Profile
-          * Jobs
-          * Settings
-      Output:
-          Returns a SizedBox containing a Drawer with the following items:
-            * Dashboard
-            * Profile
-            * Jobs
-            * Settings
-*/
 SizedBox desktopDrawer(BuildContext context) {
   return SizedBox(
     width: MediaQuery.of(context).size.width * drawerWidth,
@@ -264,22 +171,6 @@ SizedBox desktopDrawer(BuildContext context) {
   );
 }
 
-/*  mobileNavbar - BottomAppBar for the Mobile version of the application
-      Input:
-        context: BuildContext of the application
-      Algorithm:
-        * Create a BottomAppBar with the following items:
-          * Dashboard
-          * Profile
-          * Jobs
-          * Settings
-      Output:
-          Returns a BottomAppBar with the following items:
-            * Dashboard
-            * Profile
-            * Jobs
-            * Settings
-*/
 BottomAppBar mobileNavbar(BuildContext context) {
   return BottomAppBar(
     color: Colors.transparent,

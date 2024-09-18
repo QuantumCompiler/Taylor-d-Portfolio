@@ -51,33 +51,138 @@ AppBar appBar(BuildContext context) {
 Center bodyContent(BuildContext context, ThemeProvider theme) {
   return Center(
     child: Container(
-      width: MediaQuery.of(context).size.width * settingsTileContainerWidth,
+      width: MediaQuery.of(context).size.width * 0.80,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          switchTheme(theme),
-          // delJobs(context),
-          // delProfs(context),
-          setLatexDirectory(context),
+          ExpansionTile(
+            title: Text('Delete Content'),
+            children: [
+              SizedBox(height: standardSizedBoxHeight),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.70),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    delAll(context),
+                    delApps(context),
+                    delJobs(context),
+                    delProfs(context),
+                  ],
+                ),
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+            ],
+          ),
+          ExpansionTile(
+            title: Text('LaTeX'),
+            children: [
+              SizedBox(height: standardSizedBoxHeight),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.70),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    setLatexDirectory(context),
+                  ],
+                ),
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+            ],
+          ),
+          ExpansionTile(
+            title: Text('Thematic'),
+            children: [
+              SizedBox(height: standardSizedBoxHeight),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.70),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    switchTheme(theme),
+                  ],
+                ),
+              ),
+              SizedBox(height: standardSizedBoxHeight),
+            ],
+          ),
         ],
       ),
     ),
   );
 }
 
-/*  delJobs - Delete all jobs
-      Input:
-        context: BuildContext
-      Algorithm:
-          * Show dialog to confirm deletion of all jobs
-          * Call DeleteAllJobs function if confirmed in the context of the platformDetect function
-      Output:
-          Returns a ListTile for deleting all jobs
-*/
+ListTile delAll(BuildContext context) {
+  return ListTile(
+    title: Text(
+      'Delete All Content',
+    ),
+    onTap: () {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text(
+              'Delete All Applications',
+              style: TextStyle(
+                fontSize: appBarTitle,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            content: Text(
+              'Would you like to delete all content? This cannot be undone.',
+              textAlign: TextAlign.center,
+            ),
+            actions: [
+              platformDetect(context, DeleteAllContent),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+ListTile delApps(BuildContext context) {
+  return ListTile(
+    title: Text(
+      'Delete All Applications',
+    ),
+    onTap: () {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text(
+              'Delete All Applications',
+              style: TextStyle(
+                fontSize: appBarTitle,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            content: Text(
+              'Would you like to delete all applications? This cannot be undone.',
+              textAlign: TextAlign.center,
+            ),
+            actions: [
+              platformDetect(context, DeleteAllApplications),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
 ListTile delJobs(BuildContext context) {
   return ListTile(
     title: Text(
-      settingsDeleteAllJobs,
+      'Delete All Jobs',
     ),
     onTap: () {
       showDialog(
@@ -106,19 +211,10 @@ ListTile delJobs(BuildContext context) {
   );
 }
 
-/*  delProfs - Delete all profiles
-      Input:
-        context: BuildContext
-      Algorithm:
-          * Show dialog to confirm deletion of all profiles
-          * Call DeleteAllProfiles function if confirmed in the context of the platformDetect function
-      Output:
-          Returns a ListTile for deleting all profiles
-*/
 ListTile delProfs(BuildContext context) {
   return ListTile(
     title: Text(
-      settingsDeleteAllProfiles,
+      'Delete All Profiles',
     ),
     onTap: () {
       showDialog(
@@ -150,7 +246,7 @@ ListTile delProfs(BuildContext context) {
 ListTile setLatexDirectory(BuildContext context) {
   return ListTile(
     title: Text(
-      'Upload Main LaTeX Directory',
+      'Select Main LaTeX',
     ),
     onTap: () async {
       await pickAndCopy('Main LaTeX');
@@ -158,16 +254,6 @@ ListTile setLatexDirectory(BuildContext context) {
   );
 }
 
-/*  platformDetect - Detects the platform and returns the appropriate row
-      Input:
-        context: BuildContext
-        func: VoidCallback
-      Algorithm:
-          * If the platform is desktop, return an TextButton for cancel and delete
-          * If the platform is mobile, return an IconButton for cancel and delete
-      Output:
-          Returns a Row with the appropriate buttons for the platform
-*/
 Row platformDetect(BuildContext context, VoidCallback func) {
   return Row(
     crossAxisAlignment: CrossAxisAlignment.center,
@@ -214,12 +300,6 @@ Row platformDetect(BuildContext context, VoidCallback func) {
   );
 }
 
-/*  switchTheme - Switch for toggling between light and dark theme
-      Input:
-        theme: ThemeProvider built from the ThemeProvider class
-      Output:
-          Returns a SwitchListTile for toggling between light and dark theme
-*/
 SwitchListTile switchTheme(ThemeProvider theme) {
   return SwitchListTile(
     title: Text(

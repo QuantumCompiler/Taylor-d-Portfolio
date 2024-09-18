@@ -303,6 +303,13 @@ Future<void> DeleteAllApplications() async {
   }
 }
 
+Future<void> DeleteAllContent() async {
+  await DeleteAllApplications();
+  await DeleteAllJobs();
+  await DeleteAllProfiles();
+  await CleanDir('Temp');
+}
+
 Future<void> DeleteAllJobs() async {
   final jobsDir = await GetJobsDir();
   final List<FileSystemEntity> jobs = jobsDir.listSync();
@@ -413,6 +420,34 @@ Future<List<dynamic>> RetrieveAllContent() async {
   content.add(jobs);
   content.add(profiles);
   return content;
+}
+
+// Count All PDFS In Applications Directory
+Future<int> CountAllPDFs(String input) async {
+  int ret = 0;
+  try {
+    final masterDir = await GetAppDir();
+    Directory appsDir = Directory('${masterDir.path}/Applications');
+    if (await appsDir.exists()) {
+      await for (var entity in appsDir.list(recursive: true, followLinks: false)) {
+        if (entity is Directory) {
+          final pdfsDir = Directory('${entity.path}/PDFs');
+          if (await pdfsDir.exists()) {
+            await for (var file in pdfsDir.list(recursive: true, followLinks: false)) {
+              if (file is File && path.basename(file.path) == input) {
+                ret++;
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error counting PDFs: $e');
+    }
+  }
+  return ret;
 }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
