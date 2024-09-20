@@ -63,6 +63,12 @@ class ThemeProvider with ChangeNotifier {
       ),
       appBarTheme: AppBarTheme(
         color: Colors.transparent,
+        titleTextStyle: TextStyle(
+          fontSize: appBarTitle,
+          fontWeight: FontWeight.bold,
+          color: _isDarkTheme ? Colors.white : Colors.black,
+        ),
+        centerTitle: true,
       ),
       bottomAppBarTheme: BottomAppBarTheme(
         color: Colors.transparent,
