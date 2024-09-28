@@ -213,89 +213,91 @@ class _RecCardState extends State<RecCard> {
       child: Card(
         elevation: _isHovered ? 80.0 : cardTheme.elevation,
         shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
-        child: InkWell(
-          onTap: () async {},
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.75,
-            margin: EdgeInsets.all(15.0),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Text(
-                        widget.title,
-                        style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.03,
-                          fontWeight: FontWeight.bold,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.75,
+          margin: EdgeInsets.all(15.0),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.70),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Text(
+                          widget.title,
+                          style: TextStyle(
+                            fontSize: constraints.maxWidth * 0.03,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(height: standardSizedBoxHeight),
-                    TextFormField(
-                      controller: cont,
-                      minLines: 1,
-                      maxLines: 100,
-                      onChanged: (value) {
-                        if (widget.val == 0) {
-                          widget.app.aboutMeCont.text = cont.text;
-                        } else if (widget.val == 1) {
-                          widget.app.whyJobCont.text = cont.text;
-                        } else if (widget.val == 2) {
-                          widget.app.whyMeCont.text = cont.text;
-                        } else if (widget.val == 3) {
-                          widget.app.eduRecCont.text = cont.text;
-                        } else if (widget.val == 4) {
-                          widget.app.expRecCont.text = cont.text;
-                        } else if (widget.val == 5) {
-                          widget.app.framRecCont.text = cont.text;
-                        } else if (widget.val == 6) {
-                          widget.app.mathSkillsRecCont.text = cont.text;
-                        } else if (widget.val == 7) {
-                          widget.app.persSkillsRecCont.text = cont.text;
-                        } else if (widget.val == 8) {
-                          widget.app.progLangRecCont.text = cont.text;
-                        } else if (widget.val == 9) {
-                          widget.app.progSkillsRecCont.text = cont.text;
-                        } else if (widget.val == 10) {
-                          widget.app.projRecCont.text = cont.text;
-                        } else if (widget.val == 11) {
-                          widget.app.sciRecCont.text = cont.text;
-                        }
-                      },
-                    ),
-                    SizedBox(height: standardSizedBoxHeight),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Tooltip(
-                          message: 'Click To Clear Content',
-                          child: IconButton(
-                            icon: Icon(Icons.clear),
-                            onPressed: () {
-                              cont.clear();
-                            },
+                      SizedBox(height: standardSizedBoxHeight),
+                      TextFormField(
+                        controller: cont,
+                        minLines: 1,
+                        maxLines: 100,
+                        onChanged: (value) {
+                          if (widget.val == 0) {
+                            widget.app.aboutMeCont.text = cont.text;
+                          } else if (widget.val == 1) {
+                            widget.app.whyJobCont.text = cont.text;
+                          } else if (widget.val == 2) {
+                            widget.app.whyMeCont.text = cont.text;
+                          } else if (widget.val == 3) {
+                            widget.app.eduRecCont.text = cont.text;
+                          } else if (widget.val == 4) {
+                            widget.app.expRecCont.text = cont.text;
+                          } else if (widget.val == 5) {
+                            widget.app.framRecCont.text = cont.text;
+                          } else if (widget.val == 6) {
+                            widget.app.mathSkillsRecCont.text = cont.text;
+                          } else if (widget.val == 7) {
+                            widget.app.persSkillsRecCont.text = cont.text;
+                          } else if (widget.val == 8) {
+                            widget.app.progLangRecCont.text = cont.text;
+                          } else if (widget.val == 9) {
+                            widget.app.progSkillsRecCont.text = cont.text;
+                          } else if (widget.val == 10) {
+                            widget.app.projRecCont.text = cont.text;
+                          } else if (widget.val == 11) {
+                            widget.app.sciRecCont.text = cont.text;
+                          }
+                        },
+                      ),
+                      SizedBox(height: standardSizedBoxHeight),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Tooltip(
+                            message: 'Click To Clear Content',
+                            child: IconButton(
+                              icon: Icon(Icons.clear),
+                              onPressed: () {
+                                cont.clear();
+                              },
+                            ),
                           ),
-                        ),
-                        SizedBox(width: standardSizedBoxWidth),
-                        Tooltip(
-                          message: 'Click To Reset Content',
-                          child: IconButton(
-                            icon: Icon(Icons.restore_outlined),
-                            onPressed: () {
-                              cont.text = widget.content;
-                            },
+                          SizedBox(width: standardSizedBoxWidth),
+                          Tooltip(
+                            message: 'Click To Reset Content',
+                            child: IconButton(
+                              icon: Icon(Icons.restore_outlined),
+                              onPressed: () {
+                                cont.text = widget.content;
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),

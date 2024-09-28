@@ -604,6 +604,7 @@ class CoverLetterProfilePitchEntry extends StatefulWidget {
 */
 class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEntry> {
   List<ProfileCLCont> entries = [];
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -645,6 +646,12 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
     await SetContent<ProfileCLCont>(entries, widget.profile.coverLetterContList);
   }
 
+  void _updateHover(bool isHovered) {
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -673,60 +680,79 @@ class CoverLetterProfilePitchEntryState extends State<CoverLetterProfilePitchEnt
     int index,
     ProfileCLCont entry,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: standardSizedBoxHeight),
-        // About Title
-        Center(
-          child: Text(
-            'About',
-            style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.75,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              // About TextFormField
-              TextFormField(
-                controller: entry.about,
-                keyboardType: TextInputType.multiline,
-                minLines: 1,
-                maxLines: 100,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(hintText: 'Enter details about you here...'),
-                onChanged: (value) async {
-                  await SetContent<ProfileCLCont>(entries, widget.profile.coverLetterContList);
-                },
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        !widget.viewing
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Tooltip for clear Entry
-                  Tooltip(
-                    message: 'Clear Cover Letter About',
-                    child: IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () async {
-                        clearEntry(index);
-                      },
-                    ),
+    final cardTheme = Theme.of(context).cardTheme;
+    return Center(
+      child: MouseRegion(
+        onEnter: (event) => _updateHover(true),
+        onExit: (event) => _updateHover(false),
+        child: Card(
+          elevation: _isHovered ? 80.0 : cardTheme.elevation,
+          shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+          margin: EdgeInsets.all(15.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: MediaQuery.of(context).size.width * 0.4,
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                // About Title
+                Center(
+                  child: Text(
+                    'About',
+                    style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
                   ),
-                ],
-              )
-            : Container(width: 0, height: 0),
-      ],
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.7,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      // About TextFormField
+                      TextFormField(
+                        controller: entry.about,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 1,
+                        maxLines: 100,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(hintText: 'Enter details about you here...'),
+                        onChanged: (value) async {
+                          await SetContent<ProfileCLCont>(entries, widget.profile.coverLetterContList);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                !widget.viewing
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Tooltip for clear Entry
+                          Tooltip(
+                            message: 'Clear Cover Letter About',
+                            child: IconButton(
+                              icon: Icon(Icons.clear),
+                              onPressed: () async {
+                                clearEntry(index);
+                              },
+                            ),
+                          ),
+                        ],
+                      )
+                    : Container(width: 0, height: 0),
+                SizedBox(height: standardSizedBoxHeight),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -848,6 +874,7 @@ class EducationProfileEntry extends StatefulWidget {
 */
 class EducationProfileEntryState extends State<EducationProfileEntry> {
   List<ProfileEduCont> entries = [];
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -928,6 +955,12 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
     }
   }
 
+  void _updateHover(bool isHovered) {
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -956,178 +989,287 @@ class EducationProfileEntryState extends State<EducationProfileEntry> {
     int index,
     ProfileEduCont entry,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: standardSizedBoxHeight),
-        // Title
-        Center(
-          child: Text(
-            entry.name.text.isNotEmpty ? entry.name.text : "Institution ${index + 1}",
-            style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.75,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  // Name TextFormField
-                  Expanded(
-                    child: TextFormField(
-                      controller: entry.name,
-                      keyboardType: TextInputType.multiline,
-                      maxLines: 1,
-                      readOnly: widget.viewing,
-                      decoration: InputDecoration(hintText: 'Enter name here...'),
-                      onChanged: (value) async {
-                        setState(() {});
-                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
-                      },
-                    ),
+    final cardTheme = Theme.of(context).cardTheme;
+    return Center(
+      child: MouseRegion(
+        onEnter: (event) => _updateHover(true),
+        onExit: (event) => _updateHover(false),
+        child: Card(
+          elevation: _isHovered ? 80.0 : cardTheme.elevation,
+          shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+          margin: EdgeInsets.all(15.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: MediaQuery.of(context).size.width * 0.4,
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                // Title
+                Center(
+                  child: Text(
+                    entry.name.text.isNotEmpty ? entry.name.text : "Institution ${index + 1}",
+                    style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Graduated Checkbox
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Graduated From ${entry.name.text}?" : "Graduated From Institution ${index + 1}?",
-                    child: Checkbox(
-                      value: entry.graduated,
-                      onChanged: (bool? value) async {
-                        if (!widget.viewing) {
-                          setState(() {
-                            entry.graduated = value ?? false;
-                          });
-                          await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Include Checkbox
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Institution ${index + 1} In Portfolio?",
-                    child: Checkbox(
-                      value: entry.include,
-                      onChanged: (bool? value) async {
-                        if (!widget.viewing) {
-                          setState(() {
-                            entry.include = value ?? false;
-                          });
-                          await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Tooltip for Clear Entry
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Institution ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.date_range),
-                      onPressed: () async {
-                        if (!widget.viewing) {
-                          entry.start = await SelectDate(context);
-                          await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Tooltip for Clear Entry
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Institution ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.date_range),
-                      onPressed: () async {
-                        if (!widget.viewing) {
-                          entry.end = await SelectDate(context);
-                          await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              // Degree TextFormField
-              TextFormField(
-                controller: entry.degree,
-                keyboardType: TextInputType.multiline,
-                maxLines: 1,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter degree(s) information for ${entry.name.text} here..." : "Enter degree(s) information for Institution ${index + 1} here...",
                 ),
-                onChanged: (value) async {
-                  await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
-                },
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              // Description TextFormField
-              TextFormField(
-                controller: entry.description,
-                keyboardType: TextInputType.multiline,
-                minLines: 10,
-                maxLines: 100,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Institution ${index + 1} here...",
-                ),
-                onChanged: (value) async {
-                  await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
-                },
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              !widget.viewing
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Tooltip for Add Entry
-                        Tooltip(
-                          message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Institution ${index + 1}",
-                          child: IconButton(
-                            icon: Icon(Icons.add),
-                            onPressed: () async {
-                              addEntry(index);
-                            },
-                          ),
-                        ),
-                        // Tooltip for Clear Entry
-                        Tooltip(
-                          message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Institution ${index + 1}",
-                          child: IconButton(
-                            icon: Icon(Icons.clear),
-                            onPressed: () async {
-                              clearEntry(index);
-                            },
-                          ),
-                        ),
-                        if (entries.length > 1)
-                          // Tooltip for Delete Entry
-                          Tooltip(
-                            message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Institution ${index + 1}",
-                            child: IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () async {
-                                deleteEntry(index);
-                              },
+                SizedBox(height: standardSizedBoxHeight),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      isDesktop()
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: <Widget>[
+                                // Name TextFormField
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: entry.name,
+                                    keyboardType: TextInputType.multiline,
+                                    maxLines: 1,
+                                    readOnly: widget.viewing,
+                                    decoration: InputDecoration(hintText: 'Enter name here...'),
+                                    onChanged: (value) async {
+                                      setState(() {});
+                                      await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Graduated Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Graduated From ${entry.name.text}?" : "Graduated From Institution ${index + 1}?",
+                                  child: Checkbox(
+                                    value: entry.graduated,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.graduated = value ?? false;
+                                        });
+                                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Include Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Institution ${index + 1} In Portfolio?",
+                                  child: Checkbox(
+                                    value: entry.include,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.include = value ?? false;
+                                        });
+                                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Tooltip for Clear Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Institution ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.start = await SelectDate(context);
+                                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Tooltip for Clear Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Institution ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.end = await SelectDate(context);
+                                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                // Name TextFormField
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: entry.name,
+                                    keyboardType: TextInputType.multiline,
+                                    maxLines: 1,
+                                    readOnly: widget.viewing,
+                                    decoration: InputDecoration(hintText: 'Enter name here...'),
+                                    onChanged: (value) async {
+                                      setState(() {});
+                                      await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                                    },
+                                  ),
+                                ),
+                                // SizedBox(width: standardSizedBoxWidth),
+                              ],
                             ),
-                          ),
-                      ],
-                    )
-                  : Container(width: 0, height: 0),
-            ],
+                      SizedBox(height: standardSizedBoxHeight),
+                      // Degree TextFormField
+                      TextFormField(
+                        controller: entry.degree,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: 1,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(
+                          hintText: entry.name.text.isNotEmpty ? "Enter degree(s) information for ${entry.name.text} here..." : "Enter degree(s) information for Institution ${index + 1} here...",
+                        ),
+                        onChanged: (value) async {
+                          await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        },
+                      ),
+                      SizedBox(height: standardSizedBoxHeight),
+                      isMobile()
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Graduated Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Graduated From ${entry.name.text}?" : "Graduated From Institution ${index + 1}?",
+                                  child: Checkbox(
+                                    value: entry.graduated,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.graduated = value ?? false;
+                                        });
+                                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Include Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Institution ${index + 1} In Portfolio?",
+                                  child: Checkbox(
+                                    value: entry.include,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.include = value ?? false;
+                                        });
+                                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Tooltip for Clear Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Institution ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.start = await SelectDate(context);
+                                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Tooltip for Clear Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Institution ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.end = await SelectDate(context);
+                                        await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Container(width: 0, height: 0),
+                      SizedBox(height: standardSizedBoxHeight),
+                      // Description TextFormField
+                      TextFormField(
+                        controller: entry.description,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 10,
+                        maxLines: 100,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(
+                          hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Institution ${index + 1} here...",
+                        ),
+                        onChanged: (value) async {
+                          await SetContent<ProfileEduCont>(entries, widget.profile.eduContList);
+                        },
+                      ),
+                      SizedBox(height: standardSizedBoxHeight),
+                      !widget.viewing
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Tooltip for Add Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Institution ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.add),
+                                    onPressed: () async {
+                                      addEntry(index);
+                                    },
+                                  ),
+                                ),
+                                // Tooltip for Clear Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Institution ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.clear),
+                                    onPressed: () async {
+                                      clearEntry(index);
+                                    },
+                                  ),
+                                ),
+                                if (entries.length > 1)
+                                  // Tooltip for Delete Entry
+                                  Tooltip(
+                                    message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Institution ${index + 1}",
+                                    child: IconButton(
+                                      icon: Icon(Icons.delete),
+                                      onPressed: () async {
+                                        deleteEntry(index);
+                                      },
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : Container(width: 0, height: 0),
+                      SizedBox(height: standardSizedBoxHeight),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -1249,6 +1391,7 @@ class ExperienceProfileEntry extends StatefulWidget {
 */
 class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
   List<ProfileExpCont> entries = [];
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -1329,6 +1472,12 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
     }
   }
 
+  void _updateHover(bool isHovered) {
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -1357,178 +1506,286 @@ class ExperienceProfileEntryState extends State<ExperienceProfileEntry> {
     int index,
     ProfileExpCont entry,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: standardSizedBoxHeight),
-        // Title
-        Center(
-          child: Text(
-            entry.name.text.isNotEmpty ? entry.name.text : "Work Experience ${index + 1}",
-            style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.75,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  Expanded(
-                    // Name TextFormField
-                    child: TextFormField(
-                      controller: entry.name,
-                      keyboardType: TextInputType.multiline,
-                      maxLines: 1,
-                      readOnly: widget.viewing,
-                      decoration: InputDecoration(hintText: 'Enter company name here...'),
-                      onChanged: (value) async {
-                        setState(() {});
-                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
-                      },
-                    ),
+    final cardTheme = Theme.of(context).cardTheme;
+    return Center(
+      child: MouseRegion(
+        onEnter: (event) => _updateHover(true),
+        onExit: (event) => _updateHover(false),
+        child: Card(
+          elevation: _isHovered ? 80.0 : cardTheme.elevation,
+          shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+          margin: EdgeInsets.all(15.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: MediaQuery.of(context).size.width * 0.4,
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                // Title
+                Center(
+                  child: Text(
+                    entry.name.text.isNotEmpty ? entry.name.text : "Work Experience ${index + 1}",
+                    style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Still Working Checkbox
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Sill Working At ${entry.name.text}?" : "Sill Working At Work Experience - ${index + 1}?",
-                    child: Checkbox(
-                      value: entry.working,
-                      onChanged: (bool? value) async {
-                        if (!widget.viewing) {
-                          setState(() {
-                            entry.working = value ?? false;
-                          });
-                          await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Include Checkbox
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Work Experience ${index + 1} In Portfolio?",
-                    child: Checkbox(
-                      value: entry.include,
-                      onChanged: (bool? value) async {
-                        if (!widget.viewing) {
-                          await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
-                          setState(() {
-                            entry.include = value ?? false;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Start Date
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Work Experience ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.date_range),
-                      onPressed: () async {
-                        if (!widget.viewing) {
-                          entry.start = await SelectDate(context);
-                          await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // End Date
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Work Experience ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.date_range),
-                      onPressed: () async {
-                        if (!widget.viewing) {
-                          entry.end = await SelectDate(context);
-                          await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              // Position TextFormField
-              TextFormField(
-                controller: entry.position,
-                keyboardType: TextInputType.multiline,
-                maxLines: 1,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter position info for ${entry.name.text} here..." : "Enter position info for Work Experience ${index + 1} here...",
                 ),
-                onChanged: (value) async {
-                  await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
-                },
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              // Description TextFormField
-              TextFormField(
-                controller: entry.description,
-                keyboardType: TextInputType.multiline,
-                minLines: 10,
-                maxLines: 100,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Work Experience ${index + 1} here...",
-                ),
-                onChanged: (value) async {
-                  await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
-                },
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              !widget.viewing
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Tooltip for Add Entry
-                        Tooltip(
-                          message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Work Experience ${index + 1}",
-                          child: IconButton(
-                            icon: Icon(Icons.add),
-                            onPressed: () async {
-                              addEntry(index);
-                            },
-                          ),
-                        ),
-                        // Tooltip for Clear Entry
-                        Tooltip(
-                          message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Work Experience ${index + 1}",
-                          child: IconButton(
-                            icon: Icon(Icons.clear),
-                            onPressed: () async {
-                              clearEntry(index);
-                            },
-                          ),
-                        ),
-                        if (entries.length > 1)
-                          // Tooltip for Delete Entry
-                          Tooltip(
-                            message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Work Experience ${index + 1}",
-                            child: IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () async {
-                                deleteEntry(index);
-                              },
+                SizedBox(height: standardSizedBoxHeight),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      isDesktop()
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: <Widget>[
+                                Expanded(
+                                  // Name TextFormField
+                                  child: TextFormField(
+                                    controller: entry.name,
+                                    keyboardType: TextInputType.multiline,
+                                    maxLines: 1,
+                                    readOnly: widget.viewing,
+                                    decoration: InputDecoration(hintText: 'Enter company name here...'),
+                                    onChanged: (value) async {
+                                      setState(() {});
+                                      await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Still Working Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Sill Working At ${entry.name.text}?" : "Sill Working At Work Experience - ${index + 1}?",
+                                  child: Checkbox(
+                                    value: entry.working,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.working = value ?? false;
+                                        });
+                                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Include Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Work Experience ${index + 1} In Portfolio?",
+                                  child: Checkbox(
+                                    value: entry.include,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                                        setState(() {
+                                          entry.include = value ?? false;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Start Date
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Work Experience ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.start = await SelectDate(context);
+                                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // End Date
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Work Experience ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.end = await SelectDate(context);
+                                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: <Widget>[
+                                Expanded(
+                                  // Name TextFormField
+                                  child: TextFormField(
+                                    controller: entry.name,
+                                    keyboardType: TextInputType.multiline,
+                                    maxLines: 1,
+                                    readOnly: widget.viewing,
+                                    decoration: InputDecoration(hintText: 'Enter company name here...'),
+                                    onChanged: (value) async {
+                                      setState(() {});
+                                      await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                      ],
-                    )
-                  : Container(width: 0, height: 0),
-            ],
+                      SizedBox(height: standardSizedBoxHeight),
+                      // Position TextFormField
+                      TextFormField(
+                        controller: entry.position,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: 1,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(
+                          hintText: entry.name.text.isNotEmpty ? "Enter position info for ${entry.name.text} here..." : "Enter position info for Work Experience ${index + 1} here...",
+                        ),
+                        onChanged: (value) async {
+                          await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        },
+                      ),
+                      SizedBox(height: standardSizedBoxHeight),
+                      isMobile()
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Still Working Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Sill Working At ${entry.name.text}?" : "Sill Working At Work Experience - ${index + 1}?",
+                                  child: Checkbox(
+                                    value: entry.working,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.working = value ?? false;
+                                        });
+                                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Include Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Work Experience ${index + 1} In Portfolio?",
+                                  child: Checkbox(
+                                    value: entry.include,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                                        setState(() {
+                                          entry.include = value ?? false;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Start Date
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Work Experience ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.start = await SelectDate(context);
+                                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // End Date
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Work Experience ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.end = await SelectDate(context);
+                                        await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Container(width: 0, height: 0),
+                      SizedBox(height: standardSizedBoxHeight),
+                      // Description TextFormField
+                      TextFormField(
+                        controller: entry.description,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 10,
+                        maxLines: 100,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(
+                          hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Work Experience ${index + 1} here...",
+                        ),
+                        onChanged: (value) async {
+                          await SetContent<ProfileExpCont>(entries, widget.profile.expContList);
+                        },
+                      ),
+                      SizedBox(height: standardSizedBoxHeight),
+                      !widget.viewing
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Tooltip for Add Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Work Experience ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.add),
+                                    onPressed: () async {
+                                      addEntry(index);
+                                    },
+                                  ),
+                                ),
+                                // Tooltip for Clear Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Work Experience ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.clear),
+                                    onPressed: () async {
+                                      clearEntry(index);
+                                    },
+                                  ),
+                                ),
+                                if (entries.length > 1)
+                                  // Tooltip for Delete Entry
+                                  Tooltip(
+                                    message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Work Experience ${index + 1}",
+                                    child: IconButton(
+                                      icon: Icon(Icons.delete),
+                                      onPressed: () async {
+                                        deleteEntry(index);
+                                      },
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : Container(width: 0, height: 0),
+                      SizedBox(height: standardSizedBoxHeight),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -1650,6 +1907,7 @@ class ProjectProfileEntry extends StatefulWidget {
 */
 class ProjectProfileEntryState extends State<ProjectProfileEntry> {
   List<ProfileProjCont> entries = [];
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -1730,6 +1988,12 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
     }
   }
 
+  void _updateHover(bool isHovered) {
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -1758,178 +2022,285 @@ class ProjectProfileEntryState extends State<ProjectProfileEntry> {
     int index,
     ProfileProjCont entry,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: standardSizedBoxHeight),
-        // Title
-        Center(
-          child: Text(
-            entry.name.text.isNotEmpty ? entry.name.text : "Project ${index + 1}",
-            style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.75,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  Expanded(
-                    // Name TextFormField
-                    child: TextFormField(
-                      controller: entry.name,
-                      keyboardType: TextInputType.multiline,
-                      maxLines: 1,
-                      readOnly: widget.viewing,
-                      decoration: InputDecoration(hintText: 'Enter project name here...'),
-                      onChanged: (value) async {
-                        setState(() {});
-                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
-                      },
-                    ),
+    final cardTheme = Theme.of(context).cardTheme;
+    return Center(
+      child: MouseRegion(
+        onEnter: (event) => _updateHover(true),
+        onExit: (event) => _updateHover(false),
+        child: Card(
+          elevation: _isHovered ? 80.0 : cardTheme.elevation,
+          shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+          margin: EdgeInsets.all(15.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: MediaQuery.of(context).size.width * 0.4,
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                // Title
+                Center(
+                  child: Text(
+                    entry.name.text.isNotEmpty ? entry.name.text : "Project ${index + 1}",
+                    style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Completed Checkbox
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Completed ${entry.name.text}?" : "Completed Project ${index + 1}?",
-                    child: Checkbox(
-                      value: entry.completed,
-                      onChanged: (bool? value) async {
-                        if (!widget.viewing) {
-                          setState(() {
-                            entry.completed = value ?? false;
-                          });
-                          await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Include Checkbox
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Project ${index + 1} In Portfolio?",
-                    child: Checkbox(
-                      value: entry.include,
-                      onChanged: (bool? value) async {
-                        if (!widget.viewing) {
-                          setState(() {
-                            entry.include = value ?? false;
-                          });
-                          await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Start Date
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Project ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.date_range),
-                      onPressed: () async {
-                        if (!widget.viewing) {
-                          entry.start = await SelectDate(context);
-                          await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // End Date
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Project ${index + 1}",
-                    child: IconButton(
-                      icon: Icon(Icons.date_range),
-                      onPressed: () async {
-                        if (!widget.viewing) {
-                          entry.end = await SelectDate(context);
-                          await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              // Role TextFormField
-              TextFormField(
-                controller: entry.role,
-                keyboardType: TextInputType.multiline,
-                maxLines: 1,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter role info for ${entry.name.text} here..." : "Enter role info for Project ${index + 1} here...",
                 ),
-                onChanged: (value) async {
-                  await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
-                },
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              // Description TextFormField
-              TextFormField(
-                controller: entry.description,
-                keyboardType: TextInputType.multiline,
-                minLines: 10,
-                maxLines: 100,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Project ${index + 1} here...",
-                ),
-                onChanged: (value) async {
-                  await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
-                },
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              !widget.viewing
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Tooltip for Add Entry
-                        Tooltip(
-                          message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Project ${index + 1}",
-                          child: IconButton(
-                            icon: Icon(Icons.add),
-                            onPressed: () async {
-                              addEntry(index);
-                            },
-                          ),
-                        ),
-                        // Tooltip for Clear Entry
-                        Tooltip(
-                          message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Project ${index + 1}",
-                          child: IconButton(
-                            icon: Icon(Icons.clear),
-                            onPressed: () async {
-                              clearEntry(index);
-                            },
-                          ),
-                        ),
-                        if (entries.length > 1)
-                          // Tooltip for Delete Entry
-                          Tooltip(
-                            message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Project ${index + 1}",
-                            child: IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () async {
-                                deleteEntry(index);
-                              },
+                SizedBox(height: standardSizedBoxHeight),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      isDesktop()
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: <Widget>[
+                                Expanded(
+                                  // Name TextFormField
+                                  child: TextFormField(
+                                    controller: entry.name,
+                                    keyboardType: TextInputType.multiline,
+                                    maxLines: 1,
+                                    readOnly: widget.viewing,
+                                    decoration: InputDecoration(hintText: 'Enter project name here...'),
+                                    onChanged: (value) async {
+                                      setState(() {});
+                                      await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Completed Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Completed ${entry.name.text}?" : "Completed Project ${index + 1}?",
+                                  child: Checkbox(
+                                    value: entry.completed,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.completed = value ?? false;
+                                        });
+                                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Include Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Project ${index + 1} In Portfolio?",
+                                  child: Checkbox(
+                                    value: entry.include,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.include = value ?? false;
+                                        });
+                                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Start Date
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Project ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.start = await SelectDate(context);
+                                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // End Date
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Project ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.end = await SelectDate(context);
+                                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: <Widget>[
+                                Expanded(
+                                  // Name TextFormField
+                                  child: TextFormField(
+                                    controller: entry.name,
+                                    keyboardType: TextInputType.multiline,
+                                    maxLines: 1,
+                                    readOnly: widget.viewing,
+                                    decoration: InputDecoration(hintText: 'Enter project name here...'),
+                                    onChanged: (value) async {
+                                      setState(() {});
+                                      await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                      ],
-                    )
-                  : Container(width: 0, height: 0),
-            ],
+                      SizedBox(height: standardSizedBoxHeight),
+                      // Role TextFormField
+                      TextFormField(
+                        controller: entry.role,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: 1,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(
+                          hintText: entry.name.text.isNotEmpty ? "Enter role info for ${entry.name.text} here..." : "Enter role info for Project ${index + 1} here...",
+                        ),
+                        onChanged: (value) async {
+                          await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        },
+                      ),
+                      SizedBox(height: standardSizedBoxHeight),
+                      isMobile()
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Completed Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Completed ${entry.name.text}?" : "Completed Project ${index + 1}?",
+                                  child: Checkbox(
+                                    value: entry.completed,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.completed = value ?? false;
+                                        });
+                                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Include Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Project ${index + 1} In Portfolio?",
+                                  child: Checkbox(
+                                    value: entry.include,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.include = value ?? false;
+                                        });
+                                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Start Date
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Start Date For ${entry.name.text}" : "Start Date For Project ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.start = await SelectDate(context);
+                                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                // End Date
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "End Date For ${entry.name.text}" : "End Date For Project ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.date_range),
+                                    onPressed: () async {
+                                      if (!widget.viewing) {
+                                        entry.end = await SelectDate(context);
+                                        await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Container(width: 0, height: 0),
+                      SizedBox(height: standardSizedBoxHeight),
+                      // Description TextFormField
+                      TextFormField(
+                        controller: entry.description,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 10,
+                        maxLines: 100,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(
+                          hintText: entry.name.text.isNotEmpty ? "Enter description for ${entry.name.text} here..." : "Enter description for Project ${index + 1} here...",
+                        ),
+                        onChanged: (value) async {
+                          await SetContent<ProfileProjCont>(entries, widget.profile.projContList);
+                        },
+                      ),
+                      SizedBox(height: standardSizedBoxHeight),
+                      !widget.viewing
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Tooltip for Add Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Project ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.add),
+                                    onPressed: () async {
+                                      addEntry(index);
+                                    },
+                                  ),
+                                ),
+                                // Tooltip for Clear Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Project ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.clear),
+                                    onPressed: () async {
+                                      clearEntry(index);
+                                    },
+                                  ),
+                                ),
+                                if (entries.length > 1)
+                                  // Tooltip for Delete Entry
+                                  Tooltip(
+                                    message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Project ${index + 1}",
+                                    child: IconButton(
+                                      icon: Icon(Icons.delete),
+                                      onPressed: () async {
+                                        deleteEntry(index);
+                                      },
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : Container(width: 0, height: 0),
+                      SizedBox(height: standardSizedBoxHeight),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -2031,6 +2402,7 @@ class SkillsProjectEntry extends StatefulWidget {
 */
 class SkillsProjectEntryState extends State<SkillsProjectEntry> {
   List<ProfileSkillsCont> entries = [];
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -2107,6 +2479,12 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
     }
   }
 
+  void _updateHover(bool isHovered) {
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -2135,120 +2513,184 @@ class SkillsProjectEntryState extends State<SkillsProjectEntry> {
     int index,
     ProfileSkillsCont entry,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: standardSizedBoxHeight),
-        // Title
-        Center(
-          child: Text(
-            entry.name.text.isNotEmpty ? entry.name.text : "Skill Category ${index + 1}",
-            style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.75,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  Expanded(
-                    // Name TextFormField
-                    child: TextFormField(
-                      controller: entry.name,
-                      keyboardType: TextInputType.multiline,
-                      maxLines: 1,
-                      readOnly: widget.viewing,
-                      decoration: InputDecoration(hintText: 'Enter skill name here...'),
-                      onChanged: (value) async {
-                        setState(() {});
-                        await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
-                      },
-                    ),
+    final cardTheme = Theme.of(context).cardTheme;
+    return Center(
+      child: MouseRegion(
+        onEnter: (event) => _updateHover(true),
+        onExit: (event) => _updateHover(false),
+        child: Card(
+          elevation: _isHovered ? 80.0 : cardTheme.elevation,
+          shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+          margin: EdgeInsets.all(15.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: MediaQuery.of(context).size.width * 0.4,
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                // Title
+                Center(
+                  child: Text(
+                    entry.name.text.isNotEmpty ? entry.name.text : "Skill Category ${index + 1}",
+                    style: TextStyle(fontSize: secondaryTitles, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(width: standardSizedBoxWidth),
-                  // Include Checkbox
-                  Tooltip(
-                    message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Skill Category ${index + 1}",
-                    child: Checkbox(
-                      value: entry.include,
-                      onChanged: (bool? value) async {
-                        if (!widget.viewing) {
-                          setState(() {
-                            entry.include = value ?? false;
-                          });
-                          await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              // Description TextFormField
-              TextFormField(
-                controller: entry.description,
-                keyboardType: TextInputType.multiline,
-                minLines: 10,
-                maxLines: 100,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(
-                  hintText: entry.name.text.isNotEmpty ? "Enter skills info for ${entry.name.text} here..." : "Enter skills info for Skill Category ${index + 1} here...",
                 ),
-                onChanged: (value) async {
-                  await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
-                },
-              ),
-              SizedBox(height: standardSizedBoxHeight),
-              !widget.viewing
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Tooltip for Add Entry
-                        Tooltip(
-                          message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Skill Category ${index + 1}",
-                          child: IconButton(
-                            icon: Icon(Icons.add),
-                            onPressed: () {
-                              addEntry(index);
-                            },
-                          ),
-                        ),
-                        // Tooltip for Clear Entry
-                        Tooltip(
-                          message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Skill Category ${index + 1}",
-                          child: IconButton(
-                            icon: Icon(Icons.clear),
-                            onPressed: () {
-                              clearEntry(index);
-                            },
-                          ),
-                        ),
-                        if (entries.length > 1)
-                          // Tooltip for Delete Entry
-                          Tooltip(
-                            message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Skill Category ${index + 1}",
-                            child: IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                deleteEntry(index);
-                              },
+                SizedBox(height: standardSizedBoxHeight),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      isDesktop()
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: <Widget>[
+                                Expanded(
+                                  // Name TextFormField
+                                  child: TextFormField(
+                                    controller: entry.name,
+                                    keyboardType: TextInputType.multiline,
+                                    maxLines: 1,
+                                    readOnly: widget.viewing,
+                                    decoration: InputDecoration(hintText: 'Enter skill name here...'),
+                                    onChanged: (value) async {
+                                      setState(() {});
+                                      await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: standardSizedBoxWidth),
+                                // Include Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Skill Category ${index + 1}",
+                                  child: Checkbox(
+                                    value: entry.include,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.include = value ?? false;
+                                        });
+                                        await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: <Widget>[
+                                Expanded(
+                                  // Name TextFormField
+                                  child: TextFormField(
+                                    controller: entry.name,
+                                    keyboardType: TextInputType.multiline,
+                                    maxLines: 1,
+                                    readOnly: widget.viewing,
+                                    decoration: InputDecoration(hintText: 'Enter skill name here...'),
+                                    onChanged: (value) async {
+                                      setState(() {});
+                                      await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                      ],
-                    )
-                  : Container(width: 0, height: 0),
-            ],
+                      SizedBox(height: standardSizedBoxHeight),
+                      isMobile()
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Include Checkbox
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Include ${entry.name.text} In Portfolio?" : "Include Skill Category ${index + 1}",
+                                  child: Checkbox(
+                                    value: entry.include,
+                                    onChanged: (bool? value) async {
+                                      if (!widget.viewing) {
+                                        setState(() {
+                                          entry.include = value ?? false;
+                                        });
+                                        await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Container(width: 0, height: 0),
+                      SizedBox(height: standardSizedBoxHeight),
+                      // Description TextFormField
+                      TextFormField(
+                        controller: entry.description,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 10,
+                        maxLines: 20,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(
+                          hintText: entry.name.text.isNotEmpty ? "Enter skills info for ${entry.name.text} here..." : "Enter skills info for Skill Category ${index + 1} here...",
+                        ),
+                        onChanged: (value) async {
+                          await SetContent<ProfileSkillsCont>(entries, widget.profile.skillsContList);
+                        },
+                      ),
+                      SizedBox(height: standardSizedBoxHeight),
+                      !widget.viewing
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Tooltip for Add Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Add Entry After ${entry.name.text}" : "Add Entry After Skill Category ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.add),
+                                    onPressed: () {
+                                      addEntry(index);
+                                    },
+                                  ),
+                                ),
+                                // Tooltip for Clear Entry
+                                Tooltip(
+                                  message: entry.name.text.isNotEmpty ? "Clear Entries For ${entry.name.text}" : "Clear Entries For Skill Category ${index + 1}",
+                                  child: IconButton(
+                                    icon: Icon(Icons.clear),
+                                    onPressed: () {
+                                      clearEntry(index);
+                                    },
+                                  ),
+                                ),
+                                if (entries.length > 1)
+                                  // Tooltip for Delete Entry
+                                  Tooltip(
+                                    message: entry.name.text.isNotEmpty ? "Delete Entry For ${entry.name.text}" : "Delete Entry For Skill Category ${index + 1}",
+                                    child: IconButton(
+                                      icon: Icon(Icons.delete),
+                                      onPressed: () {
+                                        deleteEntry(index);
+                                      },
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : Container(width: 0, height: 0),
+                      SizedBox(height: standardSizedBoxHeight),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

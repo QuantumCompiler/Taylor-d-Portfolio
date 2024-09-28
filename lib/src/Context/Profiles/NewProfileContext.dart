@@ -37,7 +37,7 @@ SingleChildScrollView NewProfileContent(BuildContext context, Profile profile, L
       children: <Widget>[
         Center(
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.8,
+            width: MediaQuery.of(context).size.width * 0.9,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.start,

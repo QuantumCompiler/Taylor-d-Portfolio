@@ -94,7 +94,7 @@ class _DescriptionCardState extends State<DescriptionCard> {
                                 ? 'View Job Description'
                                 : 'Edit Job Description',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.05,
+                          fontSize: constraints.maxWidth * 0.06,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -114,7 +114,7 @@ class _DescriptionCardState extends State<DescriptionCard> {
                             : widget.viewing
                                 ? 'View description details for the job'
                                 : 'Edit your description details for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
                       ),
                     ),
                   ],
@@ -194,7 +194,7 @@ class _OtherInfoCardState extends State<OtherInfoCard> {
                                 ? 'View Other Info'
                                 : 'Edit Other Info',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.05,
+                          fontSize: constraints.maxWidth * 0.06,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -214,7 +214,7 @@ class _OtherInfoCardState extends State<OtherInfoCard> {
                             : widget.viewing
                                 ? 'View other information for the job'
                                 : 'Edit other information for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
                       ),
                     ),
                   ],
@@ -294,7 +294,7 @@ class _RoleCardState extends State<RoleCard> {
                                 ? 'View Role Description'
                                 : 'Edit Role Description',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.05,
+                          fontSize: constraints.maxWidth * 0.06,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -314,7 +314,7 @@ class _RoleCardState extends State<RoleCard> {
                             : widget.viewing
                                 ? 'View the role description for the job'
                                 : 'Edit the role description for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
                       ),
                     ),
                   ],
@@ -394,7 +394,7 @@ class _SkillsCardState extends State<SkillsCard> {
                                 ? 'View Skill Requirements'
                                 : 'Edit Skill Requirements',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.05,
+                          fontSize: constraints.maxWidth * 0.06,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -410,7 +410,7 @@ class _SkillsCardState extends State<SkillsCard> {
                     Center(
                       child: Text(
                         widget.job.newJob ? 'Enter the skill requirements for the job' : 'Edit the skill requirements for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.030),
+                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
                       ),
                     ),
                   ],

@@ -108,15 +108,25 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                     ),
                   ),
                   SizedBox(height: standardSizedBoxHeight),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CoverLetterCard(app: widget.app),
-                      PortfolioCard(app: widget.app),
-                      ResumeCard(app: widget.app),
-                    ],
-                  ),
+                  isDesktop()
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CoverLetterCard(app: widget.app),
+                            PortfolioCard(app: widget.app),
+                            ResumeCard(app: widget.app),
+                          ],
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CoverLetterCard(app: widget.app),
+                            PortfolioCard(app: widget.app),
+                            ResumeCard(app: widget.app),
+                          ],
+                        ),
                   SizedBox(height: standardSizedBoxHeight),
                   SizedBox(height: standardSizedBoxHeight),
                   Center(
@@ -131,7 +141,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                   SizedBox(height: standardSizedBoxHeight),
                   ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                      maxWidth: isDesktop() ? MediaQuery.of(context).size.width * 0.75 : MediaQuery.of(context).size.width * 0.90,
                     ),
                     child: ExpansionTile(
                       title: Text('Application Information'),
@@ -139,7 +149,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                       children: [
                         ConstrainedBox(
                           constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width * 0.70,
+                            maxWidth: isDesktop() ? MediaQuery.of(context).size.width * 0.70 : MediaQuery.of(context).size.width * 0.85,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -151,7 +161,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                                 children: [
                                   SizedBox(height: standardSizedBoxHeight),
                                   Container(
-                                    width: MediaQuery.of(context).size.width * 0.60,
+                                    width: isDesktop() ? MediaQuery.of(context).size.width * 0.60 : MediaQuery.of(context).size.width * 0.75,
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.center,
                                       mainAxisAlignment: MainAxisAlignment.center,
@@ -208,7 +218,9 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                                                   mainAxisSize: MainAxisSize.min,
                                                   children: [
                                                     IconButton(
-                                                      icon: Icon(Icons.download),
+                                                      icon: Icon(
+                                                        Icons.download,
+                                                      ),
                                                       onPressed: () async {
                                                         String path = widget.app.coverLetterPDF.path;
                                                         await SaveFile(context, path);
@@ -708,7 +720,7 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
             await PDFPage(context, widget.app, 'Cover Letter.pdf');
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.25,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.25 : MediaQuery.of(context).size.width * 0.75,
             height: MediaQuery.of(context).size.height * 0.20,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
@@ -803,7 +815,7 @@ class _PortfolioCardState extends State<PortfolioCard> {
             await PDFPage(context, widget.app, 'Portfolio.pdf');
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.25,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.25 : MediaQuery.of(context).size.width * 0.75,
             height: MediaQuery.of(context).size.height * 0.20,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
@@ -910,33 +922,31 @@ class _RecCardState extends State<RecCard> {
       child: Card(
         elevation: _isHovered ? 80.0 : cardTheme.elevation,
         shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
-        child: InkWell(
-          onTap: () async {},
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.75,
-            margin: EdgeInsets.all(15.0),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Text(
-                        widget.title,
-                        style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.03,
-                          fontWeight: FontWeight.bold,
-                        ),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.6,
+          margin: EdgeInsets.all(15.0),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  SizedBox(height: standardSizedBoxHeight),
+                  Center(
+                    child: Text(
+                      widget.title,
+                      style: TextStyle(
+                        fontSize: constraints.maxWidth * 0.03,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: standardSizedBoxHeight),
-                    Text(content),
-                    SizedBox(height: standardSizedBoxHeight),
-                  ],
-                );
-              },
-            ),
+                  ),
+                  SizedBox(height: standardSizedBoxHeight),
+                  Text(content),
+                  SizedBox(height: standardSizedBoxHeight),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -978,7 +988,7 @@ class _ResumeCardState extends State<ResumeCard> {
             await PDFPage(context, widget.app, 'Resume.pdf');
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.25,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.25 : MediaQuery.of(context).size.width * 0.75,
             height: MediaQuery.of(context).size.height * 0.20,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(

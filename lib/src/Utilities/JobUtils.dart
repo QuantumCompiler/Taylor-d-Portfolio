@@ -540,6 +540,7 @@ class DescriptionJobEntry extends StatefulWidget {
 
 class DescriptionJobEntryState extends State<DescriptionJobEntry> {
   List<JobDesCont> entries = [];
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -581,6 +582,12 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
     await SetContent<JobDesCont>(widget.job.descriptionContList, entries);
   }
 
+  void _updateHover(bool isHovered) {
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -609,63 +616,82 @@ class DescriptionJobEntryState extends State<DescriptionJobEntry> {
     int index,
     JobDesCont entry,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: standardSizedBoxHeight),
-        // Title
-        Center(
-          child: Text(
-            widget.viewing ? 'Job Description' : 'Enter Job Description',
-            style: TextStyle(
-              fontSize: secondaryTitles,
-              fontWeight: FontWeight.bold,
+    final cardTheme = Theme.of(context).cardTheme;
+    return Center(
+      child: MouseRegion(
+        onEnter: (event) => _updateHover(true),
+        onExit: (event) => _updateHover(false),
+        child: Card(
+          elevation: _isHovered ? 80.0 : cardTheme.elevation,
+          shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+          margin: EdgeInsets.all(15.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: MediaQuery.of(context).size.width * 0.4,
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                // Title
+                Center(
+                  child: Text(
+                    widget.viewing ? 'Job Description' : 'Enter Job Description',
+                    style: TextStyle(
+                      fontSize: secondaryTitles,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      // Description
+                      TextFormField(
+                        controller: entry.description,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 10,
+                        maxLines: 100,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(hintText: 'Enter the job description here...'),
+                        onChanged: (value) async {
+                          await SetContent<JobDesCont>(entries, widget.job.descriptionContList);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                !widget.viewing
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Clear Button
+                          Tooltip(
+                            message: 'Clear Description Entry',
+                            child: IconButton(
+                              icon: Icon(Icons.clear),
+                              onPressed: () async {
+                                clearEntry(index);
+                              },
+                            ),
+                          ),
+                        ],
+                      )
+                    : Container(width: 0, height: 0),
+                SizedBox(height: standardSizedBoxHeight),
+              ],
             ),
           ),
         ),
-        SizedBox(height: standardSizedBoxHeight),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.75,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              // Description
-              TextFormField(
-                controller: entry.description,
-                keyboardType: TextInputType.multiline,
-                minLines: 10,
-                maxLines: 100,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(hintText: 'Enter the job description here...'),
-                onChanged: (value) async {
-                  await SetContent<JobDesCont>(entries, widget.job.descriptionContList);
-                },
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        !widget.viewing
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Clear Button
-                  Tooltip(
-                    message: 'Clear Description Entry',
-                    child: IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () async {
-                        clearEntry(index);
-                      },
-                    ),
-                  ),
-                ],
-              )
-            : Container(width: 0, height: 0),
-      ],
+      ),
     );
   }
 }
@@ -744,6 +770,7 @@ class OtherInfoJobEntry extends StatefulWidget {
 
 class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
   List<JobOtherCont> entries = [];
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -785,6 +812,12 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
     await SetContent<JobOtherCont>(widget.job.otherInfoContList, entries);
   }
 
+  void _updateHover(bool isHovered) {
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -813,63 +846,82 @@ class OtherInfoJobEntryState extends State<OtherInfoJobEntry> {
     int index,
     JobOtherCont entry,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: standardSizedBoxHeight),
-        // Title
-        Center(
-          child: Text(
-            widget.viewing ? 'Other Information' : 'Enter Other Information',
-            style: TextStyle(
-              fontSize: secondaryTitles,
-              fontWeight: FontWeight.bold,
+    final cardTheme = Theme.of(context).cardTheme;
+    return Center(
+      child: MouseRegion(
+        onEnter: (event) => _updateHover(true),
+        onExit: (event) => _updateHover(false),
+        child: Card(
+          elevation: _isHovered ? 80.0 : cardTheme.elevation,
+          shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+          margin: EdgeInsets.all(15.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: MediaQuery.of(context).size.width * 0.4,
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                // Title
+                Center(
+                  child: Text(
+                    widget.viewing ? 'Other Information' : 'Enter Other Information',
+                    style: TextStyle(
+                      fontSize: secondaryTitles,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      // Description
+                      TextFormField(
+                        controller: entry.description,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 10,
+                        maxLines: 100,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(hintText: 'Enter the other information here...'),
+                        onChanged: (value) async {
+                          await SetContent<JobOtherCont>(entries, widget.job.otherInfoContList);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                !widget.viewing
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Clear Button
+                          Tooltip(
+                            message: 'Clear Other Info Entry',
+                            child: IconButton(
+                              icon: Icon(Icons.clear),
+                              onPressed: () async {
+                                clearEntry(index);
+                              },
+                            ),
+                          ),
+                        ],
+                      )
+                    : Container(width: 0, height: 0),
+                SizedBox(height: standardSizedBoxHeight),
+              ],
             ),
           ),
         ),
-        SizedBox(height: standardSizedBoxHeight),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.75,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              // Description
-              TextFormField(
-                controller: entry.description,
-                keyboardType: TextInputType.multiline,
-                minLines: 10,
-                maxLines: 100,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(hintText: 'Enter the other information here...'),
-                onChanged: (value) async {
-                  await SetContent<JobOtherCont>(entries, widget.job.otherInfoContList);
-                },
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        !widget.viewing
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Clear Button
-                  Tooltip(
-                    message: 'Clear Other Info Entry',
-                    child: IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () async {
-                        clearEntry(index);
-                      },
-                    ),
-                  ),
-                ],
-              )
-            : Container(width: 0, height: 0),
-      ],
+      ),
     );
   }
 }
@@ -948,6 +1000,7 @@ class RoleJobEntry extends StatefulWidget {
 
 class RoleJobEntryState extends State<RoleJobEntry> {
   List<JobRoleCont> entries = [];
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -989,6 +1042,12 @@ class RoleJobEntryState extends State<RoleJobEntry> {
     await SetContent<JobRoleCont>(widget.job.roleContList, entries);
   }
 
+  void _updateHover(bool isHovered) {
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -1017,63 +1076,81 @@ class RoleJobEntryState extends State<RoleJobEntry> {
     int index,
     JobRoleCont entry,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: standardSizedBoxHeight),
-        // Title
-        Center(
-          child: Text(
-            widget.viewing ? 'Role Information' : 'Enter Role Information',
-            style: TextStyle(
-              fontSize: secondaryTitles,
-              fontWeight: FontWeight.bold,
+    final cardTheme = Theme.of(context).cardTheme;
+    return Center(
+      child: MouseRegion(
+        onEnter: (event) => _updateHover(true),
+        onExit: (event) => _updateHover(false),
+        child: Card(
+          elevation: _isHovered ? 80.0 : cardTheme.elevation,
+          shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+          margin: EdgeInsets.all(15.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: MediaQuery.of(context).size.width * 0.4,
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                // Title
+                Center(
+                  child: Text(
+                    widget.viewing ? 'Role Information' : 'Enter Role Information',
+                    style: TextStyle(
+                      fontSize: secondaryTitles,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      // Description
+                      TextFormField(
+                        controller: entry.description,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 10,
+                        maxLines: 100,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(hintText: 'Enter role information here...'),
+                        onChanged: (value) async {
+                          await SetContent<JobRoleCont>(entries, widget.job.roleContList);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                !widget.viewing
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Clear Button
+                          Tooltip(
+                            message: 'Clear Role Info Entry',
+                            child: IconButton(
+                              icon: Icon(Icons.clear),
+                              onPressed: () async {
+                                clearEntry(index);
+                              },
+                            ),
+                          ),
+                        ],
+                      )
+                    : Container(width: 0, height: 0),
+              ],
             ),
           ),
         ),
-        SizedBox(height: standardSizedBoxHeight),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.75,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              // Description
-              TextFormField(
-                controller: entry.description,
-                keyboardType: TextInputType.multiline,
-                minLines: 10,
-                maxLines: 100,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(hintText: 'Enter role information here...'),
-                onChanged: (value) async {
-                  await SetContent<JobRoleCont>(entries, widget.job.roleContList);
-                },
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        !widget.viewing
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Clear Button
-                  Tooltip(
-                    message: 'Clear Role Info Entry',
-                    child: IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () async {
-                        clearEntry(index);
-                      },
-                    ),
-                  ),
-                ],
-              )
-            : Container(width: 0, height: 0),
-      ],
+      ),
     );
   }
 }
@@ -1152,6 +1229,7 @@ class SkillsJobEntry extends StatefulWidget {
 
 class SkillsJobEntryState extends State<SkillsJobEntry> {
   List<JobSkillsCont> entries = [];
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -1193,6 +1271,12 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
     await SetContent<JobSkillsCont>(widget.job.skillsContList, entries);
   }
 
+  void _updateHover(bool isHovered) {
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -1221,63 +1305,82 @@ class SkillsJobEntryState extends State<SkillsJobEntry> {
     int index,
     JobSkillsCont entry,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: standardSizedBoxHeight),
-        // Title
-        Center(
-          child: Text(
-            widget.viewing ? 'Skill Requirements' : 'Enter Skill Requirements',
-            style: TextStyle(
-              fontSize: secondaryTitles,
-              fontWeight: FontWeight.bold,
+    final cardTheme = Theme.of(context).cardTheme;
+    return Center(
+      child: MouseRegion(
+        onEnter: (event) => _updateHover(true),
+        onExit: (event) => _updateHover(false),
+        child: Card(
+          elevation: _isHovered ? 80.0 : cardTheme.elevation,
+          shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
+          margin: EdgeInsets.all(15.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: MediaQuery.of(context).size.width * 0.4,
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                // Title
+                Center(
+                  child: Text(
+                    widget.viewing ? 'Skill Requirements' : 'Enter Skill Requirements',
+                    style: TextStyle(
+                      fontSize: secondaryTitles,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      // Description
+                      TextFormField(
+                        controller: entry.description,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 10,
+                        maxLines: 100,
+                        readOnly: widget.viewing,
+                        decoration: InputDecoration(hintText: 'Enter skill requirements here...'),
+                        onChanged: (value) async {
+                          await SetContent<JobSkillsCont>(entries, widget.job.skillsContList);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                !widget.viewing
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Clear Button
+                          Tooltip(
+                            message: 'Clear Skill Requirements Entry',
+                            child: IconButton(
+                              icon: Icon(Icons.clear),
+                              onPressed: () async {
+                                clearEntry(index);
+                              },
+                            ),
+                          ),
+                        ],
+                      )
+                    : Container(width: 0, height: 0),
+                SizedBox(height: standardSizedBoxHeight),
+              ],
             ),
           ),
         ),
-        SizedBox(height: standardSizedBoxHeight),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.75,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              // Description
-              TextFormField(
-                controller: entry.description,
-                keyboardType: TextInputType.multiline,
-                minLines: 10,
-                maxLines: 100,
-                readOnly: widget.viewing,
-                decoration: InputDecoration(hintText: 'Enter skill requirements here...'),
-                onChanged: (value) async {
-                  await SetContent<JobSkillsCont>(entries, widget.job.skillsContList);
-                },
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: standardSizedBoxHeight),
-        !widget.viewing
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Clear Button
-                  Tooltip(
-                    message: 'Clear Skill Requirements Entry',
-                    child: IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () async {
-                        clearEntry(index);
-                      },
-                    ),
-                  ),
-                ],
-              )
-            : Container(width: 0, height: 0),
-      ],
+      ),
     );
   }
 }

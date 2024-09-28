@@ -195,7 +195,7 @@ class _AppsState extends State<Apps> {
               children: [
                 SizedBox(height: standardSizedBoxHeight),
                 Text(
-                  'Previous Applications',
+                  'Applications',
                   style: TextStyle(
                     fontSize: secondaryTitles,
                     fontWeight: FontWeight.bold,
@@ -267,7 +267,7 @@ class _AppsState extends State<Apps> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Text(
-                    'No Previous Applications',
+                    'No Applications',
                     style: TextStyle(
                       fontSize: secondaryTitles,
                       fontWeight: FontWeight.bold,
@@ -313,7 +313,7 @@ class _JobsState extends State<Jobs> {
               children: [
                 SizedBox(height: standardSizedBoxHeight),
                 Text(
-                  'Previous Jobs',
+                  'Jobs',
                   style: TextStyle(
                     fontSize: secondaryTitles,
                     fontWeight: FontWeight.bold,
@@ -430,7 +430,7 @@ class _JobsState extends State<Jobs> {
                 children: [
                   SizedBox(height: 4 * standardSizedBoxHeight),
                   Text(
-                    'No Previous Jobs',
+                    'No Jobs',
                     style: TextStyle(
                       fontSize: secondaryTitles,
                       fontWeight: FontWeight.bold,
@@ -492,7 +492,7 @@ class _ProfileState extends State<Profiles> {
               children: [
                 SizedBox(height: standardSizedBoxHeight),
                 Text(
-                  'Previous Profiles',
+                  'Profiles',
                   style: TextStyle(
                     fontSize: secondaryTitles,
                     fontWeight: FontWeight.bold,
@@ -609,7 +609,7 @@ class _ProfileState extends State<Profiles> {
                 children: [
                   SizedBox(height: 4 * standardSizedBoxHeight),
                   Text(
-                    'No Previous Profiles',
+                    'No Profiles',
                     style: TextStyle(
                       fontSize: secondaryTitles,
                       fontWeight: FontWeight.bold,
