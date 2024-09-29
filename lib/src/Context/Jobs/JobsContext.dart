@@ -77,8 +77,8 @@ class _DescriptionCardState extends State<DescriptionCard> {
                         )));
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.35,
-            height: MediaQuery.of(context).size.height * 0.20,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.40 : MediaQuery.of(context).size.width * 0.35,
+            height: isDesktop() ? MediaQuery.of(context).size.height * 0.20 : MediaQuery.of(context).size.height * 0.15,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -94,7 +94,7 @@ class _DescriptionCardState extends State<DescriptionCard> {
                                 ? 'View Job Description'
                                 : 'Edit Job Description',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: isDesktop() ? constraints.maxWidth * 0.05 : constraints.maxWidth * 0.09,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -114,7 +114,7 @@ class _DescriptionCardState extends State<DescriptionCard> {
                             : widget.viewing
                                 ? 'View description details for the job'
                                 : 'Edit your description details for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
+                        style: TextStyle(fontSize: constraints.maxWidth * (isDesktop() ? 0.03 : 0.050)),
                       ),
                     ),
                   ],
@@ -177,8 +177,8 @@ class _OtherInfoCardState extends State<OtherInfoCard> {
                         )));
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.35,
-            height: MediaQuery.of(context).size.height * 0.20,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.40 : MediaQuery.of(context).size.width * 0.35,
+            height: isDesktop() ? MediaQuery.of(context).size.height * 0.20 : MediaQuery.of(context).size.height * 0.15,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -194,7 +194,7 @@ class _OtherInfoCardState extends State<OtherInfoCard> {
                                 ? 'View Other Info'
                                 : 'Edit Other Info',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: isDesktop() ? constraints.maxWidth * 0.05 : constraints.maxWidth * 0.09,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -214,7 +214,7 @@ class _OtherInfoCardState extends State<OtherInfoCard> {
                             : widget.viewing
                                 ? 'View other information for the job'
                                 : 'Edit other information for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
+                        style: TextStyle(fontSize: constraints.maxWidth * (isDesktop() ? 0.03 : 0.050)),
                       ),
                     ),
                   ],
@@ -277,8 +277,8 @@ class _RoleCardState extends State<RoleCard> {
                         )));
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.35,
-            height: MediaQuery.of(context).size.height * 0.20,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.40 : MediaQuery.of(context).size.width * 0.35,
+            height: isDesktop() ? MediaQuery.of(context).size.height * 0.20 : MediaQuery.of(context).size.height * 0.15,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -294,7 +294,7 @@ class _RoleCardState extends State<RoleCard> {
                                 ? 'View Role Description'
                                 : 'Edit Role Description',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: isDesktop() ? constraints.maxWidth * 0.05 : constraints.maxWidth * 0.09,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -314,7 +314,7 @@ class _RoleCardState extends State<RoleCard> {
                             : widget.viewing
                                 ? 'View the role description for the job'
                                 : 'Edit the role description for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
+                        style: TextStyle(fontSize: constraints.maxWidth * (isDesktop() ? 0.040 : 0.050)),
                       ),
                     ),
                   ],
@@ -377,8 +377,8 @@ class _SkillsCardState extends State<SkillsCard> {
                         )));
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.35,
-            height: MediaQuery.of(context).size.height * 0.20,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.40 : MediaQuery.of(context).size.width * 0.35,
+            height: isDesktop() ? MediaQuery.of(context).size.height * 0.20 : MediaQuery.of(context).size.height * 0.15,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -394,7 +394,7 @@ class _SkillsCardState extends State<SkillsCard> {
                                 ? 'View Skill Requirements'
                                 : 'Edit Skill Requirements',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: isDesktop() ? constraints.maxWidth * 0.05 : constraints.maxWidth * 0.09,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -410,7 +410,7 @@ class _SkillsCardState extends State<SkillsCard> {
                     Center(
                       child: Text(
                         widget.job.newJob ? 'Enter the skill requirements for the job' : 'Edit the skill requirements for the job',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
+                        style: TextStyle(fontSize: constraints.maxWidth * (isDesktop() ? 0.03 : 0.050)),
                       ),
                     ),
                   ],

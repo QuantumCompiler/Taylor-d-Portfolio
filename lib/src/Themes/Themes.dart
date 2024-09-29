@@ -44,6 +44,7 @@ class ThemeProvider with ChangeNotifier {
           foregroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Colors.white : Colors.black),
         ),
       ),
+      dialogBackgroundColor: _isDarkTheme ? Colors.black : customWhite,
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: _isDarkTheme ? Colors.black : Colors.white,
         foregroundColor: _isDarkTheme ? Colors.white : Colors.black,
@@ -62,7 +63,7 @@ class ThemeProvider with ChangeNotifier {
         ),
       ),
       appBarTheme: AppBarTheme(
-        color: Colors.transparent,
+        color: _isDarkTheme ? Colors.black : customWhite,
         titleTextStyle: TextStyle(
           fontSize: appBarTitle,
           fontWeight: FontWeight.bold,
@@ -71,12 +72,9 @@ class ThemeProvider with ChangeNotifier {
         centerTitle: true,
       ),
       bottomAppBarTheme: BottomAppBarTheme(
-        color: Colors.transparent,
+        color: _isDarkTheme ? Colors.black : customWhite,
         elevation: 0,
         height: 60,
-      ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: Colors.transparent,
       ),
       cardTheme: CardTheme(
         elevation: 50.0,
@@ -139,6 +137,12 @@ class ThemeProvider with ChangeNotifier {
       ),
       listTileTheme: ListTileThemeData(
         iconColor: _isDarkTheme ? Colors.white : Colors.black,
+        tileColor: _isDarkTheme ? Colors.black : customWhite,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: _isDarkTheme ? Colors.black : customWhite,
+        modalBarrierColor: Color.fromARGB(175, 0, 0, 0),
+        dragHandleColor: _isDarkTheme ? Colors.white : Colors.black,
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: Colors.transparent,

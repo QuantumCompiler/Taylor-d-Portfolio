@@ -55,6 +55,7 @@ dependencies:
   fl_chart: ^0.69.0
   syncfusion_flutter_charts: ^26.2.14
   graphic: ^2.5.0
+  package_info_plus: ^8.0.2
 
 dev_dependencies:
   flutter_test:

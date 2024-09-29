@@ -4,7 +4,6 @@ import 'src/Dashboard/Dashboard.dart';
 import 'src/Utilities/GlobalUtils.dart';
 import 'src/Themes/Themes.dart';
 
-
 void main() async {
   await StartUp();
   runApp(

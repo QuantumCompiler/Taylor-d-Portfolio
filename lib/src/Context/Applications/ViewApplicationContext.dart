@@ -141,7 +141,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                   SizedBox(height: standardSizedBoxHeight),
                   ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxWidth: isDesktop() ? MediaQuery.of(context).size.width * 0.75 : MediaQuery.of(context).size.width * 0.90,
+                      maxWidth: isDesktop() ? MediaQuery.of(context).size.width * 0.85 : MediaQuery.of(context).size.width * 0.90,
                     ),
                     child: ExpansionTile(
                       title: Text('Application Information'),
@@ -149,7 +149,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                       children: [
                         ConstrainedBox(
                           constraints: BoxConstraints(
-                            maxWidth: isDesktop() ? MediaQuery.of(context).size.width * 0.70 : MediaQuery.of(context).size.width * 0.85,
+                            maxWidth: isDesktop() ? MediaQuery.of(context).size.width * 0.80 : MediaQuery.of(context).size.width * 0.85,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -161,24 +161,30 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                                 children: [
                                   SizedBox(height: standardSizedBoxHeight),
                                   Container(
-                                    width: isDesktop() ? MediaQuery.of(context).size.width * 0.60 : MediaQuery.of(context).size.width * 0.75,
+                                    width: isDesktop() ? MediaQuery.of(context).size.width * 0.75 : MediaQuery.of(context).size.width * 0.80,
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.center,
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        ListTile(
-                                          title: Text(widget.app.jobUsed.name),
-                                          onTap: () async {
-                                            Navigator.of(context)
-                                                .pushAndRemoveUntil(RightToLeftPageRoute(page: ViewJobPage(app: widget.app, jobName: widget.app.jobUsed.name)), (Route<dynamic> route) => false);
-                                          },
+                                        Tooltip(
+                                          message: 'View Job Applied To',
+                                          child: ListTile(
+                                            title: Text(widget.app.jobUsed.name),
+                                            onTap: () async {
+                                              Navigator.of(context)
+                                                  .pushAndRemoveUntil(RightToLeftPageRoute(page: ViewJobPage(app: widget.app, jobName: widget.app.jobUsed.name)), (Route<dynamic> route) => false);
+                                            },
+                                          ),
                                         ),
-                                        ListTile(
-                                          title: Text(widget.app.profileUsed.name),
-                                          onTap: () async {
-                                            Navigator.of(context).pushAndRemoveUntil(
-                                                RightToLeftPageRoute(page: ViewProfilePage(app: widget.app, profileName: widget.app.profileUsed.name)), (Route<dynamic> route) => false);
-                                          },
+                                        Tooltip(
+                                          message: 'View Profile Applied With',
+                                          child: ListTile(
+                                            title: Text(widget.app.profileUsed.name),
+                                            onTap: () async {
+                                              Navigator.of(context).pushAndRemoveUntil(
+                                                  RightToLeftPageRoute(page: ViewProfilePage(app: widget.app, profileName: widget.app.profileUsed.name)), (Route<dynamic> route) => false);
+                                            },
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -199,157 +205,234 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                                   ),
                                   SizedBox(height: standardSizedBoxHeight),
                                   ConstrainedBox(
-                                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.65),
+                                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.center,
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        ConstrainedBox(
-                                          constraints: BoxConstraints(
-                                            maxWidth: MediaQuery.of(context).size.width * 0.65,
+                                        Tooltip(
+                                          message: 'Cover Letter',
+                                          child: ListTile(
+                                            title: Text('Cover Letter'),
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Tooltip(
+                                                  message: 'Download',
+                                                  child: IconButton(
+                                                    icon: Icon(
+                                                      Icons.download,
+                                                    ),
+                                                    onPressed: () async {
+                                                      String path = widget.app.coverLetterPDF.path;
+                                                      await SaveFile(context, path);
+                                                    },
+                                                  ),
+                                                ),
+                                                isDesktop()
+                                                    ? Tooltip(
+                                                        message: 'Open',
+                                                        child: IconButton(
+                                                          icon: Icon(Icons.view_carousel),
+                                                          onPressed: () async {
+                                                            String path = widget.app.coverLetterPDF.path;
+                                                            await OpenFile(path);
+                                                          },
+                                                        ),
+                                                      )
+                                                    : Container(),
+                                                isDesktop()
+                                                    ? Tooltip(
+                                                        message: 'View',
+                                                        child: IconButton(
+                                                          icon: Icon(Icons.open_in_new),
+                                                          onPressed: () async {
+                                                            String path = widget.app.coverLetterPDF.path;
+                                                            OpenFileDir(path);
+                                                          },
+                                                        ),
+                                                      )
+                                                    : Container(),
+                                                Tooltip(
+                                                  message: 'Select / Unselect',
+                                                  child: Checkbox(
+                                                    value: coverLetterChecked,
+                                                    onChanged: (value) {
+                                                      setState(() {
+                                                        coverLetterChecked = value!;
+                                                      });
+                                                    },
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.center,
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              ListTile(
-                                                title: Text('Cover Letter'),
-                                                trailing: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    IconButton(
-                                                      icon: Icon(
-                                                        Icons.download,
+                                        ),
+                                        Tooltip(
+                                          message: 'Portfolio',
+                                          child: ListTile(
+                                            title: Text('Portfolio'),
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Tooltip(
+                                                  message: 'Download',
+                                                  child: IconButton(
+                                                    icon: Icon(Icons.download),
+                                                    onPressed: () async {
+                                                      String path = widget.app.portfolioPDF.path;
+                                                      await SaveFile(context, path);
+                                                    },
+                                                  ),
+                                                ),
+                                                isDesktop()
+                                                    ? Tooltip(
+                                                        message: 'Open',
+                                                        child: IconButton(
+                                                          icon: Icon(Icons.view_carousel),
+                                                          onPressed: () async {
+                                                            String path = widget.app.portfolioPDF.path;
+                                                            await OpenFile(path);
+                                                          },
+                                                        ),
+                                                      )
+                                                    : Container(),
+                                                isDesktop()
+                                                    ? Tooltip(
+                                                        message: 'View',
+                                                        child: IconButton(
+                                                          icon: Icon(Icons.open_in_new),
+                                                          onPressed: () async {
+                                                            String path = widget.app.portfolioPDF.path;
+                                                            OpenFileDir(path);
+                                                          },
+                                                        ),
+                                                      )
+                                                    : Container(),
+                                                Tooltip(
+                                                  message: 'Select / Unselect',
+                                                  child: Checkbox(
+                                                    value: portfolioChecked,
+                                                    onChanged: (value) {
+                                                      setState(() {
+                                                        portfolioChecked = value!;
+                                                      });
+                                                    },
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        Tooltip(
+                                          message: 'Resume',
+                                          child: ListTile(
+                                            title: Text('Resume'),
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Tooltip(
+                                                  message: 'Download',
+                                                  child: IconButton(
+                                                    icon: Icon(Icons.download),
+                                                    onPressed: () async {
+                                                      String path = widget.app.resumePDF.path;
+                                                      await SaveFile(context, path);
+                                                    },
+                                                  ),
+                                                ),
+                                                isDesktop()
+                                                    ? Tooltip(
+                                                        message: 'Open',
+                                                        child: IconButton(
+                                                          icon: Icon(Icons.view_carousel),
+                                                          onPressed: () async {
+                                                            String path = widget.app.resumePDF.path;
+                                                            await OpenFile(path);
+                                                          },
+                                                        ),
+                                                      )
+                                                    : Container(),
+                                                isDesktop()
+                                                    ? Tooltip(
+                                                        message: 'View',
+                                                        child: IconButton(
+                                                          icon: Icon(Icons.open_in_new),
+                                                          onPressed: () async {
+                                                            String path = widget.app.resumePDF.path;
+                                                            OpenFileDir(path);
+                                                          },
+                                                        ),
+                                                      )
+                                                    : Container(),
+                                                Tooltip(
+                                                  message: 'Select / Unselect',
+                                                  child: Checkbox(
+                                                    value: resumeChecked,
+                                                    onChanged: (value) {
+                                                      setState(() {
+                                                        resumeChecked = value!;
+                                                      });
+                                                    },
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        isDesktop()
+                                            ? Tooltip(
+                                                message: 'LaTeX',
+                                                child: ListTile(
+                                                  title: Text('LaTeX Files'),
+                                                  trailing: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Tooltip(
+                                                        message: 'View',
+                                                        child: IconButton(
+                                                          icon: Icon(Icons.open_in_new),
+                                                          onPressed: () async {
+                                                            final masterDir = await GetAppDir();
+                                                            Directory appsDir = Directory('${masterDir.path}/Applications');
+                                                            Directory currDir = Directory('${appsDir.path}/${widget.app.name}');
+                                                            Directory latexDir = Directory('${currDir.path}/LaTeX Documents');
+                                                            OpenFileDir(latexDir.path);
+                                                          },
+                                                        ),
                                                       ),
-                                                      onPressed: () async {
-                                                        String path = widget.app.coverLetterPDF.path;
-                                                        await SaveFile(context, path);
-                                                      },
-                                                    ),
-                                                    IconButton(
-                                                      icon: Icon(Icons.view_carousel),
-                                                      onPressed: () async {
-                                                        String path = widget.app.coverLetterPDF.path;
-                                                        await OpenFile(path);
-                                                      },
-                                                    ),
-                                                    IconButton(
-                                                      icon: Icon(Icons.open_in_new),
-                                                      onPressed: () async {
-                                                        String path = widget.app.coverLetterPDF.path;
-                                                        OpenFileDir(path);
-                                                      },
-                                                    ),
-                                                    Checkbox(
-                                                      value: coverLetterChecked,
-                                                      onChanged: (value) {
+                                                    ],
+                                                  ),
+                                                ),
+                                              )
+                                            : Container(),
+                                        SizedBox(height: standardSizedBoxHeight),
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            isDesktop()
+                                                ? Tooltip(
+                                                    message: 'All',
+                                                    child: TextButton(
+                                                      child: Text('Select / Unselect All'),
+                                                      onPressed: () => {
                                                         setState(() {
-                                                          coverLetterChecked = value!;
-                                                        });
-                                                      },
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                              ListTile(
-                                                title: Text('Portfolio'),
-                                                trailing: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    IconButton(
-                                                      icon: Icon(Icons.download),
-                                                      onPressed: () async {
-                                                        String path = widget.app.portfolioPDF.path;
-                                                        await SaveFile(context, path);
+                                                          if (coverLetterChecked || portfolioChecked || resumeChecked) {
+                                                            coverLetterChecked = false;
+                                                            portfolioChecked = false;
+                                                            resumeChecked = false;
+                                                          } else {
+                                                            coverLetterChecked = true;
+                                                            portfolioChecked = true;
+                                                            resumeChecked = true;
+                                                          }
+                                                        }),
                                                       },
                                                     ),
-                                                    IconButton(
-                                                      icon: Icon(Icons.view_carousel),
-                                                      onPressed: () async {
-                                                        String path = widget.app.portfolioPDF.path;
-                                                        await OpenFile(path);
-                                                      },
-                                                    ),
-                                                    IconButton(
-                                                      icon: Icon(Icons.open_in_new),
-                                                      onPressed: () async {
-                                                        String path = widget.app.portfolioPDF.path;
-                                                        OpenFileDir(path);
-                                                      },
-                                                    ),
-                                                    Checkbox(
-                                                      value: portfolioChecked,
-                                                      onChanged: (value) {
-                                                        setState(() {
-                                                          portfolioChecked = value!;
-                                                        });
-                                                      },
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                              ListTile(
-                                                title: Text('Resume'),
-                                                trailing: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    IconButton(
-                                                      icon: Icon(Icons.download),
-                                                      onPressed: () async {
-                                                        String path = widget.app.resumePDF.path;
-                                                        await SaveFile(context, path);
-                                                      },
-                                                    ),
-                                                    IconButton(
-                                                      icon: Icon(Icons.view_carousel),
-                                                      onPressed: () async {
-                                                        String path = widget.app.resumePDF.path;
-                                                        await OpenFile(path);
-                                                      },
-                                                    ),
-                                                    IconButton(
-                                                      icon: Icon(Icons.open_in_new),
-                                                      onPressed: () async {
-                                                        String path = widget.app.resumePDF.path;
-                                                        OpenFileDir(path);
-                                                      },
-                                                    ),
-                                                    Checkbox(
-                                                      value: resumeChecked,
-                                                      onChanged: (value) {
-                                                        setState(() {
-                                                          resumeChecked = value!;
-                                                        });
-                                                      },
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              ListTile(
-                                                title: Text('LaTeX Files'),
-                                                trailing: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    IconButton(
-                                                      icon: Icon(Icons.open_in_new),
-                                                      onPressed: () async {
-                                                        final masterDir = await GetAppDir();
-                                                        Directory appsDir = Directory('${masterDir.path}/Applications');
-                                                        Directory currDir = Directory('${appsDir.path}/${widget.app.name}');
-                                                        Directory latexDir = Directory('${currDir.path}/LaTeX Documents');
-                                                        OpenFileDir(latexDir.path);
-                                                      },
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              SizedBox(height: standardSizedBoxHeight),
-                                              Row(
-                                                crossAxisAlignment: CrossAxisAlignment.center,
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  TextButton(
-                                                    child: Text('Select / Unselect All'),
+                                                  )
+                                                : IconButton(
+                                                    icon: Icon(Icons.select_all),
                                                     onPressed: () => {
                                                       setState(() {
                                                         if (coverLetterChecked || portfolioChecked || resumeChecked) {
@@ -364,9 +447,24 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                                                       }),
                                                     },
                                                   ),
-                                                  SizedBox(width: standardSizedBoxWidth),
-                                                  TextButton(
-                                                    child: Text('Download Files'),
+                                            SizedBox(width: standardSizedBoxWidth),
+                                            isDesktop()
+                                                ? Tooltip(
+                                                    message: 'Download',
+                                                    child: TextButton(
+                                                      child: Text('Download Files'),
+                                                      onPressed: () async {
+                                                        await SaveFiles(context, widget.app, coverLetterChecked, portfolioChecked, resumeChecked);
+                                                        setState(() {
+                                                          coverLetterChecked = false;
+                                                          portfolioChecked = false;
+                                                          resumeChecked = false;
+                                                        });
+                                                      },
+                                                    ),
+                                                  )
+                                                : IconButton(
+                                                    icon: Icon(Icons.download),
                                                     onPressed: () async {
                                                       await SaveFiles(context, widget.app, coverLetterChecked, portfolioChecked, resumeChecked);
                                                       setState(() {
@@ -376,19 +474,21 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                                                       });
                                                     },
                                                   ),
-                                                  SizedBox(width: standardSizedBoxWidth),
-                                                  TextButton(
-                                                    child: Text('Open LaTeX Files'),
-                                                    onPressed: () async {
-                                                      String path = widget.app.resumePDF.parent.parent.path;
-                                                      path += '/LaTeX Documents';
-                                                      OpenFileDir(path);
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
+                                            isDesktop() ? SizedBox(width: standardSizedBoxWidth) : Container(),
+                                            isDesktop()
+                                                ? Tooltip(
+                                                    message: 'Open LaTeX',
+                                                    child: TextButton(
+                                                      child: Text('Open LaTeX Files'),
+                                                      onPressed: () async {
+                                                        String path = widget.app.resumePDF.parent.parent.path;
+                                                        path += '/LaTeX Documents';
+                                                        OpenFileDir(path);
+                                                      },
+                                                    ),
+                                                  )
+                                                : Container(),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -408,60 +508,77 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                                     ),
                                   ),
                                   SizedBox(height: standardSizedBoxHeight),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text('Applied?'),
-                                      // Applied
-                                      Checkbox(
-                                        value: widget.app.applied,
-                                        onChanged: (value) async {
-                                          setState(() {
-                                            widget.app.SetApplied(value!);
-                                          });
-                                          await widget.app.SetAdditional();
-                                        },
+                                  Center(
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text('Applied?'),
+                                          // Applied
+                                          Tooltip(
+                                            message: 'Completed?',
+                                            child: Checkbox(
+                                              value: widget.app.applied,
+                                              onChanged: (value) async {
+                                                setState(() {
+                                                  widget.app.SetApplied(value!);
+                                                });
+                                                await widget.app.SetAdditional();
+                                              },
+                                            ),
+                                          ),
+                                          // Interviewed
+                                          SizedBox(width: standardSizedBoxWidth),
+                                          Text('Interview?'),
+                                          Tooltip(
+                                            message: 'Acquired?',
+                                            child: Checkbox(
+                                              value: widget.app.interview,
+                                              onChanged: (value) async {
+                                                setState(() {
+                                                  widget.app.SetInterview(value!);
+                                                });
+                                                await widget.app.SetAdditional();
+                                              },
+                                            ),
+                                          ),
+                                          // Offer
+                                          SizedBox(width: standardSizedBoxWidth),
+                                          Text('Offer?'),
+                                          Tooltip(
+                                            message: 'Offer?',
+                                            child: Checkbox(
+                                              value: widget.app.offer,
+                                              onChanged: (value) async {
+                                                setState(() {
+                                                  widget.app.SetOffer(value!);
+                                                });
+                                                await widget.app.SetAdditional();
+                                              },
+                                            ),
+                                          ),
+                                          // Application Date
+                                          SizedBox(width: standardSizedBoxWidth),
+                                          Text('Application Date:'),
+                                          widget.app.appDate != null ? Text(' ${widget.app.appDate?.month}/${widget.app.appDate?.day}/${widget.app.appDate?.year}') : Text(''),
+                                          Tooltip(
+                                            message: 'Application Date',
+                                            child: IconButton(
+                                              icon: Icon(Icons.date_range),
+                                              onPressed: () async {
+                                                DateTime? date = await SelectDate(context, initialDate: widget.app.appDate ?? DateTime.now());
+                                                setState(() {
+                                                  widget.app.SetDate(date);
+                                                });
+                                                await widget.app.SetAdditional();
+                                              },
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      // Interviewed
-                                      SizedBox(width: standardSizedBoxWidth),
-                                      Text('Interview?'),
-                                      Checkbox(
-                                        value: widget.app.interview,
-                                        onChanged: (value) async {
-                                          setState(() {
-                                            widget.app.SetInterview(value!);
-                                          });
-                                          await widget.app.SetAdditional();
-                                        },
-                                      ),
-                                      // Offer
-                                      SizedBox(width: standardSizedBoxWidth),
-                                      Text('Offer?'),
-                                      Checkbox(
-                                        value: widget.app.offer,
-                                        onChanged: (value) async {
-                                          setState(() {
-                                            widget.app.SetOffer(value!);
-                                          });
-                                          await widget.app.SetAdditional();
-                                        },
-                                      ),
-                                      // Application Date
-                                      SizedBox(width: standardSizedBoxWidth),
-                                      Text('Application Date:'),
-                                      widget.app.appDate != null ? Text(' ${widget.app.appDate?.month}/${widget.app.appDate?.day}/${widget.app.appDate?.year}') : Text(''),
-                                      IconButton(
-                                        icon: Icon(Icons.date_range),
-                                        onPressed: () async {
-                                          DateTime? date = await SelectDate(context, initialDate: widget.app.appDate ?? DateTime.now());
-                                          setState(() {
-                                            widget.app.SetDate(date);
-                                          });
-                                          await widget.app.SetAdditional();
-                                        },
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                   SizedBox(height: standardSizedBoxHeight),
                                   InkWell(
@@ -512,20 +629,23 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                                           },
                                         ),
                                       ),
-                                      IconButton(
-                                        icon: Icon(Icons.save),
-                                        onPressed: () async {
-                                          setState(() {
-                                            widget.app.SetURL(urlCont.text);
-                                          });
-                                          await widget.app.SetAdditional();
-                                        },
+                                      Tooltip(
+                                        message: 'Save URL',
+                                        child: IconButton(
+                                          icon: Icon(Icons.save),
+                                          onPressed: () async {
+                                            await widget.app.SetAdditional();
+                                          },
+                                        ),
                                       ),
-                                      IconButton(
-                                        icon: Icon(Icons.view_kanban),
-                                        onPressed: () async {
-                                          await launchUrl(Uri.parse(widget.app.appURL));
-                                        },
+                                      Tooltip(
+                                        message: 'Open URL',
+                                        child: IconButton(
+                                          icon: Icon(Icons.view_kanban),
+                                          onPressed: () async {
+                                            await launchUrl(Uri.parse(widget.app.appURL));
+                                          },
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -552,7 +672,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                   SizedBox(height: standardSizedBoxHeight),
                   ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                      maxWidth: isDesktop() ? MediaQuery.of(context).size.width * 0.85 : MediaQuery.of(context).size.width * 0.90,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -564,7 +684,7 @@ class _ViewApplicationContentState extends State<ViewApplicationContent> {
                           children: [
                             ConstrainedBox(
                               constraints: BoxConstraints(
-                                maxWidth: MediaQuery.of(context).size.width * 0.70,
+                                maxWidth: isDesktop() ? MediaQuery.of(context).size.width * 0.80 : MediaQuery.of(context).size.width * 0.85,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -750,23 +870,31 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        FloatingActionButton(
-                          heroTag: 'Open CV Dir',
-                          onPressed: () async {
-                            String path = widget.app.coverLetterPDF.path;
-                            OpenFileDir(path);
-                          },
-                          child: Icon(Icons.file_open),
-                        ),
-                        SizedBox(width: standardSizedBoxWidth),
-                        FloatingActionButton(
-                          heroTag: 'Download CV File',
-                          onPressed: () async {
-                            String path = widget.app.coverLetterPDF.path;
-                            await SaveFile(context, path);
-                          },
-                          child: Icon(Icons.download),
-                        ),
+                        isDesktop()
+                            ? Tooltip(
+                                message: 'Click To View Directory',
+                                child: FloatingActionButton(
+                                  heroTag: 'Open CV Dir',
+                                  onPressed: () async {
+                                    String path = widget.app.coverLetterPDF.path;
+                                    OpenFileDir(path);
+                                  },
+                                  child: Icon(Icons.file_open),
+                                ),
+                              )
+                            : Container(),
+                        isDesktop() ? SizedBox(width: standardSizedBoxWidth) : Container(),
+                        Tooltip(
+                          message: 'Click To Download',
+                          child: FloatingActionButton(
+                            heroTag: 'Download CV File',
+                            onPressed: () async {
+                              String path = widget.app.coverLetterPDF.path;
+                              await SaveFile(context, path);
+                            },
+                            child: Icon(Icons.download),
+                          ),
+                        )
                       ],
                     ),
                     Spacer(),
@@ -845,22 +973,30 @@ class _PortfolioCardState extends State<PortfolioCard> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        FloatingActionButton(
-                          heroTag: 'Open Portfolio Dir',
-                          onPressed: () async {
-                            String path = widget.app.portfolioPDF.path;
-                            OpenFileDir(path);
-                          },
-                          child: Icon(Icons.file_open),
-                        ),
-                        SizedBox(width: standardSizedBoxWidth),
-                        FloatingActionButton(
-                          heroTag: 'Download Portfolio PDF',
-                          onPressed: () async {
-                            String path = widget.app.portfolioPDF.path;
-                            await SaveFile(context, path);
-                          },
-                          child: Icon(Icons.download),
+                        isDesktop()
+                            ? Tooltip(
+                                message: 'Click To View Directory',
+                                child: FloatingActionButton(
+                                  heroTag: 'Open Portfolio Dir',
+                                  onPressed: () async {
+                                    String path = widget.app.portfolioPDF.path;
+                                    OpenFileDir(path);
+                                  },
+                                  child: Icon(Icons.file_open),
+                                ),
+                              )
+                            : Container(),
+                        isDesktop() ? SizedBox(width: standardSizedBoxWidth) : Container(),
+                        Tooltip(
+                          message: 'Click To Download',
+                          child: FloatingActionButton(
+                            heroTag: 'Download Portfolio PDF',
+                            onPressed: () async {
+                              String path = widget.app.portfolioPDF.path;
+                              await SaveFile(context, path);
+                            },
+                            child: Icon(Icons.download),
+                          ),
                         ),
                       ],
                     ),
@@ -936,7 +1072,7 @@ class _RecCardState extends State<RecCard> {
                     child: Text(
                       widget.title,
                       style: TextStyle(
-                        fontSize: constraints.maxWidth * 0.03,
+                        fontSize: constraints.maxWidth * (isDesktop() ? 0.03 : 0.05),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1018,22 +1154,30 @@ class _ResumeCardState extends State<ResumeCard> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        FloatingActionButton(
-                          heroTag: 'Open Resume Dir',
-                          onPressed: () async {
-                            String path = widget.app.resumePDF.path;
-                            OpenFileDir(path);
-                          },
-                          child: Icon(Icons.file_open),
-                        ),
-                        SizedBox(width: standardSizedBoxWidth),
-                        FloatingActionButton(
-                          heroTag: 'Download Resume PDF',
-                          onPressed: () async {
-                            String path = widget.app.resumePDF.path;
-                            await SaveFile(context, path);
-                          },
-                          child: Icon(Icons.download),
+                        isDesktop()
+                            ? Tooltip(
+                                message: 'Click To View Directory',
+                                child: FloatingActionButton(
+                                  heroTag: 'Open Resume Dir',
+                                  onPressed: () async {
+                                    String path = widget.app.resumePDF.path;
+                                    OpenFileDir(path);
+                                  },
+                                  child: Icon(Icons.file_open),
+                                ),
+                              )
+                            : Container(),
+                        isDesktop() ? SizedBox(width: standardSizedBoxWidth) : Container(),
+                        Tooltip(
+                          message: 'Click To Download',
+                          child: FloatingActionButton(
+                            heroTag: 'Download Resume PDF',
+                            onPressed: () async {
+                              String path = widget.app.resumePDF.path;
+                              await SaveFile(context, path);
+                            },
+                            child: Icon(Icons.download),
+                          ),
                         ),
                       ],
                     ),
@@ -1112,19 +1256,27 @@ class PDFScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextButton(
-              child: Text('Download File'),
-              onPressed: () async {
-                await SaveFile(context, pdfFile.path);
-              },
+            Tooltip(
+              message: 'Save File Locally',
+              child: TextButton(
+                child: Text('Download File'),
+                onPressed: () async {
+                  await SaveFile(context, pdfFile.path);
+                },
+              ),
             ),
-            SizedBox(width: standardSizedBoxWidth),
-            TextButton(
-              child: Text('View Externally'),
-              onPressed: () async {
-                await OpenFile(pdfFile.path);
-              },
-            ),
+            isDesktop() ? SizedBox(width: standardSizedBoxWidth) : Container(),
+            isDesktop()
+                ? Tooltip(
+                    message: 'Open File Natively',
+                    child: TextButton(
+                      child: Text('View Externally'),
+                      onPressed: () async {
+                        await OpenFile(pdfFile.path);
+                      },
+                    ),
+                  )
+                : Container(),
           ],
         ),
       ),

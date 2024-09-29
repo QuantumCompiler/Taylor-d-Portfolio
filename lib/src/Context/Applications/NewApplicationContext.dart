@@ -229,7 +229,7 @@ class _RecCardState extends State<RecCard> {
                         child: Text(
                           widget.title,
                           style: TextStyle(
-                            fontSize: constraints.maxWidth * 0.03,
+                            fontSize: constraints.maxWidth * (isDesktop() ? 0.03 : 0.05),
                             fontWeight: FontWeight.bold,
                           ),
                         ),

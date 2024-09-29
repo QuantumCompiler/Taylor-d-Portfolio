@@ -450,6 +450,26 @@ Future<int> CountAllPDFs(String input) async {
   return ret;
 }
 
+// Count Subdirectories
+Future<int> CountSubdirectories(String subDir) async {
+  final masterDir = await GetAppDir();
+  Directory parentDir = Directory('${masterDir.path}/$subDir');
+  if (!(await parentDir.exists())) {
+    return 0;
+  }
+  int count = 0;
+  try {
+    await for (var entity in parentDir.list()) {
+      if (entity is Directory) {
+        count++;
+      }
+    }
+  } catch (e) {
+    return 0;
+  }
+  return count;
+}
+
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 //  Objects
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- -----

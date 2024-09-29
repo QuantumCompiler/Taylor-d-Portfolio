@@ -81,8 +81,8 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
             );
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.8,
-            height: MediaQuery.of(context).size.height * 0.20,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.85 : MediaQuery.of(context).size.width * 0.9,
+            height: isDesktop() ? MediaQuery.of(context).size.height * 0.20 : MediaQuery.of(context).size.height * 0.15,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -98,7 +98,7 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
                                 ? 'View Cover Letter Pitch'
                                 : 'Edit Cover Letter Pitch',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.035,
+                          fontSize: constraints.maxWidth * (isDesktop() ? 0.030 : 0.06),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -118,7 +118,7 @@ class _CoverLetterCardState extends State<CoverLetterCard> {
                             : widget.viewing
                                 ? 'View details for why you said you would be a good candidate.'
                                 : 'Edit your cover letter pitch for your profile.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.025),
+                        style: TextStyle(fontSize: constraints.maxWidth * (isDesktop() ? 0.015 : 0.040)),
                       ),
                     ),
                   ],
@@ -181,8 +181,8 @@ class _EducationCardState extends State<EducationCard> {
                         )));
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.35,
-            height: MediaQuery.of(context).size.height * 0.20,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.40 : MediaQuery.of(context).size.width * 0.35,
+            height: isDesktop() ? MediaQuery.of(context).size.height * 0.20 : MediaQuery.of(context).size.height * 0.15,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -198,7 +198,7 @@ class _EducationCardState extends State<EducationCard> {
                                 ? 'View Education Entries'
                                 : 'Edit Education Entries',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: constraints.maxWidth * (isDesktop() ? 0.05 : 0.08),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -218,7 +218,7 @@ class _EducationCardState extends State<EducationCard> {
                             : widget.viewing
                                 ? 'View you education details for your profile.'
                                 : 'Edit your education details for your profile.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
+                        style: TextStyle(fontSize: constraints.maxWidth * (isDesktop() ? 0.030 : 0.045)),
                       ),
                     ),
                   ],
@@ -281,8 +281,8 @@ class _ExperienceCardState extends State<ExperienceCard> {
                         )));
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.35,
-            height: MediaQuery.of(context).size.height * 0.20,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.40 : MediaQuery.of(context).size.width * 0.35,
+            height: isDesktop() ? MediaQuery.of(context).size.height * 0.20 : MediaQuery.of(context).size.height * 0.15,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -298,7 +298,7 @@ class _ExperienceCardState extends State<ExperienceCard> {
                                 ? 'View Experience Entries'
                                 : 'Edit Experience Entries',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: constraints.maxWidth * (isDesktop() ? 0.05 : 0.08),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -318,7 +318,7 @@ class _ExperienceCardState extends State<ExperienceCard> {
                             : widget.viewing
                                 ? 'View your experience details for your profile.'
                                 : 'Edit your experience details for your profile.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
+                        style: TextStyle(fontSize: constraints.maxWidth * (isDesktop() ? 0.030 : 0.045)),
                       ),
                     ),
                   ],
@@ -381,8 +381,8 @@ class _ProjectsCardState extends State<ProjectsCard> {
                         )));
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.35,
-            height: MediaQuery.of(context).size.height * 0.20,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.40 : MediaQuery.of(context).size.width * 0.35,
+            height: isDesktop() ? MediaQuery.of(context).size.height * 0.20 : MediaQuery.of(context).size.height * 0.15,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -398,7 +398,7 @@ class _ProjectsCardState extends State<ProjectsCard> {
                                 ? 'View Project Entries'
                                 : 'Edit Project Entries',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: constraints.maxWidth * (isDesktop() ? 0.05 : 0.08),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -418,7 +418,7 @@ class _ProjectsCardState extends State<ProjectsCard> {
                             : widget.viewing
                                 ? 'View the projects for your profile.'
                                 : 'Edit the projects for your profile.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
+                        style: TextStyle(fontSize: constraints.maxWidth * (isDesktop() ? 0.030 : 0.045)),
                       ),
                     ),
                   ],
@@ -481,8 +481,8 @@ class _SkillsCardState extends State<SkillsCard> {
                         )));
           },
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.35,
-            height: MediaQuery.of(context).size.height * 0.20,
+            width: isDesktop() ? MediaQuery.of(context).size.width * 0.40 : MediaQuery.of(context).size.width * 0.35,
+            height: isDesktop() ? MediaQuery.of(context).size.height * 0.20 : MediaQuery.of(context).size.height * 0.15,
             margin: EdgeInsets.all(15.0),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -498,7 +498,7 @@ class _SkillsCardState extends State<SkillsCard> {
                                 ? 'View Skill Entires'
                                 : 'Edit Skills Entries',
                         style: TextStyle(
-                          fontSize: constraints.maxWidth * 0.06,
+                          fontSize: constraints.maxWidth * (isDesktop() ? 0.05 : 0.08),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -518,7 +518,7 @@ class _SkillsCardState extends State<SkillsCard> {
                             : widget.viewing
                                 ? 'View the skills for your profile.'
                                 : 'Edit the skills for your profile.',
-                        style: TextStyle(fontSize: constraints.maxWidth * 0.040),
+                        style: TextStyle(fontSize: constraints.maxWidth * (isDesktop() ? 0.030 : 0.045)),
                       ),
                     ),
                   ],

@@ -9,14 +9,6 @@ import '../../Themes/Themes.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/SettingsUtilities.dart';
 
-/*  appBar - App bar for the settings page
-      Input:
-        context: BuildContext of the application
-      Algorithm:
-          * Return an AppBar with a back button and title
-      Output:
-          Returns an AppBar with a back button and title
-*/
 AppBar appBar(BuildContext context) {
   return AppBar(
     title: Text(
@@ -38,17 +30,7 @@ AppBar appBar(BuildContext context) {
   );
 }
 
-/*  bodyContent - Body content for the settings page
-      Input:
-        context: BuildContext
-        theme: ThemeProvider built from the ThemeProvider class
-      Algorithm:
-          * Return a center widget with a container for the settings
-          * Populate the container with a column of settings
-      Output:
-          Returns a Center widget with a container for the settings
-*/
-Center bodyContent(BuildContext context, ThemeProvider theme) {
+Center bodyContent(BuildContext context, ThemeProvider theme, String? version) {
   return Center(
     child: Container(
       width: MediaQuery.of(context).size.width * 0.80,
@@ -109,6 +91,15 @@ Center bodyContent(BuildContext context, ThemeProvider theme) {
               SizedBox(height: standardSizedBoxHeight),
             ],
           ),
+          Spacer(),
+          Text(
+            "Taylor'd Portfolio - Version $version",
+            style: TextStyle(
+              fontSize: 8,
+              color: Colors.grey,
+            ),
+          ),
+          SizedBox(height: standardSizedBoxHeight),
         ],
       ),
     ),

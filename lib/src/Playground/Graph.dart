@@ -1,69 +1,69 @@
-import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
+// import 'package:flutter/material.dart';
+// import 'package:syncfusion_flutter_charts/charts.dart';
 
-void main() {
-  runApp(GraphApp());
-}
+// void main() {
+//   runApp(GraphApp());
+// }
 
-class GraphApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: GraphHomePage(),
-    );
-  }
-}
+// class GraphApp extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       home: GraphHomePage(),
+//     );
+//   }
+// }
 
-class GraphHomePage extends StatefulWidget {
-  @override
-  _GraphHomePageState createState() => _GraphHomePageState();
-}
+// class GraphHomePage extends StatefulWidget {
+//   @override
+//   _GraphHomePageState createState() => _GraphHomePageState();
+// }
 
-class _GraphHomePageState extends State<GraphHomePage> {
-  late List<SalesData> chartData;
+// class _GraphHomePageState extends State<GraphHomePage> {
+//   late List<SalesData> chartData;
 
-  @override
-  void initState() {
-    chartData = [
-      SalesData('Jan', 35),
-      SalesData('Feb', 28),
-      SalesData('Mar', 34),
-      SalesData('Apr', 32),
-      SalesData('May', 40),
-    ];
-    super.initState();
-  }
+//   @override
+//   void initState() {
+//     chartData = [
+//       SalesData('Jan', 35),
+//       SalesData('Feb', 28),
+//       SalesData('Mar', 34),
+//       SalesData('Apr', 32),
+//       SalesData('May', 40),
+//     ];
+//     super.initState();
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(title: Text('Syncfusion Flutter Chart Example')),
-        body: Center(
-          child: SfCartesianChart(
-            primaryXAxis: CategoryAxis(),
-            title: ChartTitle(text: 'Monthly Sales Analysis'),
-            legend: Legend(isVisible: true),
-            tooltipBehavior: TooltipBehavior(enable: true),
-            series: <CartesianSeries>[
-              LineSeries<SalesData, String>(
-                dataSource: chartData,
-                xValueMapper: (SalesData sales, _) => sales.month,
-                yValueMapper: (SalesData sales, _) => sales.sales,
-                name: 'Sales',
-                dataLabelSettings: DataLabelSettings(isVisible: true),
-              )
-            ],
-          ),
-        ));
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//         appBar: AppBar(title: Text('Syncfusion Flutter Chart Example')),
+//         body: Center(
+//           child: SfCartesianChart(
+//             primaryXAxis: CategoryAxis(),
+//             title: ChartTitle(text: 'Monthly Sales Analysis'),
+//             legend: Legend(isVisible: true),
+//             tooltipBehavior: TooltipBehavior(enable: true),
+//             series: <CartesianSeries>[
+//               LineSeries<SalesData, String>(
+//                 dataSource: chartData,
+//                 xValueMapper: (SalesData sales, _) => sales.month,
+//                 yValueMapper: (SalesData sales, _) => sales.sales,
+//                 name: 'Sales',
+//                 dataLabelSettings: DataLabelSettings(isVisible: true),
+//               )
+//             ],
+//           ),
+//         ));
+//   }
+// }
 
-class SalesData {
-  final String month;
-  final double sales;
+// class SalesData {
+//   final String month;
+//   final double sales;
 
-  SalesData(this.month, this.sales);
-}
+//   SalesData(this.month, this.sales);
+// }
 
 // ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 
@@ -248,3 +248,104 @@ class SalesData {
 //     );
 //   }
 // }
+
+// ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
+
+// import 'package:flutter/material.dart';
+// import 'package:syncfusion_flutter_charts/charts.dart';
+
+// void main() => runApp(ChartApp());
+
+// class ChartApp extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       home: Scaffold(
+//         appBar: AppBar(title: const Text('Syncfusion Flutter Chart')),
+//         body: ChartWidget(),
+//       ),
+//     );
+//   }
+// }
+
+// class ChartWidget extends StatefulWidget {
+//   @override
+//   _ChartWidgetState createState() => _ChartWidgetState();
+// }
+
+// class _ChartWidgetState extends State<ChartWidget> {
+//   final List<_ChartData> data = [
+//     _ChartData('David', 25),
+//     _ChartData('Steve', 38),
+//     _ChartData('Jack', 34),
+//     _ChartData('Others', 52),
+//   ];
+
+//   TooltipBehavior _tooltipBehavior = TooltipBehavior(enable: true);
+//   int _tappedIndex = -1; // Track the tapped index to set explode effect
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return SfCircularChart(
+//       tooltipBehavior: _tooltipBehavior,
+//       series: <CircularSeries<_ChartData, String>>[
+//         DoughnutSeries<_ChartData, String>(
+//           dataSource: data,
+//           xValueMapper: (_ChartData data, _) => data.x,
+//           yValueMapper: (_ChartData data, _) => data.y,
+//           name: 'Gold',
+//           explode: true, // Enable explode behavior
+//           explodeIndex: _tappedIndex, // Dynamically set the explode index
+//           explodeOffset: '30%', // Set the explode offset
+//           onPointTap: (ChartPointDetails details) {
+//             setState(() {
+//               _tappedIndex = details.pointIndex!;
+//             });
+//           },
+//         )
+//       ],
+//     );
+//   }
+// }
+
+// class _ChartData {
+//   _ChartData(this.x, this.y);
+//   final String x;
+//   final double y;
+// }
+
+import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+
+void main() => runApp(MaterialApp(home: ChartPage()));
+
+class ChartPage extends StatelessWidget {
+  final List<_ChartData> data = [_ChartData('CHN', 12), _ChartData('GER', 15), _ChartData('RUS', 30), _ChartData('BRZ', 6.4), _ChartData('IND', 14)];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Syncfusion Flutter Chart')),
+      body: SfCartesianChart(
+        primaryXAxis: CategoryAxis(),
+        primaryYAxis: NumericAxis(minimum: 0, maximum: 40, interval: 10),
+        tooltipBehavior: TooltipBehavior(enable: true),
+        series: <CartesianSeries<_ChartData, String>>[
+          BarSeries<_ChartData, String>(
+            dataSource: data,
+            xValueMapper: (_ChartData data, _) => data.x,
+            yValueMapper: (_ChartData data, _) => data.y,
+            name: 'Gold',
+            color: Color.fromRGBO(8, 142, 255, 1),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class _ChartData {
+  _ChartData(this.x, this.y);
+  final String x;
+  final double y;
+}
