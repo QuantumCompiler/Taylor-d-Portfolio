@@ -23,3 +23,6 @@ The application compiles a user's portfolio with the use of LaTeX where an exter
 Currently, the application only updates the user's frameworks, math, personal programming languages, and programming skills. Future versions will be designed to update the user's education experience, experience, and projects. As well as other future designs regarding to the implementation and performance of the application. This current version is just a prototype and is not the final version of the application.
 
 ## <span style="color:blue">Version 1.1.0</span>
+
+Introduced a new UI, with a capability to get a generated cover letter for the positions that the user chooses to apply to. Along with some of the functionality changes, some of the code has been cleaned up to be more verbose. In the future, more reduction will be completed in future
+versions.
