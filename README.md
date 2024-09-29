@@ -26,3 +26,5 @@ Currently, the application only updates the user's frameworks, math, personal pr
 
 Introduced a new UI, with a capability to get a generated cover letter for the positions that the user chooses to apply to. Along with some of the functionality changes, some of the code has been cleaned up to be more verbose. In the future, more reduction will be completed in future
 versions.
+
+## <span style="color:blue">Version 1.2.0</span>
