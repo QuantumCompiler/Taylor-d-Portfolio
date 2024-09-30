@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:taylord_portfolio/src/Context/Globals/GlobalContext.dart';
 import '../Context/Jobs/ViewJobContext.dart';
 import '../Utilities/ApplicationsUtils.dart';
 import '../Utilities/JobUtils.dart';
@@ -54,6 +55,7 @@ class ViewJobPageState extends State<ViewJobPage> {
           }
         },
       ),
+      bottomNavigationBar: BottomNav(context),
     );
   }
 }

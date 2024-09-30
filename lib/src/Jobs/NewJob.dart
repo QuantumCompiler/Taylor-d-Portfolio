@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../Context/Globals/GlobalContext.dart';
 import '../Context/Jobs/NewJobContext.dart';
 import '../Utilities/JobUtils.dart';
 
@@ -47,7 +48,7 @@ class NewJobPageState extends State<NewJobPage> {
             keyList.add(otherInfoKey);
             keyList.add(roleKey);
             keyList.add(skillsKey);
-            return NewJobContent(context, newJob, keyList);
+            return NewJobContent(context, newJob, keyList, widget.backToJobs);
           }
         },
       ),
@@ -55,7 +56,7 @@ class NewJobPageState extends State<NewJobPage> {
         future: futureJob,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            return NewJobBottomAppBar(context, snapshot.data!, widget.backToJobs);
+            return BottomNav(context);
           } else {
             return Container();
           }

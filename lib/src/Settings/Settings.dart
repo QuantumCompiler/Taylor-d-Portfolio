@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:taylord_portfolio/src/Context/Globals/GlobalContext.dart';
 import '../Themes/Themes.dart';
 import '../Context/Settings/SettingsContext.dart';
 
@@ -44,6 +45,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       appBar: appBar(context),
       body: bodyContent(context, theme, version),
+      bottomNavigationBar: BottomNav(context),
     );
   }
 }

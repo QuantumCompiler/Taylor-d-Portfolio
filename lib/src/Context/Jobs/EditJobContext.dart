@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Applications/Applications.dart';
 import '../../Context/Jobs/JobsContext.dart';
-import '../../Dashboard/Dashboard.dart';
-import '../../Settings/Settings.dart';
 import '../../Globals/Globals.dart';
 import '../../Utilities/JobUtils.dart';
 
@@ -17,18 +15,10 @@ AppBar EditJobAppBar(BuildContext context, String jobName, bool backToJobs) {
       ),
     ),
     leading: NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, false),
-    actions: [
-      Row(
-        children: [
-          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
-          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
-        ],
-      ),
-    ],
   );
 }
 
-SingleChildScrollView EditJobContent(BuildContext context, Job job, List<GlobalKey> keys) {
+SingleChildScrollView EditJobContent(BuildContext context, Job job, List<GlobalKey> keys, bool backToJobs) {
   return SingleChildScrollView(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -43,31 +33,21 @@ SingleChildScrollView EditJobContent(BuildContext context, Job job, List<GlobalK
               children: [
                 SizedBox(height: standardSizedBoxHeight),
                 ...JobOptionsContent(context, job, keys, false),
+                SizedBox(height: standardSizedBoxHeight),
+                TextButton(
+                  child: Text('Overwrite Job'),
+                  onPressed: () async {
+                    await showDialog(
+                      context: context,
+                      builder: (context) {
+                        return EditJobDialog(context, job, backToJobs);
+                      },
+                    );
+                  },
+                )
               ],
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
-BottomAppBar EditJobBottomAppBar(BuildContext context, Job job, bool? backToJobs, List<GlobalKey> keyList) {
-  return BottomAppBar(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        TextButton(
-          child: Text('Overwrite Job'),
-          onPressed: () async {
-            await showDialog(
-              context: context,
-              builder: (context) {
-                return EditJobDialog(context, job, backToJobs);
-              },
-            );
-          },
         ),
       ],
     ),

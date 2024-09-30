@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../../Globals/DashboardGlobals.dart';
 import '../../Globals/Globals.dart';
-import '../../Applications/Applications.dart';
-import '../../Settings/Settings.dart';
 import '../../Utilities/GlobalUtils.dart';
 
 class SmallDisplayCard extends StatefulWidget {
@@ -363,73 +361,6 @@ SingleChildScrollView dashBoardContent(BuildContext context) {
                 ],
               ),
         SizedBox(height: standardSizedBoxHeight),
-      ],
-    ),
-  );
-}
-
-SizedBox desktopDrawer(BuildContext context) {
-  return SizedBox(
-    width: MediaQuery.of(context).size.width * drawerWidth,
-    child: Drawer(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: drawerVerticalPadding),
-        child: Column(
-          children: <Widget>[
-            IconButton(
-              tooltip: dashboardToolTip,
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              icon: Icon(Icons.dashboard),
-            ),
-            Spacer(),
-            IconButton(
-              tooltip: applicationToolTip,
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-              },
-              icon: Icon(Icons.task),
-            ),
-            Spacer(),
-            IconButton(
-              tooltip: settingsToolTip,
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: SettingsPage()), (Route<dynamic> route) => false);
-              },
-              icon: Icon(Icons.settings),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-BottomAppBar mobileNavbar(BuildContext context) {
-  return BottomAppBar(
-    color: Colors.transparent,
-    child: Row(
-      children: [
-        IconButton(
-          tooltip: applicationToolTip,
-          onPressed: () {
-            Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: ApplicationsPage()), (Route<dynamic> route) => false);
-          },
-          icon: Icon(Icons.task),
-        ),
-        Spacer(),
-        IconButton(
-          onPressed: () => {},
-          icon: Icon(Icons.dashboard),
-        ),
-        Spacer(),
-        IconButton(
-          onPressed: () {
-            Navigator.pushAndRemoveUntil(context, RightToLeftPageRoute(page: SettingsPage()), (Route<dynamic> route) => false);
-          },
-          icon: Icon(Icons.settings),
-        ),
       ],
     ),
   );

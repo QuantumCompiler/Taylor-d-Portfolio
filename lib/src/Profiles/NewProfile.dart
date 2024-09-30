@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../Context/Globals/GlobalContext.dart';
 import '../Context/Profiles/NewProfileContext.dart';
 import '../Utilities/ProfilesUtils.dart';
 
@@ -49,14 +50,14 @@ class NewProfilePageState extends State<NewProfilePage> {
           keyList.add(experienceProfileKey);
           keyList.add(projectProfileKey);
           keyList.add(skillsProfileKey);
-          return NewProfileContent(context, newProfile, keyList);
+          return NewProfileContent(context, newProfile, keyList, widget.backToProfile);
         },
       ),
       bottomNavigationBar: FutureBuilder<Profile>(
         future: futureProfile,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            return NewProfileBottomAppBar(context, snapshot.data!, widget.backToProfile);
+            return BottomNav(context);
           } else {
             return Container();
           }

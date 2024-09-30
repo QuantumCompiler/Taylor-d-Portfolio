@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Applications/Applications.dart';
 import '../../Context/Jobs/JobsContext.dart';
-import '../../Dashboard/Dashboard.dart';
-import '../../Settings/Settings.dart';
 import '../../Utilities/JobUtils.dart';
 import '../../Globals/Globals.dart';
 
@@ -17,18 +15,11 @@ AppBar NewJobAppBar(BuildContext context, bool backToJobs) {
       ),
     ),
     leading: NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, true),
-    actions: [
-      Row(
-        children: [
-          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, true),
-          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, true),
-        ],
-      ),
-    ],
   );
 }
 
-SingleChildScrollView NewJobContent(BuildContext context, Job job, List<GlobalKey> keys) {
+SingleChildScrollView NewJobContent(BuildContext context, Job job, List<GlobalKey> keys, bool? backToJobs) {
+  TextEditingController nameController = TextEditingController();
   return SingleChildScrollView(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -41,6 +32,18 @@ SingleChildScrollView NewJobContent(BuildContext context, Job job, List<GlobalKe
               children: [
                 SizedBox(height: standardSizedBoxHeight),
                 ...JobOptionsContent(context, job, keys, false),
+                SizedBox(height: standardSizedBoxHeight),
+                TextButton(
+                  child: Text('Save Job'),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return NewJobDialog(context, job, backToJobs, nameController);
+                      },
+                    );
+                  },
+                ),
               ],
             ),
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../Context/Globals/GlobalContext.dart';
 import '../Context/Profiles/EditProfilesContext.dart';
 import '../Utilities/ProfilesUtils.dart';
 
@@ -51,7 +52,7 @@ class EditProfilePageState extends State<EditProfilePage> {
             keyList.add(experienceProfileKey);
             keyList.add(projectProfileKey);
             keyList.add(skillsProfileKey);
-            return EditProfileContent(context, previousProfile, keyList);
+            return EditProfileContent(context, previousProfile, keyList, widget.backToProfile);
           }
         },
       ),
@@ -59,7 +60,7 @@ class EditProfilePageState extends State<EditProfilePage> {
         future: previousProfile,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            return EditProfileBottomAppBar(context, snapshot.data!, widget.backToProfile, keyList);
+            return BottomNav(context);
           } else {
             return Container();
           }

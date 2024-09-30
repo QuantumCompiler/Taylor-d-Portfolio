@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:taylord_portfolio/src/Dashboard/Dashboard.dart';
 import '../../Applications/Applications.dart';
 import '../../Globals/Globals.dart';
+import '../../Settings/Settings.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/JobUtils.dart';
@@ -643,6 +645,19 @@ AlertDialog ShowLoadingDialog(BuildContext context, String content) {
       children: [
         SizedBox(height: standardSizedBoxHeight),
         CircularProgressIndicator(),
+      ],
+    ),
+  );
+}
+
+BottomAppBar BottomNav(BuildContext context) {
+  return BottomAppBar(
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, false),
+        NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
+        NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
       ],
     ),
   );

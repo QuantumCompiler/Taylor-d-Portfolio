@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../Applications/NewApplication.dart';
 import '../../Applications/ViewApplication.dart';
-// import '../../Applications/LoadApplication.dart';
-// import '../../Applications/NewApplication.dart';
-// import '../../Globals/ApplicationsGlobals.dart';
 import '../../Context/Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/Globals.dart';
@@ -11,7 +8,6 @@ import '../../Jobs/EditJob.dart';
 import '../../Jobs/NewJob.dart';
 import '../../Profiles/EditProfile.dart';
 import '../../Profiles/NewProfile.dart';
-import '../../Settings/Settings.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Utilities/JobUtils.dart';
@@ -27,14 +23,6 @@ AppBar ApplicationsAppBar(BuildContext context) {
       ),
     ),
     leading: NavToPage(context, 'Dashboard', Icon(Icons.arrow_back_ios_new_outlined), Dashboard(), false, false),
-    actions: [
-      Row(
-        children: [
-          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
-          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
-        ],
-      ),
-    ],
   );
 }
 
@@ -48,20 +36,23 @@ SingleChildScrollView ApplicationsContent(BuildContext context, List<Application
           Apps(apps: apps),
           Jobs(jobs: jobs),
           Profiles(profiles: profiles),
+          CompileButton(context, jobs, profiles),
         ],
       ),
     ),
   );
 }
 
-BottomAppBar ApplicationsBottomAppBar(BuildContext context, List<Job> jobs, List<Profile> profiles) {
-  return BottomAppBar(
-    child: Row(
+Center CompileButton(BuildContext context, List<Job> jobs, List<Profile> profiles) {
+  return Center(
+    child: Column(
       crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
+        SizedBox(height: standardSizedBoxHeight),
+        SizedBox(height: standardSizedBoxHeight),
         TextButton(
-          child: Text('Proceed To OpenAI'),
+          child: Text('Proceed'),
           onPressed: () {
             bool jobsValid = jobs.any((job) => job.isSelected);
             bool profilesValid = profiles.any((profile) => profile.isSelected);
@@ -159,7 +150,8 @@ BottomAppBar ApplicationsBottomAppBar(BuildContext context, List<Job> jobs, List
               );
             }
           },
-        )
+        ),
+        SizedBox(height: standardSizedBoxHeight),
       ],
     ),
   );

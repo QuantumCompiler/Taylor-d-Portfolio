@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Utilities/ApplicationsUtils.dart';
-import '../../Applications/Applications.dart';
 import '../../Applications/ViewApplication.dart';
 import '../../Context/Jobs/JobsContext.dart';
-import '../../Dashboard/Dashboard.dart';
-import '../../Settings/Settings.dart';
 import '../../Globals/Globals.dart';
 import '../../Utilities/JobUtils.dart';
 
@@ -19,15 +16,6 @@ AppBar ViewJobAppBar(BuildContext context, String jobName, Application app) {
       ),
     ),
     leading: NavToPage(context, app.name, Icon(Icons.arrow_back_ios_new_outlined), ViewApplicationPage(app: app), false, true),
-    actions: [
-      Row(
-        children: [
-          NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, false),
-          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
-          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
-        ],
-      ),
-    ],
   );
 }
 

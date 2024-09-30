@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Context/Applications/ApplicationsContext.dart';
+import '../Context/Globals/GlobalContext.dart';
 import '../Utilities/GlobalUtils.dart';
 import '../Utilities/ApplicationsUtils.dart';
 import '../Utilities/JobUtils.dart';
@@ -83,7 +84,7 @@ class ApplicationsPageState extends State<ApplicationsPage> {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
             jobs = snapshot.data![1];
             profiles = snapshot.data![2];
-            return ApplicationsBottomAppBar(context, jobs, profiles);
+            return BottomNav(context);
           } else {
             return BottomAppBar();
           }

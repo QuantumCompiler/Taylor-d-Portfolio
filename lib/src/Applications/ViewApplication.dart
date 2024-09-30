@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Context/Applications/ViewApplicationContext.dart';
+import '../Context/Globals/GlobalContext.dart';
 import '../Utilities/ApplicationsUtils.dart';
 
 class ViewApplicationPage extends StatefulWidget {
@@ -24,6 +25,7 @@ class ViewApplicationPageState extends State<ViewApplicationPage> {
     return Scaffold(
       appBar: ViewApplicationAppBar(context, widget.app),
       body: ViewApplicationContent(app: widget.app),
+      bottomNavigationBar: BottomNav(context),
     );
   }
 }

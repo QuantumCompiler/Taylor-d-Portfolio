@@ -116,6 +116,17 @@ class ThemeProvider with ChangeNotifier {
         textStyle: TextStyle(
           color: _isDarkTheme ? Colors.white : Colors.black,
         ),
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStateProperty.all<Color>(_isDarkTheme ? Colors.black : Colors.black),
+          shape: WidgetStateProperty.all<OutlinedBorder>(
+            RoundedRectangleBorder(
+              side: BorderSide(
+                color: _isDarkTheme ? Colors.white : Colors.black,
+                width: 0.5,
+              ),
+            ),
+          ),
+        ),
       ),
       expansionTileTheme: ExpansionTileThemeData(
         backgroundColor: _isDarkTheme ? Colors.black : customWhite,

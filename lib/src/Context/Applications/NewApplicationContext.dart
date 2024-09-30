@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../Globals/GlobalContext.dart';
 import '../../Applications/Applications.dart';
-import '../../Dashboard/Dashboard.dart';
 import '../../Globals/ApplicationsGlobals.dart';
 import '../../Globals/Globals.dart';
-import '../../Settings/Settings.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 
 AppBar NewApplicationAppBar(BuildContext context) {
@@ -18,130 +16,178 @@ AppBar NewApplicationAppBar(BuildContext context) {
       textAlign: TextAlign.center,
     ),
     leading: NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, true),
-    actions: [
-      Row(
-        children: [
-          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
-          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
-        ],
-      ),
-    ],
   );
 }
 
-SingleChildScrollView NewApplicationContent(BuildContext context, Application app, Function updateState) {
+SingleChildScrollView NewApplicationContent(BuildContext context, Application app, Function updateState, bool finishedRecs) {
   String openAIModel = gpt_4o;
-  return SingleChildScrollView(
-    child: Center(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(height: 4 * standardSizedBoxHeight),
-          DropdownMenu(
-            dropdownMenuEntries: openAIEntries,
-            enableFilter: true,
-            width: MediaQuery.of(context).size.width * 0.4,
-            menuHeight: MediaQuery.of(context).size.height * 0.4,
-            helperText: 'Select Model For OpenAI',
-            onSelected: (value) {
-              openAIModel = value.toString();
-              app.openAIModel = openAIModel;
-            },
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-SingleChildScrollView NewApplicationRecsContent(BuildContext context, Application app, Function updateState) {
-  return SingleChildScrollView(
-    child: Center(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(height: standardSizedBoxHeight),
-          Text(
-            'OpenAI Recommendations',
-            style: TextStyle(
-              fontSize: appBarTitle,
-              fontWeight: FontWeight.bold,
+  return !finishedRecs
+      ? SingleChildScrollView(
+          child: Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: 4 * standardSizedBoxHeight),
+                DropdownMenu(
+                  dropdownMenuEntries: openAIEntries,
+                  enableFilter: true,
+                  width: MediaQuery.of(context).size.width * (isDesktop() ? 0.5 : 0.75),
+                  menuHeight: MediaQuery.of(context).size.height * 0.4,
+                  helperText: 'Select Model For OpenAI',
+                  onSelected: (value) {
+                    openAIModel = value.toString();
+                    app.openAIModel = openAIModel;
+                  },
+                ),
+                SizedBox(height: 4 * standardSizedBoxHeight),
+                CompileButton(context, app, updateState, finishedRecs)
+              ],
             ),
-            textAlign: TextAlign.center,
           ),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Cover Letter About Applicant', content: app.recommendations[0], val: 0),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Cover Letter Recommendation For Job', content: app.recommendations[1], val: 1),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Cover Letter Recommendation For Applicant', content: app.recommendations[2], val: 2),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Education Recommendations For Applicant', content: app.recommendations[3], val: 3),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Experience Recommendations', content: app.recommendations[4], val: 4),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Framework Recommendations', content: app.recommendations[5], val: 5),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Math Skill Recommendations', content: app.recommendations[6], val: 6),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Personal Skill Recommendations', content: app.recommendations[7], val: 7),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Programming Language Recommendations', content: app.recommendations[8], val: 8),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Programming Skill Recommendations', content: app.recommendations[9], val: 9),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Project Recommendations', content: app.recommendations[10], val: 10),
-          SizedBox(height: standardSizedBoxHeight),
-          RecCard(app: app, title: 'Scientific Skill Recommendations', content: app.recommendations[11], val: 11),
-        ],
-      ),
-    ),
-  );
+        )
+      : SingleChildScrollView(
+          child: Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: standardSizedBoxHeight),
+                Text(
+                  'OpenAI Recommendations',
+                  style: TextStyle(
+                    fontSize: appBarTitle,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                Divider(
+                  thickness: 2.0,
+                  indent: MediaQuery.of(context).size.width * 0.1,
+                  endIndent: MediaQuery.of(context).size.width * 0.1,
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.75,
+                  ),
+                  child: ExpansionTile(
+                    initiallyExpanded: true,
+                    title: Text('Test'),
+                    children: [
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.70),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            ExpansionTile(
+                              title: Text('Cover Letter About'),
+                              children: [
+                                RecCard(app: app, title: 'Cover Letter About Applicant', content: app.recommendations[0], val: 0),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Cover Letter Job Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Cover Letter Recommendation For Job', content: app.recommendations[1], val: 1),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Cover Letter Pitch Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Cover Letter Recommendation For Applicant', content: app.recommendations[2], val: 2),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Education Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Education Recommendations For Applicant', content: app.recommendations[3], val: 3),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Experience Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Experience Recommendations', content: app.recommendations[4], val: 4),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Framework Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Framework Recommendations', content: app.recommendations[5], val: 5),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Math Skill Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Math Skill Recommendations', content: app.recommendations[6], val: 6),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Personal Skill Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Personal Skill Recommendations', content: app.recommendations[7], val: 7),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Programming Language Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Programming Language Recommendations', content: app.recommendations[8], val: 8),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Programming Skill Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Programming Skill Recommendations', content: app.recommendations[9], val: 9),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Project Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Project Recommendations', content: app.recommendations[10], val: 10),
+                              ],
+                            ),
+                            ExpansionTile(
+                              title: Text('Scientific Skill Recommendations'),
+                              children: [
+                                RecCard(app: app, title: 'Scientific Skill Recommendations', content: app.recommendations[11], val: 11),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: standardSizedBoxHeight),
+                CompileButton(context, app, updateState, finishedRecs),
+              ],
+            ),
+          ),
+        );
 }
 
-BottomAppBar NewApplicationBottomAppBar(BuildContext context, Application app, Function updateState) {
-  return BottomAppBar(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        TextButton(
-          child: Text('Get Recommendations'),
-          onPressed: () async {
-            Map<String, dynamic> recs = await GetOpenAIRecs(context, app, app.openAIModel);
-            // Map<String, dynamic> recs = testOpenAIResults2;
-            List<String> finRecs = await StringifyRecs(recs, app);
-            app.SetRecs(recs, finRecs);
-            updateState();
+TextButton CompileButton(BuildContext context, Application app, Function updateState, bool finishedRecs) {
+  return TextButton(
+    child: Text(finishedRecs ? 'Compile Documents' : 'Get Recommendations'),
+    onPressed: () async {
+      if (!finishedRecs) {
+        // Map<String, dynamic> recs = await GetOpenAIRecs(context, app, app.openAIModel);
+        Map<String, dynamic> recs = testOpenAIResults2;
+        List<String> finRecs = await StringifyRecs(recs, app);
+        app.SetRecs(recs, finRecs);
+        updateState();
+      } else {
+        TextEditingController nameController = TextEditingController();
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return NewApplicationDialog(context, app, nameController);
           },
-        ),
-      ],
-    ),
-  );
-}
-
-BottomAppBar NewApplicationCompileBottomAppBar(BuildContext context, Application app, Function updateState) {
-  TextEditingController nameController = TextEditingController();
-  return BottomAppBar(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        TextButton(
-          child: Text('Compile Portfolio'),
-          onPressed: () async {
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return NewApplicationDialog(context, app, nameController);
-              },
-            );
-          },
-        ),
-      ],
-    ),
+        );
+      }
+    },
   );
 }
 
@@ -214,13 +260,15 @@ class _RecCardState extends State<RecCard> {
         elevation: _isHovered ? 80.0 : cardTheme.elevation,
         shadowColor: _isHovered ? cardHoverColor : cardTheme.shadowColor,
         child: Container(
-          width: MediaQuery.of(context).size.width * 0.75,
+          width: MediaQuery.of(context).size.width * 0.65,
           margin: EdgeInsets.all(15.0),
           child: LayoutBuilder(
             builder: (context, constraints) {
               return Center(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.70),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.60,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.start,

@@ -8,8 +8,6 @@ import '../../Applications/ViewApplication.dart';
 import '../../Utilities/GlobalUtils.dart';
 import '../../Applications/Applications.dart';
 import '../../Context/Globals/GlobalContext.dart';
-import '../../Dashboard/Dashboard.dart';
-import '../../Settings/Settings.dart';
 import '../../Utilities/ApplicationsUtils.dart';
 import '../../Globals/Globals.dart';
 
@@ -23,14 +21,6 @@ AppBar ViewApplicationAppBar(BuildContext context, Application app) {
       ),
     ),
     leading: NavToPage(context, 'Applications', Icon(Icons.arrow_back_ios_new_outlined), ApplicationsPage(), false, true),
-    actions: [
-      Row(
-        children: [
-          NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
-          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
-        ],
-      ),
-    ],
   );
 }
 
@@ -1224,16 +1214,6 @@ class PDFScreen extends StatelessWidget {
             );
           },
         ),
-        actions: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              NavToPage(context, 'Settings', Icon(Icons.settings), SettingsPage(), true, false),
-              NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
-            ],
-          ),
-        ],
       ),
       body: FutureBuilder<bool>(
         future: Future(() => pdfFile.exists()),

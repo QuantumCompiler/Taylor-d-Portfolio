@@ -1,6 +1,5 @@
 // Imports
 import 'package:flutter/material.dart';
-import '../../Applications/Applications.dart';
 import '../../Context/Globals/GlobalContext.dart';
 import '../../Dashboard/Dashboard.dart';
 import '../../Globals/SettingsGlobals.dart';
@@ -19,14 +18,6 @@ AppBar appBar(BuildContext context) {
       ),
     ),
     leading: NavToPage(context, 'Dashboard', Icon(Icons.arrow_back_ios_new_outlined), Dashboard(), false, false),
-    actions: [
-      Row(
-        children: [
-          NavToPage(context, 'Applications', Icon(Icons.task), ApplicationsPage(), true, false),
-          NavToPage(context, 'Dashboard', Icon(Icons.dashboard), Dashboard(), true, false),
-        ],
-      ),
-    ],
   );
 }
 
