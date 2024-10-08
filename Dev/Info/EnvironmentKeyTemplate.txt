@@ -1,2 +1,0 @@
-Add at root of project directory
-OPENAI_API_KEY="Nice Try ;)"

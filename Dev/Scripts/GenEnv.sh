@@ -1,5 +1,5 @@
 inputFile="/Users/taylor/Library/Mobile Documents/com~apple~CloudDocs/Documents/General/Technology/Open AI/API Keys.txt"
-outputFile="../.env"
+outputFile="../../.env"
 prepend="OPENAI_API_KEY="
 
 if [ -f "$outputFile" ]; then
