@@ -18,6 +18,6 @@ The application compiles a user's portfolio with the use of LaTeX where an exter
     <a href="https://trello.com/b/5nompPlj/taylord-portfolio">Taylor'd Portfolio Trello</a>
 </center>
 
-## <span style="color:blue">Version 1.0.0</span>
+## <span style="color:blue">Version 0.0.0</span>
 
 Currently, the application only updates the user's frameworks, math, personal programming languages, and programming skills. Future versions will be designed to update the user's education experience, experience, and projects. As well as other future designs regarding to the implementation and performance of the application. This current version is just a prototype and is not the final version of the application.
