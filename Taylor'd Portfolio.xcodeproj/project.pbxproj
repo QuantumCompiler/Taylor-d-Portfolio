@@ -14,35 +14,22 @@
 			remoteGlobalIDString = 34159C2C2FFC888A00B3B6DE;
 			remoteInfo = "Taylor'd Portfolio";
 		};
-		34159C4A2FFC888B00B3B6DE /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 34159C252FFC888A00B3B6DE /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 34159C2C2FFC888A00B3B6DE;
-			remoteInfo = "Taylor'd Portfolio";
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		34159C2D2FFC888A00B3B6DE /* Taylor'd Portfolio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Taylor'd Portfolio.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		34159C3F2FFC888B00B3B6DE /* Taylor'd PortfolioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Taylor'd PortfolioTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		34159C492FFC888B00B3B6DE /* Taylor'd PortfolioUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Taylor'd PortfolioUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		34159C2F2FFC888A00B3B6DE /* Taylor'd Portfolio */ = {
+		34159C2F2FFC888A00B3B6DE /* lib */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Taylor'd Portfolio";
+			path = lib;
 			sourceTree = "<group>";
 		};
-		34159C422FFC888B00B3B6DE /* Taylor'd PortfolioTests */ = {
+		34159C422FFC888B00B3B6DE /* Tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Taylor'd PortfolioTests";
-			sourceTree = "<group>";
-		};
-		34159C4C2FFC888B00B3B6DE /* Taylor'd PortfolioUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Taylor'd PortfolioUITests";
+			path = Tests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -62,22 +49,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		34159C462FFC888B00B3B6DE /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		34159C242FFC888A00B3B6DE = {
 			isa = PBXGroup;
 			children = (
-				34159C2F2FFC888A00B3B6DE /* Taylor'd Portfolio */,
-				34159C422FFC888B00B3B6DE /* Taylor'd PortfolioTests */,
-				34159C4C2FFC888B00B3B6DE /* Taylor'd PortfolioUITests */,
+				34159C2F2FFC888A00B3B6DE /* lib */,
+				34159C422FFC888B00B3B6DE /* Tests */,
 				34159C2E2FFC888A00B3B6DE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -87,7 +66,6 @@
 			children = (
 				34159C2D2FFC888A00B3B6DE /* Taylor'd Portfolio.app */,
 				34159C3F2FFC888B00B3B6DE /* Taylor'd PortfolioTests.xctest */,
-				34159C492FFC888B00B3B6DE /* Taylor'd PortfolioUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,7 +86,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				34159C2F2FFC888A00B3B6DE /* Taylor'd Portfolio */,
+				34159C2F2FFC888A00B3B6DE /* lib */,
 			);
 			name = "Taylor'd Portfolio";
 			packageProductDependencies = (
@@ -131,7 +109,7 @@
 				34159C412FFC888B00B3B6DE /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				34159C422FFC888B00B3B6DE /* Taylor'd PortfolioTests */,
+				34159C422FFC888B00B3B6DE /* Tests */,
 			);
 			name = "Taylor'd PortfolioTests";
 			packageProductDependencies = (
@@ -139,29 +117,6 @@
 			productName = "Taylor'd PortfolioTests";
 			productReference = 34159C3F2FFC888B00B3B6DE /* Taylor'd PortfolioTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		34159C482FFC888B00B3B6DE /* Taylor'd PortfolioUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 34159C592FFC888B00B3B6DE /* Build configuration list for PBXNativeTarget "Taylor'd PortfolioUITests" */;
-			buildPhases = (
-				34159C452FFC888B00B3B6DE /* Sources */,
-				34159C462FFC888B00B3B6DE /* Frameworks */,
-				34159C472FFC888B00B3B6DE /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				34159C4B2FFC888B00B3B6DE /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				34159C4C2FFC888B00B3B6DE /* Taylor'd PortfolioUITests */,
-			);
-			name = "Taylor'd PortfolioUITests";
-			packageProductDependencies = (
-			);
-			productName = "Taylor'd PortfolioUITests";
-			productReference = 34159C492FFC888B00B3B6DE /* Taylor'd PortfolioUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -177,10 +132,6 @@
 						CreatedOnToolsVersion = 26.6;
 					};
 					34159C3E2FFC888B00B3B6DE = {
-						CreatedOnToolsVersion = 26.6;
-						TestTargetID = 34159C2C2FFC888A00B3B6DE;
-					};
-					34159C482FFC888B00B3B6DE = {
 						CreatedOnToolsVersion = 26.6;
 						TestTargetID = 34159C2C2FFC888A00B3B6DE;
 					};
@@ -202,7 +153,6 @@
 			targets = (
 				34159C2C2FFC888A00B3B6DE /* Taylor'd Portfolio */,
 				34159C3E2FFC888B00B3B6DE /* Taylor'd PortfolioTests */,
-				34159C482FFC888B00B3B6DE /* Taylor'd PortfolioUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -216,13 +166,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		34159C3D2FFC888B00B3B6DE /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		34159C472FFC888B00B3B6DE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -246,13 +189,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		34159C452FFC888B00B3B6DE /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -260,11 +196,6 @@
 			isa = PBXTargetDependency;
 			target = 34159C2C2FFC888A00B3B6DE /* Taylor'd Portfolio */;
 			targetProxy = 34159C402FFC888B00B3B6DE /* PBXContainerItemProxy */;
-		};
-		34159C4B2FFC888B00B3B6DE /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 34159C2C2FFC888A00B3B6DE /* Taylor'd Portfolio */;
-			targetProxy = 34159C4A2FFC888B00B3B6DE /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -525,56 +456,6 @@
 			};
 			name = Release;
 		};
-		34159C5A2FFC888B00B3B6DE /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B6PZ9ECLLJ;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
-				MACOSX_DEPLOYMENT_TARGET = 26.5;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.vivint.Taylor-d-PortfolioUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = "Taylor'd Portfolio";
-				XROS_DEPLOYMENT_TARGET = 26.5;
-			};
-			name = Debug;
-		};
-		34159C5B2FFC888B00B3B6DE /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B6PZ9ECLLJ;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
-				MACOSX_DEPLOYMENT_TARGET = 26.5;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.vivint.Taylor-d-PortfolioUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = "Taylor'd Portfolio";
-				XROS_DEPLOYMENT_TARGET = 26.5;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -601,15 +482,6 @@
 			buildConfigurations = (
 				34159C572FFC888B00B3B6DE /* Debug */,
 				34159C582FFC888B00B3B6DE /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		34159C592FFC888B00B3B6DE /* Build configuration list for PBXNativeTarget "Taylor'd PortfolioUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				34159C5A2FFC888B00B3B6DE /* Debug */,
-				34159C5B2FFC888B00B3B6DE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

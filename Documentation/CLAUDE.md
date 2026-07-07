@@ -5,7 +5,7 @@ for what we're building and `ROADMAP.md` for what's planned.
 
 ## What this is
 
-JobMatch: a native macOS app that searches jobs, ranks them against the user's
+Taylor'd Portfolio: a native macOS app that searches jobs, ranks them against the user's
 portfolio, and generates a tailored resume + cover letter for a chosen job. No
 auto-submission — the user applies themselves.
 
@@ -55,7 +55,7 @@ above it.
 `@MainActor` ViewModel per screen (`PortfolioViewModel`, `SearchViewModel`,
 `ResultsViewModel`, `ApplicationViewModel`, `SettingsViewModel`). ViewModels hold
 view state and call Business use cases; they hold no business rules and do no data
-access. `JobMatchApp` is the composition root (below). This replaces the single
+access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces the single
 `AppModel` from early sketches — split it into per-screen ViewModels.
 
 **Business** — use cases that orchestrate the pipeline (`BuildProfileUseCase`,
@@ -96,7 +96,7 @@ declared here: `TextGenerating` + `FoundationModelsClient` (wraps
 
 ### Composition root
 
-`JobMatchApp` (Presentation) is the one place allowed to reference every layer, to
+`Taylor_d_PortfolioApp` (Presentation) is the one place allowed to reference every layer, to
 assemble it: build Infrastructure clients → wrap them in Data gateways → inject
 those into Business use cases → inject use cases into ViewModels → inject
 ViewModels via `.environment`. All wiring lives here; nothing else news-up a
@@ -107,13 +107,14 @@ lower layer.
 One top-level folder per layer:
 
 ```
-JobMatch/
+Taylor'd Portfolio/
   Presentation/
-    App/          JobMatchApp (composition root)
-    ViewModels/   PortfolioViewModel, SearchViewModel, ResultsViewModel,
-                  ApplicationViewModel, SettingsViewModel
-    Views/        ContentView, PortfolioView, SearchView, ResultsView,
-                  RankedRow, ApplicationSheet, SettingsView
+    App/            Taylor_d_PortfolioApp (composition root)
+    Landing/        one folder per screen; each screen holds two subfolders:
+      View/           the SwiftUI view(s)                  — LandingView
+      ViewModel/      the @MainActor @Observable ViewModel — LandingViewModel
+    Portfolio/, Search/, Results/, Application/, Settings/  (same View/ + ViewModel/ shape;
+                  e.g. Results/View holds ResultsView + RankedRow, Application/View the sheet)
   Business/
     UseCases/     BuildProfileUseCase, SearchAndRankUseCase, GenerateApplicationUseCase
     Ranking/      JobRanker
@@ -159,7 +160,7 @@ for you.
 - Views stay dumb. All view state and user intent live in a `@MainActor`
   `@Observable` ViewModel, which calls Business use cases only — no `URLSession`,
   `Process`, or `LanguageModelSession` in the Presentation layer.
-- Wire dependencies only in the composition root (`JobMatchApp`).
+- Wire dependencies only in the composition root (`Taylor_d_PortfolioApp`).
 - ViewModels are `@MainActor`; do async work in use cases off the main actor and
   assign results back on the main actor.
 

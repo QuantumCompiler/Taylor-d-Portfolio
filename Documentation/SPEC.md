@@ -1,4 +1,4 @@
-# JobMatch — Project Spec
+# Taylor'd Portfolio — Project Spec
 
 ## One-liner
 
@@ -10,7 +10,7 @@ Human-in-the-loop: it never submits applications for you.
 
 Inspired by the useful half of tools like AIApply (tailored resumes, cover
 letters, portfolio-aware matching) while deliberately dropping the part that
-gets those tools criticized: mass auto-submission to job boards. JobMatch keeps
+gets those tools criticized: mass auto-submission to job boards. Taylor'd Portfolio keeps
 the human in control of every application.
 
 ## Core user flow

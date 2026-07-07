@@ -1,4 +1,4 @@
-# JobMatch — Roadmap
+# Taylor'd Portfolio — Roadmap
 
 How we work: features get discussed in chat, written up here (and in `SPEC.md`),
 then handed to the Claude Code session to build. This file is the running list.
