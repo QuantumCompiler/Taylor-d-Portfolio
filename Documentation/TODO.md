@@ -10,9 +10,10 @@ check it off here **and** tick the matching line in `ROADMAP.md`. Keep the
 can pick up instantly. Add newly-discovered sub-tasks as checkboxes in the right
 milestone.
 
-> **Current focus:** Milestone G — Business: ranking & use cases (`lib/src/Business`).
-> Settings persistence is done; next is `JobRanker` (prefilter + batched re-rank) and
-> the three use cases — the first code in the Business layer.
+> **Current focus:** Milestone H — Presentation screens
+> (`lib/src/Presentation/<Screen>/{View,ViewModel}`). The entire non-UI stack is done
+> and tested; next is the Portfolio / Search / Results / Application / Settings screens
+> and their `@MainActor @Observable` ViewModels.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure,
 imports point down only). Build roughly bottom-up so each layer has what it needs.
@@ -98,14 +99,17 @@ so no real network is hit in tests.
       when absent or corrupt
 - [x] Tests: `SettingsStoreTests` (in-memory store), `UserDefaultsStoreTests` (isolated suite)
 
-## Milestone G — Business: ranking & use cases  (`lib/src/Business`)
+## Milestone G — Business: ranking & use cases  ✅ done  (`lib/src/Business`)
 
-- [ ] `JobRanker` (Business/Ranking): `prefilter(...)` cheap shortlist +
-      batched `rank(...)` → `[RankedJob]`
-- [ ] `BuildProfileUseCase` (Business/UseCases)
-- [ ] `SearchAndRankUseCase`
-- [ ] `GenerateApplicationUseCase`
-- [ ] Use-case + ranker tests (`Tests/Business/*`)
+- [x] `JobRanker` (Business/Ranking): pure lexical `prefilter(...)` shortlist +
+      batched `rank(...)` → `[RankedJob]` (pairs by jobId, sorts by score desc)
+- [x] `BuildProfileUseCase` (Business/UseCases)
+- [x] `SearchAndRankUseCase` (search → rank)
+- [x] `GenerateApplicationUseCase`
+- [x] Tests: `JobRankerTests` (prefilter/pairing/sorting/shortlist), `UseCaseTests`
+
+Notes: use cases are `callAsFunction` structs so ViewModels invoke them like
+`try await searchAndRank(query:profile:)`. They keep ViewModels off the providers.
 
 ## Milestone H — Presentation screens  (`lib/src/Presentation/<Screen>/{View,ViewModel}`)
 

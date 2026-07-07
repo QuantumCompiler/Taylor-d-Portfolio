@@ -15,7 +15,7 @@ As TODO items land, tick them here too so this stays an accurate progress board.
 - [x] Structured types: `CandidateProfile`, `JobListing`, `JobMatch`, `ApplicationKit`
       (+ `JobQuery`, `RankedJob`, `SalaryRange`; Codable round-trip tests)
 - [x] `JobSource` seam + `AdzunaJobSource` (on `HTTPClient` / `URLSessionHTTPClient`)
-- [ ] `JobRanker`: lexical prefilter + batched LLM re-rank
+- [x] `JobRanker`: lexical prefilter + batched LLM re-rank
 - [ ] UI: Portfolio, Search, Results tabs + Settings
 - [ ] Portfolio → profile → search → ranked results → generate resume/cover letter,
       end to end
