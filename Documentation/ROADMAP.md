@@ -16,9 +16,11 @@ As TODO items land, tick them here too so this stays an accurate progress board.
       (+ `JobQuery`, `RankedJob`, `SalaryRange`; Codable round-trip tests)
 - [x] `JobSource` seam + `AdzunaJobSource` (on `HTTPClient` / `URLSessionHTTPClient`)
 - [x] `JobRanker`: lexical prefilter + batched LLM re-rank
-- [ ] UI: Portfolio, Search, Results tabs + Settings
-- [ ] Portfolio → profile → search → ranked results → generate resume/cover letter,
-      end to end
+- [x] UI: Portfolio, Search, Results tabs + Settings (Landing → TabView; screens wired
+      through a composition root)
+- [x] Portfolio → profile → search → ranked results → generate resume/cover letter,
+      end to end (wiring proven by `EndToEndTests` + launch smoke; live-engine run is a
+      manual device step)
 
 ## Fast follow (next up)
 
@@ -60,7 +62,8 @@ seam it touches, and whether it's on-device-friendly or needs Claude/network._
 _Loose parking lot — not committed._
 
 - Additional job sources (JSearch for fuller descriptions, USAJOBS, remote feeds)
-- Portfolio ingestion from files (PDF/DOCX) and a portfolio URL, not just paste
+- Portfolio ingestion from files — ✅ **done** for PDF/Word/RTF/text (see TODO
+  "Portfolio document import"); portfolio-URL import (fetch + extract) still open
 - Anthropic Messages API provider (cleaner than `claude -p` if the app is ever
   distributed)
 - Interview prep / mock-interview feature

@@ -118,7 +118,8 @@ Taylor'd Portfolio/
     Portfolio/, Search/, Results/, Application/, Settings/  (same View/ + ViewModel/ shape;
                   e.g. Results/View holds ResultsView + RankedRow, Application/View the sheet)
   Business/
-    UseCases/     BuildProfileUseCase, SearchAndRankUseCase, GenerateApplicationUseCase
+    UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
+                  GenerateApplicationUseCase
     Ranking/      JobRanker
   Data/
     Models/       CandidateProfile, JobListing, JobMatch, ApplicationKit,
@@ -131,6 +132,7 @@ Taylor'd Portfolio/
   Infrastructure/
     LLM/          TextGenerating, FoundationModelsClient, ClaudeProcessClient
     Net/          HTTPClient
+    Documents/    DocumentTextExtractor, PlatformDocumentTextExtractor
     Embedding/    EmbeddingClient      (roadmap)
     Store/        KeyValueStore
 ```

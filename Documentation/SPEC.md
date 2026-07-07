@@ -29,7 +29,7 @@ Four stages, run locally on the user's Mac:
 
 ## v1 scope (in)
 
-- Portfolio input (paste text) → structured profile
+- Portfolio input (paste text, or import a PDF / Word / RTF / text file) → structured profile
 - Job search via one job source (Adzuna to start)
 - Lexical prefilter + LLM re-rank with scores and reasons
 - On-demand resume + cover letter generation per job

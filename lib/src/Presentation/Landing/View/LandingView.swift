@@ -12,6 +12,8 @@ import SwiftUI
 /// A dumb, declarative view (per the architecture) — no business logic, no data
 /// access. The "Get Started" button will route into the Search flow once it exists.
 struct LandingView: View {
+    let viewModel: LandingViewModel
+
     var body: some View {
         VStack(spacing: 32) {
             header
@@ -63,7 +65,7 @@ struct LandingView: View {
     private var callToAction: some View {
         VStack(spacing: 10) {
             Button {
-                // TODO: route to the Search screen once it exists.
+                viewModel.getStarted()
             } label: {
                 Text("Get Started")
                     .frame(maxWidth: 220)
@@ -101,5 +103,5 @@ private struct FeatureRow: View {
 }
 
 #Preview {
-    LandingView()
+    LandingView(viewModel: LandingViewModel())
 }

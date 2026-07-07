@@ -10,10 +10,9 @@ check it off here **and** tick the matching line in `ROADMAP.md`. Keep the
 can pick up instantly. Add newly-discovered sub-tasks as checkboxes in the right
 milestone.
 
-> **Current focus:** Milestone H — Presentation screens
-> (`lib/src/Presentation/<Screen>/{View,ViewModel}`). The entire non-UI stack is done
-> and tested; next is the Portfolio / Search / Results / Application / Settings screens
-> and their `@MainActor @Observable` ViewModels.
+> **Current focus:** v1 core is **complete** (Milestones A–J done + document import).
+> Next candidates are ROADMAP fast-follow — SwiftData persistence and resume/cover-letter
+> export — plus a real-device smoke of the live engines. Nothing is committed yet.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure,
 imports point down only). Build roughly bottom-up so each layer has what it needs.
@@ -111,22 +110,61 @@ so no real network is hit in tests.
 Notes: use cases are `callAsFunction` structs so ViewModels invoke them like
 `try await searchAndRank(query:profile:)`. They keep ViewModels off the providers.
 
-## Milestone H — Presentation screens  (`lib/src/Presentation/<Screen>/{View,ViewModel}`)
+## Milestone H — Presentation screens  ✅ done  (`lib/src/Presentation/<Screen>/{View,ViewModel}`)
 
-- [ ] `Portfolio` — paste portfolio → build profile
-- [ ] `Search` — role/location/salary params → run search
-- [ ] `Results` — ranked list; `RankedRow` lives in `Results/View`
-- [ ] `Application` — generate resume + cover letter (sheet)
-- [ ] `Settings` — LLM choice, Adzuna keys
-- [ ] `LandingViewModel` — wire the "Get Started" button to route into Search
+- [x] `Portfolio` — paste portfolio → build profile (`PortfolioView` + VM)
+- [x] `Search` — keywords/location/salary → run search + rank (`SearchView` + VM)
+- [x] `Results` — ranked list; `RankedRow` in `Results/View`; taps open the sheet
+- [x] `Application` — generates resume + cover letter on appear (`ApplicationSheet` + VM)
+- [x] `Settings` — LLM choice + Adzuna keys, saved via `SettingsStore`
+- [x] `LandingViewModel` — `getStarted()` invokes an injected action (route wired in I)
+- [x] Tests: one `@MainActor @Suite` per ViewModel (`Tests/Presentation/<Screen>`)
 
-## Milestone I — Composition root wiring  (`lib/src/Presentation/App/App.swift`)
+Notes: ViewModels are `@MainActor @Observable`; Views take them via `@Bindable`.
+Cross-screen inputs (`profile`, results, selected job) are settable properties that the
+composition root will connect in Milestone I. `PreviewSupport.swift` (DEBUG-only)
+supplies stub engines + sample data so every screen has a working `#Preview`.
 
-- [ ] Assemble: Infrastructure clients → Data gateways → Business use cases →
-      ViewModels, injected via `.environment`
-- [ ] Replace the static landing entry with real navigation between screens
+## Milestone I — Composition root wiring  ✅ done  (`lib/src/Presentation/App`)
 
-## Milestone J — End-to-end vertical slice
+- [x] `Composition` assembles the graph: Infrastructure clients → Data gateways →
+      Business use cases → ViewModel factories
+- [x] `RootView` gates Landing → main `TabView` (Portfolio / Search / Results / Settings)
+      and owns each ViewModel; "Get Started" flips into the app
+- [x] Cross-screen state wired: profile (Portfolio → Search), results (Search → Results,
+      auto-jumps to the tab), selected job → Application sheet
 
-- [ ] Portfolio → profile → search → ranked results → generate resume/cover letter,
-      end to end, on-device, with Claude as fallback  ← closes v1
+Notes: ViewModels are injected by ownership (`RootView` `@State`) + direct passing rather
+than `.environment` — cleaner for owned reference types. Gateways are **settings-backed**
+(`SettingsBackedLLMProvider` / `SettingsBackedJobSource` read the store on each call), so
+engine choice and Adzuna keys apply without a relaunch. Runtime caveats for a working flow:
+Apple Intelligence on (on-device engine), Adzuna keys in Settings (search), and **App
+Sandbox off** to use the Claude CLI engine (see CLAUDE.md → Build).
+
+## Milestone J — End-to-end vertical slice  ✅ done  ← closes v1
+
+- [x] Portfolio → profile → search → ranked results → generate resume/cover letter,
+      wired end to end and proven by an integration test (`EndToEndTests`) driving the
+      real ViewModels + use cases + ranker with stub engines
+- [x] App boot verified (real `Composition`/`RootView` launch smoke, no crash)
+
+Remaining is a **manual device smoke** only — the real engines/network can't run in CI:
+run on a Mac with Apple Intelligence on (on-device), or App Sandbox off + Claude CLI
+(fallback), plus Adzuna keys in Settings, and confirm real output. The routing/fallback
+logic itself is unit-tested (`LLMRouterTests`).
+
+---
+
+## Feature: Portfolio document import  ✅ done
+
+Added on top of the v1 core (from the ROADMAP ideas list).
+
+- [x] `DocumentTextExtractor` port + `PlatformDocumentTextExtractor` — PDFKit for PDFs,
+      `NSAttributedString` for Word/RTF/ODT, direct read for text (Infrastructure/Documents)
+- [x] `ImportPortfolioUseCase` (Business/UseCases) — depends on the extractor port
+- [x] Portfolio screen: "Import Document…" via `.fileImporter` fills the text box; then
+      Build Profile runs as before
+- [x] Tests: extractor (temp files + routing/errors), use case, `PortfolioViewModel.importDocument`
+
+Notes: security-scoped file access handled; supported types pdf/txt/md/rtf/rtfd/doc/docx/odt.
+Portfolio-**URL** import (fetch + extract) is still open (ROADMAP ideas).

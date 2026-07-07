@@ -14,11 +14,13 @@ import SwiftUI
 /// landing screen; dependency wiring arrives with the first real feature.
 @main
 struct Taylor_d_PortfolioApp: App {
+    private let composition = Composition()
+
     var body: some Scene {
         WindowGroup {
-            LandingView()
+            RootView(composition: composition)
         }
-        .defaultSize(width: 760, height: 600)
+        .defaultSize(width: 900, height: 640)
         .windowResizability(.contentMinSize)
     }
 }
