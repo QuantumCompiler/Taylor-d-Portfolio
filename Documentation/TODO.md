@@ -10,9 +10,9 @@ check it off here **and** tick the matching line in `ROADMAP.md`. Keep the
 can pick up instantly. Add newly-discovered sub-tasks as checkboxes in the right
 milestone.
 
-> **Current focus:** Milestone F — Settings (`lib/src/Infrastructure/Store`,
-> `lib/src/Data/Settings`). The job seam is done; next is `KeyValueStore`,
-> `AppSettings`, and `SettingsStore`.
+> **Current focus:** Milestone G — Business: ranking & use cases (`lib/src/Business`).
+> Settings persistence is done; next is `JobRanker` (prefilter + batched re-rank) and
+> the three use cases — the first code in the Business layer.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure,
 imports point down only). Build roughly bottom-up so each layer has what it needs.
@@ -88,11 +88,15 @@ Notes: `AdzunaJobSource.Credentials` (appID / appKey / country) is injected — 
 `AppSettings` will supply it. `URLSessionHTTPClient` is covered via a `URLProtocol` stub,
 so no real network is hit in tests.
 
-## Milestone F — Settings  (`lib/src/Infrastructure/Store`, `lib/src/Data/Settings`)
+## Milestone F — Settings  ✅ done  (`lib/src/Infrastructure/Store`, `lib/src/Data/Settings`)
 
-- [ ] `KeyValueStore` — UserDefaults / keychain (Infrastructure/Store)
-- [ ] `AppSettings` — llmChoice, Adzuna app_id/app_key, country code
-- [ ] `SettingsStore` — load/save `AppSettings`
+- [x] `KeyValueStore` port + `UserDefaultsStore` (nonisolated port so its sync methods
+      work off the main actor; `UserDefaults` shared via `nonisolated(unsafe)`)
+- [x] `AppSettings` — `llmChoice`, Adzuna appID/appKey/country; `.default`,
+      `hasAdzunaCredentials`, and an `adzunaCredentials` bridge to `AdzunaJobSource`
+- [x] `SettingsStore` — load/save `AppSettings` as JSON; `load()` returns `.default`
+      when absent or corrupt
+- [x] Tests: `SettingsStoreTests` (in-memory store), `UserDefaultsStoreTests` (isolated suite)
 
 ## Milestone G — Business: ranking & use cases  (`lib/src/Business`)
 
