@@ -10,9 +10,9 @@ check it off here **and** tick the matching line in `ROADMAP.md`. Keep the
 can pick up instantly. Add newly-discovered sub-tasks as checkboxes in the right
 milestone.
 
-> **Current focus:** Milestone D — Data: LLM gateway (`lib/src/Data/LLM`). The raw
-> generation port and both Infrastructure clients are done; next is the task-oriented
-> `LLMProvider`, shared `Prompts`, the two providers, and the `LLMRouter`.
+> **Current focus:** Milestone E — Job seam (`lib/src/Infrastructure/Net`,
+> `lib/src/Data/Jobs`). The LLM gateway is complete and tested; next is the HTTP
+> client, the `JobSource` protocol, and `AdzunaJobSource`.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure,
 imports point down only). Build roughly bottom-up so each layer has what it needs.
@@ -58,16 +58,22 @@ Notes: both clients are `nonisolated` + `Sendable`. `FoundationModelsError` /
 **off** at runtime (it launches an external binary). Provider-level tests come with
 Milestone D.
 
-## Milestone D — Data: LLM gateway  (`lib/src/Data/LLM`)
+## Milestone D — Data: LLM gateway  ✅ done  (`lib/src/Data/LLM`)
 
-- [ ] `LLMProvider` protocol — task-oriented (buildProfile / rank / generateKit),
-      not a generic `generate<T>`
-- [ ] `Prompts` enum — shared prompt text so the two engines never drift
-- [ ] `FoundationModelsProvider` — constrained decoding against `@Generable` types
-- [ ] `ClaudeCodeProvider` — asks for JSON, decodes it
-- [ ] `LLMRouter` — picks an engine from `AppSettings.llmChoice`
-      (`auto` = on-device first, fall back to Claude)
-- [ ] Provider tests (`Tests/Data/LLM`, `Tests/Infrastructure/LLM`)
+- [x] `LLMProvider` protocol — task-oriented (`buildProfile` / `rank` / `generateApplication`),
+      not a generic `generate<T>`; `LLMProviderError` for failures
+- [x] `Prompts` enum — shared prompt text so the two engines never drift; bounds inputs
+- [x] `FoundationModelsProvider` — constrained decoding against `@Generable` types
+      (uses `JobMatchBatch` wrapper for batched ranking)
+- [x] `ClaudeCodeProvider` — appends `jsonOnlySuffix`, decodes JSON into the domain type
+- [x] `LLMRouter` — picks an engine from `LLMChoice` (`auto` = on-device first, fall
+      back to Claude on unavailable/throw); conforms to `LLMProvider` itself
+- [x] Provider tests: `ClaudeCodeProviderTests`, `LLMRouterTests`, `PromptsTests`
+
+Notes: `LLMChoice` (auto / onDevice / claude) lives in Data/LLM; Milestone F's
+`AppSettings` will hold one. `FoundationModelsProvider` is thin glue over the
+on-device client and is covered by integration only (can't be unit-mocked without a
+device model); the router and Claude provider are fully unit-tested via stubs.
 
 ## Milestone E — Job seam  (`lib/src/Infrastructure/Net`, `lib/src/Data/Jobs`)
 

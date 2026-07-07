@@ -9,8 +9,9 @@ As TODO items land, tick them here too so this stays an accurate progress board.
 
 - [x] Project scaffold: SwiftUI macOS app, folder layout per `CLAUDE.md`
       (four-layer `lib/src`, feature-based Presentation, landing screen, template removed)
-- [ ] `LLMProvider` seam with `FoundationModelsProvider` (primary) +
+- [x] `LLMProvider` seam with `FoundationModelsProvider` (primary) +
       `ClaudeCodeProvider` (secondary) + `LLMRouter`
+      (on `TextGenerating` + `FoundationModelsClient` / `ClaudeProcessClient`)
 - [x] Structured types: `CandidateProfile`, `JobListing`, `JobMatch`, `ApplicationKit`
       (+ `JobQuery`, `RankedJob`, `SalaryRange`; Codable round-trip tests)
 - [ ] `JobSource` seam + `AdzunaJobSource`
