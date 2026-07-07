@@ -10,9 +10,9 @@ check it off here **and** tick the matching line in `ROADMAP.md`. Keep the
 can pick up instantly. Add newly-discovered sub-tasks as checkboxes in the right
 milestone.
 
-> **Current focus:** Milestone C — Infrastructure: LLM plumbing
-> (`lib/src/Infrastructure/LLM`). Domain models are done and tested; next is the raw
-> generation port (`TextGenerating`) and its two clients.
+> **Current focus:** Milestone D — Data: LLM gateway (`lib/src/Data/LLM`). The raw
+> generation port and both Infrastructure clients are done; next is the task-oriented
+> `LLMProvider`, shared `Prompts`, the two providers, and the `LLMRouter`.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure,
 imports point down only). Build roughly bottom-up so each layer has what it needs.
@@ -45,13 +45,18 @@ imports point down only). Build roughly bottom-up so each layer has what it need
 Notes: all data models are `nonisolated` + `Sendable` (the project defaults actor
 isolation to `MainActor`, so DTOs must opt out to cross into off-main use cases).
 
-## Milestone C — Infrastructure: LLM plumbing  (`lib/src/Infrastructure/LLM`)
+## Milestone C — Infrastructure: LLM plumbing  ✅ done  (`lib/src/Infrastructure/LLM`)
 
-- [ ] `TextGenerating` protocol — the raw generation port (declared here)
-- [ ] `FoundationModelsClient` — wraps `LanguageModelSession`, `@Generable`,
-      and `SystemLanguageModel.default.availability`
-- [ ] `ClaudeProcessClient` — runs `claude -p … --output-format json`, unwraps
-      `result`, strips code fences
+- [x] `TextGenerating` protocol — the raw generation port (declared here), `Sendable`
+- [x] `FoundationModelsClient` — wraps `LanguageModelSession`, exposes `availability`,
+      plain-text `generate`, and constrained decoding `respond(to:generating:)` for `@Generable`
+- [x] `ClaudeProcessClient` — runs `claude -p … --output-format json`, unwraps
+      `result`, strips code fences; pure helpers unit-tested (`ClaudeProcessClientTests`)
+
+Notes: both clients are `nonisolated` + `Sendable`. `FoundationModelsError` /
+`ClaudeProcessError` carry failure detail. `ClaudeProcessClient` needs App Sandbox
+**off** at runtime (it launches an external binary). Provider-level tests come with
+Milestone D.
 
 ## Milestone D — Data: LLM gateway  (`lib/src/Data/LLM`)
 
