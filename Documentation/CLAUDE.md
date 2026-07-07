@@ -1,7 +1,9 @@
 # CLAUDE.md
 
 Project context for Claude Code. Read this before making changes. See `SPEC.md`
-for what we're building and `ROADMAP.md` for what's planned.
+for what we're building, `ROADMAP.md` for the high-level plan, and `TODO.md` for
+the granular, current checklist of where we are. **Starting a fresh session? Read
+`TODO.md` first — its "Current focus" line tells you exactly where to pick up.**
 
 ## What this is
 
@@ -178,10 +180,31 @@ for you.
   can't launch an external binary). Foundation Models works sandboxed.
 - Add Adzuna `app_id` / `app_key` and country code in Settings before searching.
 
+## Working process (docs as source of truth)
+
+The three planning docs form a pipeline, from broadest to most current:
+
+- **`SPEC.md`** — what we're building and why (stable; the north star).
+- **`ROADMAP.md`** — the high-level plan: v1 target, fast-follow, backlog, ideas.
+- **`TODO.md`** — the granular, *current* checklist. A segmented breakdown of the
+  ROADMAP's current target, with a "Current focus" line marking the next task.
+
+The loop, so any session can pick up where the last left off:
+
+1. **On a fresh session,** read `CLAUDE.md` → `TODO.md` (start at "Current focus").
+   `SPEC.md` / `ROADMAP.md` give the why and the wider plan when you need them.
+2. **Do the next unchecked `TODO.md` item** (respecting the layer dependency rule),
+   in small focused changes.
+3. **When it's done,** check it off in `TODO.md`, tick the matching line in
+   `ROADMAP.md`, and move the "Current focus" pointer to the next item.
+4. **When you discover new sub-tasks,** add them as checkboxes under the right
+   `TODO.md` milestone. When a whole feature is discussed/specced in chat, write it
+   into `SPEC.md` / `ROADMAP.md` in the same change so the docs stay the truth.
+
+Keep these updates in the same commit/change as the code they describe.
+
 ## How to work in this repo
 
 - Prefer small, focused changes that respect the seams and the layer dependency
   rule above.
-- When adding a feature from the roadmap, update `SPEC.md` / `ROADMAP.md` in the
-  same change so the docs stay the source of truth.
 - Don't add auto-submission / job-site automation — it's an explicit non-goal.

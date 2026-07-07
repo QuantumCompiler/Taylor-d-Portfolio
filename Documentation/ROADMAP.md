@@ -1,14 +1,18 @@
 # Taylor'd Portfolio — Roadmap
 
 How we work: features get discussed in chat, written up here (and in `SPEC.md`),
-then handed to the Claude Code session to build. This file is the running list.
+then handed to the Claude Code session to build. This file is the high-level
+running list; `TODO.md` breaks the current target into granular, checkable tasks.
+As TODO items land, tick them here too so this stays an accurate progress board.
 
 ## v1 — foundation (current target)
 
-- [ ] Project scaffold: SwiftUI macOS app, folder layout per `CLAUDE.md`
+- [x] Project scaffold: SwiftUI macOS app, folder layout per `CLAUDE.md`
+      (four-layer `lib/src`, feature-based Presentation, landing screen, template removed)
 - [ ] `LLMProvider` seam with `FoundationModelsProvider` (primary) +
       `ClaudeCodeProvider` (secondary) + `LLMRouter`
-- [ ] Structured types: `CandidateProfile`, `JobListing`, `JobMatch`, `ApplicationKit`
+- [x] Structured types: `CandidateProfile`, `JobListing`, `JobMatch`, `ApplicationKit`
+      (+ `JobQuery`, `RankedJob`, `SalaryRange`; Codable round-trip tests)
 - [ ] `JobSource` seam + `AdzunaJobSource`
 - [ ] `JobRanker`: lexical prefilter + batched LLM re-rank
 - [ ] UI: Portfolio, Search, Results tabs + Settings
