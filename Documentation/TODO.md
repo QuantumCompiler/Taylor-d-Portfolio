@@ -10,9 +10,9 @@ check it off here **and** tick the matching line in `ROADMAP.md`. Keep the
 can pick up instantly. Add newly-discovered sub-tasks as checkboxes in the right
 milestone.
 
-> **Current focus:** Milestone E — Job seam (`lib/src/Infrastructure/Net`,
-> `lib/src/Data/Jobs`). The LLM gateway is complete and tested; next is the HTTP
-> client, the `JobSource` protocol, and `AdzunaJobSource`.
+> **Current focus:** Milestone F — Settings (`lib/src/Infrastructure/Store`,
+> `lib/src/Data/Settings`). The job seam is done; next is `KeyValueStore`,
+> `AppSettings`, and `SettingsStore`.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure,
 imports point down only). Build roughly bottom-up so each layer has what it needs.
@@ -75,12 +75,18 @@ Notes: `LLMChoice` (auto / onDevice / claude) lives in Data/LLM; Milestone F's
 on-device client and is covered by integration only (can't be unit-mocked without a
 device model); the router and Claude provider are fully unit-tested via stubs.
 
-## Milestone E — Job seam  (`lib/src/Infrastructure/Net`, `lib/src/Data/Jobs`)
+## Milestone E — Job seam  ✅ done  (`lib/src/Infrastructure/Net`, `lib/src/Data/Jobs`)
 
-- [ ] `HTTPClient` — thin `URLSession` wrapper (Infrastructure/Net)
-- [ ] `JobSource` protocol — returns `[JobListing]`, no API types leak past it
-- [ ] `AdzunaJobSource` — concrete Adzuna implementation
-- [ ] Tests with a stubbed `HTTPClient`
+- [x] `HTTPClient` port + `URLSessionHTTPClient` (throws `HTTPError` on non-2xx)
+- [x] `JobSource` protocol — returns `[JobListing]`, no API types leak past it
+- [x] `AdzunaJobSource` — builds the Adzuna URL, decodes the response, maps to `JobListing`
+      (Adzuna wire types stay private); credentials injected via `Credentials`
+- [x] Tests: `AdzunaJobSourceTests` (stubbed `HTTPClient` + pure `buildURL`),
+      `URLSessionHTTPClientTests` (stubbed `URLProtocol` for status handling)
+
+Notes: `AdzunaJobSource.Credentials` (appID / appKey / country) is injected — Milestone F's
+`AppSettings` will supply it. `URLSessionHTTPClient` is covered via a `URLProtocol` stub,
+so no real network is hit in tests.
 
 ## Milestone F — Settings  (`lib/src/Infrastructure/Store`, `lib/src/Data/Settings`)
 

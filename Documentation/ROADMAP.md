@@ -14,7 +14,7 @@ As TODO items land, tick them here too so this stays an accurate progress board.
       (on `TextGenerating` + `FoundationModelsClient` / `ClaudeProcessClient`)
 - [x] Structured types: `CandidateProfile`, `JobListing`, `JobMatch`, `ApplicationKit`
       (+ `JobQuery`, `RankedJob`, `SalaryRange`; Codable round-trip tests)
-- [ ] `JobSource` seam + `AdzunaJobSource`
+- [x] `JobSource` seam + `AdzunaJobSource` (on `HTTPClient` / `URLSessionHTTPClient`)
 - [ ] `JobRanker`: lexical prefilter + batched LLM re-rank
 - [ ] UI: Portfolio, Search, Results tabs + Settings
 - [ ] Portfolio → profile → search → ranked results → generate resume/cover letter,
