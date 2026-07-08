@@ -40,9 +40,12 @@ struct EndToEndTests {
         #expect(profile.seniority == "Senior")
 
         // 2. Search + rank against that profile
-        let search = SearchViewModel(searchAndRank: searchAndRank)
+        let search = SearchViewModel(
+            searchAndRank: searchAndRank,
+            roleTitleStore: RoleTitleStore(store: PresentationMemoryStore())
+        )
         search.profile = profile
-        search.keywords = "iOS engineer"
+        search.titleInput = "iOS engineer"
         await search.search()
         let ranked = try #require(search.results.first)
         #expect(search.results.count == 1)

@@ -70,6 +70,10 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
 - LLM gateway: `LLMProvider` (protocol) + `FoundationModelsProvider` +
   `ClaudeCodeProvider` + `LLMRouter` + `Prompts`.
 - Job gateway: `JobSource` (protocol) + `AdzunaJobSource`.
+- Search suggestions: `SuggestionProvider` (Data/Search) — profile-seeded starting
+  titles + static locations + salary presets; pure, on-device. Common role titles are
+  **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
+  not a static vocabulary.
 - Retrieval gateway: `Retriever` (protocol) + impl (roadmap).
 - `AppSettings` (`llmChoice` + `adzunaCountry`) + `SettingsStore`. Adzuna
   credentials are **not** here — they're baked in at build time via `AppConfig`.
@@ -100,6 +104,12 @@ bundle Info.plist — the Adzuna keys, injected from a gitignored `Secrets.xccon
   return `[JobListing]`, don't leak API-specific types past the protocol.
 - **Ranking funnel** — `JobRanker` (Business): `prefilter(...)` (cheap shortlist;
   upgrade to embedding similarity) then batched `rank(...)` → `[RankedJob]`.
+- **Multi-title fan-out** — `SearchAndRankUseCase` (Business) expands a
+  `JobSearchRequest` (many titles, shared location/salary) into one `JobQuery` per
+  title, runs them with bounded concurrency (Adzuna rate-limit guard), merges and
+  de-dupes by `JobListing.id`, then ranks the combined set **once**. A single title's
+  failure is a soft note (`Output.failedTitles`); it only throws if *all* fail.
+  `JobQuery` stays the single-`what` unit the seam understands.
 
 ### Composition root
 
@@ -128,10 +138,11 @@ Taylor'd Portfolio/
     Ranking/      JobRanker
   Data/
     Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ApplicationKit,
-                  JobQuery, RankedJob
+                  JobQuery, JobSearchRequest, RankedJob
     LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
                   LLMRouter, Prompts
     Jobs/         JobSource, AdzunaJobSource
+    Search/       SuggestionProvider, RoleTitleStore
     Retrieval/    Retriever            (roadmap)
     Settings/     AppSettings, SettingsStore
   Infrastructure/

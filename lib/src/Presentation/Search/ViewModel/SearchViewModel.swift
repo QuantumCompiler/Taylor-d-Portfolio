@@ -8,35 +8,85 @@
 import Foundation
 import Observation
 
-/// Drives the Search screen: collects query parameters and runs search + ranking.
+/// Drives the Search screen: collects one or more role titles (chips) plus a shared
+/// location and salary floor, and runs a merged multi-title search + ranking.
 ///
-/// `profile` is supplied by the app flow (built on the Portfolio screen) and is
-/// required before a search can run. `adzunaConfigured` reflects whether the build
-/// baked in Adzuna credentials (Milestone K) — when it didn't, search is disabled
-/// with a clear "unavailable in this build" banner rather than failing at runtime.
+/// Titles are seeded from the loaded profile's `targetTitles`. The user builds their
+/// own persisted library of **common role titles** by long-pressing a chip; those
+/// appear as toggle-select tiles (tapping one includes it in the search too) and
+/// survive relaunch via ``RoleTitleStore``. `adzunaConfigured` reflects whether the
+/// build baked in Adzuna credentials (Milestone K); when it didn't, search is disabled
+/// with a clear "unavailable in this build" banner.
 @MainActor
 @Observable
 final class SearchViewModel {
-    var keywords: String = ""
+    /// Confirmed role-title chips to search. Edited via ``addTitle(_:)`` /
+    /// ``removeTitle(_:)`` in the UI; settable for seeding and tests.
+    var titles: [String] = []
+    /// The in-progress title text (also searched if the user hits Search without adding it).
+    var titleInput: String = ""
     var location: String = ""
-    var salaryMin: String = ""
-    var profile: CandidateProfile?
+    /// Selected salary floor (a preset bracket), or `nil` for "Any".
+    var salaryMin: Int?
+
+    /// The user's persisted library of common role titles, shown as toggle tiles.
+    private(set) var commonRoleTitles: [String] = []
+    /// Which common role titles are toggled on (searched alongside the chips).
+    private(set) var selectedCommonTitles: [String] = []
+
+    var profile: CandidateProfile? {
+        didSet {
+            guard profile != oldValue else { return }
+            // Seed chips from the profile's target titles the first time one loads.
+            if titles.isEmpty {
+                titles = Array(suggestions.seededTitles(for: profile).prefix(3))
+            }
+        }
+    }
 
     private(set) var results: [RankedJob] = []
     private(set) var isSearching = false
     private(set) var errorMessage: String?
+    /// A soft, non-fatal note (e.g. one title's search failed but others succeeded).
+    private(set) var warningMessage: String?
 
     /// Whether this build has baked Adzuna credentials. When `false`, search can't run.
     let adzunaConfigured: Bool
 
     private let searchAndRank: SearchAndRankUseCase
+    private let suggestions: SuggestionProvider
+    private let roleTitleStore: RoleTitleStore
 
-    init(searchAndRank: SearchAndRankUseCase, adzunaConfigured: Bool = true) {
+    init(
+        searchAndRank: SearchAndRankUseCase,
+        suggestions: SuggestionProvider = SuggestionProvider(),
+        roleTitleStore: RoleTitleStore,
+        adzunaConfigured: Bool = true
+    ) {
         self.searchAndRank = searchAndRank
+        self.suggestions = suggestions
+        self.roleTitleStore = roleTitleStore
         self.adzunaConfigured = adzunaConfigured
+        self.commonRoleTitles = roleTitleStore.load()
     }
 
     var hasProfile: Bool { profile != nil }
+
+    /// All titles that a search would run: the chips, the toggled-on common titles, and
+    /// the in-progress input, de-duplicated case-insensitively.
+    var effectiveTitles: [String] {
+        var seen = Set<String>()
+        var result = [String]()
+        for title in titles + selectedCommonTitles + [titleInput] {
+            let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { continue }
+            result.append(trimmed)
+        }
+        return result
+    }
+
+    var locationOptions: [String] { suggestions.locationSuggestions() }
+    var salaryPresets: [Int] { SuggestionProvider.salaryPresets }
 
     /// A build-level banner shown when search is unavailable because credentials
     /// weren't baked in. Distinct from `errorMessage`, which reports run failures.
@@ -47,33 +97,91 @@ final class SearchViewModel {
     }
 
     var canSearch: Bool {
-        adzunaConfigured
-            && hasProfile
-            && !keywords.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !isSearching
+        adzunaConfigured && hasProfile && !effectiveTitles.isEmpty && !isSearching
     }
+
+    // MARK: Chip editing
+
+    /// Adds `title` (or the current input when `title` is nil) as a chip.
+    func addTitle(_ title: String? = nil) {
+        let raw = (title ?? titleInput).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return }
+        if !titles.contains(where: { $0.lowercased() == raw.lowercased() }) {
+            titles.append(raw)
+        }
+        titleInput = ""
+    }
+
+    func removeTitle(_ title: String) {
+        titles.removeAll { $0 == title }
+    }
+
+    // MARK: Common role titles (persisted library)
+
+    /// Saves a title into the persisted common-role-titles library (long-press a chip).
+    func saveAsCommonRoleTitle(_ title: String) {
+        let raw = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty,
+              !commonRoleTitles.contains(where: { $0.lowercased() == raw.lowercased() })
+        else { return }
+        commonRoleTitles.append(raw)
+        roleTitleStore.save(commonRoleTitles)
+    }
+
+    /// Removes a title from the persisted library (the tile's "x"), de-selecting it too.
+    func removeCommonRoleTitle(_ title: String) {
+        commonRoleTitles.removeAll { $0.lowercased() == title.lowercased() }
+        selectedCommonTitles.removeAll { $0.lowercased() == title.lowercased() }
+        roleTitleStore.save(commonRoleTitles)
+    }
+
+    /// Whether a common role title is toggled on (and thus included in the search).
+    func isCommonTitleSelected(_ title: String) -> Bool {
+        selectedCommonTitles.contains { $0.lowercased() == title.lowercased() }
+    }
+
+    /// Toggles a common role title on/off for the search.
+    func toggleCommonTitle(_ title: String) {
+        if let index = selectedCommonTitles.firstIndex(where: { $0.lowercased() == title.lowercased() }) {
+            selectedCommonTitles.remove(at: index)
+        } else {
+            selectedCommonTitles.append(title)
+        }
+    }
+
+    /// Whether `title` is already in the persisted library (drives the chip's affordance).
+    func isCommonRoleTitle(_ title: String) -> Bool {
+        commonRoleTitles.contains { $0.lowercased() == title.lowercased() }
+    }
+
+    // MARK: Search
 
     func search() async {
         guard adzunaConfigured else {
             errorMessage = unavailableMessage
             return
         }
-        guard let profile else {
+        guard hasProfile, let profile else {
             errorMessage = "Build your profile on the Portfolio tab first."
             return
         }
         guard canSearch else { return }
 
-        let query = JobQuery(
-            keywords: keywords,
+        let request = JobSearchRequest(
+            titles: effectiveTitles,
             location: location.isEmpty ? nil : location,
-            salaryMin: Double(salaryMin)
+            salaryMin: salaryMin.map(Double.init)
         )
         isSearching = true
         errorMessage = nil
+        warningMessage = nil
         defer { isSearching = false }
         do {
-            results = try await searchAndRank(query: query, profile: profile)
+            let output = try await searchAndRank(request: request, profile: profile)
+            results = output.rankedJobs
+            warningMessage = output.failedTitles.isEmpty
+                ? nil
+                : "Couldn't search: \(output.failedTitles.joined(separator: ", "))."
         } catch {
             errorMessage = "Search failed. Please check your connection and try again."
         }

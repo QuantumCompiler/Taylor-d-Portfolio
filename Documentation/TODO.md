@@ -11,11 +11,11 @@ can pick up instantly. Add newly-discovered sub-tasks as checkboxes in the right
 milestone.
 
 > **Current focus:** v1 core is **complete** (Milestones A–J done + document import).
-> Now working **v2 — reliability**. **Milestone K (build-time Adzuna creds) ✅ done** and
-> **Milestone M-B (two-stage structured generation) ✅ done.** Next per the suggested order
-> is **Milestone N** (multi-title search + field autocomplete — improves search recall/UX
-> once a profile is loaded); N-A (multi-search) can start on its own. Other largely-independent
-> milestones: **Milestone L** (prefer AFM 3 Core Advanced) is gated on spike **L0** — confirm
+> Now working **v2 — reliability**. Done so far: **K** (build-time Adzuna creds),
+> **M-B** (two-stage structured generation), **N** (multi-title search + field autocomplete).
+> Next per the suggested order is **Milestone O-A** (job-detail view — read the full JD from
+> the UI; needs no persistence, ships on its own), then M-A → O-B → O-C → P. Other
+> largely-independent milestones: **Milestone L** (prefer AFM 3 Core Advanced) is gated on spike **L0** — confirm
 > whether an app can select/verify the Core Advanced tier before building on it;
 > **Milestone M** (job-URL input + AGENT.md-grade generation prompts) can start with
 > M-B (better prompts) since it helps regardless of input source; **Milestone N**
@@ -343,7 +343,7 @@ regardless of input source, so it can land first; M-A (URL input) is the new ent
 The AGENT.md file itself is Taylor's ground-truth reference for tone and the tailoring
 "levers" (which project to feature for which role type) — worth keeping alongside SPEC.
 
-## Milestone N — Multi-title search + field autocomplete  (`SearchAndRankUseCase`, `Data/Jobs` or `Data/Search`, `SearchViewModel`, Search UI)
+## Milestone N — Multi-title search + field autocomplete  ✅ done  (`SearchAndRankUseCase`, `Data/Search`, `SearchViewModel`, Search UI)
 
 Goal: once a profile is loaded, let the user run **several role titles in one search**
 (iOS Developer, iOS Engineer, Software Developer, Software Engineer, …) and **autocomplete**
@@ -351,55 +351,52 @@ the input fields, seeded from the loaded profile. More relevant recall, less typ
 This is a search-quality/UX item — could sit in fast-follow instead of v2 if you'd rather;
 kept here since it directly touches the reliability of getting good results.
 
-### N-A — Multiple title searches, merged and ranked once
+### N-A — Multiple title searches, merged and ranked once  ✅ done
 
-- [ ] **Fan-out in the use case.** Extend `SearchAndRankUseCase` to accept multiple
-      titles (a `[String]` of titles, or a small `JobSearchRequest { titles, location,
-      salaryMin }`) sharing one location/salary. Expand → one `JobQuery` per title →
-      run the searches, **concurrently** (`withThrowingTaskGroup`), then flatten.
-- [ ] **Dedupe.** Merge results and dedupe by `JobListing.id` (preserve first occurrence),
-      so the same posting returned by two title searches isn't ranked/shown twice.
-- [ ] **Rank once.** Feed the merged, deduped set into `ranker.rank(_:for:)` a single time
-      — the existing prefilter/shortlist already caps the LLM re-rank, so merging first is
-      correct and keeps cost bounded.
-- [ ] **`JobQuery` stays single.** Do **not** add a title list to `JobQuery` — it remains
-      the one-`what` unit a `JobSource` understands. The fan-out is orchestration above the
-      seam, so `JobSource` / `AdzunaJobSource` are unchanged.
-- [ ] **Concurrency + rate-limit guard.** Cap the number of concurrent title searches
-      (Adzuna free-tier rate limits) — e.g. a small bounded task group or a max-titles
-      limit. Decide + document the cap.
-- [ ] **Partial-failure policy.** If one title's search throws (e.g. transient HTTP),
-      prefer to continue with the successful titles and surface a soft note
-      ("couldn't search 'X'") rather than failing the whole run. Only fail hard if *all*
-      searches fail. Wire the note into `SearchViewModel.errorMessage` / a warning field.
-- [ ] **ViewModel.** `SearchViewModel` gains `titles: [String]` (the chips) plus the
-      in-progress text field; `canSearch` requires a profile + at least one title. Location
-      and salary stay single, shared.
-- [ ] **Tests.** `UseCaseTests` / a new suite: two titles → merged+deduped results ranked
-      once; duplicate `id` across titles collapses; one failing title still returns the
-      rest with a note; empty titles handled.
+- [x] **Fan-out in the use case.** New `JobSearchRequest { titles, location, salaryMin }`;
+      `SearchAndRankUseCase` expands it → one `JobQuery` per title (via
+      `request.query(forTitle:)`) → runs the searches with a bounded task group.
+- [x] **Dedupe.** Merges in title order and dedupes by `JobListing.id` (first occurrence
+      wins), so a posting returned by two titles isn't ranked/shown twice.
+- [x] **Rank once.** Feeds the merged, deduped set into `ranker.rank(_:for:)` a single time
+      (proven by `CountingRankProvider` asserting one rank call over the merged count).
+- [x] **`JobQuery` stays single.** `JobQuery` is unchanged; the fan-out is orchestration
+      above the seam, so `JobSource` / `AdzunaJobSource` are untouched.
+- [x] **Concurrency + rate-limit guard.** `maxConcurrentSearches = 4` (sliding-window task
+      group) + a `maxTitles = 6` hard cap. Both are documented init params on the use case.
+- [x] **Partial-failure policy.** A title's search failing is caught per-title; the run
+      continues with the successes and reports `Output.failedTitles`. Only throws if *all*
+      titles fail. The VM turns `failedTitles` into `SearchViewModel.warningMessage`.
+- [x] **ViewModel.** `SearchViewModel` gained `titles: [String]` chips + a `titleInput`
+      field (the in-progress input is searched too); `canSearch` requires a profile + at
+      least one effective title. Location + salary stay single, shared.
+- [x] **Tests.** `UseCaseTests`: two titles merged+deduped ranked once; duplicate id
+      collapses; one failing title returns the rest with a note; all-fail throws; empty
+      titles handled.
 
-### N-B — Field autocomplete (seeded by the loaded profile)
+### N-B — Field autocomplete (seeded by the loaded profile)  ✅ done
 
-- [ ] **Suggestion source (Data).** New `SuggestionProvider` (or pure helper) that yields
-      title suggestions from the loaded `CandidateProfile` (`targetTitles`, `coreSkills`)
-      **plus a small curated static vocabulary** of common role titles; and location
-      suggestions from a static list (+ "Remote"). On-device, no network — keep it in Data
-      so it's testable and later swappable (Adzuna categories / embeddings).
-- [ ] **Pre-fill from profile.** When a profile loads, seed the title chips/suggestions
-      from `profile.targetTitles` (the LLM already produces these) so the user starts from
-      sensible defaults.
-- [ ] **Title input UI.** Chip/token input on the Search screen with a suggestions
-      dropdown (macOS SwiftUI has no first-class token field — build a suggestions list /
-      chips, or use `.searchable` suggestions). Selecting a suggestion adds a chip; free
-      text is allowed too (a title need not be in the vocab).
-- [ ] **Location autocomplete + salary presets.** Location field suggests from the static
-      list; salary offers preset brackets (a picker/stepper), not free-text autocomplete.
-- [ ] **Tests.** `SuggestionProvider` (profile-derived + static merge, dedupe, ordering);
-      `SearchViewModelTests` for chip add/remove, profile-seeded defaults, and `canSearch`.
-- [ ] **Docs.** SPEC ("Search → listings" flow note: multiple titles + autocomplete);
-      CLAUDE.md (the `SuggestionProvider` seam + the use-case fan-out; note `JobQuery`
-      stays the single-search unit).
+- [x] **Suggestion source (Data).** `SuggestionProvider` (Data/Search): profile-seeded
+      starting titles + static locations (incl. "Remote") + salary presets. Pure, on-device.
+- [x] **Pre-fill from profile.** `SearchViewModel.profile.didSet` seeds the title chips
+      from `profile.targetTitles` (first 3) the first time a profile loads.
+- [x] **Title input UI.** Chip input on the Search screen: removable chips + a text field
+      (Add / on-submit); free text allowed.
+- [x] **Common role titles are user-curated + persisted (revised design).** The static
+      curated vocabulary was **removed**. Instead the user **long-presses a chip** to save
+      that title into their own library (a ⭐ marks saved chips), persisted across launches
+      via `RoleTitleStore` (on `KeyValueStore`). Saved titles render as multi-select tiles:
+      tapping a tile toggles it into the search (tinted); the tile's "x" removes it from the
+      library permanently (`saveAsCommonRoleTitle` / `toggleCommonTitle` / `removeCommonRoleTitle`;
+      selected titles flow into `effectiveTitles`).
+- [x] **Location autocomplete + salary presets.** Location is a picker over the static
+      list (+ "Anywhere"); salary is a preset-bracket picker (+ "Any"), not free text.
+- [x] **Tests.** `SuggestionProviderTests` (seeded titles, locations, presets);
+      `RoleTitleStoreTests` (round-trip, shared-backing persistence, corrupt → empty);
+      `SearchViewModelTests` (chip add/remove + dedupe, profile-seeded defaults, `canSearch`,
+      warning, long-press-saves-and-persists, toggle-common-title, remove-from-library).
+- [x] **Docs.** SPEC ("Search → listings": multiple titles + autocomplete); CLAUDE.md
+      (`SuggestionProvider` seam + the multi-title fan-out; `JobQuery` stays single).
 
 Note: N-A and N-B are separable — N-A (multi-search) delivers value even with a plain
 text field; N-B (autocomplete) helps single or multi search. Composes with Milestone M:

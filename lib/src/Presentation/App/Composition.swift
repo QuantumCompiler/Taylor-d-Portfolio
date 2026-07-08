@@ -67,7 +67,12 @@ struct Composition {
         .init(buildProfile: buildProfile, importPortfolio: importPortfolio)
     }
     func makeSearchViewModel() -> SearchViewModel {
-        .init(searchAndRank: searchAndRank, adzunaConfigured: isAdzunaConfigured)
+        .init(
+            searchAndRank: searchAndRank,
+            suggestions: SuggestionProvider(),
+            roleTitleStore: RoleTitleStore(store: UserDefaultsStore()),
+            adzunaConfigured: isAdzunaConfigured
+        )
     }
     func makeSettingsViewModel() -> SettingsViewModel {
         .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured)

@@ -19,8 +19,10 @@ Four stages, run locally on the user's Mac:
 
 1. **Portfolio → profile.** The user pastes their resume, projects, and links.
    The app distills this once into a structured `CandidateProfile` and caches it.
-2. **Search → listings.** The user sets parameters (role, location, salary).
-   The app queries a job source and returns a candidate set.
+2. **Search → listings.** The user sets parameters — one or more role titles (as
+   chips, autocompleted and pre-seeded from the profile) plus a shared location and
+   salary floor. The app runs one search per title, merges and de-duplicates the
+   listings, and returns a single candidate set.
 3. **Rank.** A cheap prefilter trims the set to a shortlist, then the LLM
    re-ranks the shortlist against the profile, producing a fit score, a reason,
    and matched/missing skills per job.

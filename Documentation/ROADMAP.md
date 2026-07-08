@@ -99,7 +99,7 @@ breakdown.
       the existing "Export" fast-follow; this item ports the *prompt discipline and URL
       input*, not the LaTeX toolchain.
 
-- [ ] **Multi-title search + field autocomplete.** Improve the search step's recall and
+- [x] **Multi-title search + field autocomplete.** Improve the search step's recall and
       ergonomics once a profile is loaded. Two linked parts:
       1. **Multiple title searches in one run.** Let the user enter several role titles
          (e.g. iOS Developer, iOS Engineer, Software Developer, Software Engineer) as
