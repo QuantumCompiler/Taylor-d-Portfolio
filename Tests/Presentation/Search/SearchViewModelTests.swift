@@ -12,10 +12,10 @@ import Testing
 @Suite("SearchViewModel")
 struct SearchViewModelTests {
 
-    private func makeVM(jobs: [JobListing] = [], matches: [JobMatch] = []) -> SearchViewModel {
+    private func makeVM(jobs: [JobListing] = [], matches: [JobMatch] = [], adzunaConfigured: Bool = true) -> SearchViewModel {
         let ranker = JobRanker(provider: PresentationStubProvider(matches: matches), shortlistLimit: 10)
         let useCase = SearchAndRankUseCase(jobSource: PresentationStubJobSource(jobs: jobs), ranker: ranker)
-        return SearchViewModel(searchAndRank: useCase)
+        return SearchViewModel(searchAndRank: useCase, adzunaConfigured: adzunaConfigured)
     }
 
     private var profile: CandidateProfile {
@@ -49,5 +49,21 @@ struct SearchViewModelTests {
         #expect(vm.canSearch == false)          // still no profile
         vm.profile = profile
         #expect(vm.canSearch == true)
+    }
+
+    @Test func unconfiguredBuildDisablesSearch() async {
+        let vm = makeVM(adzunaConfigured: false)
+        vm.profile = profile
+        vm.keywords = "swift"
+        #expect(vm.canSearch == false)          // configured build required
+        #expect(vm.unavailableMessage != nil)
+
+        await vm.search()
+        #expect(vm.results.isEmpty)
+        #expect(vm.errorMessage == vm.unavailableMessage)
+    }
+
+    @Test func configuredBuildHasNoUnavailableBanner() {
+        #expect(makeVM(adzunaConfigured: true).unavailableMessage == nil)
     }
 }

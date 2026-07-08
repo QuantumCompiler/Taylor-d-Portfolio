@@ -14,11 +14,10 @@ struct SettingsViewModelTests {
 
     @Test func loadsExistingSettings() {
         let store = SettingsStore(store: PresentationMemoryStore())
-        store.save(AppSettings(llmChoice: .claude, adzunaAppID: "id", adzunaAppKey: "key", adzunaCountry: "gb"))
+        store.save(AppSettings(llmChoice: .claude, adzunaCountry: "gb"))
 
         let vm = SettingsViewModel(store: store)
         #expect(vm.llmChoice == .claude)
-        #expect(vm.adzunaAppID == "id")
         #expect(vm.adzunaCountry == "gb")
     }
 
@@ -26,17 +25,25 @@ struct SettingsViewModelTests {
         let backing = PresentationMemoryStore()
         let vm = SettingsViewModel(store: SettingsStore(store: backing))
         vm.llmChoice = .onDevice
-        vm.adzunaAppID = "newid"
+        vm.adzunaCountry = "ca"
         vm.save()
 
         let reloaded = SettingsViewModel(store: SettingsStore(store: backing))
         #expect(reloaded.llmChoice == .onDevice)
-        #expect(reloaded.adzunaAppID == "newid")
+        #expect(reloaded.adzunaCountry == "ca")
     }
 
     @Test func defaultsWhenNothingStored() {
         let vm = SettingsViewModel(store: SettingsStore(store: PresentationMemoryStore()))
         #expect(vm.llmChoice == .auto)
         #expect(vm.adzunaCountry == "us")
+    }
+
+    @Test func exposesConfiguredStatus() {
+        let store = SettingsStore(store: PresentationMemoryStore())
+        #expect(SettingsViewModel(store: store, adzunaConfigured: true).adzunaConfigured)
+        #expect(SettingsViewModel(store: store, adzunaConfigured: false).adzunaConfigured == false)
+        // Defaults to not-configured when the flag isn't supplied.
+        #expect(SettingsViewModel(store: store).adzunaConfigured == false)
     }
 }

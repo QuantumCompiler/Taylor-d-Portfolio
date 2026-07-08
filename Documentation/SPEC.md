@@ -37,6 +37,12 @@ Four stages, run locally on the user's Mac:
   and `claude -p` (secondary), selectable in Settings
 - Basic SwiftUI UI (Portfolio / Search / Results tabs + Settings)
 
+Adzuna API credentials are **baked in at build time** (from a gitignored
+`Secrets.xcconfig`), not entered by the user — so a correctly-built binary always
+has them and a misconfigured build fails fast (Search is disabled with a clear
+banner) rather than silently returning nothing. Only the Adzuna **country** is a
+user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
+
 ## Non-goals (v1)
 
 - No auto-submission or form-filling on job sites

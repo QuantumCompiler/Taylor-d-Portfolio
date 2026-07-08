@@ -22,6 +22,11 @@ struct SearchView: View {
             }
             .frame(maxHeight: 140)
 
+            if let unavailable = viewModel.unavailableMessage {
+                Label(unavailable, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout).foregroundStyle(.orange)
+            }
+
             if !viewModel.hasProfile {
                 Label("Build your profile on the Portfolio tab to enable search.", systemImage: "info.circle")
                     .font(.callout).foregroundStyle(.secondary)

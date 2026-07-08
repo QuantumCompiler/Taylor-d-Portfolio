@@ -13,18 +13,34 @@ import Foundation
 struct Composition {
     let settingsStore: SettingsStore
 
+    private let appConfig: any AppConfig
     private let httpClient: any HTTPClient
     private let onDeviceClient: FoundationModelsClient
     private let claudeClient: ClaudeProcessClient
     private let documentExtractor: any DocumentTextExtractor
 
-    init() {
+    init(appConfig: any AppConfig = BundleAppConfig()) {
+        self.appConfig = appConfig
         settingsStore = SettingsStore(store: UserDefaultsStore())
         httpClient = URLSessionHTTPClient()
         onDeviceClient = FoundationModelsClient()
         claudeClient = ClaudeProcessClient()
         documentExtractor = PlatformDocumentTextExtractor()
+
+        #if DEBUG
+        // Fail-fast signal for developers: a build without baked Adzuna credentials
+        // can't search. Surfaced to the user as a banner (see SearchViewModel); this
+        // is the developer-facing console counterpart.
+        if !appConfig.hasAdzunaCredentials {
+            print("⚠️ [Taylor'd Portfolio] Adzuna credentials missing from this build. "
+                + "Copy Secrets.example.xcconfig to Secrets.xcconfig and fill in "
+                + "ADZUNA_APP_ID / ADZUNA_APP_KEY. Search will be unavailable.")
+        }
+        #endif
     }
+
+    /// Whether this build has the baked Adzuna credentials required to search.
+    var isAdzunaConfigured: Bool { appConfig.hasAdzunaCredentials }
 
     // MARK: Gateways (read settings live, so Settings edits take effect immediately)
 
@@ -33,7 +49,7 @@ struct Composition {
     }
 
     private var jobSource: any JobSource {
-        SettingsBackedJobSource(store: settingsStore, http: httpClient)
+        SettingsBackedJobSource(config: appConfig, store: settingsStore, http: httpClient)
     }
 
     // MARK: Use cases
@@ -50,8 +66,12 @@ struct Composition {
     func makePortfolioViewModel() -> PortfolioViewModel {
         .init(buildProfile: buildProfile, importPortfolio: importPortfolio)
     }
-    func makeSearchViewModel() -> SearchViewModel { .init(searchAndRank: searchAndRank) }
-    func makeSettingsViewModel() -> SettingsViewModel { .init(store: settingsStore) }
+    func makeSearchViewModel() -> SearchViewModel {
+        .init(searchAndRank: searchAndRank, adzunaConfigured: isAdzunaConfigured)
+    }
+    func makeSettingsViewModel() -> SettingsViewModel {
+        .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured)
+    }
     func makeApplicationViewModel() -> ApplicationViewModel { .init(generateApplication: generateApplication) }
 }
 
@@ -84,13 +104,20 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     }
 }
 
-/// A `JobSource` that reads the current Adzuna credentials from settings on each search.
+/// A `JobSource` that assembles Adzuna credentials from build-time `AppConfig`
+/// (id/key) plus the user's chosen country from settings, read live on each search.
 private nonisolated struct SettingsBackedJobSource: JobSource {
+    let config: any AppConfig
     let store: SettingsStore
     let http: any HTTPClient
 
     func search(_ query: JobQuery) async throws -> [JobListing] {
-        let source = AdzunaJobSource(credentials: store.load().adzunaCredentials, http: http)
+        let credentials = AdzunaJobSource.Credentials(
+            appID: config.adzunaAppID ?? "",
+            appKey: config.adzunaAppKey ?? "",
+            country: store.load().adzunaCountry
+        )
+        let source = AdzunaJobSource(credentials: credentials, http: http)
         return try await source.search(query)
     }
 }

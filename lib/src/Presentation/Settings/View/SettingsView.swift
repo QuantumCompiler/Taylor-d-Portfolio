@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-/// Settings: choose the LLM engine and enter Adzuna credentials.
+/// Settings: choose the LLM engine and the Adzuna country. Adzuna credentials are
+/// baked in at build time, so they're shown here only as a read-only status.
 struct SettingsView: View {
     @Bindable var viewModel: SettingsViewModel
 
@@ -22,9 +23,16 @@ struct SettingsView: View {
             }
 
             Section("Adzuna") {
-                TextField("App ID", text: $viewModel.adzunaAppID)
-                TextField("App Key", text: $viewModel.adzunaAppKey)
                 TextField("Country code", text: $viewModel.adzunaCountry)
+                LabeledContent("Credentials") {
+                    if viewModel.adzunaConfigured {
+                        Label("Configured", systemImage: "checkmark.seal.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Label("Not configured in this build", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
             }
 
             Section {
@@ -39,6 +47,6 @@ struct SettingsView: View {
 
 #if DEBUG
 #Preview {
-    SettingsView(viewModel: SettingsViewModel(store: Preview.settingsStore))
+    SettingsView(viewModel: SettingsViewModel(store: Preview.settingsStore, adzunaConfigured: true))
 }
 #endif

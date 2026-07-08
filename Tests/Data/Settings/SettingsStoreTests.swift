@@ -32,8 +32,6 @@ struct SettingsStoreTests {
         let store = SettingsStore(store: InMemoryStore())
         var settings = AppSettings.default
         settings.llmChoice = .claude
-        settings.adzunaAppID = "id"
-        settings.adzunaAppKey = "key"
         settings.adzunaCountry = "gb"
 
         store.save(settings)
@@ -54,17 +52,5 @@ struct SettingsStoreTests {
         let defaults = AppSettings.default
         #expect(defaults.llmChoice == .auto)
         #expect(defaults.adzunaCountry == "us")
-        #expect(defaults.hasAdzunaCredentials == false)
-    }
-
-    @Test func hasAdzunaCredentialsRequiresBoth() {
-        #expect(AppSettings(adzunaAppID: "id", adzunaAppKey: "").hasAdzunaCredentials == false)
-        #expect(AppSettings(adzunaAppID: "", adzunaAppKey: "key").hasAdzunaCredentials == false)
-        #expect(AppSettings(adzunaAppID: "id", adzunaAppKey: "key").hasAdzunaCredentials == true)
-    }
-
-    @Test func adzunaCredentialsMapThrough() {
-        let settings = AppSettings(adzunaAppID: "id", adzunaAppKey: "key", adzunaCountry: "gb")
-        #expect(settings.adzunaCredentials == AdzunaJobSource.Credentials(appID: "id", appKey: "key", country: "gb"))
     }
 }

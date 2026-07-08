@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Base Info.plist for custom, build-time keys only. GENERATE_INFOPLIST_FILE
+	  stays YES, so Xcode merges all its auto-generated keys on top of this file.
+	  The Adzuna values are substituted from Secrets.xcconfig at build time
+	  ($(ADZUNA_APP_ID) / $(ADZUNA_APP_KEY)) and read at runtime by BundleAppConfig.
+	-->
+	<key>AdzunaAppID</key>
+	<string>$(ADZUNA_APP_ID)</string>
+	<key>AdzunaAppKey</key>
+	<string>$(ADZUNA_APP_KEY)</string>
+</dict>
+</plist>

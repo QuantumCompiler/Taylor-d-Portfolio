@@ -71,7 +71,8 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
   `ClaudeCodeProvider` + `LLMRouter` + `Prompts`.
 - Job gateway: `JobSource` (protocol) + `AdzunaJobSource`.
 - Retrieval gateway: `Retriever` (protocol) + impl (roadmap).
-- `AppSettings` + `SettingsStore`.
+- `AppSettings` (`llmChoice` + `adzunaCountry`) + `SettingsStore`. Adzuna
+  credentials are **not** here — they're baked in at build time via `AppConfig`.
 Depends only on Infrastructure ports.
 
 **Infrastructure** — lowest-level, domain-agnostic plumbing behind small protocols
@@ -79,7 +80,8 @@ declared here: `TextGenerating` + `FoundationModelsClient` (wraps
 `LanguageModelSession`, `@Generable`, availability) + `ClaudeProcessClient` (runs
 `claude -p`, unwraps `result`, strips fences); `HTTPClient` (URLSession wrapper);
 `EmbeddingClient` (`NLContextualEmbedding`, roadmap); `KeyValueStore` (UserDefaults
-/ keychain).
+/ keychain); `AppConfig` + `BundleAppConfig` (build-time secrets read from the
+bundle Info.plist — the Adzuna keys, injected from a gitignored `Secrets.xcconfig`).
 
 ### The three seams, now placed in layers
 
@@ -133,6 +135,7 @@ Taylor'd Portfolio/
     LLM/          TextGenerating, FoundationModelsClient, ClaudeProcessClient
     Net/          HTTPClient
     Documents/    DocumentTextExtractor, PlatformDocumentTextExtractor
+    Config/       AppConfig, BundleAppConfig   (build-time secrets ← Info.plist ← Secrets.xcconfig)
     Embedding/    EmbeddingClient      (roadmap)
     Store/        KeyValueStore
 ```
@@ -180,7 +183,13 @@ for you.
   (for Adzuna HTTP).
 - To use the `claude -p` provider, turn **App Sandbox off** (a sandboxed app
   can't launch an external binary). Foundation Models works sandboxed.
-- Add Adzuna `app_id` / `app_key` and country code in Settings before searching.
+- **Adzuna credentials are build-time secrets, not settings.** Copy
+  `Secrets.example.xcconfig` → `Secrets.xcconfig` (repo root; gitignored) and fill in
+  `ADZUNA_APP_ID` / `ADZUNA_APP_KEY`. They flow `Secrets.xcconfig` → the app target's
+  base configuration → `Info.plist` (`AdzunaAppID` / `AdzunaAppKey` via `$(…)`
+  substitution) → `BundleAppConfig` at runtime. A build without them still runs, but
+  Search is disabled with a clear "unavailable in this build" banner (fail-fast).
+  Only the Adzuna **country** is a user setting.
 
 ## Working process (docs as source of truth)
 
