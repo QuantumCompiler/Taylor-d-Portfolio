@@ -11,9 +11,10 @@ can pick up instantly. Add newly-discovered sub-tasks as checkboxes in the right
 milestone.
 
 > **Current focus:** v1 core is **complete** (Milestones A–J done + document import).
-> Now working **v2 — reliability**. **Milestone K (build-time Adzuna creds) is ✅ done.**
-> Next per the suggested order is **Milestone M-B** (two-stage, structured generation
-> prompts — helps every generation regardless of input source). Other largely-independent
+> Now working **v2 — reliability**. **Milestone K (build-time Adzuna creds) ✅ done** and
+> **Milestone M-B (two-stage structured generation) ✅ done.** Next per the suggested order
+> is **Milestone N** (multi-title search + field autocomplete — improves search recall/UX
+> once a profile is loaded); N-A (multi-search) can start on its own. Other largely-independent
 > milestones: **Milestone L** (prefer AFM 3 Core Advanced) is gated on spike **L0** — confirm
 > whether an app can select/verify the Core Advanced tier before building on it;
 > **Milestone M** (job-URL input + AGENT.md-grade generation prompts) can start with
@@ -278,12 +279,12 @@ Note: macOS-only means more users clear the Core Advanced silicon bar than on iP
 but not all — the degrade path is required. Pairs naturally with adopting the native
 `LanguageModel` protocol seam (ROADMAP backlog), which the L0 spike will also inform.
 
-## Milestone M — Job-URL input + AGENT.md-grade generation  (`Prompts`, `Data/Jobs`, `LLMProvider`, Presentation)
+## Milestone M — Job-URL input + AGENT.md-grade generation  (`Prompts`, `Data/Jobs`, `LLMProvider`, Presentation)  — M-B ✅ done, M-A open
 
 Goal: port the discipline of Taylor's hand-built LaTeX résumé agent (`AGENT.md`) into
 the app — (M-A) generate an application from a **job posting URL**, and (M-B) upgrade
 the generation prompts from a single shot to a **structured target-brief → tailored
-output** flow. Same "never fabricate" guardrail the SPEC already states. Out of scope:
+output** flow. **M-B is done** (see below); **M-A (URL input) is still open.** Same "never fabricate" guardrail the SPEC already states. Out of scope:
 AGENT.md's LaTeX/PDF/`.docx` build toolchain (that's the "Export" fast-follow).
 
 ### M-A — Generate from a job URL
@@ -307,36 +308,35 @@ AGENT.md's LaTeX/PDF/`.docx` build toolchain (that's the "Export" fast-follow).
 - [ ] **Tests.** `JobPostingSource` against a stubbed `HTTPClient` (good HTML → fields;
       blocked/empty → the paste-instead error); extraction-prompt shape in `PromptsTests`.
 
-### M-B — Two-stage, structured generation prompts (from AGENT.md §1, §5)
+### M-B — Two-stage, structured generation prompts (from AGENT.md §1, §5)  ✅ done
 
-- [ ] **Target brief step.** Add `Prompts.buildTargetBrief(job:)` (+ an `LLMProvider`
-      method, or an internal step of `generateApplication`) that distils: company, exact
-      role title, top 5–8 **must-have vs. nice-to-have** keywords, tech stack, domain,
-      and stated mission/values. This is AGENT.md Step 1's "internal brief."
-- [ ] **Map to truth + gaps.** In the generation prompt, instruct the model to map each
-      brief signal to the closest TRUE profile fact and to **list gaps** (requirements the
-      candidate lacks) rather than papering over them — feeds the existing
-      `ApplicationKit.gapNote`.
-- [ ] **Tailored résumé prompt.** Ask for a role-specific headline/summary and
-      experience/projects re-angled to foreground overlap — **feature the single best-fit
-      item** (AGENT.md's "lead with the most relevant project"). Reorder/rephrase real
-      experience only.
-- [ ] **Three-section cover letter.** Restructure `generateInstructions` /
-      `generateApplication` so the cover letter follows AGENT.md's rhythm: *About Me* /
-      *Why \<company\>* / *Why Me* (the middle section is the company-specific one that
-      pays off the brief research). Keep it grounded and specific; no invented metrics.
-- [ ] **Keep engines in lockstep.** All new text lives in the shared `Prompts` enum so
-      `FoundationModelsProvider` (constrained decoding) and `ClaudeCodeProvider` (JSON)
-      stay identical (existing convention). If a brief becomes its own `@Generable`
-      /`Codable` type, it conforms to both like the other structured types.
-- [ ] **Bound inputs.** Extend the `maxPortfolioCharacters` / `maxDescriptionCharacters`
-      truncation to any new fetched-posting / brief text so on-device context stays bounded.
-- [ ] **Tests.** `PromptsTests` for brief fields + the three cover-letter sections + the
-      gap/feature-project instructions; provider decode tests if the brief is a new type.
-- [ ] **Docs.** SPEC (note the URL input path in "Core user flow" / v1-scope-plus, and the
-      structured generation approach under "Grounded generation"); CLAUDE.md (add
-      `JobPostingSource` to the Data/Jobs seam list and the layer map; note the two-stage
-      generation in the LLM-seam description).
+- [x] **Target brief step.** Added `Prompts.buildTargetBrief(job:)` + `briefInstructions`
+      and a new `TargetBrief` `@Generable`/`Codable` model (company, roleTitle, must-have vs.
+      nice-to-have keywords, techStack, domain, missionValues). Exposed as an `LLMProvider`
+      method; `GenerateApplicationUseCase` orchestrates brief → generate (two-stage in the
+      Business layer, providers stay atomic).
+- [x] **Map to truth + gaps.** The generation prompt's "Method" step instructs the model to
+      map each brief signal to the closest TRUE profile fact and to treat unmatched signals
+      as GAPs — feeding a `gapNote` that lists the notable unmet must-haves.
+- [x] **Tailored résumé prompt.** Asks for a role-specific headline for the brief's
+      `roleTitle` + a 1–2 sentence summary, then sections re-angled to foreground the single
+      best-fit overlap first. Reorder/rephrase real experience only.
+- [x] **Three-section cover letter.** `generateApplication` now requires the cover letter in
+      three Markdown-headed sections: `## About Me` / `## Why <company>` / `## Why Me` (the
+      middle is the company-specific payoff of the brief). Grounded, specific, no invented
+      metrics.
+- [x] **Keep engines in lockstep.** All new text lives in the shared `Prompts` enum, so
+      `FoundationModelsProvider` (constrained decoding of `TargetBrief`/`ApplicationKit`) and
+      `ClaudeCodeProvider` (JSON) stay identical. `TargetBrief` is both `Generable` + `Codable`.
+- [x] **Bound inputs.** The brief step truncates the posting via `maxDescriptionCharacters`
+      (covered by a new bounding test); brief fields are short by construction.
+- [x] **Tests.** `PromptsTests` (brief fields + bounding + the three cover-letter sections +
+      map-to-truth/gap/best-fit discipline); `ClaudeCodeProviderTests.buildTargetBriefDecodes`
+      + updated `generateApplicationDecodes` (asserts the brief reaches the prompt);
+      `TargetBrief` Codable round-trip; router + use-case two-stage delegation. Suite green.
+- [x] **Docs.** SPEC (two-stage approach under "Grounded generation"); CLAUDE.md (two-stage
+      note in the LLM-seam description, `TargetBrief` in Key types + the Data/Models layer map).
+      (The `JobPostingSource` / URL-input parts are M-A, not M-B.)
 
 Note: M-A and M-B compose but are separable — M-B (better prompts) helps every generation
 regardless of input source, so it can land first; M-A (URL input) is the new entry path.

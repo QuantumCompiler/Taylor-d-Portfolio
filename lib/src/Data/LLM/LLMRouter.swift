@@ -42,8 +42,12 @@ nonisolated struct LLMRouter: LLMProvider {
         try await run { try await $0.rank(jobs: jobs, against: profile) }
     }
 
-    func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
-        try await run { try await $0.generateApplication(for: job, profile: profile) }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        try await run { try await $0.buildTargetBrief(for: job) }
+    }
+
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        try await run { try await $0.generateApplication(for: job, profile: profile, brief: brief) }
     }
 
     // MARK: Routing

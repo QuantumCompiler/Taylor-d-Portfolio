@@ -99,8 +99,11 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] {
         try await router().rank(jobs: jobs, against: profile)
     }
-    func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
-        try await router().generateApplication(for: job, profile: profile)
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        try await router().buildTargetBrief(for: job)
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        try await router().generateApplication(for: job, profile: profile, brief: brief)
     }
 }
 

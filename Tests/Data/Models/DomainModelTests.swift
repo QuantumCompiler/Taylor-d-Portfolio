@@ -90,6 +90,20 @@ struct DomainModelTests {
         #expect(decoded == kit)
     }
 
+    @Test func targetBriefRoundTrips() throws {
+        let brief = TargetBrief(
+            company: "Acme",
+            roleTitle: "Senior iOS Engineer",
+            mustHaveKeywords: ["Swift", "SwiftUI", "async/await"],
+            niceToHaveKeywords: ["Kotlin"],
+            techStack: ["Swift", "Combine"],
+            domain: "Fintech",
+            missionValues: "Make money management delightful."
+        )
+        let decoded = try roundTrip(brief)
+        #expect(decoded == brief)
+    }
+
     @Test func rankedJobDerivesIdentityAndScoreAndRoundTrips() throws {
         let listing = JobListing(
             id: "adzuna-123", title: "iOS Engineer", company: "Acme",

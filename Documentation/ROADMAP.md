@@ -65,7 +65,8 @@ breakdown.
       iPhone, but not all — the degrade path is required, not optional.
 
 - [ ] **Job-URL input + AGENT.md-grade generation prompts.** Two linked upgrades,
-      ported from Taylor's hand-built LaTeX résumé agent (`AGENT.md`):
+      ported from Taylor's hand-built LaTeX résumé agent (`AGENT.md`).
+      **Status: part 2 (structured generation) is done; part 1 (URL input) is still open.**
       1. **Generate from a job URL.** Accept a posting URL as an input path
          (alongside the existing keyword search): fetch the page, extract the JD
          fields, and feed them into ranking/generation. If the page is JS-gated,
@@ -74,7 +75,7 @@ breakdown.
          one posting → `JobListing`), reusing `HTTPClient`; extraction likely wants an
          LLM pass to pull company / role / requirements / stack / values from messy
          HTML.
-      2. **Two-stage, structured generation prompts.** Replace the current
+      2. **✅ Two-stage, structured generation prompts (done).** Replaced the current
          single-shot `generateApplication` prompt with the AGENT.md discipline:
          first distil a **target brief** (company, exact role title, top 5–8
          must-have vs. nice-to-have keywords, tech stack, domain, stated

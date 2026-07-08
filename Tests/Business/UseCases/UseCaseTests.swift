@@ -18,8 +18,13 @@ private struct TaggingProvider: LLMProvider {
         CandidateProfile(seniority: tag, yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
     }
     func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { matches }
-    func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
-        ApplicationKit(resumeMarkdown: tag, coverLetter: "", gapNote: "")
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        TargetBrief(company: job.company, roleTitle: job.title, mustHaveKeywords: [],
+                    niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        // Tag the resume with the brief's role title so two-stage delegation is observable.
+        ApplicationKit(resumeMarkdown: "\(tag):\(brief.roleTitle)", coverLetter: "", gapNote: "")
     }
 }
 
@@ -42,11 +47,12 @@ struct UseCaseTests {
         #expect(profile.seniority == "PROFILE")
     }
 
-    @Test func generateApplicationDelegatesToProvider() async throws {
+    @Test func generateApplicationRunsBothStagesAndThreadsTheBrief() async throws {
         let useCase = GenerateApplicationUseCase(provider: TaggingProvider(tag: "KIT"))
-        let job = JobListing(id: "a", title: "t", company: "c", location: "l", description: "d")
+        let job = JobListing(id: "a", title: "iOS Engineer", company: "c", location: "l", description: "d")
         let kit = try await useCase(job: job, profile: profile)
-        #expect(kit.resumeMarkdown == "KIT")
+        // "KIT" proves stage 2 ran; ":iOS Engineer" proves the stage-1 brief threaded in.
+        #expect(kit.resumeMarkdown == "KIT:iOS Engineer")
     }
 
     @Test func searchAndRankSearchesThenRanks() async throws {

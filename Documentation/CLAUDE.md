@@ -90,7 +90,10 @@ bundle Info.plist — the Adzuna keys, injected from a gitignored `Secrets.xccon
   uses constrained decoding against `@Generable` types; `ClaudeCodeProvider` asks
   for JSON and decodes. `LLMRouter` picks one from `AppSettings.llmChoice` (`auto`
   = on-device first, fall back to Claude). Shared prompts in `Prompts`; structured
-  types are both `Generable` and `Codable`. Availability via
+  types are both `Generable` and `Codable`. **Generation is two-stage** (AGENT.md
+  discipline): `buildTargetBrief(for:)` distils the posting into a `TargetBrief`,
+  then `generateApplication(for:profile:brief:)` tailors against it. Both are
+  `LLMProvider` methods; `GenerateApplicationUseCase` orchestrates the two calls. Availability via
   `SystemLanguageModel.default.availability` → `.available` /
   `.unavailable(.deviceNotEligible | .appleIntelligenceNotEnabled | .modelNotReady)`.
 - **Job seam** — `JobSource` (Data). Implement it (Adzuna, JSearch, USAJOBS…),
@@ -124,7 +127,7 @@ Taylor'd Portfolio/
                   GenerateApplicationUseCase
     Ranking/      JobRanker
   Data/
-    Models/       CandidateProfile, JobListing, JobMatch, ApplicationKit,
+    Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ApplicationKit,
                   JobQuery, RankedJob
     LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
                   LLMRouter, Prompts
@@ -151,6 +154,9 @@ for you.
 - `JobListing` (`Codable`): id, title, company, location, description, url, salary.
 - `JobMatch` (`@Generable`, `Codable`): jobId, score (0–100), reason,
   matchedSkills, missingSkills.
+- `TargetBrief` (`@Generable`, `Codable`): company, roleTitle, mustHaveKeywords,
+  niceToHaveKeywords, techStack, domain, missionValues — the stage-1 distillation
+  of a posting that stage-2 generation tailors against.
 - `ApplicationKit` (`@Generable`, `Codable`): resumeMarkdown, coverLetter, gapNote.
 
 ## Conventions

@@ -57,4 +57,61 @@ struct PromptsTests {
         #expect(!prompt.contains(huge))
         #expect(prompt.contains("…"))
     }
+
+    // MARK: Target brief (stage 1)
+
+    @Test func buildTargetBriefPromptAsksForBriefFieldsAndIncludesPosting() {
+        let job = JobListing(id: "a", title: "iOS Engineer", company: "Acme", location: "Remote", description: "SEED_DESC")
+        let prompt = Prompts.buildTargetBrief(job: job)
+        #expect(prompt.contains("SEED_DESC"))
+        #expect(prompt.contains("mustHaveKeywords"))
+        #expect(prompt.contains("niceToHaveKeywords"))
+        #expect(prompt.contains("techStack"))
+        #expect(prompt.contains("missionValues"))
+    }
+
+    @Test func longDescriptionsAreBoundedInBriefPrompt() {
+        let huge = String(repeating: "x", count: Prompts.maxDescriptionCharacters + 500)
+        let job = JobListing(id: "a", title: "t", company: "c", location: "l", description: huge)
+        let prompt = Prompts.buildTargetBrief(job: job)
+        #expect(!prompt.contains(huge))
+        #expect(prompt.contains("…"))
+    }
+
+    // MARK: Generate application (stage 2)
+
+    private var sampleProfile: CandidateProfile {
+        CandidateProfile(seniority: "Senior", yearsExperience: 8, coreSkills: ["Swift"],
+                         domains: ["Fintech"], targetTitles: ["iOS Engineer"], summary: "Hi.")
+    }
+    private var sampleBrief: TargetBrief {
+        TargetBrief(company: "Acme", roleTitle: "iOS Engineer", mustHaveKeywords: ["Swift", "SwiftUI"],
+                    niceToHaveKeywords: ["Kotlin"], techStack: ["Swift"], domain: "Mobile", missionValues: "Delight users.")
+    }
+
+    @Test func generatePromptStructuresTheThreeCoverLetterSections() {
+        let job = JobListing(id: "a", title: "iOS Engineer", company: "Acme", location: "Remote", description: "d")
+        let prompt = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief)
+        #expect(prompt.contains("## About Me"))
+        #expect(prompt.contains("## Why Acme"))   // company-specific middle section
+        #expect(prompt.contains("## Why Me"))
+    }
+
+    @Test func generatePromptCarriesBriefSignalsAndTailoringDiscipline() {
+        let job = JobListing(id: "a", title: "iOS Engineer", company: "Acme", location: "Remote", description: "d")
+        let prompt = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief)
+        // Brief signals reach the generation prompt.
+        #expect(prompt.contains("iOS Engineer"))
+        #expect(prompt.contains("SwiftUI"))
+        #expect(prompt.contains("Delight users."))
+        // The AGENT.md discipline: map-to-truth + gaps + feature the best fit.
+        #expect(prompt.contains("GAP"))
+        #expect(prompt.lowercased().contains("best-fit"))
+        #expect(prompt.contains("resumeMarkdown"))
+        #expect(prompt.contains("gapNote"))
+    }
+
+    @Test func generateInstructionsForbidFabrication() {
+        #expect(Prompts.generateInstructions.lowercased().contains("never"))
+    }
 }

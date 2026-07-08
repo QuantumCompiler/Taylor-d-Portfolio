@@ -34,9 +34,17 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         return batch.matches
     }
 
-    func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await generateJSON(
-            prompt: Prompts.generateApplication(job: job, profile: profile),
+            prompt: Prompts.buildTargetBrief(job: job),
+            instructions: Prompts.briefInstructions,
+            as: TargetBrief.self
+        )
+    }
+
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        try await generateJSON(
+            prompt: Prompts.generateApplication(job: job, profile: profile, brief: brief),
             instructions: Prompts.generateInstructions,
             as: ApplicationKit.self
         )

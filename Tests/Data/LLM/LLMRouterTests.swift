@@ -29,7 +29,13 @@ private struct StubLLMProvider: LLMProvider {
         return [JobMatch(jobId: tag, score: 0, reason: "", matchedSkills: [], missingSkills: [])]
     }
 
-    func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        if fails { throw Boom() }
+        return TargetBrief(company: tag, roleTitle: tag, mustHaveKeywords: [],
+                           niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
         if fails { throw Boom() }
         return ApplicationKit(resumeMarkdown: tag, coverLetter: "", gapNote: "")
     }
@@ -98,7 +104,10 @@ struct LLMRouterTests {
         let matches = try await router.rank(jobs: [job], against: profile)
         #expect(matches.first?.jobId == "claude")
 
-        let kit = try await router.generateApplication(for: job, profile: profile)
+        let brief = try await router.buildTargetBrief(for: job)
+        #expect(brief.roleTitle == "claude")
+
+        let kit = try await router.generateApplication(for: job, profile: profile, brief: brief)
         #expect(kit.resumeMarkdown == "claude")
     }
 }

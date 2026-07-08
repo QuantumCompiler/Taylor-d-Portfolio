@@ -55,6 +55,12 @@ user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
 
 - **Grounded generation.** Generated resumes/cover letters reorder and rephrase
   *real* experience only. Never invent employers, titles, dates, or credentials.
+  Generation is **two-stage** (ported from Taylor's résumé agent, `AGENT.md`):
+  first distil the posting into a structured *target brief* (company, exact role,
+  must-have vs. nice-to-have keywords, tech stack, domain, mission/values), then
+  tailor against it — mapping each signal to a true profile fact, foregrounding the
+  best-fit overlap, flagging gaps (never faking them), and structuring the cover
+  letter as *About Me / Why \<company\> / Why Me*.
 - **On-device first.** Default to Apple Foundation Models: free, private, offline.
   Escalate to Claude only when chosen or when the on-device model is unavailable.
 - **Swappable seams.** The LLM engine and the job source are both behind
