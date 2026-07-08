@@ -192,6 +192,26 @@ struct SearchViewModelTests {
         #expect(SearchViewModel.message(for: LLMProviderError.noProviderAvailable).contains("No AI engine"))
     }
 
+    @Test func searchPersistsResultsWhenSavingIsWired() async throws {
+        let jobs = [JobListing(id: "a", title: "t", company: "c", location: "l", description: "d")]
+        let matches = [JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: [])]
+        let ranker = JobRanker(provider: PresentationStubProvider(matches: matches), shortlistLimit: 10)
+        let useCase = SearchAndRankUseCase(jobSource: PresentationStubJobSource(jobs: jobs), ranker: ranker)
+        let repo = SavedJobsRepository(store: InMemoryRecordStore())
+
+        let vm = SearchViewModel(
+            searchAndRank: useCase,
+            roleTitleStore: RoleTitleStore(store: PresentationMemoryStore()),
+            saveResults: SaveResultsUseCase(repository: repo)
+        )
+        vm.profile = profile
+        vm.titleInput = "iOS Engineer"
+        await vm.search()
+
+        #expect(vm.results.map(\.id) == ["a"])
+        #expect(try await repo.savedJobs().map(\.id) == ["a"])   // persisted as a side effect
+    }
+
     @Test func allTitlesFailingSurfacesTheUnderlyingError() async {
         let source = FailingTitleJobSource(failingTitles: ["bad"])
         let useCase = SearchAndRankUseCase(jobSource: source, ranker: JobRanker(provider: PresentationStubProvider()))

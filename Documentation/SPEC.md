@@ -56,7 +56,9 @@ user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
 - No mobile/iOS target (macOS only)
 - No account system or cloud sync
 - No job-board browsing beyond the search feature
-- No persistence beyond the current session (planned for a fast follow — see ROADMAP)
+- Pulled listings + their match results now **persist** across launches (SwiftData;
+  see ROADMAP v2 Milestone O). Broader persistence — profile cache, saved/re-runnable
+  searches — remains a fast follow.
 
 ## Principles
 

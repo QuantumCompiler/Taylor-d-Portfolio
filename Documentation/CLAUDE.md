@@ -73,6 +73,9 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
 - Single-posting gateway: `JobPostingSource` (protocol) + `LinkJobPostingSource`
   (fetch a URL via `HTTPClient` → `HTMLStripper` → LLM `extractPosting` → `JobListing`;
   fails loudly with `.unreadable` on blocked/empty pages, plus a paste-text path).
+- Persistence: `SavedJobsRepository` (Data/Persistence) maps domain `RankedJob` ↔ the
+  Infrastructure record store's blobs (upsert by `JobListing.id`), so pulled listings +
+  matches survive relaunch. `@Model` never leaves Infrastructure.
 - Search suggestions: `SuggestionProvider` (Data/Search) — profile-seeded starting
   titles + static locations + salary presets; pure, on-device. Common role titles are
   **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
@@ -87,8 +90,11 @@ declared here: `TextGenerating` + `FoundationModelsClient` (wraps
 `LanguageModelSession`, `@Generable`, availability) + `ClaudeProcessClient` (runs
 `claude -p`, unwraps `result`, strips fences); `HTTPClient` (URLSession wrapper);
 `EmbeddingClient` (`NLContextualEmbedding`, roadmap); `KeyValueStore` (UserDefaults
-/ keychain); `AppConfig` + `BundleAppConfig` (build-time secrets read from the
-bundle Info.plist — the Adzuna keys, injected from a gitignored `Secrets.xcconfig`).
+/ keychain); `PersistentRecordStore` + `SwiftDataRecordStore` (a list-oriented blob
+store backed by SwiftData; the `@Model` `StoredRecord` lives here and never leaks up —
+callers see only `Data` blobs by `(kind, id)`); `AppConfig` + `BundleAppConfig`
+(build-time secrets read from the bundle Info.plist — the Adzuna keys, injected from a
+gitignored `Secrets.xcconfig`).
 
 ### The three seams, now placed in layers
 
@@ -137,7 +143,8 @@ Taylor'd Portfolio/
                   e.g. Results/View holds ResultsView + RankedRow + JobDetailView, Application/View the sheet)
   Business/
     UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
-                  GenerateApplicationUseCase
+                  GenerateApplicationUseCase, FetchPostingUseCase,
+                  SaveResultsUseCase, LoadSavedJobsUseCase
     Ranking/      JobRanker
   Data/
     Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,
@@ -146,6 +153,7 @@ Taylor'd Portfolio/
                   LLMRouter, Prompts
     Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
     Search/       SuggestionProvider, RoleTitleStore
+    Persistence/  SavedJobsRepository   (maps RankedJob ↔ PersistentRecordStore blobs)
     Retrieval/    Retriever            (roadmap)
     Settings/     AppSettings, SettingsStore
   Infrastructure/
@@ -155,7 +163,8 @@ Taylor'd Portfolio/
     Config/       AppConfig, BundleAppConfig   (build-time secrets ← Info.plist ← Secrets.xcconfig)
     Text/         HTMLStripper         (HTML → plain text; used by Data + Presentation)
     Embedding/    EmbeddingClient      (roadmap)
-    Store/        KeyValueStore
+    Store/        KeyValueStore, UserDefaultsStore,
+                  PersistentRecordStore, SwiftDataRecordStore (+ StoredRecord @Model)
 ```
 
 Enforce the dependency rule at review time. Optional but recommended later: make

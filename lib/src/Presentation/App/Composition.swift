@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 
 /// Assembles the whole dependency graph: Infrastructure clients → Data gateways →
 /// Business use cases → ViewModels. The one place allowed to reference every layer.
@@ -18,6 +19,8 @@ struct Composition {
     private let onDeviceClient: FoundationModelsClient
     private let claudeClient: ClaudeProcessClient
     private let documentExtractor: any DocumentTextExtractor
+    /// Persistence for saved jobs — nil if the SwiftData store couldn't be created.
+    private let recordStore: (any PersistentRecordStore)?
 
     init(appConfig: any AppConfig = BundleAppConfig()) {
         self.appConfig = appConfig
@@ -26,6 +29,7 @@ struct Composition {
         onDeviceClient = FoundationModelsClient()
         claudeClient = ClaudeProcessClient()
         documentExtractor = PlatformDocumentTextExtractor()
+        recordStore = Composition.makeRecordStore()
 
         #if DEBUG
         // Fail-fast signal for developers: a build without baked Adzuna credentials
@@ -41,6 +45,17 @@ struct Composition {
 
     /// Whether this build has the baked Adzuna credentials required to search.
     var isAdzunaConfigured: Bool { appConfig.hasAdzunaCredentials }
+
+    /// Builds the SwiftData-backed record store, or `nil` if the container can't be
+    /// created — persistence then degrades to off rather than crashing the app.
+    private static func makeRecordStore() -> (any PersistentRecordStore)? {
+        guard let container = try? ModelContainer(for: StoredRecord.self) else { return nil }
+        return SwiftDataRecordStore(modelContainer: container)
+    }
+
+    private var savedJobsRepository: SavedJobsRepository? {
+        recordStore.map(SavedJobsRepository.init(store:))
+    }
 
     // MARK: Gateways (read settings live, so Settings edits take effect immediately)
 
@@ -67,6 +82,12 @@ struct Composition {
     private var fetchPosting: FetchPostingUseCase {
         .init(postingSource: jobPostingSource, ranker: JobRanker(provider: llmProvider))
     }
+    private var saveResults: SaveResultsUseCase? {
+        savedJobsRepository.map(SaveResultsUseCase.init(repository:))
+    }
+    private var loadSavedJobs: LoadSavedJobsUseCase? {
+        savedJobsRepository.map(LoadSavedJobsUseCase.init(repository:))
+    }
 
     // MARK: ViewModel factories
 
@@ -79,8 +100,12 @@ struct Composition {
             suggestions: SuggestionProvider(),
             roleTitleStore: RoleTitleStore(store: UserDefaultsStore()),
             fetchPosting: fetchPosting,
+            saveResults: saveResults,
             adzunaConfigured: isAdzunaConfigured
         )
+    }
+    func makeResultsViewModel() -> ResultsViewModel {
+        .init(loadSavedJobs: loadSavedJobs)
     }
     func makeSettingsViewModel() -> SettingsViewModel {
         .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured)

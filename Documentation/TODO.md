@@ -13,9 +13,10 @@ milestone.
 > **Current focus:** v1 core is **complete** (Milestones A–J done + document import).
 > Now working **v2 — reliability**. Done so far: **K** (build-time Adzuna creds),
 > **M-B** (two-stage structured generation), **N** (multi-title search + field autocomplete),
-> **O-A** (job-detail view), **M-A** (generate from a job-posting URL). Next per the suggested order
-> is **Milestone O-B** (persist searched listings — the first real SwiftData slice: a persistence
-> port + `@Model` store mapped to/from domain structs), then O-C → P. Other
+> **O-A** (job-detail view), **M-A** (generate from a job-posting URL), **O-B** (persist searched
+> listings — first SwiftData slice). Next per the suggested order is **Milestone O-C** (persist the
+> generated `ApplicationKit` with its posting, keyed by `JobListing.id`; load saved materials on
+> open instead of regenerating), then **P** (application status tracker). Other
 > largely-independent milestones: **Milestone L** (prefer AFM 3 Core Advanced) is gated on spike **L0** — confirm
 > whether an app can select/verify the Core Advanced tier before building on it;
 > **Milestone M** (job-URL input + AGENT.md-grade generation prompts) can start with
@@ -409,7 +410,7 @@ Note: N-A and N-B are separable — N-A (multi-search) delivers value even with 
 text field; N-B (autocomplete) helps single or multi search. Composes with Milestone M:
 a URL-extracted posting (M-A) can pre-fill a title chip here.
 
-## Milestone O — Save pulled listings + job-detail view  — O-A ✅ done; O-B/O-C open  (Presentation detail view; Infrastructure persistence + `Data` repository)
+## Milestone O — Save pulled listings + job-detail view  — O-A ✅, O-B ✅ done; O-C open  (Presentation detail view; Infrastructure persistence + `Data` repository)
 
 Goal: persist what a search pulls down (each `JobListing` + its `JobMatch`) and let the
 user **read the full job description from the UI**. Closes a real gap — the pulled
@@ -435,29 +436,33 @@ persistence part (the first concrete slice of the SwiftData fast-follow).
       `JobDetailFormattingTests` cover `HTMLStripper` + `SalaryFormatter` (no VM added, so
       no VM suite). Full suite green.
 
-### O-B — Persist searched listings (first SwiftData slice)
+### O-B — Persist searched listings (first SwiftData slice)  ✅ done
 
-- [ ] **Persistence port.** Declare a persistence capability behind a protocol in the
-      layer that owns it (mirrors `KeyValueStore` for settings) — e.g. a `JobStore` /
-      `SavedJobsRepository` port. Keep domain `JobListing` / `RankedJob` as clean `Codable`
-      structs.
-- [ ] **SwiftData impl (Infrastructure).** A SwiftData-backed store: define `@Model`
-      class(es) for the stored listing + match, **map to/from the domain structs** so
-      `@Model` never leaks upward into Data/Business/Presentation.
-- [ ] **Data-layer repository.** A gateway that maps stored rows ↔ domain types and
-      exposes save / fetch (and later, "seen?" checks). Save the merged, ranked results
-      after a search completes.
-- [ ] **Composition + lifecycle.** Build the SwiftData container/context in the
-      composition root; inject the repository into the search flow (or a new use case,
-      e.g. `SaveResultsUseCase`) and into whatever screen lists saved jobs.
-- [ ] **Dedupe / upsert.** Key stored listings by `JobListing.id` (upsert, so re-pulling
+- [x] **Persistence port.** `PersistentRecordStore` (Infrastructure/Store), a
+      list-oriented blob port keyed by `(kind, id)` — mirrors `KeyValueStore`. Domain
+      `JobListing`/`RankedJob` stay clean `Codable` structs.
+- [x] **SwiftData impl (Infrastructure).** `SwiftDataRecordStore` (`@ModelActor`, so it
+      runs off the main actor + is `Sendable`) backed by a `StoredRecord` `@Model` with a
+      unique composite key. The `@Model` is `internal` to Infrastructure — it **never
+      leaks upward**; the port speaks only `Data` blobs. (Design note: rather than
+      per-type `@Model`s that would force Infrastructure↔domain coupling, one generic
+      blob row keeps `@Model` fully contained and serves O-C/P too via `kind`.)
+- [x] **Data-layer repository.** `SavedJobsRepository` (Data/Persistence) maps
+      `RankedJob` ↔ blob (`kind` "rankedJob"), with `save` / `savedJobs` (sorted by
+      score) / `contains(jobID:)` for "already seen". Saved after each search/link fetch.
+- [x] **Composition + lifecycle.** `Composition` builds the `ModelContainer` (degrades to
+      no-op persistence if it can't be created), exposes `SaveResultsUseCase` /
+      `LoadSavedJobsUseCase`; `SearchViewModel` persists after search + link fetch,
+      `ResultsViewModel` loads saved jobs on launch (`ResultsView.task`) when empty.
+- [x] **Dedupe / upsert.** Keyed by `JobListing.id` (upsert, so re-pulling
       the same posting updates rather than duplicates) — reuses the N-A dedupe identity.
-- [ ] **Tests.** Repository round-trip against an in-memory SwiftData container
-      (save → fetch → equals domain value; upsert by id collapses duplicates).
-- [ ] **Docs.** SPEC (revise "No persistence beyond the current session" — pulled
-      listings now persist; note the detail view in the flow); CLAUDE.md (add the
-      persistence port + SwiftData impl to Infrastructure and the repository to Data in
-      the layer map; note the `@Model`-stays-in-Infrastructure rule).
+- [x] **Tests.** `SwiftDataRecordStoreTests` (real in-memory container: upsert/fetch,
+      replace-by-id, kind isolation, delete); `SavedJobsRepositoryTests` (round-trip
+      sorted, upsert collapses dupes, `contains`); `SearchViewModel` persists-after-search;
+      `ResultsViewModel` loads-saved (and doesn't clobber a fresh search).
+- [x] **Docs.** SPEC (revised the no-persistence line); CLAUDE.md (persistence port +
+      SwiftData impl in Infrastructure, `SavedJobsRepository` in Data, layer map, and the
+      `@Model`-stays-in-Infrastructure rule).
 
 ### O-C — Persist generated materials with the posting
 

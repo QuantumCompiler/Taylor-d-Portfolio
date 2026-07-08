@@ -131,7 +131,7 @@ breakdown.
          and the match score/reason + matched/missing skills. This closes a real gap —
          the pulled `description` currently isn't shown anywhere. Works in-session with no
          persistence, so it can land on its own.
-      2. **Persist searched listings (first slice of SwiftData).** Store pulled listings +
+      2. **✅ Persist searched listings (first slice of SwiftData) (done).** Store pulled listings +
          their match results so they survive relaunch and can be revisited — the concrete
          first slice of the "Persistence with SwiftData" fast-follow. New persistence port
          (declared in the layer that owns it) + a SwiftData-backed impl in Infrastructure;

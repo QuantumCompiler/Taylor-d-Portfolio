@@ -63,20 +63,30 @@ final class SearchViewModel {
     private let suggestions: SuggestionProvider
     private let roleTitleStore: RoleTitleStore
     private let fetchPosting: FetchPostingUseCase?
+    private let saveResults: SaveResultsUseCase?
 
     init(
         searchAndRank: SearchAndRankUseCase,
         suggestions: SuggestionProvider = SuggestionProvider(),
         roleTitleStore: RoleTitleStore,
         fetchPosting: FetchPostingUseCase? = nil,
+        saveResults: SaveResultsUseCase? = nil,
         adzunaConfigured: Bool = true
     ) {
         self.searchAndRank = searchAndRank
         self.suggestions = suggestions
         self.roleTitleStore = roleTitleStore
         self.fetchPosting = fetchPosting
+        self.saveResults = saveResults
         self.adzunaConfigured = adzunaConfigured
         self.commonRoleTitles = roleTitleStore.load()
+    }
+
+    /// Persists the current results (best-effort — a persistence failure never breaks
+    /// the search/fetch the user just ran).
+    private func persistResults() async {
+        guard let saveResults, !results.isEmpty else { return }
+        try? await saveResults(results)
     }
 
     /// Whether the "generate from a link" affordance is wired in this build.
@@ -193,6 +203,7 @@ final class SearchViewModel {
         defer { isFetchingLink = false }
         do {
             results = [try await fetchPosting(url: url, profile: profile)]
+            await persistResults()
         } catch is JobPostingSourceError {
             errorMessage = "Couldn't read that posting — the page may need a login or block automated access. "
                 + "Paste the posting text below and use “Generate from pasted text” instead."
@@ -221,6 +232,7 @@ final class SearchViewModel {
         do {
             let sourceURL = URL(string: postingURL.trimmingCharacters(in: .whitespacesAndNewlines))
             results = [try await fetchPosting(pastedText: text, sourceURL: sourceURL, profile: profile)]
+            await persistResults()
         } catch is JobPostingSourceError {
             errorMessage = "That didn't look like a job posting — make sure you pasted the full description."
         } catch {
@@ -256,6 +268,7 @@ final class SearchViewModel {
             warningMessage = output.failedTitles.isEmpty
                 ? nil
                 : "Couldn't search: \(output.failedTitles.joined(separator: ", "))."
+            await persistResults()
         } catch {
             errorMessage = Self.message(for: error)
         }

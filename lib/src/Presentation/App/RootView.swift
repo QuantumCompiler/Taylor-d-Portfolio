@@ -17,7 +17,7 @@ private enum MainTab: Hashable {
 struct RootView: View {
     @State private var portfolio: PortfolioViewModel
     @State private var search: SearchViewModel
-    @State private var results = ResultsViewModel()
+    @State private var results: ResultsViewModel
     @State private var settings: SettingsViewModel
     @State private var application: ApplicationViewModel
 
@@ -27,6 +27,7 @@ struct RootView: View {
     init(composition: Composition) {
         _portfolio = State(initialValue: composition.makePortfolioViewModel())
         _search = State(initialValue: composition.makeSearchViewModel())
+        _results = State(initialValue: composition.makeResultsViewModel())
         _settings = State(initialValue: composition.makeSettingsViewModel())
         _application = State(initialValue: composition.makeApplicationViewModel())
     }

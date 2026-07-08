@@ -30,4 +30,24 @@ struct ResultsViewModelTests {
         vm.select(job)
         #expect(vm.selectedJob?.id == "a")
     }
+
+    @Test func loadsSavedJobsWhenEmpty() async throws {
+        let repo = SavedJobsRepository(store: InMemoryRecordStore())
+        try await repo.save([ranked("saved-1")])
+        let vm = ResultsViewModel(loadSavedJobs: LoadSavedJobsUseCase(repository: repo))
+
+        #expect(vm.isEmpty)
+        await vm.loadSavedIfNeeded()
+        #expect(vm.results.map(\.id) == ["saved-1"])
+    }
+
+    @Test func loadDoesNotClobberExistingResults() async throws {
+        let repo = SavedJobsRepository(store: InMemoryRecordStore())
+        try await repo.save([ranked("saved-1")])
+        // A search already populated results — loading saved must not overwrite them.
+        let vm = ResultsViewModel(results: [ranked("fresh")], loadSavedJobs: LoadSavedJobsUseCase(repository: repo))
+
+        await vm.loadSavedIfNeeded()
+        #expect(vm.results.map(\.id) == ["fresh"])
+    }
 }

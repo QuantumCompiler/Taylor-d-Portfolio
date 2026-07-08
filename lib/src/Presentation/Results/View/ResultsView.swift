@@ -31,6 +31,7 @@ struct ResultsView: View {
             }
         }
         .navigationTitle("Results")
+        .task { await viewModel.loadSavedIfNeeded() }
         .sheet(item: $viewModel.selectedJob) { ranked in
             JobDetailView(ranked: ranked, profile: profile, applicationViewModel: applicationViewModel)
         }
