@@ -4,3 +4,6 @@
 # Build-time secrets — never commit. Copy Secrets.example.xcconfig to
 # Secrets.xcconfig and fill in your Adzuna credentials locally.
 Secrets.xcconfig
+
+# Xcode per-developer UI state (not shared).
+*.xcuserstate

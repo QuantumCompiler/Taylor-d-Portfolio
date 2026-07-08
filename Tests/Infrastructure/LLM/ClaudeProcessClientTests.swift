@@ -12,6 +12,30 @@ import Foundation
 @Suite("ClaudeProcessClient parsing")
 struct ClaudeProcessClientTests {
 
+    // MARK: searchPATH
+
+    @Test func searchPATHIncludesCommonToolLocations() {
+        let path = ClaudeProcessClient.searchPATH(base: "/usr/bin:/bin", home: "/Users/x")
+        let dirs = path.split(separator: ":").map(String.init)
+        #expect(dirs.contains("/Users/x/.local/bin"))   // where `claude` often lives
+        #expect(dirs.contains("/opt/homebrew/bin"))
+        #expect(dirs.contains("/usr/bin"))               // base entries preserved
+    }
+
+    @Test func searchPATHDedupesAndKeepsCommonDirsFirst() {
+        let path = ClaudeProcessClient.searchPATH(base: "/opt/homebrew/bin:/custom/bin", home: "/Users/x")
+        let dirs = path.split(separator: ":").map(String.init)
+        #expect(dirs.filter { $0 == "/opt/homebrew/bin" }.count == 1)   // no duplicate
+        #expect(dirs.first == "/Users/x/.local/bin")                    // common dirs prepended
+        #expect(dirs.contains("/custom/bin"))                           // extra base entry retained
+    }
+
+    @Test func searchPATHHandlesMissingBase() {
+        let path = ClaudeProcessClient.searchPATH(base: nil, home: "/Users/x")
+        #expect(path.contains("/Users/x/.local/bin"))
+        #expect(path.contains("/usr/bin"))
+    }
+
     // MARK: composePrompt
 
     @Test func composePromptWithoutInstructionsReturnsPrompt() {

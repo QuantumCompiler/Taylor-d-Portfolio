@@ -183,7 +183,57 @@ final class SearchViewModel {
                 ? nil
                 : "Couldn't search: \(output.failedTitles.joined(separator: ", "))."
         } catch {
-            errorMessage = "Search failed. Please check your connection and try again."
+            errorMessage = Self.message(for: error)
+        }
+    }
+
+    /// Maps a search/ranking failure to an actionable message rather than a generic one.
+    /// The error type tells us which stage failed: HTTP/URL/decoding → the Adzuna search;
+    /// Foundation-model / Claude / provider errors → the LLM ranking step.
+    static func message(for error: Error) -> String {
+        switch error {
+        // MARK: Search (Adzuna) failures
+        case let HTTPError.status(code, _):
+            switch code {
+            case 401, 403:
+                return "The job service rejected the request — the Adzuna API credentials appear to be invalid."
+            case 429:
+                return "Too many searches too quickly. Wait a moment and try again."
+            case 500...:
+                return "The job service is having problems (error \(code)). Try again shortly."
+            default:
+                return "The job service returned an error (code \(code))."
+            }
+        case HTTPError.nonHTTPResponse:
+            return "Got an unexpected response from the job service. Try again."
+        case is DecodingError:
+            return "Couldn't read the job service's response — the data format may have changed."
+        case let urlError as URLError:
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost, .timedOut:
+                return "Couldn't reach the job service. Check your internet connection and try again."
+            default:
+                return "Network error while searching (\(urlError.code.rawValue)). Try again."
+            }
+
+        // MARK: Ranking (LLM engine) failures
+        case is FoundationModelsError:
+            return "The on-device model isn't available for ranking. Turn on Apple Intelligence in "
+                + "System Settings › Apple Intelligence & Siri, then try again."
+        case ClaudeProcessError.launchFailed:
+            return "Couldn't launch the Claude CLI to rank jobs. A sandboxed build can't run it — "
+                + "enable Apple Intelligence to rank on-device, or use an unsandboxed build for the Claude engine."
+        case let ClaudeProcessError.nonZeroExit(_, message):
+            return "The Claude CLI failed while ranking\(message.isEmpty ? "." : ": \(message)")"
+        case ClaudeProcessError.claudeReportedError, ClaudeProcessError.emptyOutput, ClaudeProcessError.decodingFailed:
+            return "The Claude CLI returned an unexpected result while ranking. Try again."
+        case LLMProviderError.decodingFailed:
+            return "The AI engine returned a response we couldn't parse. Try again."
+        case LLMProviderError.noProviderAvailable:
+            return "No AI engine is available to rank jobs. Enable Apple Intelligence, or choose Claude in Settings."
+
+        default:
+            return "Search failed: \(error.localizedDescription)"
         }
     }
 }

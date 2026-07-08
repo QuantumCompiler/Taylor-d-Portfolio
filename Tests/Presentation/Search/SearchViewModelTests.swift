@@ -6,6 +6,7 @@
 //
 
 import Testing
+import Foundation
 @testable import Taylor_d_Portfolio
 
 /// A `JobSource` that fails for specific titles, for the partial-failure warning test.
@@ -177,5 +178,28 @@ struct SearchViewModelTests {
 
     @Test func configuredBuildHasNoUnavailableBanner() {
         #expect(makeVM(adzunaConfigured: true).unavailableMessage == nil)
+    }
+
+    @Test func errorMessagesAreActionable() {
+        // Search-stage failures.
+        #expect(SearchViewModel.message(for: HTTPError.status(code: 401, body: Data())).contains("credentials"))
+        #expect(SearchViewModel.message(for: HTTPError.status(code: 429, body: Data())).contains("Wait"))
+        #expect(SearchViewModel.message(for: HTTPError.status(code: 503, body: Data())).contains("problems"))
+        #expect(SearchViewModel.message(for: URLError(.notConnectedToInternet)).contains("internet connection"))
+        // Ranking-stage (LLM engine) failures.
+        #expect(SearchViewModel.message(for: FoundationModelsError.unavailable(nil)).contains("Apple Intelligence"))
+        #expect(SearchViewModel.message(for: ClaudeProcessError.launchFailed("blocked")).contains("sandboxed"))
+        #expect(SearchViewModel.message(for: LLMProviderError.noProviderAvailable).contains("No AI engine"))
+    }
+
+    @Test func allTitlesFailingSurfacesTheUnderlyingError() async {
+        let source = FailingTitleJobSource(failingTitles: ["bad"])
+        let useCase = SearchAndRankUseCase(jobSource: source, ranker: JobRanker(provider: PresentationStubProvider()))
+        let vm = SearchViewModel(searchAndRank: useCase, roleTitleStore: RoleTitleStore(store: PresentationMemoryStore()))
+        vm.profile = profile
+        vm.titles = ["bad"]
+        await vm.search()
+        #expect(vm.results.isEmpty)
+        #expect(vm.errorMessage != nil)          // a message is surfaced, not a silent failure
     }
 }

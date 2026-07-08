@@ -196,10 +196,15 @@ for you.
 
 ## Build & run
 
-- Signing & Capabilities → App Sandbox → **Outgoing Connections (Client)** on
-  (for Adzuna HTTP).
-- To use the `claude -p` provider, turn **App Sandbox off** (a sandboxed app
-  can't launch an external binary). Foundation Models works sandboxed.
+- **App Sandbox is OFF** for the app target (`ENABLE_APP_SANDBOX = NO`). This is
+  deliberate: the `claude -p` provider launches an external binary, which a sandboxed
+  app can't do (it fails with "Operation not permitted"). Unsandboxed, both the Claude
+  CLI and Adzuna HTTP work, and Foundation Models still works. Trade-off: no Mac App
+  Store distribution — fine for a personal/dev tool. (`ENABLE_OUTGOING_NETWORK_CONNECTIONS
+  = YES` is kept for when/if the sandbox is re-enabled, but is moot while unsandboxed.)
+- The `claude -p` provider needs the `claude` CLI installed and on a resolvable path.
+  GUI apps inherit a minimal `PATH`, so `ClaudeProcessClient` widens it
+  (`searchPATH`) to include `~/.local/bin`, Homebrew, and npm-global before launching.
 - **Adzuna credentials are build-time secrets, not settings.** Copy
   `Secrets.example.xcconfig` → `Secrets.xcconfig` (repo root; gitignored) and fill in
   `ADZUNA_APP_ID` / `ADZUNA_APP_KEY`. They flow `Secrets.xcconfig` → the app target's
