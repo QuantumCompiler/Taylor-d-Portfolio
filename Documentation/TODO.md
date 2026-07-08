@@ -13,8 +13,9 @@ milestone.
 > **Current focus:** v1 core is **complete** (Milestones A–J done + document import).
 > Now working **v2 — reliability**. Done so far: **K** (build-time Adzuna creds),
 > **M-B** (two-stage structured generation), **N** (multi-title search + field autocomplete),
-> **O-A** (job-detail view). Next per the suggested order is **Milestone M-A** (generate from a
-> job-posting URL — new `JobPostingSource` seam), then O-B → O-C → P. Other
+> **O-A** (job-detail view), **M-A** (generate from a job-posting URL). Next per the suggested order
+> is **Milestone O-B** (persist searched listings — the first real SwiftData slice: a persistence
+> port + `@Model` store mapped to/from domain structs), then O-C → P. Other
 > largely-independent milestones: **Milestone L** (prefer AFM 3 Core Advanced) is gated on spike **L0** — confirm
 > whether an app can select/verify the Core Advanced tier before building on it;
 > **Milestone M** (job-URL input + AGENT.md-grade generation prompts) can start with
@@ -279,34 +280,40 @@ Note: macOS-only means more users clear the Core Advanced silicon bar than on iP
 but not all — the degrade path is required. Pairs naturally with adopting the native
 `LanguageModel` protocol seam (ROADMAP backlog), which the L0 spike will also inform.
 
-## Milestone M — Job-URL input + AGENT.md-grade generation  (`Prompts`, `Data/Jobs`, `LLMProvider`, Presentation)  — M-B ✅ done, M-A open
+## Milestone M — Job-URL input + AGENT.md-grade generation  ✅ done  (`Prompts`, `Data/Jobs`, `LLMProvider`, Presentation)
 
 Goal: port the discipline of Taylor's hand-built LaTeX résumé agent (`AGENT.md`) into
 the app — (M-A) generate an application from a **job posting URL**, and (M-B) upgrade
 the generation prompts from a single shot to a **structured target-brief → tailored
-output** flow. **M-B is done** (see below); **M-A (URL input) is still open.** Same "never fabricate" guardrail the SPEC already states. Out of scope:
+output** flow. **Both parts done.** Same "never fabricate" guardrail the SPEC already states. Out of scope:
 AGENT.md's LaTeX/PDF/`.docx` build toolchain (that's the "Export" fast-follow).
 
-### M-A — Generate from a job URL
+### M-A — Generate from a job URL  ✅ done
 
-- [ ] **`JobPostingSource` seam (Data/Jobs).** New port: fetch + extract a *single*
-      posting from a URL → `JobListing` (distinct from `JobSource`, which searches many).
-      Reuse `HTTPClient` for the fetch. Keep any page-specific parsing private to the impl.
-- [ ] **Fetch + extract impl.** Fetch the page HTML; extract company, role title,
-      requirements, stack, and stated values. HTML is messy → an LLM extraction pass is
-      the pragmatic route (a new `Prompts.extractPosting(...)` + an `LLMProvider` method,
-      or reuse the brief step in M-B). Strip boilerplate before sending to bound tokens.
-- [ ] **Fail loudly, don't guess.** If the page is JS-gated, paywalled, empty, or blocks
-      fetching, return a clear "couldn't read this posting — paste the text instead"
-      error. **Never** invent a role from a failed fetch (AGENT.md guardrail).
-- [ ] **Presentation affordance.** Let the user paste a URL (Search screen or a new
-      "From a link" entry) → runs fetch/extract → drops into the same rank/generate flow.
-      Also keep a plain "paste the posting text" fallback for blocked pages.
-- [ ] **Composition + sandbox.** Wire `JobPostingSource` in `Composition`. URL fetch needs
-      the outgoing-connections entitlement (already on for Adzuna) — confirm it covers
-      arbitrary hosts, not just the Adzuna API.
-- [ ] **Tests.** `JobPostingSource` against a stubbed `HTTPClient` (good HTML → fields;
-      blocked/empty → the paste-instead error); extraction-prompt shape in `PromptsTests`.
+- [x] **`JobPostingSource` seam (Data/Jobs).** New port with `fetchPosting(from:)` +
+      `extractPosting(fromText:sourceURL:)` → `JobListing`, distinct from `JobSource`.
+      `LinkJobPostingSource` impl reuses `HTTPClient`; page parsing stays private.
+- [x] **Fetch + extract impl.** Fetches HTML → `HTMLStripper.plainText` (moved to
+      `Infrastructure/Text` so Data may use it) → LLM extraction. New `ExtractedPosting`
+      `@Generable` model + `Prompts.extractPosting` + `LLMProvider.extractPosting`
+      (a protocol requirement with a throwing default, so only the real engines + router
+      implement it — stubs are untouched). Bounded by `maxPageCharacters`.
+- [x] **Fail loudly, don't guess.** Fetch failure (non-2xx/paywall/network), too-little
+      text (JS-gated shell), an extractor error, or an empty extraction all throw
+      `JobPostingSourceError.unreadable`; the UI then asks the user to paste the text.
+      Never invents a role.
+- [x] **Presentation affordance.** Search screen "Or generate from a specific posting":
+      a URL field + Fetch, and a DisclosureGroup with a paste-the-text fallback. Results
+      flow through the existing pipeline (→ Results tab → detail → generate). Link fetch
+      is independent of Adzuna credentials (HTTP + LLM only).
+- [x] **Composition + sandbox.** `LinkJobPostingSource` + `FetchPostingUseCase` wired in
+      `Composition`. Outgoing-network works for arbitrary hosts (the app is now
+      unsandboxed; it worked via the entitlement while sandboxed too).
+- [x] **Tests.** `LinkJobPostingSourceTests` (good HTML → fields; 403 / too-little-text /
+      extractor-throw / empty-extraction → `.unreadable`; pasted-text path);
+      `PromptsTests` extraction shape + bounding + no-invention; `FetchPostingUseCase`
+      tests (ranks the single listing, neutral fallback, propagates `.unreadable`);
+      `ExtractedPosting` round-trip + mapping. `HTMLStripper` tests moved to Infrastructure.
 
 ### M-B — Two-stage, structured generation prompts (from AGENT.md §1, §5)  ✅ done
 

@@ -70,6 +70,9 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
 - LLM gateway: `LLMProvider` (protocol) + `FoundationModelsProvider` +
   `ClaudeCodeProvider` + `LLMRouter` + `Prompts`.
 - Job gateway: `JobSource` (protocol) + `AdzunaJobSource`.
+- Single-posting gateway: `JobPostingSource` (protocol) + `LinkJobPostingSource`
+  (fetch a URL via `HTTPClient` → `HTMLStripper` → LLM `extractPosting` → `JobListing`;
+  fails loudly with `.unreadable` on blocked/empty pages, plus a paste-text path).
 - Search suggestions: `SuggestionProvider` (Data/Search) — profile-seeded starting
   titles + static locations + salary presets; pure, on-device. Common role titles are
   **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
@@ -137,11 +140,11 @@ Taylor'd Portfolio/
                   GenerateApplicationUseCase
     Ranking/      JobRanker
   Data/
-    Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ApplicationKit,
-                  JobQuery, JobSearchRequest, RankedJob
+    Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,
+                  ApplicationKit, JobQuery, JobSearchRequest, RankedJob
     LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
                   LLMRouter, Prompts
-    Jobs/         JobSource, AdzunaJobSource
+    Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
     Search/       SuggestionProvider, RoleTitleStore
     Retrieval/    Retriever            (roadmap)
     Settings/     AppSettings, SettingsStore
@@ -150,6 +153,7 @@ Taylor'd Portfolio/
     Net/          HTTPClient
     Documents/    DocumentTextExtractor, PlatformDocumentTextExtractor
     Config/       AppConfig, BundleAppConfig   (build-time secrets ← Info.plist ← Secrets.xcconfig)
+    Text/         HTMLStripper         (HTML → plain text; used by Data + Presentation)
     Embedding/    EmbeddingClient      (roadmap)
     Store/        KeyValueStore
 ```

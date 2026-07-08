@@ -2,38 +2,11 @@
 //  JobDetailFormattingTests.swift
 //  Taylor'd PortfolioTests
 //
-//  Tests · Presentation · Results — HTML stripping + salary formatting.
+//  Tests · Presentation · Results — salary formatting.
 //
 
 import Testing
 @testable import Taylor_d_Portfolio
-
-@Suite("HTMLStripper")
-struct HTMLStripperTests {
-
-    @Test func stripsTagsAndKeepsText() {
-        let html = "<p>Build <b>native</b> apps.</p>"
-        #expect(HTMLStripper.plainText(html) == "Build native apps.")
-    }
-
-    @Test func turnsBreaksAndBlocksIntoNewlines() {
-        let out = HTMLStripper.plainText("Line one<br>Line two<br/>Line three")
-        #expect(out == "Line one\nLine two\nLine three")
-    }
-
-    @Test func decodesCommonEntities() {
-        #expect(HTMLStripper.plainText("R&amp;D &lt;tags&gt; &quot;quoted&quot; it&#39;s") == "R&D <tags> \"quoted\" it's")
-    }
-
-    @Test func collapsesBlankLinesAndTrims() {
-        let out = HTMLStripper.plainText("<div>A</div><div></div><div></div><div>B</div>")
-        #expect(out == "A\n\nB")
-    }
-
-    @Test func plainTextPassesThroughUnchanged() {
-        #expect(HTMLStripper.plainText("Just plain text.") == "Just plain text.")
-    }
-}
 
 @Suite("SalaryFormatter")
 struct SalaryFormatterTests {

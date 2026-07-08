@@ -64,10 +64,9 @@ breakdown.
       On-device: yes. macOS-only means more users clear the silicon bar than on
       iPhone, but not all — the degrade path is required, not optional.
 
-- [ ] **Job-URL input + AGENT.md-grade generation prompts.** Two linked upgrades,
-      ported from Taylor's hand-built LaTeX résumé agent (`AGENT.md`).
-      **Status: part 2 (structured generation) is done; part 1 (URL input) is still open.**
-      1. **Generate from a job URL.** Accept a posting URL as an input path
+- [x] **Job-URL input + AGENT.md-grade generation prompts.** Two linked upgrades,
+      ported from Taylor's hand-built LaTeX résumé agent (`AGENT.md`). **Both parts done.**
+      1. **✅ Generate from a job URL (done).** Accept a posting URL as an input path
          (alongside the existing keyword search): fetch the page, extract the JD
          fields, and feed them into ranking/generation. If the page is JS-gated,
          paywalled, or blocks fetching, **stop and ask the user to paste the posting

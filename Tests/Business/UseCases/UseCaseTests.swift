@@ -149,4 +149,44 @@ struct UseCaseTests {
         #expect(output.rankedJobs.isEmpty)
         #expect(output.failedTitles.isEmpty)
     }
+
+    // MARK: FetchPostingUseCase (M-A)
+
+    @Test func fetchPostingRanksTheSingleListing() async throws {
+        let source = StubPostingSource(listing: listing("55"))
+        let useCase = FetchPostingUseCase(postingSource: source, ranker: JobRanker(provider: CountingRankProvider()))
+        let ranked = try await useCase(url: URL(string: "https://x.com/j")!, profile: profile)
+        #expect(ranked.id == "55")
+        #expect(ranked.score == 55)          // CountingRankProvider scores by id digits
+    }
+
+    @Test func fetchPostingFallsBackToNeutralWhenUnranked() async throws {
+        // A provider that returns no matches → the listing still comes back, unscored.
+        let source = StubPostingSource(listing: listing("7"))
+        let useCase = FetchPostingUseCase(postingSource: source, ranker: JobRanker(provider: TaggingProvider(tag: "x", matches: [])))
+        let ranked = try await useCase(pastedText: "some posting text", profile: profile)
+        #expect(ranked.id == "7")
+        #expect(ranked.score == 0)
+        #expect(ranked.match.reason == "Not scored.")
+    }
+
+    @Test func fetchPostingPropagatesUnreadable() async {
+        let source = StubPostingSource(error: JobPostingSourceError.unreadable)
+        let useCase = FetchPostingUseCase(postingSource: source, ranker: JobRanker(provider: CountingRankProvider()))
+        await #expect(throws: JobPostingSourceError.unreadable) {
+            _ = try await useCase(url: URL(string: "https://x.com/j")!, profile: profile)
+        }
+    }
+}
+
+/// A `JobPostingSource` that returns a canned listing or throws.
+private struct StubPostingSource: JobPostingSource {
+    var listing: JobListing?
+    var error: Error?
+    func fetchPosting(from url: URL) async throws -> JobListing { try result() }
+    func extractPosting(fromText text: String, sourceURL: URL?) async throws -> JobListing { try result() }
+    private func result() throws -> JobListing {
+        if let error { throw error }
+        return listing ?? JobListing(id: "x", title: "t", company: "c", location: "l", description: "d")
+    }
 }

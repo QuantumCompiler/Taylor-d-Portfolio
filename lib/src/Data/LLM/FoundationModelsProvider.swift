@@ -33,6 +33,14 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         return batch.matches
     }
 
+    func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
+        try await client.respond(
+            to: Prompts.extractPosting(pageText: pageText),
+            generating: ExtractedPosting.self,
+            instructions: Prompts.extractInstructions
+        )
+    }
+
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await client.respond(
             to: Prompts.buildTargetBrief(job: job),

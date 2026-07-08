@@ -52,6 +52,10 @@ struct Composition {
         SettingsBackedJobSource(config: appConfig, store: settingsStore, http: httpClient)
     }
 
+    private var jobPostingSource: any JobPostingSource {
+        LinkJobPostingSource(http: httpClient, extractor: llmProvider)
+    }
+
     // MARK: Use cases
 
     private var buildProfile: BuildProfileUseCase { .init(provider: llmProvider) }
@@ -60,6 +64,9 @@ struct Composition {
         .init(jobSource: jobSource, ranker: JobRanker(provider: llmProvider))
     }
     private var generateApplication: GenerateApplicationUseCase { .init(provider: llmProvider) }
+    private var fetchPosting: FetchPostingUseCase {
+        .init(postingSource: jobPostingSource, ranker: JobRanker(provider: llmProvider))
+    }
 
     // MARK: ViewModel factories
 
@@ -71,6 +78,7 @@ struct Composition {
             searchAndRank: searchAndRank,
             suggestions: SuggestionProvider(),
             roleTitleStore: RoleTitleStore(store: UserDefaultsStore()),
+            fetchPosting: fetchPosting,
             adzunaConfigured: isAdzunaConfigured
         )
     }
@@ -103,6 +111,9 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     }
     func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] {
         try await router().rank(jobs: jobs, against: profile)
+    }
+    func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
+        try await router().extractPosting(fromPageText: pageText)
     }
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await router().buildTargetBrief(for: job)

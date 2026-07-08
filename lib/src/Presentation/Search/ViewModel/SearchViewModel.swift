@@ -29,6 +29,12 @@ final class SearchViewModel {
     /// Selected salary floor (a preset bracket), or `nil` for "Any".
     var salaryMin: Int?
 
+    /// A job-posting URL to generate from directly (Milestone M-A).
+    var postingURL: String = ""
+    /// Pasted posting text — the fallback when a page can't be fetched.
+    var pastedPosting: String = ""
+    private(set) var isFetchingLink = false
+
     /// The user's persisted library of common role titles, shown as toggle tiles.
     private(set) var commonRoleTitles: [String] = []
     /// Which common role titles are toggled on (searched alongside the chips).
@@ -56,19 +62,25 @@ final class SearchViewModel {
     private let searchAndRank: SearchAndRankUseCase
     private let suggestions: SuggestionProvider
     private let roleTitleStore: RoleTitleStore
+    private let fetchPosting: FetchPostingUseCase?
 
     init(
         searchAndRank: SearchAndRankUseCase,
         suggestions: SuggestionProvider = SuggestionProvider(),
         roleTitleStore: RoleTitleStore,
+        fetchPosting: FetchPostingUseCase? = nil,
         adzunaConfigured: Bool = true
     ) {
         self.searchAndRank = searchAndRank
         self.suggestions = suggestions
         self.roleTitleStore = roleTitleStore
+        self.fetchPosting = fetchPosting
         self.adzunaConfigured = adzunaConfigured
         self.commonRoleTitles = roleTitleStore.load()
     }
+
+    /// Whether the "generate from a link" affordance is wired in this build.
+    var canUseLink: Bool { fetchPosting != nil }
 
     var hasProfile: Bool { profile != nil }
 
@@ -152,6 +164,68 @@ final class SearchViewModel {
     /// Whether `title` is already in the persisted library (drives the chip's affordance).
     func isCommonRoleTitle(_ title: String) -> Bool {
         commonRoleTitles.contains { $0.lowercased() == title.lowercased() }
+    }
+
+    // MARK: From a link / pasted text (M-A)
+
+    /// Whether the "Fetch" action can run (link wired, profile present, URL entered).
+    var canFetchLink: Bool {
+        canUseLink && hasProfile && !isFetchingLink
+            && !postingURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Fetches a posting from `postingURL`, ranks it, and pushes it into the results
+    /// flow. Independent of Adzuna (uses HTTP + the LLM, not the job search API).
+    func fetchFromLink() async {
+        guard let fetchPosting else { return }
+        guard let profile else {
+            errorMessage = "Build your profile on the Portfolio tab first."
+            return
+        }
+        let raw = postingURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: raw), url.scheme == "http" || url.scheme == "https" else {
+            errorMessage = "Enter a valid http(s) link to a job posting."
+            return
+        }
+        isFetchingLink = true
+        errorMessage = nil
+        warningMessage = nil
+        defer { isFetchingLink = false }
+        do {
+            results = [try await fetchPosting(url: url, profile: profile)]
+        } catch is JobPostingSourceError {
+            errorMessage = "Couldn't read that posting — the page may need a login or block automated access. "
+                + "Paste the posting text below and use “Generate from pasted text” instead."
+        } catch {
+            errorMessage = Self.message(for: error)
+        }
+    }
+
+    /// Extracts a posting from `pastedPosting` (the fallback for un-fetchable pages),
+    /// ranks it, and pushes it into the results flow.
+    func generateFromPastedText() async {
+        guard let fetchPosting else { return }
+        guard let profile else {
+            errorMessage = "Build your profile on the Portfolio tab first."
+            return
+        }
+        let text = pastedPosting.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            errorMessage = "Paste the job posting text first."
+            return
+        }
+        isFetchingLink = true
+        errorMessage = nil
+        warningMessage = nil
+        defer { isFetchingLink = false }
+        do {
+            let sourceURL = URL(string: postingURL.trimmingCharacters(in: .whitespacesAndNewlines))
+            results = [try await fetchPosting(pastedText: text, sourceURL: sourceURL, profile: profile)]
+        } catch is JobPostingSourceError {
+            errorMessage = "That didn't look like a job posting — make sure you pasted the full description."
+        } catch {
+            errorMessage = Self.message(for: error)
+        }
     }
 
     // MARK: Search

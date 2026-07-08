@@ -42,6 +42,10 @@ nonisolated struct LLMRouter: LLMProvider {
         try await run { try await $0.rank(jobs: jobs, against: profile) }
     }
 
+    func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
+        try await run { try await $0.extractPosting(fromPageText: pageText) }
+    }
+
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await run { try await $0.buildTargetBrief(for: job) }
     }

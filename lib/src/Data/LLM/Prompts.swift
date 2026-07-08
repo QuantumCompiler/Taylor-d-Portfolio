@@ -18,6 +18,8 @@ nonisolated enum Prompts {
     /// Character caps to respect the on-device model's limited context window.
     static let maxPortfolioCharacters = 6_000
     static let maxDescriptionCharacters = 2_000
+    /// Cap on the (stripped) web-page text fed to posting extraction.
+    static let maxPageCharacters = 12_000
 
     // MARK: Build profile
 
@@ -75,6 +77,30 @@ nonisolated enum Prompts {
 
         Jobs:
         \(jobsBlock)
+        """
+    }
+
+    // MARK: Extract posting (from a URL / pasted text)
+
+    static let extractInstructions =
+        "You extract the key facts of a SINGLE job posting from the raw text of a web page, ignoring " +
+        "navigation, ads, cookie notices, and other boilerplate. Use only what the text states — never " +
+        "invent a role. If the text isn't a real job posting, return empty strings."
+
+    /// Distils the (stripped) text of a job-posting page into an ``ExtractedPosting``.
+    static func extractPosting(pageText: String) -> String {
+        """
+        From the web-page text below, extract this one job posting:
+        - title: the exact job title
+        - company: the hiring company's name
+        - location: the location (or "Remote")
+        - description: a clean, readable summary — responsibilities, requirements, and tech stack
+
+        If the text does not contain a real job posting (e.g. it's a login wall, an error page,
+        or a list of many jobs), return empty strings for every field.
+
+        Page text:
+        \(truncate(pageText, to: maxPageCharacters))
         """
     }
 

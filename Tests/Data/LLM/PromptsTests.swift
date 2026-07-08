@@ -58,6 +58,28 @@ struct PromptsTests {
         #expect(prompt.contains("…"))
     }
 
+    // MARK: Extract posting
+
+    @Test func extractPostingPromptAsksForFieldsAndIncludesPageText() {
+        let prompt = Prompts.extractPosting(pageText: "SEED_PAGE_TEXT")
+        #expect(prompt.contains("SEED_PAGE_TEXT"))
+        #expect(prompt.contains("title"))
+        #expect(prompt.contains("company"))
+        #expect(prompt.contains("location"))
+        #expect(prompt.contains("description"))
+    }
+
+    @Test func extractPostingBoundsLongPages() {
+        let huge = String(repeating: "z", count: Prompts.maxPageCharacters + 1_000)
+        let prompt = Prompts.extractPosting(pageText: huge)
+        #expect(!prompt.contains(huge))
+        #expect(prompt.contains("…"))
+    }
+
+    @Test func extractInstructionsForbidInvention() {
+        #expect(Prompts.extractInstructions.lowercased().contains("never invent"))
+    }
+
     // MARK: Target brief (stage 1)
 
     @Test func buildTargetBriefPromptAsksForBriefFieldsAndIncludesPosting() {

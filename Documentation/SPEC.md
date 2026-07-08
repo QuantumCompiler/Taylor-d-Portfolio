@@ -29,6 +29,11 @@ Four stages, run locally on the user's Mac:
 4. **Apply → generate.** When the user taps "Apply" on a job, the app generates
    a tailored resume and cover letter grounded strictly in the real portfolio.
 
+Alongside search, the user can also paste a **specific job-posting URL** (or the
+posting text, when a page can't be fetched); the app extracts it into the same
+ranked-listing flow. If a page is JS-gated, paywalled, or blocks fetching, the app
+says so and asks for the pasted text rather than guessing a role.
+
 ## v1 scope (in)
 
 - Portfolio input (paste text, or import a PDF / Word / RTF / text file) → structured profile

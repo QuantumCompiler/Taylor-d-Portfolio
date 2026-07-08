@@ -34,6 +34,14 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         return batch.matches
     }
 
+    func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
+        try await generateJSON(
+            prompt: Prompts.extractPosting(pageText: pageText),
+            instructions: Prompts.extractInstructions,
+            as: ExtractedPosting.self
+        )
+    }
+
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await generateJSON(
             prompt: Prompts.buildTargetBrief(job: job),

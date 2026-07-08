@@ -90,6 +90,19 @@ struct DomainModelTests {
         #expect(decoded == kit)
     }
 
+    @Test func extractedPostingRoundTripsAndMapsToListing() throws {
+        let posting = ExtractedPosting(title: "iOS Engineer", company: "Acme", location: "Remote", description: "Swift + SwiftUI.")
+        #expect(try roundTrip(posting) == posting)
+        #expect(posting.looksReal)
+        #expect(ExtractedPosting(title: "", company: "", location: "", description: "x").looksReal == false)
+
+        let url = URL(string: "https://example.com/jobs/1")!
+        let listing = posting.toListing(sourceURL: url)
+        #expect(listing.id == url.absoluteString)
+        #expect(listing.url == url)
+        #expect(listing.title == "iOS Engineer")
+    }
+
     @Test func targetBriefRoundTrips() throws {
         let brief = TargetBrief(
             company: "Acme",

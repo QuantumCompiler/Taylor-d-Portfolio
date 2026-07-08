@@ -66,9 +66,45 @@ struct SearchView: View {
                     .font(.callout).foregroundStyle(.green)
             }
 
+            if viewModel.canUseLink {
+                Divider()
+                linkSection
+            }
+
             Spacer()
         }
         .padding(24)
+    }
+
+    // MARK: From a link (M-A)
+
+    private var linkSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Or generate from a specific posting").font(.headline)
+            HStack {
+                TextField("Paste a job-posting URL", text: $viewModel.postingURL)
+                    .textFieldStyle(.roundedBorder)
+                Button(action: { Task { await viewModel.fetchFromLink() } }) {
+                    if viewModel.isFetchingLink {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text("Fetch")
+                    }
+                }
+                .disabled(!viewModel.canFetchLink)
+            }
+            DisclosureGroup("Page won’t load? Paste the posting text") {
+                VStack(alignment: .leading, spacing: 6) {
+                    TextEditor(text: $viewModel.pastedPosting)
+                        .frame(minHeight: 100)
+                        .border(.quaternary)
+                    Button("Generate from pasted text") {
+                        Task { await viewModel.generateFromPastedText() }
+                    }
+                    .disabled(!viewModel.hasProfile || viewModel.isFetchingLink)
+                }
+            }
+        }
     }
 
     // MARK: Titles (chips + input + suggestions)
