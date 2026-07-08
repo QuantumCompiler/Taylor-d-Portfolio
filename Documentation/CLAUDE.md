@@ -131,7 +131,7 @@ Taylor'd Portfolio/
       View/           the SwiftUI view(s)                  — LandingView
       ViewModel/      the @MainActor @Observable ViewModel — LandingViewModel
     Portfolio/, Search/, Results/, Application/, Settings/  (same View/ + ViewModel/ shape;
-                  e.g. Results/View holds ResultsView + RankedRow, Application/View the sheet)
+                  e.g. Results/View holds ResultsView + RankedRow + JobDetailView, Application/View the sheet)
   Business/
     UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
                   GenerateApplicationUseCase

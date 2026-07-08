@@ -122,11 +122,12 @@ breakdown.
       continue with the successful ones and surface a soft note rather than fail the whole
       run). Composes with M's URL input — a URL-extracted posting can pre-fill a title chip.
 
-- [ ] **Save pulled listings + a job-detail view.** Persist what a search pulls down —
+- [ ] **Save pulled listings + a job-detail view.** **Status: the job-detail view (part 1)
+      is done; persistence (parts 2–3) is still open.** Persist what a search pulls down —
       each `JobListing` (full description, salary, original URL) and its `JobMatch`
       (score, reason, matched/missing skills) — and give the user a way to read the full
       job description from the UI. Two parts:
-      1. **Job-detail view (Presentation).** Tapping a result opens a detail view showing
+      1. **✅ Job-detail view (Presentation) (done).** Tapping a result opens a detail view showing
          the full description, salary, a "View original posting" link (`JobListing.url`),
          and the match score/reason + matched/missing skills. This closes a real gap —
          the pulled `description` currently isn't shown anywhere. Works in-session with no

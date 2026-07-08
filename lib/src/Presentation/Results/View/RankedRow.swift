@@ -27,7 +27,7 @@ struct RankedRow: View {
 }
 
 /// A circular 0–100 fit-score badge, coloured by band.
-private struct ScoreBadge: View {
+struct ScoreBadge: View {
     let score: Int
 
     var body: some View {

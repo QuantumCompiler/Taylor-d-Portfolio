@@ -12,9 +12,9 @@ milestone.
 
 > **Current focus:** v1 core is **complete** (Milestones A–J done + document import).
 > Now working **v2 — reliability**. Done so far: **K** (build-time Adzuna creds),
-> **M-B** (two-stage structured generation), **N** (multi-title search + field autocomplete).
-> Next per the suggested order is **Milestone O-A** (job-detail view — read the full JD from
-> the UI; needs no persistence, ships on its own), then M-A → O-B → O-C → P. Other
+> **M-B** (two-stage structured generation), **N** (multi-title search + field autocomplete),
+> **O-A** (job-detail view). Next per the suggested order is **Milestone M-A** (generate from a
+> job-posting URL — new `JobPostingSource` seam), then O-B → O-C → P. Other
 > largely-independent milestones: **Milestone L** (prefer AFM 3 Core Advanced) is gated on spike **L0** — confirm
 > whether an app can select/verify the Core Advanced tier before building on it;
 > **Milestone M** (job-URL input + AGENT.md-grade generation prompts) can start with
@@ -402,7 +402,7 @@ Note: N-A and N-B are separable — N-A (multi-search) delivers value even with 
 text field; N-B (autocomplete) helps single or multi search. Composes with Milestone M:
 a URL-extracted posting (M-A) can pre-fill a title chip here.
 
-## Milestone O — Save pulled listings + job-detail view  (Presentation detail view; Infrastructure persistence + `Data` repository)
+## Milestone O — Save pulled listings + job-detail view  — O-A ✅ done; O-B/O-C open  (Presentation detail view; Infrastructure persistence + `Data` repository)
 
 Goal: persist what a search pulls down (each `JobListing` + its `JobMatch`) and let the
 user **read the full job description from the UI**. Closes a real gap — the pulled
@@ -410,23 +410,23 @@ user **read the full job description from the UI**. Closes a real gap — the pu
 the match reason). O-A is the viewing part (in-session, no persistence); O-B is the
 persistence part (the first concrete slice of the SwiftData fast-follow).
 
-### O-A — Job-detail view (Presentation; no persistence needed)
+### O-A — Job-detail view (Presentation; no persistence needed)  ✅ done
 
-- [ ] **`JobDetailView`.** A read-only detail screen/sheet for one `RankedJob`: full
-      `JobListing.description`, `salary` (via `SalaryRange`), a "View original posting"
-      link when `JobListing.url` is present, and the match score/reason + matched/missing
-      skills from `JobMatch`. Pure display — can be VM-less (value-driven) or a tiny VM if
-      it grows actions (save/unsave, open link).
-- [ ] **Wire into Results.** From `ResultsView`, tapping a row opens the detail (a sheet,
-      or a `NavigationSplitView` detail pane on macOS). Keep the existing "generate
-      application" action reachable from the detail (it already lives in `ApplicationSheet`).
-      If saved materials exist for the job (O-C), show them here and offer "view" (no
-      regeneration) alongside "regenerate."
-- [ ] **HTML handling.** Adzuna descriptions can contain HTML — render readable text
-      (strip/convert on display, or on ingest; decide once and note it). Guard against
-      empty/very long descriptions in layout.
-- [ ] **Tests / previews.** Detail view `#Preview` with `Preview.sampleRankedJobs`; if a
-      VM is added, a small `@MainActor @Suite` for it.
+- [x] **`JobDetailView`.** A read-only, value-driven detail sheet for one `RankedJob`:
+      full `JobListing.description`, `salary` (via `SalaryFormatter`/`SalaryRange`), a
+      "View original posting" `Link` when `JobListing.url` is present, and the match
+      score/reason + matched/missing skills (skill capsules). Reuses `ScoreBadge`.
+- [x] **Wire into Results.** `ResultsView`'s row tap now opens `JobDetailView` (the
+      `selectedJob` sheet). The "generate application" action stays reachable — a
+      "Generate résumé & cover letter" button in the detail presents `ApplicationSheet`
+      (disabled until a profile exists). (Saved-materials "view vs regenerate" is O-C.)
+- [x] **HTML handling.** Decided: **strip on display.** `HTMLStripper.plainText` (pure,
+      unit-tested) turns Adzuna markup into readable text (`<br>`/block tags → newlines,
+      tags removed, common entities decoded, blank lines collapsed); the domain
+      `JobListing.description` stays raw. Empty descriptions show a placeholder.
+- [x] **Tests / previews.** `JobDetailView` `#Preview` with `Preview.sampleRankedJobs`;
+      `JobDetailFormattingTests` cover `HTMLStripper` + `SalaryFormatter` (no VM added, so
+      no VM suite). Full suite green.
 
 ### O-B — Persist searched listings (first SwiftData slice)
 

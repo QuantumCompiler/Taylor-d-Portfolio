@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-/// The ranked results list. Tapping a job opens the Application sheet.
+/// The ranked results list. Tapping a job opens its detail view (from which the
+/// user can read the full posting and generate an application).
 struct ResultsView: View {
     @Bindable var viewModel: ResultsViewModel
     let profile: CandidateProfile?
@@ -31,9 +32,7 @@ struct ResultsView: View {
         }
         .navigationTitle("Results")
         .sheet(item: $viewModel.selectedJob) { ranked in
-            if let profile {
-                ApplicationSheet(viewModel: applicationViewModel, job: ranked.listing, profile: profile)
-            }
+            JobDetailView(ranked: ranked, profile: profile, applicationViewModel: applicationViewModel)
         }
     }
 }
