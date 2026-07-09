@@ -41,6 +41,13 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         )
     }
 
+    func tidyDocument(rawText: String) async throws -> String {
+        try await client.generate(
+            prompt: Prompts.tidyDocument(rawText: rawText),
+            instructions: Prompts.tidyInstructions
+        )
+    }
+
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await client.respond(
             to: Prompts.buildTargetBrief(job: job),

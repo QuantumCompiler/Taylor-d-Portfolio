@@ -42,6 +42,15 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         )
     }
 
+    /// Plain-text task (no JSON envelope): ask the engine to reflow the document and
+    /// return its text directly.
+    func tidyDocument(rawText: String) async throws -> String {
+        try await generator.generate(
+            prompt: Prompts.tidyDocument(rawText: rawText),
+            instructions: Prompts.tidyInstructions
+        )
+    }
+
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await generateJSON(
             prompt: Prompts.buildTargetBrief(job: job),

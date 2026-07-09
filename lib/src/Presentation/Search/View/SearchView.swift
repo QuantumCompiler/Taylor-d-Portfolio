@@ -16,6 +16,10 @@ struct SearchView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Search").font(.largeTitle.bold())
 
+            if viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty {
+                profilePicker
+            }
+
             titlesSection
 
             Form {
@@ -74,6 +78,27 @@ struct SearchView: View {
             Spacer()
         }
         .padding(24)
+        .task { await viewModel.reloadProfiles() }
+    }
+
+    // MARK: Profile selection
+
+    /// Picks which saved profile the search runs against.
+    private var profilePicker: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Profile").font(.headline)
+            Picker("Profile", selection: $viewModel.selectedProfileID) {
+                if viewModel.selectedProfileID == nil {
+                    Text("Current (unsaved)").tag(String?.none)
+                }
+                ForEach(viewModel.savedProfiles) { saved in
+                    Text(saved.name).tag(String?.some(saved.id))
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .fixedSize()
+        }
     }
 
     // MARK: From a link (M-A)

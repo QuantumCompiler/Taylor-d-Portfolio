@@ -54,6 +54,12 @@ nonisolated struct LLMRouter: LLMProvider {
         try await run(.extraction) { try await $0.extractPosting(fromPageText: pageText) }
     }
 
+    /// Tidying the source document uses the SAME engine that builds the profile — it's
+    /// the reading step for the same portfolio — so it routes through `.profile`.
+    func tidyDocument(rawText: String) async throws -> String {
+        try await run(.profile) { try await $0.tidyDocument(rawText: rawText) }
+    }
+
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await run(.application) { try await $0.buildTargetBrief(for: job) }
     }

@@ -91,6 +91,19 @@ struct ClaudeCodeProviderTests {
         #expect(prompt.contains("## Why Acme"))
     }
 
+    @Test func tidyDocumentReturnsRawTextWithoutJSONEnvelope() async throws {
+        let gen = RecordingGenerator("Cleaned up resume text.")
+        let provider = ClaudeCodeProvider(generator: gen)
+
+        let tidied = try await provider.tidyDocument(rawText: "MESSY\nPDF   TEXT")
+        #expect(tidied == "Cleaned up resume text.")   // returned verbatim, not JSON-decoded
+
+        let calls = await gen.calls
+        #expect(calls[0].instructions == Prompts.tidyInstructions)
+        #expect(calls[0].prompt.contains("MESSY"))
+        #expect(!calls[0].prompt.contains(Prompts.jsonOnlySuffix))   // plain-text task
+    }
+
     @Test func invalidJSONThrowsDecodingFailed() async {
         let provider = ClaudeCodeProvider(generator: RecordingGenerator("not json at all"))
         await #expect(throws: LLMProviderError.decodingFailed("not json at all")) {

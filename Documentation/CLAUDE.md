@@ -82,10 +82,20 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
   (fetch a URL via `HTTPClient` → `HTMLStripper` → LLM `extractPosting` → `JobListing`;
   fails loudly with `.unreadable` on blocked/empty pages, plus a paste-text path).
 - Persistence: `SavedJobsRepository` + `SavedApplicationsRepository` +
-  `SavedStatusRepository` (Data/Persistence) map domain `RankedJob` / `ApplicationKit` /
-  `ApplicationStatus` ↔ the Infrastructure record store's blobs (upsert by `JobListing.id`;
-  each under its own `kind`), so pulled listings + matches, generated materials, and
-  application statuses survive relaunch. `@Model` never leaves Infrastructure.
+  `SavedStatusRepository` + `SavedProfilesRepository` (Data/Persistence) map domain
+  `RankedJob` / `ApplicationKit` / `ApplicationStatus` / `SavedProfile` ↔ the
+  Infrastructure record store's blobs (upsert by id — `JobListing.id`, or `SavedProfile.id`
+  for profiles; each under its own `kind`), so pulled listings + matches, generated
+  materials, application statuses, and **named profiles** survive relaunch. `@Model` never
+  leaves Infrastructure. A built `CandidateProfile` is saved as a named `SavedProfile`
+  (Save/Update on the Portfolio tab) and re-selected at build or search time via
+  `SaveProfileUseCase` / `LoadProfilesUseCase` / `DeleteProfileUseCase` — no regeneration.
+  A `SavedProfile` also pairs the **source document** it was built on: `sourceFileName`,
+  the raw `sourceText`, and a `readableText` — the raw import reflowed into clean plain
+  text by `TidyDocumentUseCase` (`LLMProvider.tidyDocument`, routed through the `.profile`
+  task so it uses the same engine that built the profile). Viewable with the profile on
+  the Portfolio tab. `SavedProfile` decodes legacy blobs (document fields default) so older
+  saves still load.
 - Search suggestions: `SuggestionProvider` (Data/Search) — profile-seeded starting
   titles + static locations + salary presets; pure, on-device. Common role titles are
   **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
@@ -174,7 +184,7 @@ Taylor'd Portfolio/
                   LLMRouter, LLMChoice, LLMTask, TaskEngineConfig, ClaudeModel, Prompts
     Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
     Search/       SuggestionProvider, RoleTitleStore
-    Persistence/  SavedJobsRepository, SavedApplicationsRepository   (domain ↔ PersistentRecordStore blobs)
+    Persistence/  SavedJobsRepository, SavedApplicationsRepository, SavedStatusRepository, SavedProfilesRepository   (domain ↔ PersistentRecordStore blobs)
     Retrieval/    Retriever            (roadmap)
     Settings/     AppSettings (per-task engine map), SettingsStore
   Infrastructure/

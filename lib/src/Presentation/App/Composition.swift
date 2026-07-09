@@ -60,6 +60,9 @@ struct Composition {
     private var savedStatusRepository: SavedStatusRepository? {
         recordStore.map(SavedStatusRepository.init(store:))
     }
+    private var savedProfilesRepository: SavedProfilesRepository? {
+        recordStore.map(SavedProfilesRepository.init(store:))
+    }
 
     /// Status use cases (nil when persistence is unavailable) — read by the detail view.
     var markStatus: MarkStatusUseCase? { savedStatusRepository.map { MarkStatusUseCase(repository: $0) } }
@@ -87,6 +90,7 @@ struct Composition {
 
     private var buildProfile: BuildProfileUseCase { .init(provider: llmProvider) }
     private var importPortfolio: ImportPortfolioUseCase { .init(extractor: documentExtractor) }
+    private var tidyDocument: TidyDocumentUseCase { .init(provider: llmProvider) }
     private var searchAndRank: SearchAndRankUseCase {
         .init(jobSource: jobSource, ranker: JobRanker(provider: llmProvider))
     }
@@ -100,11 +104,27 @@ struct Composition {
     private var loadSavedJobs: LoadSavedJobsUseCase? {
         savedJobsRepository.map(LoadSavedJobsUseCase.init(repository:))
     }
+    private var saveProfile: SaveProfileUseCase? {
+        savedProfilesRepository.map { SaveProfileUseCase(repository: $0) }
+    }
+    private var loadProfiles: LoadProfilesUseCase? {
+        savedProfilesRepository.map(LoadProfilesUseCase.init(repository:))
+    }
+    private var deleteProfile: DeleteProfileUseCase? {
+        savedProfilesRepository.map(DeleteProfileUseCase.init(repository:))
+    }
 
     // MARK: ViewModel factories
 
     func makePortfolioViewModel() -> PortfolioViewModel {
-        .init(buildProfile: buildProfile, importPortfolio: importPortfolio)
+        .init(
+            buildProfile: buildProfile,
+            importPortfolio: importPortfolio,
+            tidyDocument: tidyDocument,
+            saveProfile: saveProfile,
+            loadProfiles: loadProfiles,
+            deleteProfile: deleteProfile
+        )
     }
     func makeSearchViewModel() -> SearchViewModel {
         .init(
@@ -113,6 +133,7 @@ struct Composition {
             roleTitleStore: RoleTitleStore(store: UserDefaultsStore()),
             fetchPosting: fetchPosting,
             saveResults: saveResults,
+            loadProfiles: loadProfiles,
             adzunaConfigured: isAdzunaConfigured
         )
     }
@@ -167,6 +188,9 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     }
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         try await router().extractPosting(fromPageText: pageText)
+    }
+    func tidyDocument(rawText: String) async throws -> String {
+        try await router().tidyDocument(rawText: rawText)
     }
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await router().buildTargetBrief(for: job)

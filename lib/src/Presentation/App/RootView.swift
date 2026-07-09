@@ -75,9 +75,13 @@ struct RootView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(MainTab.settings)
         }
-        // Profile built on Portfolio flows into Search…
+        // Profile built or selected on Portfolio flows into Search…
         .onChange(of: portfolio.profile) { _, newProfile in
             search.profile = newProfile
+        }
+        // …and saving/deleting a profile on Portfolio refreshes Search's picker.
+        .onChange(of: portfolio.savedProfiles) { _, _ in
+            Task { await search.reloadProfiles() }
         }
         // …and search results flow into the Results tab (and jump there).
         .onChange(of: search.results) { _, newResults in

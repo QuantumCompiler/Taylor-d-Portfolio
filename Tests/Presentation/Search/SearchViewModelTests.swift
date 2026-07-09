@@ -222,4 +222,57 @@ struct SearchViewModelTests {
         #expect(vm.results.isEmpty)
         #expect(vm.errorMessage != nil)          // a message is surfaced, not a silent failure
     }
+
+    // MARK: Saved-profile selection
+
+    /// A VM whose saved-profile library is prepopulated with `profiles`.
+    private func makeVMWithProfiles(_ profiles: [SavedProfile]) async -> SearchViewModel {
+        let repo = SavedProfilesRepository(store: InMemoryRecordStore())
+        for saved in profiles { try? await repo.save(saved) }
+        let useCase = SearchAndRankUseCase(
+            jobSource: PresentationStubJobSource(jobs: []),
+            ranker: JobRanker(provider: PresentationStubProvider())
+        )
+        return SearchViewModel(
+            searchAndRank: useCase,
+            roleTitleStore: RoleTitleStore(store: PresentationMemoryStore()),
+            loadProfiles: LoadProfilesUseCase(repository: repo)
+        )
+    }
+
+    private func savedProfile(_ id: String, titles: [String]) -> SavedProfile {
+        SavedProfile(
+            id: id, name: "Profile \(id)",
+            profile: CandidateProfile(seniority: "S", yearsExperience: 1, coreSkills: [],
+                                      domains: [], targetTitles: titles, summary: ""),
+            createdAt: Date(timeIntervalSince1970: 0)
+        )
+    }
+
+    @Test func reloadProfilesPopulatesLibrary() async {
+        let vm = await makeVMWithProfiles([savedProfile("a", titles: ["iOS Engineer"])])
+        #expect(vm.savedProfiles.isEmpty)          // not loaded until asked
+        await vm.reloadProfiles()
+        #expect(vm.savedProfiles.map(\.id) == ["a"])
+        #expect(vm.supportsSavedProfiles)
+    }
+
+    @Test func selectingASavedProfileSetsProfileAndSeedsTitles() async {
+        let vm = await makeVMWithProfiles([savedProfile("a", titles: ["iOS Engineer", "Swift Dev"])])
+        await vm.reloadProfiles()
+
+        vm.selectedProfileID = "a"
+        #expect(vm.hasProfile)
+        #expect(vm.selectedProfileID == "a")       // getter reflects the active profile
+        #expect(vm.titles.contains("iOS Engineer")) // chips seeded from the selected profile
+    }
+
+    @Test func selectedProfileIDIsNilForAnUnsavedProfile() async {
+        let vm = await makeVMWithProfiles([savedProfile("a", titles: ["iOS Engineer"])])
+        await vm.reloadProfiles()
+        // An externally-set profile that isn't in the library reads as "unsaved".
+        vm.profile = CandidateProfile(seniority: "X", yearsExperience: 0, coreSkills: [],
+                                      domains: [], targetTitles: [], summary: "")
+        #expect(vm.selectedProfileID == nil)
+    }
 }

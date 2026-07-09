@@ -42,6 +42,32 @@ nonisolated enum Prompts {
         """
     }
 
+    // MARK: Tidy document (make imported text readable)
+
+    static let tidyInstructions =
+        "You reformat a document's raw, machine-extracted text into clean, readable plain text. " +
+        "You preserve every fact, name, employer, title, date, number, and bullet EXACTLY — never add, " +
+        "remove, invent, reorder, or summarize content. You only repair layout."
+
+    /// Reflows the raw extracted text of an imported document (often a PDF, whose text
+    /// comes out with broken lines and artifacts) into readable plain text — same
+    /// content, better structure. Used to pair a readable source with a saved profile.
+    static func tidyDocument(rawText: String) -> String {
+        """
+        Reformat the raw document text below into clean, readable plain text.
+
+        Rules:
+        - Keep ALL original content — every role, employer, date, skill, number, and bullet. Never summarize or drop anything.
+        - Repair words split across line breaks (e.g. "engi-\nneer" → "engineer") and join lines that belong to the same sentence or bullet.
+        - Remove extraction artifacts: repeated page headers/footers, page numbers, and stray symbols.
+        - Restore structure: a blank line between sections, one bullet per line, and clear headings.
+        - Output ONLY the cleaned text — no commentary, no preamble, no code fences.
+
+        Raw document text:
+        \(truncate(rawText, to: maxPortfolioCharacters))
+        """
+    }
+
     // MARK: Rank
 
     static let rankInstructions =

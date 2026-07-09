@@ -25,6 +25,10 @@ protocol LLMProvider: Sendable {
     /// implement it (the router forwards to a real engine).
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting
 
+    /// Reflows an imported document's raw extracted text into readable plain text (same
+    /// facts, repaired layout). Has a throwing default, so only real engines implement it.
+    func tidyDocument(rawText: String) async throws -> String
+
     /// Stage 1 of generation: distils a posting into a structured ``TargetBrief``.
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief
 
@@ -38,6 +42,11 @@ extension LLMProvider {
     /// override this; stubs that don't need it inherit the default. Because it's a
     /// protocol requirement, calls through `any LLMProvider` still dispatch to overrides.
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
+        throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: document tidying isn't supported. Real engines override this.
+    func tidyDocument(rawText: String) async throws -> String {
         throw LLMProviderError.noProviderAvailable
     }
 }

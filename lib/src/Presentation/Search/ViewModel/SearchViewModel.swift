@@ -40,6 +40,9 @@ final class SearchViewModel {
     /// Which common role titles are toggled on (searched alongside the chips).
     private(set) var selectedCommonTitles: [String] = []
 
+    /// The saved-profile library the user can search against, newest first.
+    private(set) var savedProfiles: [SavedProfile] = []
+
     var profile: CandidateProfile? {
         didSet {
             guard profile != oldValue else { return }
@@ -64,6 +67,7 @@ final class SearchViewModel {
     private let roleTitleStore: RoleTitleStore
     private let fetchPosting: FetchPostingUseCase?
     private let saveResults: SaveResultsUseCase?
+    private let loadProfiles: LoadProfilesUseCase?
 
     init(
         searchAndRank: SearchAndRankUseCase,
@@ -71,6 +75,7 @@ final class SearchViewModel {
         roleTitleStore: RoleTitleStore,
         fetchPosting: FetchPostingUseCase? = nil,
         saveResults: SaveResultsUseCase? = nil,
+        loadProfiles: LoadProfilesUseCase? = nil,
         adzunaConfigured: Bool = true
     ) {
         self.searchAndRank = searchAndRank
@@ -78,8 +83,35 @@ final class SearchViewModel {
         self.roleTitleStore = roleTitleStore
         self.fetchPosting = fetchPosting
         self.saveResults = saveResults
+        self.loadProfiles = loadProfiles
         self.adzunaConfigured = adzunaConfigured
         self.commonRoleTitles = roleTitleStore.load()
+    }
+
+    // MARK: Saved-profile selection
+
+    /// Whether the saved-profile picker should be offered in this build.
+    var supportsSavedProfiles: Bool { loadProfiles != nil }
+
+    /// The id of the saved profile matching the active `profile`, or `nil` when the
+    /// active profile isn't one of the saved ones (e.g. a freshly-built, unsaved one).
+    /// Drives the profile `Picker`; setting it selects that saved profile.
+    var selectedProfileID: String? {
+        get { savedProfiles.first { $0.profile == profile }?.id }
+        set { selectSavedProfile(newValue) }
+    }
+
+    /// Loads the saved-profile library (call on appear). No-op when unavailable.
+    func reloadProfiles() async {
+        guard let loadProfiles else { return }
+        savedProfiles = (try? await loadProfiles()) ?? savedProfiles
+    }
+
+    /// Sets the active search profile to the saved profile with `id` (nil is ignored,
+    /// so the picker can't clear an existing selection to "nothing").
+    func selectSavedProfile(_ id: String?) {
+        guard let id, let saved = savedProfiles.first(where: { $0.id == id }) else { return }
+        profile = saved.profile
     }
 
     /// Persists the current results (best-effort — a persistence failure never breaks

@@ -24,6 +24,11 @@ private struct StubLLMProvider: LLMProvider {
         )
     }
 
+    func tidyDocument(rawText: String) async throws -> String {
+        if fails { throw Boom() }
+        return tag
+    }
+
     func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] {
         if fails { throw Boom() }
         return [JobMatch(jobId: tag, score: 0, reason: "", matchedSkills: [], missingSkills: [])]
@@ -131,6 +136,20 @@ struct LLMRouterTests {
         let job = JobListing(id: "a", title: "t", company: "c", location: "l", description: "d")
         let ranked = try await router.rank(jobs: [job], against: profile)
         #expect(ranked.first?.jobId == "claude")
+    }
+
+    @Test func tidyDocumentUsesTheProfileTaskEngine() async throws {
+        // Profile → on-device; everything else → Claude. Tidy must follow profile.
+        let router = LLMRouter(
+            configFor: { task in
+                task == .profile ? TaskEngineConfig(choice: .onDevice) : TaskEngineConfig(choice: .claude)
+            },
+            onDevice: StubLLMProvider(tag: "onDevice", fails: false),
+            makeClaude: { _ in StubLLMProvider(tag: "claude", fails: false) },
+            isOnDeviceAvailable: { true }
+        )
+        let tidied = try await router.tidyDocument(rawText: "x")
+        #expect(tidied == "onDevice")   // routed to the profile engine, not the default
     }
 
     @Test func passesConfiguredModelToClaudeFactory() async throws {
