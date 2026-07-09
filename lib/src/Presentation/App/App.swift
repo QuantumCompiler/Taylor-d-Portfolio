@@ -19,8 +19,9 @@ struct Taylor_d_PortfolioApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(composition: composition)
+                .frame(minWidth: 800, minHeight: 500)
         }
-        .defaultSize(width: 900, height: 640)
+        .defaultSize(width: 800, height: 500)
         .windowResizability(.contentMinSize)
     }
 }
