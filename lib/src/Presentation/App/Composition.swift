@@ -123,7 +123,8 @@ struct Composition {
             tidyDocument: tidyDocument,
             saveProfile: saveProfile,
             loadProfiles: loadProfiles,
-            deleteProfile: deleteProfile
+            deleteProfile: deleteProfile,
+            defaultProfileStore: DefaultProfileStore(store: UserDefaultsStore())
         )
     }
     func makeSearchViewModel() -> SearchViewModel {

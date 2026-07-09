@@ -90,6 +90,8 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
   leaves Infrastructure. A built `CandidateProfile` is saved as a named `SavedProfile`
   (Save/Update on the Portfolio tab) and re-selected at build or search time via
   `SaveProfileUseCase` / `LoadProfilesUseCase` / `DeleteProfileUseCase` — no regeneration.
+  Long-pressing a saved profile marks it the **default** (persisted via `DefaultProfileStore`,
+  a single-id KeyValueStore pointer); the Portfolio VM auto-loads it once on launch.
   A `SavedProfile` also pairs the **source document** it was built on: `sourceFileName`,
   the raw `sourceText`, and a `readableText` — the raw import reflowed into clean plain
   text by `TidyDocumentUseCase` (`LLMProvider.tidyDocument`, routed through the `.profile`
@@ -162,11 +164,11 @@ One top-level folder per layer:
 ```
 Taylor'd Portfolio/
   Presentation/
-    App/            Taylor_d_PortfolioApp (composition root)
-    Landing/        one folder per screen; each screen holds two subfolders:
-      View/           the SwiftUI view(s)                  — LandingView
-      ViewModel/      the @MainActor @Observable ViewModel — LandingViewModel
-    Portfolio/, Search/, Results/, Application/, Tracker/, Settings/  (same View/ + ViewModel/ shape;
+    App/            Taylor_d_PortfolioApp (composition root); RootView opens on the Portfolio tab
+    Portfolio/      one folder per screen; each screen holds two subfolders:
+      View/           the SwiftUI view(s)                  — PortfolioView
+      ViewModel/      the @MainActor @Observable ViewModel — PortfolioViewModel
+    Search/, Results/, Application/, Tracker/, Settings/  (same View/ + ViewModel/ shape;
                   e.g. Results/View holds ResultsView + RankedRow + JobDetailView + StatusBadge,
                   Tracker/View holds TrackerView, Application/View the sheet)
   Business/

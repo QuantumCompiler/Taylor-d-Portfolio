@@ -27,6 +27,8 @@ final class PortfolioViewModel {
     /// The id of the saved profile currently loaded, or `nil` for a freshly-built,
     /// not-yet-saved profile. Drives whether "Save" creates a new entry or updates one.
     private(set) var selectedProfileID: String?
+    /// The id of the profile marked as default (auto-loaded on launch), or `nil`.
+    private(set) var defaultProfileID: String?
 
     /// The imported document's file name the current profile was built on (nil if pasted).
     private(set) var sourceFileName: String?
@@ -35,12 +37,17 @@ final class PortfolioViewModel {
     /// The LLM-tidied, readable form of the source document, shown with the profile.
     private(set) var readableText: String = ""
 
+    /// Whether the default profile has been auto-applied yet (so it's applied once, on
+    /// first load, and never clobbers a later manual selection).
+    private var hasAppliedDefault = false
+
     private let buildProfile: BuildProfileUseCase
     private let importPortfolio: ImportPortfolioUseCase
     private let tidyDocument: TidyDocumentUseCase?
     private let saveProfile: SaveProfileUseCase?
     private let loadProfiles: LoadProfilesUseCase?
     private let deleteProfile: DeleteProfileUseCase?
+    private let defaultProfileStore: DefaultProfileStore?
 
     init(
         buildProfile: BuildProfileUseCase,
@@ -48,7 +55,8 @@ final class PortfolioViewModel {
         tidyDocument: TidyDocumentUseCase? = nil,
         saveProfile: SaveProfileUseCase? = nil,
         loadProfiles: LoadProfilesUseCase? = nil,
-        deleteProfile: DeleteProfileUseCase? = nil
+        deleteProfile: DeleteProfileUseCase? = nil,
+        defaultProfileStore: DefaultProfileStore? = nil
     ) {
         self.buildProfile = buildProfile
         self.importPortfolio = importPortfolio
@@ -56,6 +64,8 @@ final class PortfolioViewModel {
         self.saveProfile = saveProfile
         self.loadProfiles = loadProfiles
         self.deleteProfile = deleteProfile
+        self.defaultProfileStore = defaultProfileStore
+        self.defaultProfileID = defaultProfileStore?.load()
     }
 
     var isBusy: Bool { isBuilding || isImporting }
@@ -130,6 +140,34 @@ final class PortfolioViewModel {
     func reloadProfiles() async {
         guard let loadProfiles else { return }
         savedProfiles = (try? await loadProfiles()) ?? savedProfiles
+        applyDefaultIfNeeded()
+    }
+
+    /// On the first load, auto-select the default profile — unless the user already has
+    /// a profile in hand (freshly built or selected), which we never override.
+    private func applyDefaultIfNeeded() {
+        guard !hasAppliedDefault else { return }
+        hasAppliedDefault = true
+        guard profile == nil, selectedProfileID == nil,
+              let defaultProfileID,
+              let match = savedProfiles.first(where: { $0.id == defaultProfileID })
+        else { return }
+        select(match)
+    }
+
+    /// Whether `saved` is the default profile.
+    func isDefault(_ saved: SavedProfile) -> Bool { defaultProfileID == saved.id }
+
+    /// Whether the currently-loaded profile is the default (drives the summary's ⭐).
+    var isSelectedProfileDefault: Bool {
+        selectedProfileID != nil && selectedProfileID == defaultProfileID
+    }
+
+    /// Toggles a profile as the default (long-press): sets it, or clears the default if
+    /// it was already the default. Persisted so it auto-loads next launch.
+    func setDefault(_ saved: SavedProfile) {
+        defaultProfileID = (defaultProfileID == saved.id) ? nil : saved.id
+        defaultProfileStore?.save(defaultProfileID)
     }
 
     /// Saves the current profile under `profileName`. If a saved profile is loaded
@@ -164,11 +202,36 @@ final class PortfolioViewModel {
         errorMessage = nil
     }
 
+    /// Toggles a saved profile's selection: loads it, or clears it if already loaded.
+    func toggleSelection(_ saved: SavedProfile) {
+        if selectedProfileID == saved.id {
+            deselect()
+        } else {
+            select(saved)
+        }
+    }
+
+    /// Clears the current selection so no saved profile is loaded (the radio is unset),
+    /// removing the active profile and its paired document.
+    func deselect() {
+        profile = nil
+        profileName = ""
+        selectedProfileID = nil
+        sourceFileName = nil
+        sourceText = ""
+        readableText = ""
+        errorMessage = nil
+    }
+
     /// Deletes a saved profile from the library; clears the selection if it was loaded.
     func delete(_ saved: SavedProfile) async {
         guard let deleteProfile else { return }
         try? await deleteProfile(id: saved.id)
         if selectedProfileID == saved.id { selectedProfileID = nil }
+        if defaultProfileID == saved.id {
+            defaultProfileID = nil
+            defaultProfileStore?.save(nil)
+        }
         await reloadProfiles()
     }
 

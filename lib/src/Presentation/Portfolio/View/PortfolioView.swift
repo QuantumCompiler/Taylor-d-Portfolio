@@ -58,7 +58,7 @@ struct PortfolioView: View {
             }
 
             if let profile = viewModel.profile {
-                ProfileSummary(profile: profile)
+                ProfileSummary(profile: profile, isDefault: viewModel.isSelectedProfileDefault)
                 if !viewModel.readableText.isEmpty {
                     sourceDocumentSection
                 }
@@ -111,44 +111,66 @@ struct PortfolioView: View {
         }
     }
 
-    /// The saved-profile library: select one to load it, or delete it.
+    /// The saved-profile library: tap to load one, long-press to set it as the default
+    /// (auto-loaded on launch), or delete it.
     private var savedProfilesSection: some View {
         GroupBox("Saved profiles") {
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(viewModel.savedProfiles) { saved in
-                    HStack(spacing: 8) {
-                        Button {
-                            viewModel.select(saved)
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: viewModel.selectedProfileID == saved.id
-                                    ? "largecircle.fill.circle" : "circle")
-                                    .foregroundStyle(.tint)
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(saved.name).font(.callout)
-                                    Text("\(saved.profile.seniority) · \(saved.profile.yearsExperience) yrs")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-
-                        Spacer()
-
-                        Button(role: .destructive) {
-                            Task { await viewModel.delete(saved) }
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 2)
+                    savedProfileRow(saved)
                 }
+                Text("Tap to load a profile · long-press to set it as your default (loads on launch).")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .padding(.top, 2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(4)
         }
+    }
+
+    /// One saved-profile row. Tap toggles selection; long-press toggles default.
+    private func savedProfileRow(_ saved: SavedProfile) -> some View {
+        let isSelected = viewModel.selectedProfileID == saved.id
+        let isDefault = viewModel.isDefault(saved)
+        return HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                    .foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 4) {
+                        Text(saved.name).font(.callout)
+                        if isDefault {
+                            Image(systemName: "star.fill")
+                                .font(.caption2).foregroundStyle(.yellow)
+                                .help("Default profile")
+                        }
+                    }
+                    Text("\(saved.profile.seniority) · \(saved.profile.yearsExperience) yrs")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { viewModel.toggleSelection(saved) }
+            // A simultaneous long-press so it coexists with the tap-to-select instead of
+            // the two gestures cancelling each other out.
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.4)
+                    .onEnded { _ in viewModel.setDefault(saved) }
+            )
+            .help(isDefault ? "Default — long-press to unset · tap to load"
+                            : "Tap to load · long-press to set as default")
+
+            Spacer()
+
+            Button(role: .destructive) {
+                Task { await viewModel.delete(saved) }
+            } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 2)
     }
 
     /// Document types accepted by the importer.
@@ -168,9 +190,11 @@ struct PortfolioView: View {
 /// A compact read-only summary of a built profile.
 private struct ProfileSummary: View {
     let profile: CandidateProfile
+    /// Whether this loaded profile is the user's default (shows the same ⭐ as Search).
+    var isDefault = false
 
     var body: some View {
-        GroupBox("Your profile") {
+        GroupBox {
             VStack(alignment: .leading, spacing: 6) {
                 Text("\(profile.seniority) · \(profile.yearsExperience) yrs experience").font(.headline)
                 Text(profile.summary).font(.callout).foregroundStyle(.secondary)
@@ -181,6 +205,15 @@ private struct ProfileSummary: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(4)
+        } label: {
+            HStack(spacing: 4) {
+                Text("Your profile")
+                if isDefault {
+                    Image(systemName: "star.fill")
+                        .font(.caption2).foregroundStyle(.yellow)
+                        .help("Default profile")
+                }
+            }
         }
     }
 }

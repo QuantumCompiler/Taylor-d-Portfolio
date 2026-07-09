@@ -12,8 +12,8 @@ private enum MainTab: Hashable {
     case portfolio, search, results, tracker, settings
 }
 
-/// Hosts the landing screen, then the main `TabView`. Owns every screen's ViewModel
-/// and connects the cross-screen state (profile → search, results → results tab).
+/// Hosts the main `TabView`, opening straight to the Portfolio tab. Owns every screen's
+/// ViewModel and connects the cross-screen state (profile → search, results → results tab).
 struct RootView: View {
     @State private var portfolio: PortfolioViewModel
     @State private var search: SearchViewModel
@@ -25,7 +25,6 @@ struct RootView: View {
     private let markStatus: MarkStatusUseCase?
     private let loadStatus: LoadStatusUseCase?
 
-    @State private var hasStarted = false
     @State private var tab: MainTab = .portfolio
 
     init(composition: Composition) {
@@ -40,11 +39,7 @@ struct RootView: View {
     }
 
     var body: some View {
-        if hasStarted {
-            mainTabs
-        } else {
-            LandingView(viewModel: LandingViewModel(onGetStarted: { hasStarted = true }))
-        }
+        mainTabs
     }
 
     private var mainTabs: some View {

@@ -24,9 +24,19 @@ struct PortfolioViewModelTests {
         )
     }
 
-    /// A VM wired to a real (in-memory) saved-profile library + document tidying.
-    private func makePersistingVM(importText: String = "IMPORTED") -> PortfolioViewModel {
-        let repo = SavedProfilesRepository(store: InMemoryRecordStore())
+    /// Shared backing stores, so multiple VMs can see the same persisted state (used to
+    /// prove a default/profile survives a "relaunch" into a fresh VM).
+    private func makeStores() -> (record: InMemoryRecordStore, defaults: PresentationMemoryStore) {
+        (InMemoryRecordStore(), PresentationMemoryStore())
+    }
+
+    /// A VM wired to real (in-memory) persistence + document tidying, over `stores`.
+    private func makePersistingVM(
+        importText: String = "IMPORTED",
+        stores: (record: InMemoryRecordStore, defaults: PresentationMemoryStore)? = nil
+    ) -> PortfolioViewModel {
+        let stores = stores ?? makeStores()
+        let repo = SavedProfilesRepository(store: stores.record)
         let provider = PresentationStubProvider()
         return PortfolioViewModel(
             buildProfile: BuildProfileUseCase(provider: provider),
@@ -34,7 +44,8 @@ struct PortfolioViewModelTests {
             tidyDocument: TidyDocumentUseCase(provider: provider),
             saveProfile: SaveProfileUseCase(repository: repo, makeID: { "id-1" }, now: { Date(timeIntervalSince1970: 1) }),
             loadProfiles: LoadProfilesUseCase(repository: repo),
-            deleteProfile: DeleteProfileUseCase(repository: repo)
+            deleteProfile: DeleteProfileUseCase(repository: repo),
+            defaultProfileStore: DefaultProfileStore(store: stores.defaults)
         )
     }
 
@@ -116,6 +127,26 @@ struct PortfolioViewModelTests {
         #expect(vm.selectedProfileID == saved.id)
     }
 
+    @Test func toggleSelectionSelectsThenClears() async {
+        let vm = makePersistingVM()
+        vm.portfolioText = "text"
+        await vm.build()
+        vm.profileName = "Primary"
+        await vm.saveProfile()
+        let saved = vm.savedProfiles[0]
+
+        // Re-tapping the loaded profile clears the radio and the active profile.
+        vm.toggleSelection(saved)   // already selected after save → deselect
+        #expect(vm.selectedProfileID == nil)
+        #expect(vm.profile == nil)
+        #expect(vm.readableText.isEmpty)
+
+        // Tapping again re-loads it.
+        vm.toggleSelection(saved)
+        #expect(vm.selectedProfileID == saved.id)
+        #expect(vm.profile == saved.profile)
+    }
+
     @Test func deleteRemovesAndClearsSelection() async {
         let vm = makePersistingVM()
         vm.portfolioText = "text"
@@ -132,6 +163,64 @@ struct PortfolioViewModelTests {
         let vm = makeVM()
         #expect(vm.supportsSavedProfiles == false)
         #expect(vm.canSaveProfile == false)           // nothing to save into
+    }
+
+    // MARK: Default profile
+
+    /// Builds + saves one profile, returning the VM and its saved entry.
+    private func vmWithOneSavedProfile(
+        stores: (record: InMemoryRecordStore, defaults: PresentationMemoryStore)
+    ) async -> (PortfolioViewModel, SavedProfile) {
+        let vm = makePersistingVM(stores: stores)
+        vm.portfolioText = "text"
+        await vm.build()
+        vm.profileName = "Primary"
+        await vm.saveProfile()
+        return (vm, vm.savedProfiles[0])
+    }
+
+    @Test func setDefaultMarksAndPersistsAcrossRelaunch() async {
+        let stores = makeStores()
+        let (vm, saved) = await vmWithOneSavedProfile(stores: stores)
+
+        vm.setDefault(saved)
+        #expect(vm.isDefault(saved))
+        #expect(vm.defaultProfileID == saved.id)
+
+        // A fresh VM over the same stores reads the persisted default on init.
+        let relaunched = makePersistingVM(stores: stores)
+        #expect(relaunched.defaultProfileID == saved.id)
+    }
+
+    @Test func setDefaultTogglesOff() async {
+        let stores = makeStores()
+        let (vm, saved) = await vmWithOneSavedProfile(stores: stores)
+        vm.setDefault(saved)
+        vm.setDefault(saved)                 // long-press again clears it
+        #expect(vm.defaultProfileID == nil)
+        #expect(DefaultProfileStore(store: stores.defaults).load() == nil)
+    }
+
+    @Test func defaultAutoLoadsOnFreshLaunch() async {
+        let stores = makeStores()
+        let (vm, saved) = await vmWithOneSavedProfile(stores: stores)
+        vm.setDefault(saved)
+
+        // A brand-new VM (simulating relaunch) loads and auto-selects the default.
+        let relaunched = makePersistingVM(stores: stores)
+        await relaunched.reloadProfiles()
+        #expect(relaunched.selectedProfileID == saved.id)
+        #expect(relaunched.profile == saved.profile)
+    }
+
+    @Test func deletingTheDefaultClearsIt() async {
+        let stores = makeStores()
+        let (vm, saved) = await vmWithOneSavedProfile(stores: stores)
+        vm.setDefault(saved)
+
+        await vm.delete(saved)
+        #expect(vm.defaultProfileID == nil)
+        #expect(DefaultProfileStore(store: stores.defaults).load() == nil)
     }
 
     // MARK: Paired source document
