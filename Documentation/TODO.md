@@ -14,9 +14,10 @@ milestone.
 > Now working **v2 — reliability**. Done so far: **K** (build-time Adzuna creds),
 > **M-B** (two-stage structured generation), **N** (multi-title search + field autocomplete),
 > **O-A** (job-detail view), **M-A** (generate from a job-posting URL), **O-B** (persist searched
-> listings — first SwiftData slice). Next per the suggested order is **Milestone O-C** (persist the
-> generated `ApplicationKit` with its posting, keyed by `JobListing.id`; load saved materials on
-> open instead of regenerating), then **P** (application status tracker). Other
+> listings — first SwiftData slice), **O-C** (persist generated `ApplicationKit`, reopen without
+> regenerating). **Milestone O is fully done.** Next per the suggested order is **Milestone P**
+> (application status tracker — mark applied with an automatic date, flag interview/offer/outcome;
+> builds on O's persistence). Other
 > largely-independent milestones: **Milestone L** (prefer AFM 3 Core Advanced) is gated on spike **L0** — confirm
 > whether an app can select/verify the Core Advanced tier before building on it;
 > **Milestone M** (job-URL input + AGENT.md-grade generation prompts) can start with
@@ -410,7 +411,7 @@ Note: N-A and N-B are separable — N-A (multi-search) delivers value even with 
 text field; N-B (autocomplete) helps single or multi search. Composes with Milestone M:
 a URL-extracted posting (M-A) can pre-fill a title chip here.
 
-## Milestone O — Save pulled listings + job-detail view  — O-A ✅, O-B ✅ done; O-C open  (Presentation detail view; Infrastructure persistence + `Data` repository)
+## Milestone O — Save pulled listings + job-detail view  ✅ done (O-A, O-B, O-C)  (Presentation detail view; Infrastructure persistence + `Data` repository)
 
 Goal: persist what a search pulls down (each `JobListing` + its `JobMatch`) and let the
 user **read the full job description from the UI**. Closes a real gap — the pulled
@@ -464,27 +465,25 @@ persistence part (the first concrete slice of the SwiftData fast-follow).
       SwiftData impl in Infrastructure, `SavedJobsRepository` in Data, layer map, and the
       `@Model`-stays-in-Infrastructure rule).
 
-### O-C — Persist generated materials with the posting
+### O-C — Persist generated materials with the posting  ✅ done
 
-- [ ] **Store `ApplicationKit` by job id.** Extend the persistence port / repository to
-      save an `ApplicationKit` (resumeMarkdown, coverLetter, gapNote) linked to its
-      `JobListing.id`. SwiftData: either a relationship from the stored job to a stored
-      kit, or a kit `@Model` keyed by job id — mapped to/from the domain `ApplicationKit`
-      struct (no `@Model` in the domain, same rule as O-B).
-- [ ] **Save after generate.** After `GenerateApplicationUseCase` produces a kit, persist
-      it — either in `ApplicationViewModel.generate` via the repository, or a small
-      `SaveApplicationUseCase`. Latest-wins per job to start (upsert by job id); note that
-      keeping a history of regenerations is a possible later extension.
-- [ ] **Load saved on open.** When the detail/Application view opens for a job that already
-      has a saved kit, load and show it instead of auto-generating — the user explicitly
-      regenerates if they want fresh output. Avoids a redundant LLM call (cost/latency win)
-      and makes prior output durable.
-- [ ] **Tests.** Repository round-trip for `ApplicationKit` (save → fetch by job id →
-      equals domain value; upsert replaces prior kit for the same job); an
-      `ApplicationViewModel` test that generating persists, and that opening a job with a
-      saved kit loads it without calling the provider (stub asserts no generate call).
-- [ ] **Docs.** Fold into the O-B doc updates — SPEC (generated materials persist with the
-      posting) and CLAUDE.md (repository maps `ApplicationKit` too).
+- [x] **Store `ApplicationKit` by job id.** `SavedApplicationsRepository` (Data/Persistence)
+      reuses the `PersistentRecordStore` under `kind` "applicationKit", keyed by
+      `JobListing.id`, mapping to/from the domain `ApplicationKit` (no `@Model` in the
+      domain — same rule as O-B; the generic blob store meant no schema change).
+- [x] **Save after generate.** `SaveApplicationUseCase`; `ApplicationViewModel.generate`
+      persists the produced kit (best-effort, latest-wins upsert by job id). History of
+      regenerations remains a possible later extension.
+- [x] **Load saved on open.** `ApplicationViewModel.open(for:profile:)` loads a saved kit
+      via `LoadApplicationUseCase` and shows it (marked "Saved") **without** calling the
+      provider; only generates when none exists. `ApplicationSheet.task` calls `open`, and
+      a **Regenerate** button forces fresh output. Avoids a redundant LLM call.
+- [x] **Tests.** `SavedApplicationsRepositoryTests` (round-trip by job id, latest-wins,
+      per-job isolation); `ApplicationViewModel` tests: open generates+persists when empty,
+      open loads a saved kit with **zero** provider calls (a recording provider asserts it),
+      regenerate forces fresh + re-persists.
+- [x] **Docs.** SPEC (generated materials persist + reopen-without-regenerating); CLAUDE.md
+      (`SavedApplicationsRepository` in Data + the two use cases).
 
 Note: O-A and O-B are independent — O-A (viewing) needs no persistence and can ship first;
 O-B is the first real slice of the broader SwiftData fast-follow (which then adds profile

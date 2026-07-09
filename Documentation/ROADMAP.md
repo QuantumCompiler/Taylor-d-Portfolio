@@ -121,8 +121,7 @@ breakdown.
       continue with the successful ones and surface a soft note rather than fail the whole
       run). Composes with M's URL input — a URL-extracted posting can pre-fill a title chip.
 
-- [ ] **Save pulled listings + a job-detail view.** **Status: the job-detail view (part 1)
-      is done; persistence (parts 2–3) is still open.** Persist what a search pulls down —
+- [x] **Save pulled listings + a job-detail view.** **Done (all three parts).** Persist what a search pulls down —
       each `JobListing` (full description, salary, original URL) and its `JobMatch`
       (score, reason, matched/missing skills) — and give the user a way to read the full
       job description from the UI. Two parts:
@@ -137,7 +136,7 @@ breakdown.
          (declared in the layer that owns it) + a SwiftData-backed impl in Infrastructure;
          domain `JobListing` / `RankedJob` stay clean `Codable` structs, mapped to/from an
          `@Model` in Infrastructure (don't leak `@Model` into the domain).
-      3. **Persist generated materials with the posting.** When the user generates a
+      3. **✅ Persist generated materials with the posting (done).** When the user generates a
          resume + cover letter for a job, save the `ApplicationKit` (resumeMarkdown,
          coverLetter, gapNote) **linked to that `JobListing.id`**, so the posting carries
          its generated materials. The detail view then shows saved materials (and can

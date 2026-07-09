@@ -56,6 +56,9 @@ struct Composition {
     private var savedJobsRepository: SavedJobsRepository? {
         recordStore.map(SavedJobsRepository.init(store:))
     }
+    private var savedApplicationsRepository: SavedApplicationsRepository? {
+        recordStore.map(SavedApplicationsRepository.init(store:))
+    }
 
     // MARK: Gateways (read settings live, so Settings edits take effect immediately)
 
@@ -110,7 +113,13 @@ struct Composition {
     func makeSettingsViewModel() -> SettingsViewModel {
         .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured)
     }
-    func makeApplicationViewModel() -> ApplicationViewModel { .init(generateApplication: generateApplication) }
+    func makeApplicationViewModel() -> ApplicationViewModel {
+        .init(
+            generateApplication: generateApplication,
+            saveApplication: savedApplicationsRepository.map(SaveApplicationUseCase.init(repository:)),
+            loadApplication: savedApplicationsRepository.map(LoadApplicationUseCase.init(repository:))
+        )
+    }
 }
 
 // MARK: - Settings-backed adapters

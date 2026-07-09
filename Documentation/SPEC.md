@@ -56,9 +56,10 @@ user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
 - No mobile/iOS target (macOS only)
 - No account system or cloud sync
 - No job-board browsing beyond the search feature
-- Pulled listings + their match results now **persist** across launches (SwiftData;
-  see ROADMAP v2 Milestone O). Broader persistence — profile cache, saved/re-runnable
-  searches — remains a fast follow.
+- Pulled listings + their match results — and the generated resume/cover letter for a
+  job — now **persist** across launches (SwiftData; see ROADMAP v2 Milestone O).
+  Reopening a job with saved materials shows them without regenerating. Broader
+  persistence — profile cache, saved/re-runnable searches — remains a fast follow.
 
 ## Principles
 

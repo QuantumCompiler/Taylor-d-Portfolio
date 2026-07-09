@@ -73,9 +73,10 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
 - Single-posting gateway: `JobPostingSource` (protocol) + `LinkJobPostingSource`
   (fetch a URL via `HTTPClient` → `HTMLStripper` → LLM `extractPosting` → `JobListing`;
   fails loudly with `.unreadable` on blocked/empty pages, plus a paste-text path).
-- Persistence: `SavedJobsRepository` (Data/Persistence) maps domain `RankedJob` ↔ the
-  Infrastructure record store's blobs (upsert by `JobListing.id`), so pulled listings +
-  matches survive relaunch. `@Model` never leaves Infrastructure.
+- Persistence: `SavedJobsRepository` + `SavedApplicationsRepository` (Data/Persistence)
+  map domain `RankedJob` / `ApplicationKit` ↔ the Infrastructure record store's blobs
+  (upsert by `JobListing.id`; kits under a separate `kind`), so pulled listings + matches
+  and generated materials survive relaunch. `@Model` never leaves Infrastructure.
 - Search suggestions: `SuggestionProvider` (Data/Search) — profile-seeded starting
   titles + static locations + salary presets; pure, on-device. Common role titles are
   **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
@@ -144,7 +145,8 @@ Taylor'd Portfolio/
   Business/
     UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
                   GenerateApplicationUseCase, FetchPostingUseCase,
-                  SaveResultsUseCase, LoadSavedJobsUseCase
+                  SaveResultsUseCase, LoadSavedJobsUseCase,
+                  SaveApplicationUseCase, LoadApplicationUseCase
     Ranking/      JobRanker
   Data/
     Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,
@@ -153,7 +155,7 @@ Taylor'd Portfolio/
                   LLMRouter, Prompts
     Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
     Search/       SuggestionProvider, RoleTitleStore
-    Persistence/  SavedJobsRepository   (maps RankedJob ↔ PersistentRecordStore blobs)
+    Persistence/  SavedJobsRepository, SavedApplicationsRepository   (domain ↔ PersistentRecordStore blobs)
     Retrieval/    Retriever            (roadmap)
     Settings/     AppSettings, SettingsStore
   Infrastructure/
