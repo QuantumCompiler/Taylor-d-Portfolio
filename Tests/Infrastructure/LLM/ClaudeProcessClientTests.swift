@@ -12,6 +12,19 @@ import Foundation
 @Suite("ClaudeProcessClient parsing")
 struct ClaudeProcessClientTests {
 
+    // MARK: claudeArguments
+
+    @Test func claudeArgumentsIncludeJSONAndExtraModelFlag() {
+        let args = ClaudeProcessClient.claudeArguments(fullPrompt: "hi", extra: ["--model", "claude-opus-4-8"])
+        #expect(args == ["-p", "hi", "--output-format", "json", "--model", "claude-opus-4-8"])
+    }
+
+    @Test func claudeArgumentsWithoutExtraOmitModel() {
+        let args = ClaudeProcessClient.claudeArguments(fullPrompt: "hi", extra: [])
+        #expect(args == ["-p", "hi", "--output-format", "json"])
+        #expect(!args.contains("--model"))
+    }
+
     // MARK: searchPATH
 
     @Test func searchPATHIncludesCommonToolLocations() {

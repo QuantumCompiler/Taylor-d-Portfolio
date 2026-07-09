@@ -15,7 +15,15 @@ auto-submission — the user applies themselves.
 
 - **UI:** SwiftUI, macOS 26 (Tahoe) target, Xcode 26.
 - **Primary LLM:** Apple Foundation Models (`import FoundationModels`), on-device.
+  The on-device model tier is **OS/hardware-driven, not app-selectable** — the SDK has no
+  API to choose or query a model tier (only `SystemLanguageModel.default` + `availability`),
+  so `FoundationModelsClient`'s job is availability + graceful degradation, never model
+  selection. (Don't try to build a tier picker — there's nothing to call.)
 - **Secondary LLM:** Claude Code headless — `claude -p "<prompt>" --output-format json`.
+  The engine **and** Claude model are chosen **per task** in Settings (each `LLMTask`
+  gets a `TaskEngineConfig`); the `ClaudeModel` catalog — Fable 5, Opus 4.8/4.7,
+  Sonnet 5/4.6, Haiku 4.5; default `claude-opus-4-8` — is passed via the CLI's
+  `--model` flag.
 - **Job source:** Adzuna REST API (free tier) to start.
 - **Persistence:** none yet; SwiftData planned (see ROADMAP).
 
@@ -83,8 +91,13 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
   **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
   not a static vocabulary.
 - Retrieval gateway: `Retriever` (protocol) + impl (roadmap).
-- `AppSettings` (`llmChoice` + `adzunaCountry`) + `SettingsStore`. Adzuna
-  credentials are **not** here — they're baked in at build time via `AppConfig`.
+- `AppSettings` (`engines: [LLMTask: TaskEngineConfig]` + `adzunaCountry`) +
+  `SettingsStore`; `LLMTask` (profile / ranking / extraction / application),
+  `TaskEngineConfig` (per-task `LLMChoice` + Claude model), `ClaudeModel` (the
+  selectable-model catalog). The engine is chosen **per task**, not globally — each
+  task defaults to Claude on `claude-opus-4-8` (on-device is no longer automatic, but
+  stays selectable via `.onDevice` / `.auto`). Adzuna credentials are **not** here —
+  they're baked in at build time via `AppConfig`.
 Depends only on Infrastructure ports.
 
 **Infrastructure** — lowest-level, domain-agnostic plumbing behind small protocols
@@ -103,8 +116,10 @@ gitignored `Secrets.xcconfig`).
 - **LLM seam** — `LLMProvider` (Data), task-oriented (not generic `generate<T>`)
   because the engines structure output differently: `FoundationModelsProvider`
   uses constrained decoding against `@Generable` types; `ClaudeCodeProvider` asks
-  for JSON and decodes. `LLMRouter` picks one from `AppSettings.llmChoice` (`auto`
-  = on-device first, fall back to Claude). Shared prompts in `Prompts`; structured
+  for JSON and decodes. `LLMRouter` maps each `LLMProvider` method to an `LLMTask`
+  and picks that task's engine from `AppSettings` (`.auto` = on-device first, fall
+  back to Claude; `.claude`/`.onDevice` force one), building the Claude client with
+  the task's chosen model. Shared prompts in `Prompts`; structured
   types are both `Generable` and `Codable`. **Generation is two-stage** (AGENT.md
   discipline): `buildTargetBrief(for:)` distils the posting into a `TargetBrief`,
   then `generateApplication(for:profile:brief:)` tailors against it. Both are
@@ -156,12 +171,12 @@ Taylor'd Portfolio/
                   ApplicationKit, ApplicationStatus, JobQuery, JobSearchRequest,
                   RankedJob, TrackedJob
     LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
-                  LLMRouter, Prompts
+                  LLMRouter, LLMChoice, LLMTask, TaskEngineConfig, ClaudeModel, Prompts
     Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
     Search/       SuggestionProvider, RoleTitleStore
     Persistence/  SavedJobsRepository, SavedApplicationsRepository   (domain ↔ PersistentRecordStore blobs)
     Retrieval/    Retriever            (roadmap)
-    Settings/     AppSettings, SettingsStore
+    Settings/     AppSettings (per-task engine map), SettingsStore
   Infrastructure/
     LLM/          TextGenerating, FoundationModelsClient, ClaudeProcessClient
     Net/          HTTPClient

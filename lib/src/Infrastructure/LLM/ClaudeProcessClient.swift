@@ -35,8 +35,7 @@ nonisolated struct ClaudeProcessClient: TextGenerating {
 
     func generate(prompt: String, instructions: String?) async throws -> String {
         let fullPrompt = Self.composePrompt(prompt: prompt, instructions: instructions)
-        var claudeArgs = ["-p", fullPrompt, "--output-format", "json"]
-        claudeArgs += extraArguments
+        let claudeArgs = Self.claudeArguments(fullPrompt: fullPrompt, extra: extraArguments)
 
         let executableURL: URL
         let arguments: [String]
@@ -54,6 +53,12 @@ nonisolated struct ClaudeProcessClient: TextGenerating {
     }
 
     // MARK: - Pure helpers (unit-tested without launching a process)
+
+    /// The `claude -p` argument vector: the prompt, JSON output, then any extra flags
+    /// (e.g. `--model <id>`). Pure, so the composed command is unit-tested.
+    static func claudeArguments(fullPrompt: String, extra: [String]) -> [String] {
+        ["-p", fullPrompt, "--output-format", "json"] + extra
+    }
 
     /// Combines optional instructions with the prompt into a single CLI prompt.
     static func composePrompt(prompt: String, instructions: String?) -> String {

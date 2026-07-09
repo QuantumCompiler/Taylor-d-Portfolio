@@ -7,27 +7,38 @@
 
 import Foundation
 
-/// The user's configurable settings: which LLM engine to use and which Adzuna
-/// country to search. `Codable` so it can be persisted via a `KeyValueStore`.
+/// The user's configurable settings: a per-task LLM engine assignment (each
+/// ``LLMTask`` picks its own engine and Claude model) plus the Adzuna country to
+/// search. `Codable` so it can be persisted via a `KeyValueStore`.
 ///
 /// Adzuna credentials are **not** here — they're baked in at build time via
-/// `AppConfig` (see Milestone K), so a misconfigured build fails fast rather than
-/// silently failing a search. `adzunaCountry` stays a user setting because it's a
-/// search preference, not a secret.
+/// `AppConfig` (see Milestone K), so a misconfigured build fails fast. `adzunaCountry`
+/// stays a user setting because it's a search preference, not a secret.
 nonisolated struct AppSettings: Codable, Equatable, Sendable {
-    /// Which LLM engine the router should prefer.
-    var llmChoice: LLMChoice
+    /// The engine (+ Claude model) chosen for each LLM task. Tasks absent from the map
+    /// fall back to ``TaskEngineConfig/default`` via ``config(for:)``.
+    var engines: [LLMTask: TaskEngineConfig]
     /// Adzuna country code, e.g. "us", "gb".
     var adzunaCountry: String
 
     init(
-        llmChoice: LLMChoice = .auto,
+        engines: [LLMTask: TaskEngineConfig] = AppSettings.defaultEngines,
         adzunaCountry: String = "us"
     ) {
-        self.llmChoice = llmChoice
+        self.engines = engines
         self.adzunaCountry = adzunaCountry
     }
 
+    /// Every task seeded with the default engine config.
+    static let defaultEngines: [LLMTask: TaskEngineConfig] =
+        Dictionary(uniqueKeysWithValues: LLMTask.allCases.map { ($0, .default) })
+
     /// Fresh defaults for a first launch.
     static let `default` = AppSettings()
+
+    /// The engine config for `task`, falling back to the default when unset — so a
+    /// task added in a later version still resolves against older persisted settings.
+    func config(for task: LLMTask) -> TaskEngineConfig {
+        engines[task] ?? .default
+    }
 }

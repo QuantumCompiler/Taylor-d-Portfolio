@@ -50,10 +50,11 @@ struct LLMRouterTests {
         claudeFails: Bool = false,
         available: Bool = true
     ) -> LLMRouter {
+        // Every task shares one config here, so these tests exercise choice/fallback.
         LLMRouter(
-            choice: choice,
+            configFor: { _ in TaskEngineConfig(choice: choice) },
             onDevice: StubLLMProvider(tag: "onDevice", fails: onDeviceFails),
-            claude: StubLLMProvider(tag: "claude", fails: claudeFails),
+            makeClaude: { _ in StubLLMProvider(tag: "claude", fails: claudeFails) },
             isOnDeviceAvailable: { available }
         )
     }
@@ -109,5 +110,39 @@ struct LLMRouterTests {
 
         let kit = try await router.generateApplication(for: job, profile: profile, brief: brief)
         #expect(kit.resumeMarkdown == "claude")
+    }
+
+    // MARK: Per-task routing
+
+    @Test func routesEachTaskToItsConfiguredEngine() async throws {
+        // Profile → on-device; ranking → Claude.
+        let router = LLMRouter(
+            configFor: { task in
+                task == .profile ? TaskEngineConfig(choice: .onDevice) : TaskEngineConfig(choice: .claude)
+            },
+            onDevice: StubLLMProvider(tag: "onDevice", fails: false),
+            makeClaude: { _ in StubLLMProvider(tag: "claude", fails: false) },
+            isOnDeviceAvailable: { true }
+        )
+
+        let profile = try await router.buildProfile(fromPortfolio: "x")
+        #expect(profile.seniority == "onDevice")
+
+        let job = JobListing(id: "a", title: "t", company: "c", location: "l", description: "d")
+        let ranked = try await router.rank(jobs: [job], against: profile)
+        #expect(ranked.first?.jobId == "claude")
+    }
+
+    @Test func passesConfiguredModelToClaudeFactory() async throws {
+        // makeClaude tags its stub with the requested model id, proving the model flows through.
+        let router = LLMRouter(
+            configFor: { _ in TaskEngineConfig(choice: .claude, claudeModel: "claude-fable-5") },
+            onDevice: StubLLMProvider(tag: "onDevice", fails: false),
+            makeClaude: { model in StubLLMProvider(tag: model, fails: false) },
+            isOnDeviceAvailable: { true }
+        )
+
+        let profile = try await router.buildProfile(fromPortfolio: "x")
+        #expect(profile.seniority == "claude-fable-5")
     }
 }

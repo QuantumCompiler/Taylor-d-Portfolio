@@ -11,21 +11,23 @@ can pick up instantly. Add newly-discovered sub-tasks as checkboxes in the right
 milestone.
 
 > **Current focus:** v1 core is **complete** (Milestones A–J done + document import).
-> Now working **v2 — reliability**. Done so far: **K** (build-time Adzuna creds),
-> **M-B** (two-stage structured generation), **N** (multi-title search + field autocomplete),
-> **O-A** (job-detail view), **M-A** (generate from a job-posting URL), **O-B** (persist searched
-> listings — first SwiftData slice), **O-C** (persist generated `ApplicationKit`, reopen without
-> regenerating), and **P** (application status tracker). **Milestones K, M, N, O, P are all done —
-> the only v2 milestone left is L.** **Milestone L** (prefer AFM 3 Core Advanced on-device) is
-> gated on spike **L0** — confirm
-> whether an app can select/verify the Core Advanced tier before building on it;
-> **Milestone M** (job-URL input + AGENT.md-grade generation prompts) can start with
-> M-B (better prompts) since it helps regardless of input source; **Milestone N**
-> (multi-title search + field autocomplete) improves search recall/UX once a profile
-> is loaded; **Milestone O** (save pulled listings + a job-detail view to read the full
-> description); **Milestone P** (application status tracker — mark applied with an
-> automatic date, flag interview/offer/outcome). Sensible order: K → M-B → N → O-A →
-> M-A → O-B → O-C → P, with L0 run whenever and L2 after L0's answer.
+> **v2 — reliability is complete: Milestones K, M, N, O, P are all done.** (The former
+> Milestone L — "prefer AFM 3 Core Advanced on-device" — was **removed**: the L0 spike found
+> that on-device tier selection is OS/hardware-driven with no developer API to request or
+> query it, so there's nothing to build; on capable silicon the OS serves the best tier
+> automatically. See CLAUDE.md → Stack for the one-line summary.)
+>
+> **Enhancement shipped (post-v2):** the LLM engine is now chosen **per task** — each
+> `LLMTask` (profile / ranking / posting extraction / resume+cover letter) has its own
+> `TaskEngineConfig` (`LLMChoice` + Claude model). The on-device model is no longer the
+> automatic default; every task defaults to Claude on the default model, with `.auto` /
+> `.onDevice` still selectable per task. See `AppSettings.engines`, `LLMRouter`, and the
+> per-task Settings UI.
+>
+> Next work is the **fast-follow / backlog** (see ROADMAP): **Export** (résumé/cover letter
+> to PDF/DOCX — highest user value), **Persistence fast-follow** (profile cache + saved/
+> re-runnable searches, extending the SwiftData store), then the larger backlog items
+> (native `LanguageModel` provider seam; on-device embedding RAG).
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure,
 imports point down only). Build roughly bottom-up so each layer has what it needs.
@@ -187,8 +189,9 @@ Portfolio-**URL** import (fetch + extract) is still open (ROADMAP ideas).
 # v2 — reliability
 
 Turning "misconfigured / weak output" into problems that fail fast and clearly.
-Milestone K (build-time creds) and Milestone L (AFM 3 model) are independent —
-K can proceed immediately; L is gated on a spike (L0 below).
+All milestones below (K, M, N, O, P) are complete. (A former Milestone L — "prefer
+AFM 3 Core Advanced on-device" — was dropped: on-device tier selection isn't
+app-controllable, so there was nothing to build. See CLAUDE.md → Stack.)
 
 ## Milestone K — Adzuna credentials → build-time config  ✅ done  (`lib/src/Infrastructure/Config`, `Composition`, Settings)
 
@@ -240,46 +243,6 @@ setting (it's a search preference, not a secret).
 
 Note: baked keys are extractable from the bundle — acceptable for a personal free-tier
 key. Distribution would need a backend proxy instead (see ROADMAP backlog / ideas).
-
-## Milestone L — Prefer AFM 3 Core Advanced on-device  (`lib/src/Infrastructure/LLM`)
-
-Goal: target the AFM 3 generation and prefer the 20B sparse **Core Advanced** model on
-capable Macs, degrading to AFM 3 Core (3B) on older Apple-Intelligence Macs and to
-Claude when on-device is unavailable. This is a quality upgrade to the primary engine —
-better profiles, ranking, and grounded generation, and fewer Claude escalations.
-
-- [ ] **L0 — SDK spike (BLOCKING; do this first).** Against the macOS 27 / AFM 3 SDK,
-      determine whether an app can: (a) request Core Advanced explicitly, (b) query which
-      on-device tier will be served, or (c) neither (tier is purely device-driven). The
-      public framework today is `SystemLanguageModel.default` (+ use-case initializers),
-      not a by-name picker, and Core-vs-Core-Advanced is understood to be an OS/hardware
-      decision. **Record the finding here** — the rest of this milestone forks on it.
-      Check: macOS 27 SDK headers for `SystemLanguageModel`, WWDC 2026 session 339
-      ("Bring an LLM provider to the Foundation Models framework") and any on-device
-      tier-selection session, and the updated Foundation Models docs.
-- [ ] **L1 — Target bump.** Move the on-device path to the AFM 3 generation
-      (macOS 27 target as needed). Verify `FoundationModelsClient` still builds and its
-      `availability` mapping is complete (`.deviceNotEligible` / `.appleIntelligenceNotEnabled`
-      / `.modelNotReady` / unknown).
-- [ ] **L2a — IF the app can select/verify the tier:** encode the request/verification
-      in `FoundationModelsClient` behind the existing `availability` surface; expose a
-      `modelTier` (e.g. `.coreAdvanced` / `.core` / `.unavailable`) the router and UI can
-      read. Prefer Core Advanced, fall back to Core, then Claude.
-- [ ] **L2b — IF tier is OS/device-driven only:** this milestone becomes "target AFM 3 +
-      guarantee graceful degradation." Document that tier selection is OS-driven; the
-      client's job is availability + degradation, not model-name selection. No by-name
-      API is invented.
-- [ ] **L3 — Degradation is required, not optional.** Ensure the router still falls back
-      cleanly (on-device unavailable → Claude) and that a Core-only Mac produces correct
-      output. Extend `LLMRouterTests` coverage for the availability/degradation paths
-      that can be unit-tested with stubs.
-- [ ] **L4 — Docs.** SPEC ("On-device first" principle + the AFM 3 tiers and the degrade
-      path), CLAUDE.md (Stack: name AFM 3 Core / Core Advanced, silicon requirement, and
-      that tier selection is OS-driven unless L0 proved otherwise).
-
-Note: macOS-only means more users clear the Core Advanced silicon bar than on iPhone,
-but not all — the degrade path is required. Pairs naturally with adopting the native
-`LanguageModel` protocol seam (ROADMAP backlog), which the L0 spike will also inform.
 
 ## Milestone M — Job-URL input + AGENT.md-grade generation  ✅ done  (`Prompts`, `Data/Jobs`, `LLMProvider`, Presentation)
 

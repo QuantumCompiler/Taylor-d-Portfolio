@@ -17,7 +17,6 @@ struct Composition {
     private let appConfig: any AppConfig
     private let httpClient: any HTTPClient
     private let onDeviceClient: FoundationModelsClient
-    private let claudeClient: ClaudeProcessClient
     private let documentExtractor: any DocumentTextExtractor
     /// Persistence for saved jobs — nil if the SwiftData store couldn't be created.
     private let recordStore: (any PersistentRecordStore)?
@@ -27,7 +26,6 @@ struct Composition {
         settingsStore = SettingsStore(store: UserDefaultsStore())
         httpClient = URLSessionHTTPClient()
         onDeviceClient = FoundationModelsClient()
-        claudeClient = ClaudeProcessClient()
         documentExtractor = PlatformDocumentTextExtractor()
         recordStore = Composition.makeRecordStore()
 
@@ -74,7 +72,7 @@ struct Composition {
     // MARK: Gateways (read settings live, so Settings edits take effect immediately)
 
     private var llmProvider: any LLMProvider {
-        SettingsBackedLLMProvider(store: settingsStore, onDeviceClient: onDeviceClient, claudeClient: claudeClient)
+        SettingsBackedLLMProvider(store: settingsStore, onDeviceClient: onDeviceClient)
     }
 
     private var jobSource: any JobSource {
@@ -143,13 +141,20 @@ struct Composition {
 private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     let store: SettingsStore
     let onDeviceClient: FoundationModelsClient
-    let claudeClient: ClaudeProcessClient
 
     private func router() -> LLMRouter {
-        LLMRouter(
-            choice: store.load().llmChoice,
+        // Snapshot settings once per call so a Settings edit applies without relaunch,
+        // yet a single operation sees a consistent per-task engine map.
+        let settings = store.load()
+        let onDeviceClient = onDeviceClient
+        return LLMRouter(
+            configFor: { settings.config(for: $0) },
             onDevice: FoundationModelsProvider(client: onDeviceClient),
-            claude: ClaudeCodeProvider(generator: claudeClient),
+            // Build the Claude client per task so each task's chosen model applies.
+            makeClaude: { model in
+                let args = model.isEmpty ? [] : ["--model", model]
+                return ClaudeCodeProvider(generator: ClaudeProcessClient(extraArguments: args))
+            },
             isOnDeviceAvailable: { onDeviceClient.isAvailable }
         )
     }

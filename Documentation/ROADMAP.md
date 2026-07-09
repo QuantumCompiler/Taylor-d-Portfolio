@@ -44,25 +44,12 @@ breakdown.
       API pricing starts in the low-thousands per month, so a shared proxy is the
       realistic path at any scale beyond personal use.
 
-- [ ] **Prefer the highest-capability on-device Foundation Model (AFM 3 Core
-      Advanced where available).** Target the AFM 3 generation and prefer the 20B
-      sparse Core Advanced model on Macs whose silicon supports it; degrade to AFM 3
-      Core (3B dense) on older Apple-Intelligence Macs, and to Claude when on-device
-      is unavailable entirely. A quality upgrade to the *primary* engine, not a new
-      engine — stronger profile extraction, ranking judgment, and grounded generation,
-      and fewer escalations to Claude.
-      Seam: `FoundationModelsClient` (Infrastructure), behind the existing
-      `availability` / `isAvailable` surface.
-      **Blocking spike (do first):** confirm against the macOS 27 / AFM 3 SDK whether
-      an app can (a) request Core Advanced explicitly, (b) query which on-device tier
-      will be served, or (c) neither — tier selection is purely device-driven. The
-      framework exposes `SystemLanguageModel.default` (+ use-case initializers), not a
-      by-name model picker, and Core-vs-Core-Advanced is currently understood to be an
-      OS/hardware-tier decision. The shape of this whole item depends on that answer:
-      if the OS decides, "make Core Advanced the default" becomes "bump the target OS
-      + guarantee graceful degradation," not an app-controlled model selection.
-      On-device: yes. macOS-only means more users clear the silicon bar than on
-      iPhone, but not all — the degrade path is required, not optional.
+- ~~**Prefer AFM 3 Core Advanced on-device.**~~ **Dropped.** A spike found on-device
+      tier selection is OS/hardware-driven — the FoundationModels SDK has no API to request
+      Core Advanced (20B) vs Core (3B) or to query which tier is served, so there's nothing
+      to build. On capable silicon the OS serves the best tier automatically; the existing
+      `LLMRouter` already handles on-device→Claude degradation. Revisit only if a future SDK
+      adds a tier-selection API.
 
 - [x] **Job-URL input + AGENT.md-grade generation prompts.** Two linked upgrades,
       ported from Taylor's hand-built LaTeX résumé agent (`AGENT.md`). **Both parts done.**
@@ -197,7 +184,6 @@ seam it touches, and whether it's on-device-friendly or needs Claude/network._
       `LLMRouter`. Note: Private Cloud Compute could become a *third* engine tier
       between on-device and the Claude CLI — cleaner privacy story than shelling out
       to `claude -p`, and it removes the "App Sandbox off" requirement for that path.
-      Priority: after the v2 model work, since the spike above informs it.
 
 - [ ] **On-device embedding retrieval (RAG layer).**
       What: embed portfolio chunks + jobs with `NLContextualEmbedding`, store the
@@ -233,8 +219,8 @@ _Loose parking lot — not committed._
 - Anthropic Messages API provider (cleaner than `claude -p` if the app is ever
   distributed)
 - Backend proxy for Adzuna (see v2 note) — required if the app is ever distributed
-- Multimodal portfolio input — AFM 3 Core Advanced is natively multimodal, so a
-  screenshot/image of a resume could be read on-device without a separate OCR step
+- Multimodal portfolio input — read a screenshot/image of a resume on-device (needs a
+  multimodal on-device model), avoiding a separate OCR step
 - Interview prep / mock-interview feature
 - Application tracker with statuses and follow-up reminders
 
