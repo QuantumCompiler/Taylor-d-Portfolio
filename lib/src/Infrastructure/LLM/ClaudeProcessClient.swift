@@ -35,8 +35,7 @@ nonisolated struct ClaudeProcessClient: TextGenerating {
 
     func generate(prompt: String, instructions: String?) async throws -> String {
         let fullPrompt = Self.composePrompt(prompt: prompt, instructions: instructions)
-        var claudeArgs = ["-p", fullPrompt, "--output-format", "json"]
-        claudeArgs += extraArguments
+        let claudeArgs = Self.claudeArguments(fullPrompt: fullPrompt, extra: extraArguments)
 
         let executableURL: URL
         let arguments: [String]
@@ -54,6 +53,12 @@ nonisolated struct ClaudeProcessClient: TextGenerating {
     }
 
     // MARK: - Pure helpers (unit-tested without launching a process)
+
+    /// The `claude -p` argument vector: the prompt, JSON output, then any extra flags
+    /// (e.g. `--model <id>`). Pure, so the composed command is unit-tested.
+    static func claudeArguments(fullPrompt: String, extra: [String]) -> [String] {
+        ["-p", fullPrompt, "--output-format", "json"] + extra
+    }
 
     /// Combines optional instructions with the prompt into a single CLI prompt.
     static func composePrompt(prompt: String, instructions: String?) -> String {
@@ -96,6 +101,29 @@ nonisolated struct ClaudeProcessClient: TextGenerating {
         return lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Builds a `PATH` that includes the common CLI install locations a GUI app's
+    /// minimal environment omits (`~/.local/bin`, Homebrew, npm global), so
+    /// `/usr/bin/env` can find tools like `claude`. Launched-from-Finder/Xcode apps
+    /// inherit only `/usr/bin:/bin:/usr/sbin:/sbin`, where `claude` usually isn't.
+    /// Common dirs are prepended; any existing `base` entries are preserved, de-duped.
+    static func searchPATH(base: String?, home: String) -> String {
+        let common = [
+            "\(home)/.local/bin",
+            "\(home)/.npm-global/bin",
+            "/opt/homebrew/bin",
+            "/opt/homebrew/sbin",
+            "/usr/local/bin",
+            "/usr/bin", "/bin", "/usr/sbin", "/sbin",
+        ]
+        let existing = base?.split(separator: ":").map(String.init) ?? []
+        var seen = Set<String>()
+        var ordered = [String]()
+        for dir in common + existing where !dir.isEmpty && seen.insert(dir).inserted {
+            ordered.append(dir)
+        }
+        return ordered.joined(separator: ":")
+    }
+
     /// The subset of the CLI's JSON envelope we consume.
     struct Envelope: Decodable {
         var result: String?
@@ -117,6 +145,10 @@ nonisolated struct ClaudeProcessClient: TextGenerating {
                 let process = Process()
                 process.executableURL = executableURL
                 process.arguments = arguments
+                // GUI apps inherit a minimal PATH; widen it so `env` can find `claude`.
+                var environment = ProcessInfo.processInfo.environment
+                environment["PATH"] = searchPATH(base: environment["PATH"], home: environment["HOME"] ?? NSHomeDirectory())
+                process.environment = environment
                 let stdout = Pipe()
                 let stderr = Pipe()
                 process.standardOutput = stdout

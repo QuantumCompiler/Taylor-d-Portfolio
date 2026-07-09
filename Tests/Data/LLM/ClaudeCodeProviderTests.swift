@@ -59,13 +59,49 @@ struct ClaudeCodeProviderTests {
         #expect(matches[0].score == 90)
     }
 
+    @Test func buildTargetBriefDecodesAndComposesPrompt() async throws {
+        let json = #"{"company":"Acme","roleTitle":"iOS Engineer","mustHaveKeywords":["Swift"],"niceToHaveKeywords":["Kotlin"],"techStack":["SwiftUI"],"domain":"Mobile","missionValues":"Delight users."}"#
+        let gen = RecordingGenerator(json)
+        let provider = ClaudeCodeProvider(generator: gen)
+
+        let brief = try await provider.buildTargetBrief(for: sampleJob)
+        #expect(brief.company == "Acme")
+        #expect(brief.roleTitle == "iOS Engineer")
+        #expect(brief.mustHaveKeywords == ["Swift"])
+
+        let calls = await gen.calls
+        #expect(calls[0].instructions == Prompts.briefInstructions)
+        #expect(calls[0].prompt.contains(Prompts.jsonOnlySuffix))
+    }
+
     @Test func generateApplicationDecodes() async throws {
         let json = ##"{"resumeMarkdown":"# Resume","coverLetter":"Dear team","gapNote":"none"}"##
-        let provider = ClaudeCodeProvider(generator: RecordingGenerator(json))
+        let gen = RecordingGenerator(json)
+        let provider = ClaudeCodeProvider(generator: gen)
+        let brief = TargetBrief(company: "Acme", roleTitle: "iOS Engineer", mustHaveKeywords: ["Swift"],
+                                niceToHaveKeywords: [], techStack: ["SwiftUI"], domain: "Mobile", missionValues: "")
 
-        let kit = try await provider.generateApplication(for: sampleJob, profile: sampleProfile)
+        let kit = try await provider.generateApplication(for: sampleJob, profile: sampleProfile, brief: brief)
         #expect(kit.resumeMarkdown == "# Resume")
         #expect(kit.coverLetter == "Dear team")
+
+        // The stage-1 brief must reach the generation prompt.
+        let prompt = await gen.calls[0].prompt
+        #expect(prompt.contains("iOS Engineer"))
+        #expect(prompt.contains("## Why Acme"))
+    }
+
+    @Test func tidyDocumentReturnsRawTextWithoutJSONEnvelope() async throws {
+        let gen = RecordingGenerator("Cleaned up resume text.")
+        let provider = ClaudeCodeProvider(generator: gen)
+
+        let tidied = try await provider.tidyDocument(rawText: "MESSY\nPDF   TEXT")
+        #expect(tidied == "Cleaned up resume text.")   // returned verbatim, not JSON-decoded
+
+        let calls = await gen.calls
+        #expect(calls[0].instructions == Prompts.tidyInstructions)
+        #expect(calls[0].prompt.contains("MESSY"))
+        #expect(!calls[0].prompt.contains(Prompts.jsonOnlySuffix))   // plain-text task
     }
 
     @Test func invalidJSONThrowsDecodingFailed() async {

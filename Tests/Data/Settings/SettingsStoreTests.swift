@@ -31,9 +31,8 @@ struct SettingsStoreTests {
     @Test func saveThenLoadRoundTrips() {
         let store = SettingsStore(store: InMemoryStore())
         var settings = AppSettings.default
-        settings.llmChoice = .claude
-        settings.adzunaAppID = "id"
-        settings.adzunaAppKey = "key"
+        settings.engines[.profile] = TaskEngineConfig(choice: .onDevice, claudeModel: "claude-sonnet-5")
+        settings.engines[.application] = TaskEngineConfig(choice: .auto, claudeModel: "claude-fable-5")
         settings.adzunaCountry = "gb"
 
         store.save(settings)
@@ -52,19 +51,34 @@ struct SettingsStoreTests {
 
     @Test func defaultsAreSensible() {
         let defaults = AppSettings.default
-        #expect(defaults.llmChoice == .auto)
         #expect(defaults.adzunaCountry == "us")
-        #expect(defaults.hasAdzunaCredentials == false)
+        // On-device is no longer automatic: every task defaults to Claude on the default model.
+        for task in LLMTask.allCases {
+            #expect(defaults.config(for: task).choice == .claude)
+            #expect(defaults.config(for: task).claudeModel == "claude-opus-4-8")
+        }
     }
 
-    @Test func hasAdzunaCredentialsRequiresBoth() {
-        #expect(AppSettings(adzunaAppID: "id", adzunaAppKey: "").hasAdzunaCredentials == false)
-        #expect(AppSettings(adzunaAppID: "", adzunaAppKey: "key").hasAdzunaCredentials == false)
-        #expect(AppSettings(adzunaAppID: "id", adzunaAppKey: "key").hasAdzunaCredentials == true)
+    @Test func configForFallsBackToDefaultWhenTaskMissing() {
+        var settings = AppSettings(engines: [:], adzunaCountry: "us")
+        #expect(settings.config(for: .profile) == .default)   // unset → default
+
+        settings.engines[.profile] = TaskEngineConfig(choice: .onDevice)
+        #expect(settings.config(for: .profile).choice == .onDevice)
+        #expect(settings.config(for: .ranking) == .default)   // others still default
     }
 
-    @Test func adzunaCredentialsMapThrough() {
-        let settings = AppSettings(adzunaAppID: "id", adzunaAppKey: "key", adzunaCountry: "gb")
-        #expect(settings.adzunaCredentials == AdzunaJobSource.Credentials(appID: "id", appKey: "key", country: "gb"))
+    @Test func claudeModelArgumentsBuildTheModelFlag() {
+        #expect(TaskEngineConfig(claudeModel: "claude-sonnet-5").claudeModelArguments == ["--model", "claude-sonnet-5"])
+        #expect(TaskEngineConfig(claudeModel: "").claudeModelArguments == [])   // empty = CLI default
+    }
+
+    @Test func claudeModelCatalogIsWellFormed() {
+        #expect(ClaudeModel.all.contains { $0.id == "claude-fable-5" })
+        #expect(ClaudeModel.all.contains { $0.id == ClaudeModel.defaultID })
+        #expect(ClaudeModel.isKnown("claude-opus-4-8"))
+        #expect(ClaudeModel.isKnown("gpt-4") == false)
+        // Ids are unique.
+        #expect(Set(ClaudeModel.all.map(\.id)).count == ClaudeModel.all.count)
     }
 }

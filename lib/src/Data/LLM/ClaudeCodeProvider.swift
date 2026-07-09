@@ -34,9 +34,34 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         return batch.matches
     }
 
-    func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
+    func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         try await generateJSON(
-            prompt: Prompts.generateApplication(job: job, profile: profile),
+            prompt: Prompts.extractPosting(pageText: pageText),
+            instructions: Prompts.extractInstructions,
+            as: ExtractedPosting.self
+        )
+    }
+
+    /// Plain-text task (no JSON envelope): ask the engine to reflow the document and
+    /// return its text directly.
+    func tidyDocument(rawText: String) async throws -> String {
+        try await generator.generate(
+            prompt: Prompts.tidyDocument(rawText: rawText),
+            instructions: Prompts.tidyInstructions
+        )
+    }
+
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        try await generateJSON(
+            prompt: Prompts.buildTargetBrief(job: job),
+            instructions: Prompts.briefInstructions,
+            as: TargetBrief.self
+        )
+    }
+
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        try await generateJSON(
+            prompt: Prompts.generateApplication(job: job, profile: profile, brief: brief),
             instructions: Prompts.generateInstructions,
             as: ApplicationKit.self
         )

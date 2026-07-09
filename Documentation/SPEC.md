@@ -19,13 +19,25 @@ Four stages, run locally on the user's Mac:
 
 1. **Portfolio → profile.** The user pastes their resume, projects, and links.
    The app distills this once into a structured `CandidateProfile` and caches it.
-2. **Search → listings.** The user sets parameters (role, location, salary).
-   The app queries a job source and returns a candidate set.
+2. **Search → listings.** The user sets parameters — one or more role titles (as
+   chips, autocompleted and pre-seeded from the profile) plus a shared location and
+   salary floor. The app runs one search per title, merges and de-duplicates the
+   listings, and returns a single candidate set.
 3. **Rank.** A cheap prefilter trims the set to a shortlist, then the LLM
    re-ranks the shortlist against the profile, producing a fit score, a reason,
    and matched/missing skills per job.
 4. **Apply → generate.** When the user taps "Apply" on a job, the app generates
    a tailored resume and cover letter grounded strictly in the real portfolio.
+
+Alongside search, the user can also paste a **specific job-posting URL** (or the
+posting text, when a page can't be fetched); the app extracts it into the same
+ranked-listing flow. If a page is JS-gated, paywalled, or blocks fetching, the app
+says so and asks for the pasted text rather than guessing a role.
+
+The user can **track** where each application stands — mark it applied (the date is
+stamped automatically) and flag later stages (interview, offer, outcome). A Tracker
+screen lists tracked jobs and a status badge appears on results. This stays
+human-in-the-loop: the user applies themselves, then records it — no auto-submission.
 
 ## v1 scope (in)
 
@@ -37,18 +49,33 @@ Four stages, run locally on the user's Mac:
   and `claude -p` (secondary), selectable in Settings
 - Basic SwiftUI UI (Portfolio / Search / Results tabs + Settings)
 
+Adzuna API credentials are **baked in at build time** (from a gitignored
+`Secrets.xcconfig`), not entered by the user — so a correctly-built binary always
+has them and a misconfigured build fails fast (Search is disabled with a clear
+banner) rather than silently returning nothing. Only the Adzuna **country** is a
+user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
+
 ## Non-goals (v1)
 
 - No auto-submission or form-filling on job sites
 - No mobile/iOS target (macOS only)
 - No account system or cloud sync
 - No job-board browsing beyond the search feature
-- No persistence beyond the current session (planned for a fast follow — see ROADMAP)
+- Pulled listings + their match results — and the generated resume/cover letter for a
+  job — now **persist** across launches (SwiftData; see ROADMAP v2 Milestone O).
+  Reopening a job with saved materials shows them without regenerating. Broader
+  persistence — profile cache, saved/re-runnable searches — remains a fast follow.
 
 ## Principles
 
 - **Grounded generation.** Generated resumes/cover letters reorder and rephrase
   *real* experience only. Never invent employers, titles, dates, or credentials.
+  Generation is **two-stage** (ported from Taylor's résumé agent, `AGENT.md`):
+  first distil the posting into a structured *target brief* (company, exact role,
+  must-have vs. nice-to-have keywords, tech stack, domain, mission/values), then
+  tailor against it — mapping each signal to a true profile fact, foregrounding the
+  best-fit overlap, flagging gaps (never faking them), and structuring the cover
+  letter as *About Me / Why \<company\> / Why Me*.
 - **On-device first.** Default to Apple Foundation Models: free, private, offline.
   Escalate to Claude only when chosen or when the on-device model is unavailable.
 - **Swappable seams.** The LLM engine and the job source are both behind

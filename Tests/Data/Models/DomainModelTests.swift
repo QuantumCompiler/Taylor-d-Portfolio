@@ -90,6 +90,72 @@ struct DomainModelTests {
         #expect(decoded == kit)
     }
 
+    @Test func extractedPostingRoundTripsAndMapsToListing() throws {
+        let posting = ExtractedPosting(title: "iOS Engineer", company: "Acme", location: "Remote", description: "Swift + SwiftUI.")
+        #expect(try roundTrip(posting) == posting)
+        #expect(posting.looksReal)
+        #expect(ExtractedPosting(title: "", company: "", location: "", description: "x").looksReal == false)
+
+        let url = URL(string: "https://example.com/jobs/1")!
+        let listing = posting.toListing(sourceURL: url)
+        #expect(listing.id == url.absoluteString)
+        #expect(listing.url == url)
+        #expect(listing.title == "iOS Engineer")
+    }
+
+    @Test func applicationStatusRoundTrips() throws {
+        let status = ApplicationStatus(
+            stage: .interviewing,
+            appliedDate: Date(timeIntervalSince1970: 1_700_000_000),
+            interviewDate: Date(timeIntervalSince1970: 1_700_500_000),
+            note: "Recruiter call went well."
+        )
+        #expect(try roundTrip(status) == status)
+    }
+
+    @Test func advancingStampsTheRightMilestoneAndAdvancesStage() {
+        let t0 = Date(timeIntervalSince1970: 1_000)
+        let applied = ApplicationStatus().advanced(to: .applied, on: t0)
+        #expect(applied.stage == .applied)
+        #expect(applied.appliedDate == t0)
+        #expect(applied.currentDate == t0)
+        #expect(applied.interviewDate == nil)
+
+        // Forward milestones stamp only the first time they're reached.
+        let t1 = Date(timeIntervalSince1970: 2_000)
+        let reApplied = applied.advanced(to: .applied, on: t1)
+        #expect(reApplied.appliedDate == t0)   // original applied date preserved
+
+        // Terminal outcome stamps closedDate (latest wins).
+        let t2 = Date(timeIntervalSince1970: 3_000)
+        let rejected = applied.advanced(to: .rejected, on: t2)
+        #expect(rejected.stage == .rejected)
+        #expect(rejected.closedDate == t2)
+        #expect(rejected.currentDate == t2)
+        #expect(rejected.appliedDate == t0)    // earlier milestones retained
+    }
+
+    @Test func settableStagesExcludeSaved() {
+        #expect(ApplicationStage.settable.contains(.saved) == false)
+        #expect(ApplicationStage.settable.contains(.applied))
+        #expect(ApplicationStage.rejected.isClosed)
+        #expect(ApplicationStage.applied.isClosed == false)
+    }
+
+    @Test func targetBriefRoundTrips() throws {
+        let brief = TargetBrief(
+            company: "Acme",
+            roleTitle: "Senior iOS Engineer",
+            mustHaveKeywords: ["Swift", "SwiftUI", "async/await"],
+            niceToHaveKeywords: ["Kotlin"],
+            techStack: ["Swift", "Combine"],
+            domain: "Fintech",
+            missionValues: "Make money management delightful."
+        )
+        let decoded = try roundTrip(brief)
+        #expect(decoded == brief)
+    }
+
     @Test func rankedJobDerivesIdentityAndScoreAndRoundTrips() throws {
         let listing = JobListing(
             id: "adzuna-123", title: "iOS Engineer", company: "Acme",

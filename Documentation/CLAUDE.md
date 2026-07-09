@@ -15,7 +15,15 @@ auto-submission — the user applies themselves.
 
 - **UI:** SwiftUI, macOS 26 (Tahoe) target, Xcode 26.
 - **Primary LLM:** Apple Foundation Models (`import FoundationModels`), on-device.
+  The on-device model tier is **OS/hardware-driven, not app-selectable** — the SDK has no
+  API to choose or query a model tier (only `SystemLanguageModel.default` + `availability`),
+  so `FoundationModelsClient`'s job is availability + graceful degradation, never model
+  selection. (Don't try to build a tier picker — there's nothing to call.)
 - **Secondary LLM:** Claude Code headless — `claude -p "<prompt>" --output-format json`.
+  The engine **and** Claude model are chosen **per task** in Settings (each `LLMTask`
+  gets a `TaskEngineConfig`); the `ClaudeModel` catalog — Fable 5, Opus 4.8/4.7,
+  Sonnet 5/4.6, Haiku 4.5; default `claude-opus-4-8` — is passed via the CLI's
+  `--model` flag.
 - **Job source:** Adzuna REST API (free tier) to start.
 - **Persistence:** none yet; SwiftData planned (see ROADMAP).
 
@@ -70,8 +78,38 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
 - LLM gateway: `LLMProvider` (protocol) + `FoundationModelsProvider` +
   `ClaudeCodeProvider` + `LLMRouter` + `Prompts`.
 - Job gateway: `JobSource` (protocol) + `AdzunaJobSource`.
+- Single-posting gateway: `JobPostingSource` (protocol) + `LinkJobPostingSource`
+  (fetch a URL via `HTTPClient` → `HTMLStripper` → LLM `extractPosting` → `JobListing`;
+  fails loudly with `.unreadable` on blocked/empty pages, plus a paste-text path).
+- Persistence: `SavedJobsRepository` + `SavedApplicationsRepository` +
+  `SavedStatusRepository` + `SavedProfilesRepository` (Data/Persistence) map domain
+  `RankedJob` / `ApplicationKit` / `ApplicationStatus` / `SavedProfile` ↔ the
+  Infrastructure record store's blobs (upsert by id — `JobListing.id`, or `SavedProfile.id`
+  for profiles; each under its own `kind`), so pulled listings + matches, generated
+  materials, application statuses, and **named profiles** survive relaunch. `@Model` never
+  leaves Infrastructure. A built `CandidateProfile` is saved as a named `SavedProfile`
+  (Save/Update on the Portfolio tab) and re-selected at build or search time via
+  `SaveProfileUseCase` / `LoadProfilesUseCase` / `DeleteProfileUseCase` — no regeneration.
+  Long-pressing a saved profile marks it the **default** (persisted via `DefaultProfileStore`,
+  a single-id KeyValueStore pointer); the Portfolio VM auto-loads it once on launch.
+  A `SavedProfile` also pairs the **source document** it was built on: `sourceFileName`,
+  the raw `sourceText`, and a `readableText` — the raw import reflowed into clean plain
+  text by `TidyDocumentUseCase` (`LLMProvider.tidyDocument`, routed through the `.profile`
+  task so it uses the same engine that built the profile). Viewable with the profile on
+  the Portfolio tab. `SavedProfile` decodes legacy blobs (document fields default) so older
+  saves still load.
+- Search suggestions: `SuggestionProvider` (Data/Search) — profile-seeded starting
+  titles + static locations + salary presets; pure, on-device. Common role titles are
+  **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
+  not a static vocabulary.
 - Retrieval gateway: `Retriever` (protocol) + impl (roadmap).
-- `AppSettings` + `SettingsStore`.
+- `AppSettings` (`engines: [LLMTask: TaskEngineConfig]` + `adzunaCountry`) +
+  `SettingsStore`; `LLMTask` (profile / ranking / extraction / application),
+  `TaskEngineConfig` (per-task `LLMChoice` + Claude model), `ClaudeModel` (the
+  selectable-model catalog). The engine is chosen **per task**, not globally — each
+  task defaults to Claude on `claude-opus-4-8` (on-device is no longer automatic, but
+  stays selectable via `.onDevice` / `.auto`). Adzuna credentials are **not** here —
+  they're baked in at build time via `AppConfig`.
 Depends only on Infrastructure ports.
 
 **Infrastructure** — lowest-level, domain-agnostic plumbing behind small protocols
@@ -79,22 +117,37 @@ declared here: `TextGenerating` + `FoundationModelsClient` (wraps
 `LanguageModelSession`, `@Generable`, availability) + `ClaudeProcessClient` (runs
 `claude -p`, unwraps `result`, strips fences); `HTTPClient` (URLSession wrapper);
 `EmbeddingClient` (`NLContextualEmbedding`, roadmap); `KeyValueStore` (UserDefaults
-/ keychain).
+/ keychain); `PersistentRecordStore` + `SwiftDataRecordStore` (a list-oriented blob
+store backed by SwiftData; the `@Model` `StoredRecord` lives here and never leaks up —
+callers see only `Data` blobs by `(kind, id)`); `AppConfig` + `BundleAppConfig`
+(build-time secrets read from the bundle Info.plist — the Adzuna keys, injected from a
+gitignored `Secrets.xcconfig`).
 
 ### The three seams, now placed in layers
 
 - **LLM seam** — `LLMProvider` (Data), task-oriented (not generic `generate<T>`)
   because the engines structure output differently: `FoundationModelsProvider`
   uses constrained decoding against `@Generable` types; `ClaudeCodeProvider` asks
-  for JSON and decodes. `LLMRouter` picks one from `AppSettings.llmChoice` (`auto`
-  = on-device first, fall back to Claude). Shared prompts in `Prompts`; structured
-  types are both `Generable` and `Codable`. Availability via
+  for JSON and decodes. `LLMRouter` maps each `LLMProvider` method to an `LLMTask`
+  and picks that task's engine from `AppSettings` (`.auto` = on-device first, fall
+  back to Claude; `.claude`/`.onDevice` force one), building the Claude client with
+  the task's chosen model. Shared prompts in `Prompts`; structured
+  types are both `Generable` and `Codable`. **Generation is two-stage** (AGENT.md
+  discipline): `buildTargetBrief(for:)` distils the posting into a `TargetBrief`,
+  then `generateApplication(for:profile:brief:)` tailors against it. Both are
+  `LLMProvider` methods; `GenerateApplicationUseCase` orchestrates the two calls. Availability via
   `SystemLanguageModel.default.availability` → `.available` /
   `.unavailable(.deviceNotEligible | .appleIntelligenceNotEnabled | .modelNotReady)`.
 - **Job seam** — `JobSource` (Data). Implement it (Adzuna, JSearch, USAJOBS…),
   return `[JobListing]`, don't leak API-specific types past the protocol.
 - **Ranking funnel** — `JobRanker` (Business): `prefilter(...)` (cheap shortlist;
   upgrade to embedding similarity) then batched `rank(...)` → `[RankedJob]`.
+- **Multi-title fan-out** — `SearchAndRankUseCase` (Business) expands a
+  `JobSearchRequest` (many titles, shared location/salary) into one `JobQuery` per
+  title, runs them with bounded concurrency (Adzuna rate-limit guard), merges and
+  de-dupes by `JobListing.id`, then ranks the combined set **once**. A single title's
+  failure is a soft note (`Output.failedTitles`); it only throws if *all* fail.
+  `JobQuery` stays the single-`what` unit the seam understands.
 
 ### Composition root
 
@@ -111,30 +164,40 @@ One top-level folder per layer:
 ```
 Taylor'd Portfolio/
   Presentation/
-    App/            Taylor_d_PortfolioApp (composition root)
-    Landing/        one folder per screen; each screen holds two subfolders:
-      View/           the SwiftUI view(s)                  — LandingView
-      ViewModel/      the @MainActor @Observable ViewModel — LandingViewModel
-    Portfolio/, Search/, Results/, Application/, Settings/  (same View/ + ViewModel/ shape;
-                  e.g. Results/View holds ResultsView + RankedRow, Application/View the sheet)
+    App/            Taylor_d_PortfolioApp (composition root); RootView opens on the Portfolio tab
+    Portfolio/      one folder per screen; each screen holds two subfolders:
+      View/           the SwiftUI view(s)                  — PortfolioView
+      ViewModel/      the @MainActor @Observable ViewModel — PortfolioViewModel
+    Search/, Results/, Application/, Tracker/, Settings/  (same View/ + ViewModel/ shape;
+                  e.g. Results/View holds ResultsView + RankedRow + JobDetailView + StatusBadge,
+                  Tracker/View holds TrackerView, Application/View the sheet)
   Business/
     UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
-                  GenerateApplicationUseCase
+                  GenerateApplicationUseCase, FetchPostingUseCase,
+                  SaveResultsUseCase, LoadSavedJobsUseCase,
+                  SaveApplicationUseCase, LoadApplicationUseCase,
+                  MarkStatusUseCase, LoadStatusUseCase, LoadTrackedJobsUseCase
     Ranking/      JobRanker
   Data/
-    Models/       CandidateProfile, JobListing, JobMatch, ApplicationKit,
-                  JobQuery, RankedJob
+    Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,
+                  ApplicationKit, ApplicationStatus, JobQuery, JobSearchRequest,
+                  RankedJob, TrackedJob
     LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
-                  LLMRouter, Prompts
-    Jobs/         JobSource, AdzunaJobSource
+                  LLMRouter, LLMChoice, LLMTask, TaskEngineConfig, ClaudeModel, Prompts
+    Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
+    Search/       SuggestionProvider, RoleTitleStore
+    Persistence/  SavedJobsRepository, SavedApplicationsRepository, SavedStatusRepository, SavedProfilesRepository   (domain ↔ PersistentRecordStore blobs)
     Retrieval/    Retriever            (roadmap)
-    Settings/     AppSettings, SettingsStore
+    Settings/     AppSettings (per-task engine map), SettingsStore
   Infrastructure/
     LLM/          TextGenerating, FoundationModelsClient, ClaudeProcessClient
     Net/          HTTPClient
     Documents/    DocumentTextExtractor, PlatformDocumentTextExtractor
+    Config/       AppConfig, BundleAppConfig   (build-time secrets ← Info.plist ← Secrets.xcconfig)
+    Text/         HTMLStripper         (HTML → plain text; used by Data + Presentation)
     Embedding/    EmbeddingClient      (roadmap)
-    Store/        KeyValueStore
+    Store/        KeyValueStore, UserDefaultsStore,
+                  PersistentRecordStore, SwiftDataRecordStore (+ StoredRecord @Model)
 ```
 
 Enforce the dependency rule at review time. Optional but recommended later: make
@@ -148,7 +211,12 @@ for you.
 - `JobListing` (`Codable`): id, title, company, location, description, url, salary.
 - `JobMatch` (`@Generable`, `Codable`): jobId, score (0–100), reason,
   matchedSkills, missingSkills.
+- `TargetBrief` (`@Generable`, `Codable`): company, roleTitle, mustHaveKeywords,
+  niceToHaveKeywords, techStack, domain, missionValues — the stage-1 distillation
+  of a posting that stage-2 generation tailors against.
 - `ApplicationKit` (`@Generable`, `Codable`): resumeMarkdown, coverLetter, gapNote.
+- `ApplicationStatus` (`Codable`): `stage` (`ApplicationStage`) + auto-stamped dated
+  milestones; `advanced(to:on:)` is pure. `TrackedJob` pairs a `RankedJob` with its status.
 
 ## Conventions
 
@@ -176,11 +244,22 @@ for you.
 
 ## Build & run
 
-- Signing & Capabilities → App Sandbox → **Outgoing Connections (Client)** on
-  (for Adzuna HTTP).
-- To use the `claude -p` provider, turn **App Sandbox off** (a sandboxed app
-  can't launch an external binary). Foundation Models works sandboxed.
-- Add Adzuna `app_id` / `app_key` and country code in Settings before searching.
+- **App Sandbox is OFF** for the app target (`ENABLE_APP_SANDBOX = NO`). This is
+  deliberate: the `claude -p` provider launches an external binary, which a sandboxed
+  app can't do (it fails with "Operation not permitted"). Unsandboxed, both the Claude
+  CLI and Adzuna HTTP work, and Foundation Models still works. Trade-off: no Mac App
+  Store distribution — fine for a personal/dev tool. (`ENABLE_OUTGOING_NETWORK_CONNECTIONS
+  = YES` is kept for when/if the sandbox is re-enabled, but is moot while unsandboxed.)
+- The `claude -p` provider needs the `claude` CLI installed and on a resolvable path.
+  GUI apps inherit a minimal `PATH`, so `ClaudeProcessClient` widens it
+  (`searchPATH`) to include `~/.local/bin`, Homebrew, and npm-global before launching.
+- **Adzuna credentials are build-time secrets, not settings.** Copy
+  `Secrets.example.xcconfig` → `Secrets.xcconfig` (repo root; gitignored) and fill in
+  `ADZUNA_APP_ID` / `ADZUNA_APP_KEY`. They flow `Secrets.xcconfig` → the app target's
+  base configuration → `Info.plist` (`AdzunaAppID` / `AdzunaAppKey` via `$(…)`
+  substitution) → `BundleAppConfig` at runtime. A build without them still runs, but
+  Search is disabled with a clear "unavailable in this build" banner (fail-fast).
+  Only the Adzuna **country** is a user setting.
 
 ## Working process (docs as source of truth)
 

@@ -21,11 +21,22 @@ struct PresentationStubProvider: LLMProvider {
         if shouldThrow { throw Boom() }
         return CandidateProfile(seniority: profileSeniority, yearsExperience: 1, coreSkills: [], domains: [], targetTitles: [], summary: "")
     }
+    func tidyDocument(rawText: String) async throws -> String {
+        if shouldThrow { throw Boom() }
+        return "TIDY:\n" + rawText
+    }
     func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] {
         if shouldThrow { throw Boom() }
         return matches
     }
-    func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        if shouldThrow { throw Boom() }
+        return TargetBrief(
+            company: job.company, roleTitle: job.title, mustHaveKeywords: [],
+            niceToHaveKeywords: [], techStack: [], domain: "", missionValues: ""
+        )
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
         if shouldThrow { throw Boom() }
         return ApplicationKit(resumeMarkdown: kitResume, coverLetter: "", gapNote: "")
     }

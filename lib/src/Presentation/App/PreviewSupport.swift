@@ -17,10 +17,18 @@ enum Preview {
         func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] {
             jobs.map { JobMatch(jobId: $0.id, score: 72, reason: "Solid Swift/SwiftUI overlap.", matchedSkills: ["Swift"], missingSkills: ["Kotlin"]) }
         }
-        func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
+        func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+            TargetBrief(
+                company: job.company, roleTitle: job.title,
+                mustHaveKeywords: ["Swift", "SwiftUI"], niceToHaveKeywords: ["Kotlin"],
+                techStack: ["Swift", "SwiftUI"], domain: "Mobile",
+                missionValues: "Build delightful native experiences."
+            )
+        }
+        func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
             ApplicationKit(
-                resumeMarkdown: "# \(profile.seniority) Engineer\n\n- Built native apps for \(job.company).",
-                coverLetter: "Dear \(job.company) team,\n\nI'd love to help…",
+                resumeMarkdown: "# \(profile.seniority) \(brief.roleTitle)\n\n- Built native apps for \(brief.company).",
+                coverLetter: "## About Me\n\n## Why \(brief.company)\n\n## Why Me",
                 gapNote: "No direct Kotlin experience."
             )
         }

@@ -15,4 +15,13 @@ nonisolated enum LLMChoice: String, Codable, Equatable, Sendable, CaseIterable {
     case auto
     case onDevice
     case claude
+
+    /// Label shown in Settings pickers.
+    var displayName: String {
+        switch self {
+        case .auto:     return "Auto (on-device first)"
+        case .onDevice: return "On-device only"
+        case .claude:   return "Claude"
+        }
+    }
 }

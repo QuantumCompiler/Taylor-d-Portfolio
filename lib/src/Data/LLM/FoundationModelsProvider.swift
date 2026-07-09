@@ -33,9 +33,32 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         return batch.matches
     }
 
-    func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
+    func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         try await client.respond(
-            to: Prompts.generateApplication(job: job, profile: profile),
+            to: Prompts.extractPosting(pageText: pageText),
+            generating: ExtractedPosting.self,
+            instructions: Prompts.extractInstructions
+        )
+    }
+
+    func tidyDocument(rawText: String) async throws -> String {
+        try await client.generate(
+            prompt: Prompts.tidyDocument(rawText: rawText),
+            instructions: Prompts.tidyInstructions
+        )
+    }
+
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        try await client.respond(
+            to: Prompts.buildTargetBrief(job: job),
+            generating: TargetBrief.self,
+            instructions: Prompts.briefInstructions
+        )
+    }
+
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        try await client.respond(
+            to: Prompts.generateApplication(job: job, profile: profile, brief: brief),
             generating: ApplicationKit.self,
             instructions: Prompts.generateInstructions
         )

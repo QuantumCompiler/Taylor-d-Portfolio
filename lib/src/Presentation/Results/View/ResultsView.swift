@@ -7,11 +7,14 @@
 
 import SwiftUI
 
-/// The ranked results list. Tapping a job opens the Application sheet.
+/// The ranked results list. Tapping a job opens its detail view (from which the user
+/// can read the full posting, generate an application, and set its status).
 struct ResultsView: View {
     @Bindable var viewModel: ResultsViewModel
     let profile: CandidateProfile?
     let applicationViewModel: ApplicationViewModel
+    var markStatus: MarkStatusUseCase? = nil
+    var loadStatus: LoadStatusUseCase? = nil
 
     var body: some View {
         Group {
@@ -23,17 +26,23 @@ struct ResultsView: View {
                 )
             } else {
                 List(viewModel.results) { ranked in
-                    RankedRow(ranked: ranked)
+                    RankedRow(ranked: ranked, status: viewModel.status(for: ranked))
                         .contentShape(Rectangle())
                         .onTapGesture { viewModel.select(ranked) }
                 }
             }
         }
         .navigationTitle("Results")
+        .task { await viewModel.loadSavedIfNeeded() }
         .sheet(item: $viewModel.selectedJob) { ranked in
-            if let profile {
-                ApplicationSheet(viewModel: applicationViewModel, job: ranked.listing, profile: profile)
-            }
+            JobDetailView(
+                ranked: ranked, profile: profile, applicationViewModel: applicationViewModel,
+                markStatus: markStatus, loadStatus: loadStatus
+            )
+        }
+        // Refresh badges after the detail sheet (where status can change) closes.
+        .onChange(of: viewModel.selectedJob) { _, newValue in
+            if newValue == nil { Task { await viewModel.refreshStatuses() } }
         }
     }
 }

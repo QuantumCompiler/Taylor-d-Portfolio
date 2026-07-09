@@ -16,7 +16,10 @@ private struct StubProvider: LLMProvider {
         CandidateProfile(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
     }
     func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { matches }
-    func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        TargetBrief(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
         ApplicationKit(resumeMarkdown: "", coverLetter: "", gapNote: "")
     }
 }
@@ -31,7 +34,10 @@ private actor RecordingRankProvider: LLMProvider {
         received = jobs
         return []
     }
-    func generateApplication(for job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        TargetBrief(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
         ApplicationKit(resumeMarkdown: "", coverLetter: "", gapNote: "")
     }
 }

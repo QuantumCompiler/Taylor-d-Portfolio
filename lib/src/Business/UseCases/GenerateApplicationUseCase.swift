@@ -8,6 +8,10 @@
 import Foundation
 
 /// Generates a tailored ``ApplicationKit`` for a chosen job via the LLM.
+///
+/// Two-stage (AGENT.md discipline): first distil the posting into a ``TargetBrief``,
+/// then tailor the application against that brief. Orchestrating both stages here
+/// keeps the providers atomic and the pipeline visible in the Business layer.
 nonisolated struct GenerateApplicationUseCase: Sendable {
     let provider: any LLMProvider
 
@@ -16,6 +20,7 @@ nonisolated struct GenerateApplicationUseCase: Sendable {
     }
 
     func callAsFunction(job: JobListing, profile: CandidateProfile) async throws -> ApplicationKit {
-        try await provider.generateApplication(for: job, profile: profile)
+        let brief = try await provider.buildTargetBrief(for: job)
+        return try await provider.generateApplication(for: job, profile: profile, brief: brief)
     }
 }

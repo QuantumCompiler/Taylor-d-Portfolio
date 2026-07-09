@@ -18,10 +18,21 @@ struct ApplicationSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading) {
-                    Text("Application").font(.title2.bold())
+                    HStack(spacing: 6) {
+                        Text("Application").font(.title2.bold())
+                        if viewModel.isSaved {
+                            Label("Saved", systemImage: "clock.arrow.circlepath")
+                                .font(.caption).foregroundStyle(.secondary)
+                                .labelStyle(.titleAndIcon)
+                        }
+                    }
                     Text("\(job.title) · \(job.company)").foregroundStyle(.secondary)
                 }
                 Spacer()
+                if viewModel.kit != nil {
+                    Button("Regenerate") { Task { await viewModel.generate(for: job, profile: profile) } }
+                        .disabled(viewModel.isGenerating)
+                }
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.defaultAction)
             }
@@ -30,7 +41,7 @@ struct ApplicationSheet: View {
         }
         .padding(24)
         .frame(minWidth: 520, minHeight: 440)
-        .task { await viewModel.generate(for: job, profile: profile) }
+        .task { await viewModel.open(for: job, profile: profile) }
     }
 
     @ViewBuilder private var content: some View {
