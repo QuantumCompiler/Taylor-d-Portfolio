@@ -15,10 +15,9 @@ milestone.
 > **M-B** (two-stage structured generation), **N** (multi-title search + field autocomplete),
 > **O-A** (job-detail view), **M-A** (generate from a job-posting URL), **O-B** (persist searched
 > listings — first SwiftData slice), **O-C** (persist generated `ApplicationKit`, reopen without
-> regenerating). **Milestone O is fully done.** Next per the suggested order is **Milestone P**
-> (application status tracker — mark applied with an automatic date, flag interview/offer/outcome;
-> builds on O's persistence). Other
-> largely-independent milestones: **Milestone L** (prefer AFM 3 Core Advanced) is gated on spike **L0** — confirm
+> regenerating), and **P** (application status tracker). **Milestones K, M, N, O, P are all done —
+> the only v2 milestone left is L.** **Milestone L** (prefer AFM 3 Core Advanced on-device) is
+> gated on spike **L0** — confirm
 > whether an app can select/verify the Core Advanced tier before building on it;
 > **Milestone M** (job-URL input + AGENT.md-grade generation prompts) can start with
 > M-B (better prompts) since it helps regardless of input source; **Milestone N**
@@ -490,7 +489,7 @@ O-B is the first real slice of the broader SwiftData fast-follow (which then add
 cache, applied-to tracker, and saved/re-runnable searches). O-C builds on O-B's port/
 repository. Keep domain types free of `@Model`; map at the Infrastructure boundary.
 
-## Milestone P — Application status tracker  (`Data/Models`, `Business/UseCases`, Infrastructure persistence, Tracker screen)
+## Milestone P — Application status tracker  ✅ done  (`Data/Models`, `Business/UseCases`, Infrastructure persistence, Tracker screen)
 
 Goal: record where each job stands. **Mark as applied** with an **automatic** date stamp,
 and flag later stages — interview offered, offer received, rejected, accepted/declined,
@@ -498,55 +497,56 @@ withdrawn — each auto-stamped when set. A tracker view lists applied jobs by s
 status badge appears on results/detail. Builds on Milestone O's persistence. Consistent
 with the human-in-the-loop principle (the user applies themselves, then records it).
 
-### P-A — Status model + auto date stamps
+### P-A — Status model + auto date stamps  ✅ done
 
-- [ ] **`ApplicationStatus` domain type (`Data/Models`).** `nonisolated`, `Codable`,
-      `Equatable`, `Sendable` like the other models. Model a current stage plus dated
-      milestones — e.g. a `Stage` enum (`saved` / `applied` / `interviewing` / `offer` /
-      `accepted` / `declined` / `rejected` / `withdrawn`) and dates for the key
-      transitions (`appliedDate`, `interviewDate`, `offerDate`, `closedDate`), plus an
-      optional free-text `note`. Decide enum-with-dates vs. an event log
-      (`[StatusEvent]`) during design — event log keeps history for free; enum+dates is
-      simpler. Default: enum + optional dated milestones.
-- [ ] **Auto-stamp on transition.** Setting a stage stamps `Date()` automatically for that
-      milestone — the user never types a date. Marking applied sets `appliedDate = now`;
-      flagging an interview/offer stamps the corresponding date. (Manual date editing is an
-      optional later touch, not v1 of this feature.)
-- [ ] **Tests.** `DomainModelTests`: `ApplicationStatus` Codable round-trip; a transition
-      helper stamps the right dated milestone and advances the stage.
+- [x] **`ApplicationStatus` domain type (`Data/Models`).** `nonisolated` `Codable`/
+      `Equatable`/`Sendable`: an `ApplicationStage` enum (saved/applied/interviewing/offer/
+      accepted/declined/rejected/withdrawn, with `label` + `settable` + `isClosed`) plus
+      dated milestones (`appliedDate`/`interviewDate`/`offerDate`/`closedDate`) + `note`.
+      Chose **enum + dated milestones** (simpler than an event log). `currentDate` helper.
+- [x] **Auto-stamp on transition.** Pure `advanced(to:on:)` stamps the milestone for the
+      new stage (forward milestones stamp-if-nil to preserve the first date; terminal
+      outcomes stamp `closedDate`, latest-wins). The clock is injected by the use case
+      (`now` closure) so production uses `Date()` and tests are deterministic.
+- [x] **Tests.** `DomainModelTests`: `ApplicationStatus` round-trip; `advanced(to:on:)`
+      stamps the right milestone, advances the stage, and preserves earlier stamps;
+      `settable`/`isClosed`.
 
-### P-B — Persist status (extends O's repository)
+### P-B — Persist status (extends O's repository)  ✅ done
 
-- [ ] **Store status by job id.** Extend Milestone O's persistence port / `SavedJobsRepository`
-      to save + fetch `ApplicationStatus` keyed by `JobListing.id` (mapped to/from an
-      Infrastructure `@Model`, same `@Model`-stays-in-Infrastructure rule). Upsert per job.
-- [ ] **`MarkStatusUseCase` (Business).** A `callAsFunction` use case (or a small set) that
-      applies a transition — stamps the date, persists via the repository. Keeps ViewModels
-      off the repository directly.
-- [ ] **Fetch applied set.** Repository query for "jobs with a status" (and by stage) to
-      back the tracker list and any "already applied" checks.
-- [ ] **Tests.** Repository round-trip for status (save → fetch by id; upsert replaces);
-      `MarkStatusUseCase` stamps + persists.
+- [x] **Store status by job id.** `SavedStatusRepository` (Data/Persistence), `kind`
+      "applicationStatus", keyed by `JobListing.id`, upsert. Since the status blob doesn't
+      carry the id, the `PersistentRecordStore` gained `entries(ofKind:)` (id+blob pairs)
+      to back `allStatuses()`. `@Model` stays in Infrastructure.
+- [x] **`MarkStatusUseCase` (Business).** `callAsFunction(jobID:stage:)` loads-or-defaults,
+      `advanced(to:on: now())`, persists, returns the new status. `LoadStatusUseCase` +
+      `LoadTrackedJobsUseCase` (joins statuses with saved jobs) round out the set.
+- [x] **Fetch applied set.** `SavedStatusRepository.allStatuses()` (id → status);
+      `LoadTrackedJobsUseCase` produces the `[TrackedJob]` the tracker lists.
+- [x] **Tests.** `SavedStatusRepositoryTests` (round-trip, upsert, allStatuses map);
+      `StatusUseCaseTests` (mark stamps+persists with an injected clock, advances keeping
+      earlier stamps, the tracked-jobs join, empty cases).
 
-### P-C — Tracker UI + status affordances
+### P-C — Tracker UI + status affordances  ✅ done
 
-- [ ] **Status control on the detail view.** On the job-detail view (O-A), a "Mark as
-      applied" button and controls to advance stage (interview / offer / outcome). Show the
-      stamped dates read-only. Marking applied is one tap; the date is automatic.
-- [ ] **Tracker screen (`Tracker/View` + `Tracker/ViewModel`).** A `@MainActor @Observable`
-      VM lists jobs that have a status, grouped/sortable by stage, showing company/role +
-      current stage + relevant date. Tapping a row opens the detail.
-- [ ] **Status badge on `RankedRow`.** A small badge (e.g. "Applied · Jun 12", "Interview")
-      on results rows for jobs that have a status, so state is visible without opening them.
-- [ ] **Navigation.** Add the Tracker as a tab (or a section) in `RootView`'s `TabView`;
-      wire its VM through `Composition`.
-- [ ] **Tests / previews.** `TrackerViewModel` suite (lists by stage, ordering); detail
-      status-control VM behavior (mark applied stamps + persists via a stub repository);
-      previews with sample statuses.
-- [ ] **Docs.** SPEC (add the tracker to the core flow / scope; note it stays
-      human-in-the-loop, no auto-submission); CLAUDE.md (add `ApplicationStatus` to Key
-      types, the Tracker screen to Presentation, `MarkStatusUseCase` to Business, and the
-      repository's status mapping).
+- [x] **Status control on the detail view.** `JobDetailView` gained a "Application status"
+      section: a one-tap "Mark as applied" (when untracked) + a "Set status" menu for the
+      other stages, showing the current `StatusBadge`. Loads the status on `.task`, marks
+      via `MarkStatusUseCase` (auto date).
+- [x] **Tracker screen (`Tracker/View` + `Tracker/ViewModel`).** `TrackerViewModel` lists
+      `TrackedJob`s sorted by most-recent status activity; `TrackerView` shows them
+      (reusing `RankedRow` + badge), tap opens the detail; reloads after the sheet closes.
+- [x] **Status badge on `RankedRow`.** New reusable `StatusBadge` ("Applied · Jun 12",
+      coloured by stage). `ResultsViewModel` loads statuses (via `LoadTrackedJobsUseCase`)
+      and badges rows; refreshes when the detail sheet closes.
+- [x] **Navigation.** Added a **Tracker** tab to `RootView`'s `TabView`, wired through
+      `Composition` (`makeTrackerViewModel`; `markStatus`/`loadStatus` threaded to the
+      detail from both Results and Tracker).
+- [x] **Tests / previews.** `TrackerViewModelTests` (empty, most-recent-first ordering,
+      select); `StatusBadge`/`TrackerView` previews.
+- [x] **Docs.** SPEC (tracker in the flow, human-in-the-loop); CLAUDE.md (`ApplicationStatus`
+      + `TrackedJob` in Key types, Tracker screen, the three status use cases, and the
+      `SavedStatusRepository` mapping).
 
 Note: P-A/P-B/P-C layer bottom-up (model → persistence → UI). The whole milestone sits on
 Milestone O's persistence port — do O-B first. Keeps the "no auto-submission" non-goal

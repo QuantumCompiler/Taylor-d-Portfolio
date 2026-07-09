@@ -19,8 +19,17 @@ protocol PersistentRecordStore: Sendable {
     func upsert(kind: String, id: String, data: Data) async throws
     /// All blobs of `kind`, in no guaranteed order.
     func records(ofKind kind: String) async throws -> [Data]
+    /// All records of `kind` with their ids — for callers whose blob doesn't itself
+    /// carry the id (e.g. a status keyed by a job id it doesn't store).
+    func entries(ofKind kind: String) async throws -> [StoredEntry]
     /// The blob for `(kind, id)`, or `nil` if absent.
     func record(ofKind kind: String, id: String) async throws -> Data?
     /// Removes the record for `(kind, id)` if present.
     func delete(kind: String, id: String) async throws
+}
+
+/// An id + blob pair returned by ``PersistentRecordStore/entries(ofKind:)``.
+struct StoredEntry: Sendable, Equatable {
+    var id: String
+    var data: Data
 }

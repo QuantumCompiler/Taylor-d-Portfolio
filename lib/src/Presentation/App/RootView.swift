@@ -9,7 +9,7 @@ import SwiftUI
 
 /// The main tabs, once the user has entered the app.
 private enum MainTab: Hashable {
-    case portfolio, search, results, settings
+    case portfolio, search, results, tracker, settings
 }
 
 /// Hosts the landing screen, then the main `TabView`. Owns every screen's ViewModel
@@ -18,8 +18,12 @@ struct RootView: View {
     @State private var portfolio: PortfolioViewModel
     @State private var search: SearchViewModel
     @State private var results: ResultsViewModel
+    @State private var tracker: TrackerViewModel
     @State private var settings: SettingsViewModel
     @State private var application: ApplicationViewModel
+
+    private let markStatus: MarkStatusUseCase?
+    private let loadStatus: LoadStatusUseCase?
 
     @State private var hasStarted = false
     @State private var tab: MainTab = .portfolio
@@ -28,8 +32,11 @@ struct RootView: View {
         _portfolio = State(initialValue: composition.makePortfolioViewModel())
         _search = State(initialValue: composition.makeSearchViewModel())
         _results = State(initialValue: composition.makeResultsViewModel())
+        _tracker = State(initialValue: composition.makeTrackerViewModel())
         _settings = State(initialValue: composition.makeSettingsViewModel())
         _application = State(initialValue: composition.makeApplicationViewModel())
+        markStatus = composition.markStatus
+        loadStatus = composition.loadStatus
     }
 
     var body: some View {
@@ -50,9 +57,19 @@ struct RootView: View {
                 .tabItem { Label("Search", systemImage: "magnifyingglass") }
                 .tag(MainTab.search)
 
-            ResultsView(viewModel: results, profile: portfolio.profile, applicationViewModel: application)
+            ResultsView(
+                viewModel: results, profile: portfolio.profile, applicationViewModel: application,
+                markStatus: markStatus, loadStatus: loadStatus
+            )
                 .tabItem { Label("Results", systemImage: "list.number") }
                 .tag(MainTab.results)
+
+            TrackerView(
+                viewModel: tracker, profile: portfolio.profile, applicationViewModel: application,
+                markStatus: markStatus, loadStatus: loadStatus
+            )
+                .tabItem { Label("Tracker", systemImage: "briefcase") }
+                .tag(MainTab.tracker)
 
             SettingsView(viewModel: settings)
                 .tabItem { Label("Settings", systemImage: "gearshape") }

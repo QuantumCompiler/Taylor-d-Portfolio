@@ -152,7 +152,7 @@ breakdown.
       This unlocks "already seen," a saved-jobs list, and "already generated" later (rest
       of the SwiftData item).
 
-- [ ] **Application status tracker.** Let the user record where each job stands: **mark
+- [x] **Application status tracker.** Let the user record where each job stands: **mark
       as applied** (the applied date is stamped **automatically** — no manual entry), and
       flag later stages — interview offered, offer received, rejected, accepted/declined,
       withdrawn — each with its own auto date stamp when set. A tracker view lists the

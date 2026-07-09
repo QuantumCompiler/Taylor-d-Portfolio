@@ -51,6 +51,11 @@ actor SwiftDataRecordStore: PersistentRecordStore {
         return try modelContext.fetch(descriptor).map(\.data)
     }
 
+    func entries(ofKind kind: String) throws -> [StoredEntry] {
+        let descriptor = FetchDescriptor<StoredRecord>(predicate: #Predicate { $0.kind == kind })
+        return try modelContext.fetch(descriptor).map { StoredEntry(id: $0.recordID, data: $0.data) }
+    }
+
     func record(ofKind kind: String, id: String) throws -> Data? {
         let key = StoredRecord.makeKey(kind: kind, recordID: id)
         let descriptor = FetchDescriptor<StoredRecord>(predicate: #Predicate { $0.key == key })

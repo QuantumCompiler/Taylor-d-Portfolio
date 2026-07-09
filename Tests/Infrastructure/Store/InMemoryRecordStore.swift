@@ -19,6 +19,11 @@ final class InMemoryRecordStore: PersistentRecordStore, @unchecked Sendable {
     func records(ofKind kind: String) async throws -> [Data] {
         storage.values.filter { $0.kind == kind }.map(\.data)
     }
+    func entries(ofKind kind: String) async throws -> [StoredEntry] {
+        storage.compactMap { key, value in
+            value.kind == kind ? StoredEntry(id: String(key.split(separator: "\u{1}").last ?? ""), data: value.data) : nil
+        }
+    }
     func record(ofKind kind: String, id: String) async throws -> Data? {
         storage[key(kind, id)]?.data
     }

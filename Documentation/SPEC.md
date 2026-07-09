@@ -34,6 +34,11 @@ posting text, when a page can't be fetched); the app extracts it into the same
 ranked-listing flow. If a page is JS-gated, paywalled, or blocks fetching, the app
 says so and asks for the pasted text rather than guessing a role.
 
+The user can **track** where each application stands — mark it applied (the date is
+stamped automatically) and flag later stages (interview, offer, outcome). A Tracker
+screen lists tracked jobs and a status badge appears on results. This stays
+human-in-the-loop: the user applies themselves, then records it — no auto-submission.
+
 ## v1 scope (in)
 
 - Portfolio input (paste text, or import a PDF / Word / RTF / text file) → structured profile

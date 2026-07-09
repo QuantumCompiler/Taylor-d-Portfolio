@@ -17,9 +17,12 @@ struct JobDetailView: View {
     let ranked: RankedJob
     let profile: CandidateProfile?
     let applicationViewModel: ApplicationViewModel
+    var markStatus: MarkStatusUseCase? = nil
+    var loadStatus: LoadStatusUseCase? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var showingApplication = false
+    @State private var status: ApplicationStatus?
 
     private var listing: JobListing { ranked.listing }
 
@@ -29,6 +32,7 @@ struct JobDetailView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    if markStatus != nil { statusSection }
                     matchSection
                     if let salary = listing.salary, let text = SalaryFormatter.text(salary) {
                         labeledSection("Salary") { Text(text).font(.callout) }
@@ -41,11 +45,45 @@ struct JobDetailView: View {
         }
         .padding(24)
         .frame(minWidth: 540, minHeight: 500)
+        .task {
+            guard let loadStatus else { return }
+            status = (try? await loadStatus(forJobID: ranked.id)) ?? nil
+        }
         .sheet(isPresented: $showingApplication) {
             if let profile {
                 ApplicationSheet(viewModel: applicationViewModel, job: listing, profile: profile)
             }
         }
+    }
+
+    // MARK: Application status
+
+    private var statusSection: some View {
+        labeledSection("Application status") {
+            HStack {
+                if let status {
+                    StatusBadge(status: status)
+                } else {
+                    Text("Not tracked yet").font(.callout).foregroundStyle(.secondary)
+                }
+                Spacer()
+                if status == nil {
+                    Button("Mark as applied") { mark(.applied) }
+                        .buttonStyle(.borderedProminent).controlSize(.small)
+                }
+                Menu("Set status") {
+                    ForEach(ApplicationStage.settable, id: \.self) { stage in
+                        Button(stage.label) { mark(stage) }
+                    }
+                }
+                .fixedSize()
+            }
+        }
+    }
+
+    private func mark(_ stage: ApplicationStage) {
+        guard let markStatus else { return }
+        Task { status = try? await markStatus(jobID: ranked.id, stage: stage) }
     }
 
     // MARK: Header

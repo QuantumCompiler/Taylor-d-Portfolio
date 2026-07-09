@@ -7,15 +7,22 @@
 
 import SwiftUI
 
-/// A single ranked job: score badge + title/company + the model's reason.
+/// A single ranked job: score badge + title/company + the model's reason, and a
+/// status pill when the job is being tracked.
 struct RankedRow: View {
     let ranked: RankedJob
+    var status: ApplicationStatus? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             ScoreBadge(score: ranked.score)
             VStack(alignment: .leading, spacing: 2) {
-                Text(ranked.listing.title).font(.headline)
+                HStack(spacing: 6) {
+                    Text(ranked.listing.title).font(.headline)
+                    if let status {
+                        StatusBadge(status: status)
+                    }
+                }
                 Text("\(ranked.listing.company) · \(ranked.listing.location)")
                     .font(.subheadline).foregroundStyle(.secondary)
                 Text(ranked.match.reason)

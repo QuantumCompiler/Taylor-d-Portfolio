@@ -59,6 +59,17 @@ struct Composition {
     private var savedApplicationsRepository: SavedApplicationsRepository? {
         recordStore.map(SavedApplicationsRepository.init(store:))
     }
+    private var savedStatusRepository: SavedStatusRepository? {
+        recordStore.map(SavedStatusRepository.init(store:))
+    }
+
+    /// Status use cases (nil when persistence is unavailable) — read by the detail view.
+    var markStatus: MarkStatusUseCase? { savedStatusRepository.map { MarkStatusUseCase(repository: $0) } }
+    var loadStatus: LoadStatusUseCase? { savedStatusRepository.map(LoadStatusUseCase.init(repository:)) }
+    private var loadTrackedJobs: LoadTrackedJobsUseCase? {
+        guard let savedJobsRepository, let savedStatusRepository else { return nil }
+        return LoadTrackedJobsUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository)
+    }
 
     // MARK: Gateways (read settings live, so Settings edits take effect immediately)
 
@@ -108,7 +119,10 @@ struct Composition {
         )
     }
     func makeResultsViewModel() -> ResultsViewModel {
-        .init(loadSavedJobs: loadSavedJobs)
+        .init(loadSavedJobs: loadSavedJobs, loadTrackedJobs: loadTrackedJobs)
+    }
+    func makeTrackerViewModel() -> TrackerViewModel {
+        .init(loadTrackedJobs: loadTrackedJobs)
     }
     func makeSettingsViewModel() -> SettingsViewModel {
         .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured)

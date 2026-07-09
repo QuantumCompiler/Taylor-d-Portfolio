@@ -73,10 +73,11 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
 - Single-posting gateway: `JobPostingSource` (protocol) + `LinkJobPostingSource`
   (fetch a URL via `HTTPClient` → `HTMLStripper` → LLM `extractPosting` → `JobListing`;
   fails loudly with `.unreadable` on blocked/empty pages, plus a paste-text path).
-- Persistence: `SavedJobsRepository` + `SavedApplicationsRepository` (Data/Persistence)
-  map domain `RankedJob` / `ApplicationKit` ↔ the Infrastructure record store's blobs
-  (upsert by `JobListing.id`; kits under a separate `kind`), so pulled listings + matches
-  and generated materials survive relaunch. `@Model` never leaves Infrastructure.
+- Persistence: `SavedJobsRepository` + `SavedApplicationsRepository` +
+  `SavedStatusRepository` (Data/Persistence) map domain `RankedJob` / `ApplicationKit` /
+  `ApplicationStatus` ↔ the Infrastructure record store's blobs (upsert by `JobListing.id`;
+  each under its own `kind`), so pulled listings + matches, generated materials, and
+  application statuses survive relaunch. `@Model` never leaves Infrastructure.
 - Search suggestions: `SuggestionProvider` (Data/Search) — profile-seeded starting
   titles + static locations + salary presets; pure, on-device. Common role titles are
   **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
@@ -140,17 +141,20 @@ Taylor'd Portfolio/
     Landing/        one folder per screen; each screen holds two subfolders:
       View/           the SwiftUI view(s)                  — LandingView
       ViewModel/      the @MainActor @Observable ViewModel — LandingViewModel
-    Portfolio/, Search/, Results/, Application/, Settings/  (same View/ + ViewModel/ shape;
-                  e.g. Results/View holds ResultsView + RankedRow + JobDetailView, Application/View the sheet)
+    Portfolio/, Search/, Results/, Application/, Tracker/, Settings/  (same View/ + ViewModel/ shape;
+                  e.g. Results/View holds ResultsView + RankedRow + JobDetailView + StatusBadge,
+                  Tracker/View holds TrackerView, Application/View the sheet)
   Business/
     UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
                   GenerateApplicationUseCase, FetchPostingUseCase,
                   SaveResultsUseCase, LoadSavedJobsUseCase,
-                  SaveApplicationUseCase, LoadApplicationUseCase
+                  SaveApplicationUseCase, LoadApplicationUseCase,
+                  MarkStatusUseCase, LoadStatusUseCase, LoadTrackedJobsUseCase
     Ranking/      JobRanker
   Data/
     Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,
-                  ApplicationKit, JobQuery, JobSearchRequest, RankedJob
+                  ApplicationKit, ApplicationStatus, JobQuery, JobSearchRequest,
+                  RankedJob, TrackedJob
     LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
                   LLMRouter, Prompts
     Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
@@ -184,6 +188,8 @@ for you.
   niceToHaveKeywords, techStack, domain, missionValues — the stage-1 distillation
   of a posting that stage-2 generation tailors against.
 - `ApplicationKit` (`@Generable`, `Codable`): resumeMarkdown, coverLetter, gapNote.
+- `ApplicationStatus` (`Codable`): `stage` (`ApplicationStage`) + auto-stamped dated
+  milestones; `advanced(to:on:)` is pure. `TrackedJob` pairs a `RankedJob` with its status.
 
 ## Conventions
 
