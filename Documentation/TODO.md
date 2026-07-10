@@ -24,8 +24,8 @@ milestone.
 > should make Search's **Fetch** button reachable) and **S-E** (whole-tile saved-profile
 > tap/long-press). **⚠️ Awaiting the user's device check** that the Fetch button is now
 > reachable/clickable; if it's *greyed-out* rather than off-screen, the profile isn't reaching the
-> Search VM — a wiring check to do next. **Now doing (Phase 2): Q — Export** (Q-A copy/Markdown →
-> Q-B PDF → Q-C DOCX). Then
+> Search VM — a wiring check to do next. **Phase 2: Q — Export** — **Q-A (copy + Markdown/plain-text)
+> is done**; next is **Q-B (PDF)** then **Q-C (DOCX)**. Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -645,7 +645,7 @@ Note: this is a defect in v2's Milestone M-A, pulled to the front of v3 because 
 shipped feature. It touches only the Search/fetch flow plus a backward-compatible `HTTPClient`
 port addition — no new seam, no layer-rule change.
 
-## Milestone Q — Export résumé & cover letter  ⬜ not started  (`Infrastructure/Export`, `Business/UseCases`, Application/detail UI)
+## Milestone Q — Export résumé & cover letter  🔨 in progress (Q-A done; Q-B/Q-C next)  (`Infrastructure/Export`, `Business/UseCases`, Application/detail UI)
 
 Goal: let the user get a generated `ApplicationKit` (résumé + cover letter) out of the app as
 polished files — copy, Markdown/plain-text, PDF, and true DOCX. New `DocumentExporter` seam
@@ -653,23 +653,32 @@ polished files — copy, Markdown/plain-text, PDF, and true DOCX. New `DocumentE
 AGENT.md's LaTeX/PDF toolchain stays out of scope. Q-A lands first (no rendering questions),
 Q-B is the core value, Q-C is the heaviest single piece — all three share one port + use case.
 
-### Q-A — Copy + Markdown / plain-text export  ⬜
+### Q-A — Copy + Markdown / plain-text export  ✅ done
 
-- [ ] **`DocumentExporter` port (Infrastructure/Export).** `export(_ kit: ApplicationKit,
-      as: ExportFormat) throws -> Data` (bytes; the Presentation layer owns the file dialog).
-      `ExportFormat` enum (`.markdown`, `.plainText`, `.pdf`, `.docx`). Port declared in
-      Infrastructure; format impls live here. `Sendable`, no UIKit/AppKit file coupling.
-- [ ] **Markdown + plain-text impls.** Markdown = the kit's `resumeMarkdown` + `coverLetter`
-      assembled under clear headings; plain-text = markdown stripped (reuse the
-      `HTMLStripper`-style plain rendering pattern). Pure, unit-testable.
-- [ ] **`ExportApplicationUseCase` (Business).** `ApplicationKit` + `ExportFormat` → `Data`;
-      no SwiftUI, no `.fileExporter`, no `Process`.
-- [ ] **Presentation affordance.** Export menu + **copy-to-clipboard** on `ApplicationSheet`
-      / `JobDetailView`; save-as via `.fileExporter`. Disabled until a kit exists. Wired
-      through `Composition`.
-- [ ] **Tests.** Exporter (markdown assembles both docs with headings; plain-text strips
-      markup); `ExportApplicationUseCase`; VM export/copy action (format routing, disabled
-      when no kit).
+- [x] **`DocumentExporter` port (Infrastructure/Export).** Declared **domain-agnostic** to
+      respect the layer rule (Infrastructure can't import the Data-layer `ApplicationKit`):
+      `nonisolated func export(markdown: String, as: ExportFormat) throws -> Data` — Markdown
+      `String` in, `Data` out. `ExportFormat` enum (`.markdown`, `.plainText`, `.pdf`, `.docx`
+      with `displayName` / `fileExtension` / `contentType`) + `ExportError.unsupportedFormat`.
+      Port + format impls live in `Infrastructure/Export`; `Sendable`, no AppKit file coupling.
+- [x] **Markdown + plain-text impls.** `MarkdownDocumentExporter`: `.markdown` = the assembled
+      Markdown as UTF-8 bytes; `.plainText` = stripped via a new `MarkdownPlainText` helper
+      (`Infrastructure/Text`, the counterpart to `HTMLStripper` — headings/bullets/emphasis/
+      links/inline-code). `.pdf` / `.docx` throw `unsupportedFormat` (Q-B/Q-C). Pure, unit-tested.
+- [x] **`ExportApplicationUseCase` (Business).** Assembles `ApplicationKit` → one Markdown
+      document (`# Résumé` + `# Cover Letter`, empty sections omitted; the advisory `gapNote`
+      is **not** exported), then calls the exporter. No SwiftUI / `.fileExporter` / `Process`.
+- [x] **Presentation affordance.** `ApplicationSheet` header gains **Copy** (assembled Markdown →
+      `NSPasteboard`) and an **Export** menu (Markdown / Plain Text) that renders bytes and
+      presents `.fileExporter` via a small `ExportFileDocument` (Presentation/Components). Shown
+      only when `canExport` (a kit + a wired exporter); filename derives from the job
+      (company · role, sanitised). Wired through `Composition` (always-on `MarkdownDocumentExporter`).
+      (Attached to the Application sheet only, per the v3 order — V removes generation from Results.)
+- [x] **Tests.** `MarkdownDocumentExporterTests` (markdown verbatim; plain-text strips; pdf/docx
+      throw; format metadata) + `MarkdownPlainTextTests`; `ExportApplicationUseCaseTests`
+      (assembles headings, omits gapNote, empty-section omission, format routing end-to-end);
+      `ApplicationViewModel` export tests (canExport gating, markdown/plain-text text, unsupported
+      → nil, no-exporter unavailable, job-derived filename + fallback). Full suite green, no warnings.
 
 ### Q-B — PDF export  ⬜
 

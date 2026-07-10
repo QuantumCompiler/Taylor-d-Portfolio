@@ -108,4 +108,58 @@ struct ApplicationViewModelTests {
         #expect(await provider.generateCalls == 1)
         #expect(try await repo.kit(forJobID: job.id)?.resumeMarkdown == "FRESH")   // latest-wins persisted
     }
+
+    // MARK: Q-A — export
+
+    private func exportVM() -> ApplicationViewModel {
+        ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: PresentationStubProvider(kitResume: "# Resume\nSwift dev")),
+            exportApplication: ExportApplicationUseCase(exporter: MarkdownDocumentExporter())
+        )
+    }
+
+    @Test func cannotExportBeforeAKitExists() {
+        let vm = exportVM()
+        #expect(vm.canExport == false)
+        #expect(vm.exportData(.markdown) == nil)
+        #expect(vm.exportedText() == nil)
+    }
+
+    @Test func exportsMarkdownAndPlainTextOnceGenerated() async {
+        let vm = exportVM()
+        await vm.generate(for: job, profile: profile)
+
+        #expect(vm.canExport)
+        let markdown = vm.exportedText(.markdown)
+        #expect(markdown?.contains("# Résumé") == true)
+        #expect(markdown?.contains("Swift dev") == true)
+
+        let plain = vm.exportedText(.plainText)
+        #expect(plain?.contains("#") == false)
+        #expect(plain?.contains("Swift dev") == true)
+
+        #expect(vm.exportData(.pdf) == nil)   // unsupported format degrades to nil, no crash
+    }
+
+    @Test func exportWithoutAnExporterIsUnavailable() async {
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: PresentationStubProvider(kitResume: "R"))
+        )
+        await vm.generate(for: job, profile: profile)
+        #expect(vm.kit != nil)
+        #expect(vm.canExport == false)        // no exporter wired
+        #expect(vm.exportData(.markdown) == nil)
+    }
+
+    @Test func filenameBaseComesFromTheJob() async {
+        let vm = exportVM()
+        await vm.generate(for: JobListing(id: "x", title: "iOS Engineer", company: "Acme/Co", location: "l", description: "d"),
+                          profile: profile)
+        // Company · role, with filesystem-illegal characters replaced.
+        #expect(vm.exportFilenameBase == "Acme-Co - iOS Engineer")
+    }
+
+    @Test func filenameBaseFallsBackWhenNoJob() {
+        #expect(exportVM().exportFilenameBase == "Application")
+    }
 }

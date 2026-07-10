@@ -171,9 +171,10 @@ Taylor'd Portfolio/
     Search/, Results/, Application/, Tracker/, Settings/  (same View/ + ViewModel/ shape;
                   e.g. Results/View holds ResultsView + RankedRow + JobDetailView + StatusBadge,
                   Tracker/View holds TrackerView, Application/View the sheet)
+    Components/     shared view helpers — ScrollableScreen (scroll wrapper), ExportFileDocument
   Business/
     UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
-                  GenerateApplicationUseCase, FetchPostingUseCase,
+                  GenerateApplicationUseCase, FetchPostingUseCase, ExportApplicationUseCase,
                   SaveResultsUseCase, LoadSavedJobsUseCase,
                   SaveApplicationUseCase, LoadApplicationUseCase,
                   MarkStatusUseCase, LoadStatusUseCase, LoadTrackedJobsUseCase
@@ -194,7 +195,8 @@ Taylor'd Portfolio/
     Net/          HTTPClient
     Documents/    DocumentTextExtractor, PlatformDocumentTextExtractor
     Config/       AppConfig, BundleAppConfig   (build-time secrets ← Info.plist ← Secrets.xcconfig)
-    Text/         HTMLStripper         (HTML → plain text; used by Data + Presentation)
+    Export/       ExportFormat, DocumentExporter (domain-agnostic: Markdown → Data), MarkdownDocumentExporter
+    Text/         HTMLStripper, MarkdownPlainText   (HTML/Markdown → plain text; used by Data + Presentation + Export)
     Embedding/    EmbeddingClient      (roadmap)
     Store/        KeyValueStore, UserDefaultsStore,
                   PersistentRecordStore, SwiftDataRecordStore (+ StoredRecord @Model)
@@ -283,6 +285,13 @@ The loop, so any session can pick up where the last left off:
    into `SPEC.md` / `ROADMAP.md` in the same change so the docs stay the truth.
 
 Keep these updates in the same commit/change as the code they describe.
+
+**Commits are milestone-based and made by the user (Taylor), not the agent.** Taylor
+commits manually with the message format **`vx.x.x : Milestone X Completed`**. So when a
+unit of work finishes, **always state which milestone / sub-part / hotfix it was** (e.g.
+"Milestone S-D", "Milestone Q-A", "URL-fetch Hotfix") — that label is what goes in the
+commit message. Do this even for partial completions (name the milestone and say it's
+partial). Don't run `git commit` unless explicitly asked.
 
 ## How to work in this repo
 

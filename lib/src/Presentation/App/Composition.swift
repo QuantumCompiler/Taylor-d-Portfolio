@@ -95,6 +95,7 @@ struct Composition {
         .init(jobSource: jobSource, ranker: JobRanker(provider: llmProvider))
     }
     private var generateApplication: GenerateApplicationUseCase { .init(provider: llmProvider) }
+    private var exportApplication: ExportApplicationUseCase { .init(exporter: MarkdownDocumentExporter()) }
     private var fetchPosting: FetchPostingUseCase {
         .init(postingSource: jobPostingSource, ranker: JobRanker(provider: llmProvider))
     }
@@ -151,7 +152,8 @@ struct Composition {
         .init(
             generateApplication: generateApplication,
             saveApplication: savedApplicationsRepository.map(SaveApplicationUseCase.init(repository:)),
-            loadApplication: savedApplicationsRepository.map(LoadApplicationUseCase.init(repository:))
+            loadApplication: savedApplicationsRepository.map(LoadApplicationUseCase.init(repository:)),
+            exportApplication: exportApplication
         )
     }
 }
