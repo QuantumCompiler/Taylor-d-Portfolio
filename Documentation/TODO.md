@@ -25,7 +25,7 @@ milestone.
 > tap/long-press). **⚠️ Awaiting the user's device check** that the Fetch button is now
 > reachable/clickable; if it's *greyed-out* rather than off-screen, the profile isn't reaching the
 > Search VM — a wiring check to do next. **Phase 2: Q — Export** — **Q-A (copy + Markdown/plain-text)
-> is done**; next is **Q-B (PDF)** then **Q-C (DOCX)**. Then
+> and Q-B (PDF, native Core Text) are done**; next is **Q-C (DOCX, hand-rolled OOXML)**. Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -645,7 +645,7 @@ Note: this is a defect in v2's Milestone M-A, pulled to the front of v3 because 
 shipped feature. It touches only the Search/fetch flow plus a backward-compatible `HTTPClient`
 port addition — no new seam, no layer-rule change.
 
-## Milestone Q — Export résumé & cover letter  🔨 in progress (Q-A done; Q-B/Q-C next)  (`Infrastructure/Export`, `Business/UseCases`, Application/detail UI)
+## Milestone Q — Export résumé & cover letter  🔨 in progress (Q-A + Q-B done; Q-C next)  (`Infrastructure/Export`, `Business/UseCases`, Application/detail UI)
 
 Goal: let the user get a generated `ApplicationKit` (résumé + cover letter) out of the app as
 polished files — copy, Markdown/plain-text, PDF, and true DOCX. New `DocumentExporter` seam
@@ -680,17 +680,28 @@ Q-B is the core value, Q-C is the heaviest single piece — all three share one 
       `ApplicationViewModel` export tests (canExport gating, markdown/plain-text text, unsupported
       → nil, no-exporter unavailable, job-derived filename + fallback). Full suite green, no warnings.
 
-### Q-B — PDF export  ⬜
+### Q-B — PDF export  ✅ done
 
-- [ ] **Decide the renderer (design step, record the choice in this milestone).**
-      HTML-template→PDF (WebKit print — best fidelity, enables the one-page gate + templates)
-      vs AttributedString→PDF (native, lighter, coarser layout, harder one-page gate). Note
-      *why* before building — this gates Milestone X.
-- [ ] **PDF impl (Infrastructure/Export).** Markdown → styled PDF `Data` via the chosen path;
-      deterministic layout; embeds nothing external (self-contained, no network/fonts fetch).
-- [ ] **Wire into the export menu + `.fileExporter`** (`.pdf`).
-- [ ] **Tests.** A sample kit produces non-empty, valid PDF bytes; failure is surfaced, never
-      crashes. (Visual fidelity is a manual check — note it.)
+- [x] **Renderer decision — native `NSAttributedString` → Core Text pagination (not WebKit).**
+      *Why:* the `DocumentExporter` port is **synchronous + `nonisolated` + `Sendable`**; WebKit's
+      `WKWebView.createPDF` is `@MainActor` **and async**, which would force a port/signature change
+      and main-actor coupling. Core Text + Core Graphics are synchronous, off-main-safe (matching the
+      existing `nonisolated` PDFKit/`NSAttributedString` use in `PlatformDocumentTextExtractor`),
+      self-contained (no network/bundled fonts), and deterministically testable. **Trade-off:** coarser
+      layout and a harder one-page gate — so **Milestone X (templates + one-page gate) may need the
+      HTML-template path if promoted.**
+- [x] **PDF impl (Infrastructure/Export).** `MarkdownAttributedRenderer` (Markdown → styled
+      `NSAttributedString`: heading levels, bullets, inline **bold**/*italic*/`code` via Foundation's
+      inline Markdown with symbolic traits merged onto block fonts; **black** text for print) +
+      `PDFDocumentExporter` (Core Text framesetter paginating into a US-Letter PDF with 0.75″ margins;
+      a non-advancing-page guard prevents infinite loops). Self-contained; `.pdf` only, throws for others.
+- [x] **Routing.** New `RoutingDocumentExporter` dispatches `.markdown`/`.plainText` → the text
+      exporter, `.pdf` → the PDF exporter, `.docx` → unsupported (Q-C). `Composition` injects it, so
+      the same `ExportApplicationUseCase` now yields PDF. Added **PDF** to the `ApplicationSheet` menu.
+- [x] **Tests.** `PDFDocumentExporterTests` (valid `%PDF` bytes + `PDFDocument(data:)` pageCount ≥ 1;
+      a long doc paginates to ≥ 2 pages without looping; empty markdown still yields a valid page;
+      rejects non-PDF formats) + `RoutingDocumentExporterTests` (dispatch per format; docx still
+      unsupported). Full suite green, no warnings. **Visual fidelity is a manual (device) check.**
 
 ### Q-C — DOCX export (hand-rolled OOXML)  ⬜
 

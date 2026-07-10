@@ -195,7 +195,8 @@ Taylor'd Portfolio/
     Net/          HTTPClient
     Documents/    DocumentTextExtractor, PlatformDocumentTextExtractor
     Config/       AppConfig, BundleAppConfig   (build-time secrets ← Info.plist ← Secrets.xcconfig)
-    Export/       ExportFormat, DocumentExporter (domain-agnostic: Markdown → Data), MarkdownDocumentExporter
+    Export/       ExportFormat, DocumentExporter (domain-agnostic: Markdown → Data), RoutingDocumentExporter
+                  → MarkdownDocumentExporter (md/txt) + PDFDocumentExporter (Core Text) + MarkdownAttributedRenderer
     Text/         HTMLStripper, MarkdownPlainText   (HTML/Markdown → plain text; used by Data + Presentation + Export)
     Embedding/    EmbeddingClient      (roadmap)
     Store/        KeyValueStore, UserDefaultsStore,

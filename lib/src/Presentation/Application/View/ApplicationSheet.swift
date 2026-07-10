@@ -44,6 +44,7 @@ struct ApplicationSheet: View {
                     .help("Copy the résumé + cover letter (Markdown) to the clipboard")
 
                     Menu {
+                        Button("PDF (.pdf)") { startExport(.pdf) }
                         Button("Markdown (.md)") { startExport(.markdown) }
                         Button("Plain Text (.txt)") { startExport(.plainText) }
                     } label: {
