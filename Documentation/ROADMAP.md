@@ -210,13 +210,13 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       buttons) instead of raw markdown; (2) consistent **empty / loading / error states**
       across all tabs (no profile, no results, fetch/generation failure); (3) **results /
       saved-jobs / Tracker cohesion** so "already seen / already generated / applied" reads
-      as one history; (4) **scrollable screens / small-window layout** — a **bug fix**: the
-      Portfolio tab (and other tabs sharing the same `VStack { … Spacer() }` pattern, e.g.
-      Search) can't scroll when the window is short, so lower controls are unreachable.
-      Wrap each screen's content in a `ScrollView` so everything stays reachable at any
-      window size; (5) **saved-profile tile gestures** — long-press *anywhere* on a
-      saved-profile tile to set it as the default (not just the title), and tap *anywhere*
-      on the tile to load/show that profile (not only the radio dial). Seam: mostly
+      as one history; (4) ✅ **scrollable screens / small-window layout (done)** — the
+      Portfolio + Search tabs now scroll via a shared `View.scrollableScreen()` wrapper (the
+      trailing `Spacer()` dropped), so lower controls (incl. Search's Fetch button) stay
+      reachable at any window size; Results/Tracker/Settings/Application already scroll
+      natively; (5) ✅ **saved-profile tile gestures (done)** — long-press *anywhere* on a
+      saved-profile tile sets it as default and tap *anywhere* loads it (the dial is now just
+      an indicator); the trash button stays independent. Parts 1–3 remain (Phase 5). Seam: mostly
       Presentation (Views + VMs), with small Data/use-case touches for the history joins.
       On-device: yes.
 

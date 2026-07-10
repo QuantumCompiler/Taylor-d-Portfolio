@@ -18,12 +18,14 @@ milestone.
 > `.auto` / `.onDevice` still selectable) and named `SavedProfile`s (with source document +
 > default-profile pointer).
 >
-> **v3 — output & polish is the current target.** The priority **hotfix** is now **done**
-> — the job-posting URL fetch worked end-to-end but failed because the fetch didn't present as a
-> browser (→ `.unreadable`) and the error was rendered away from the Fetch action; fixed with
-> browser headers + a non-UTF-8 decode fallback + a dedicated `linkErrorMessage` in the link
-> section. **Next up (Phase 1): S-D — scrollable screens + S-E — saved-profile tile gestures**
-> (two cheap Presentation fixes), then **Q — Export**. Then
+> **v3 — output & polish is the current target.** **Phase 1 complete:** the priority **hotfix**
+> (fetch now presents as a browser + non-UTF-8 decode fallback + a visible `linkErrorMessage`) and
+> the two cheap fixes — **S-D** (Portfolio/Search now scroll via `View.scrollableScreen()`, which
+> should make Search's **Fetch** button reachable) and **S-E** (whole-tile saved-profile
+> tap/long-press). **⚠️ Awaiting the user's device check** that the Fetch button is now
+> reachable/clickable; if it's *greyed-out* rather than off-screen, the profile isn't reaching the
+> Search VM — a wiring check to do next. **Now doing (Phase 2): Q — Export** (Q-A copy/Markdown →
+> Q-B PDF → Q-C DOCX). Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -758,50 +760,51 @@ Goal: make the six-tab app feel finished. Three independent parts — ship in an
 - [ ] **Tests.** Badge/state assembly (seen / generated / applied) on a `RankedJob`; no-clobber
       on a fresh search.
 
-### S-D — Scrollable screens / small-window layout (bug fix)  ⬜
+### S-D — Scrollable screens / small-window layout (bug fix)  ✅ done
 
 Bug: the **Portfolio tab can't scroll when the window is short** — its content is a plain
 `VStack { … Spacer() }.padding(24)` with no scroll container, so once the stacked content
 (title → description → `TextEditor` → buttons → profile summary → source-document disclosure →
 save row → saved-profiles list) exceeds the window height it's clipped and the lower controls
 are **unreachable**. The trailing `Spacer()` compounds it. At least `SearchView` shares the
-same pattern, so treat this as a cross-tab fix.
+same pattern, so treat this as a cross-tab fix. **This is the likely cause of the reported
+"Fetch button can't be clicked"** — Fetch is the last control in `SearchView`, so on a short
+window it sat below the fold with no way to scroll to it.
 
-- [ ] **Wrap Portfolio content in a `ScrollView`.** Move the `VStack` into a `ScrollView`
-      (vertical) so all controls stay reachable at any window size; drop the now-meaningless
-      trailing `Spacer()` (or move alignment handling to the scroll content). Keep the `.padding(24)`.
-      File: `lib/src/Presentation/Portfolio/View/PortfolioView.swift`.
-- [ ] **Audit + fix the other tabs sharing the pattern.** Confirmed: `SearchView`
-      (`VStack { … Spacer() }.padding`, no `ScrollView`). Check `Results`, `Tracker`,
-      `Settings`, and the `Application` sheet too; wrap any that clip when the window is short.
-      Prefer a consistent convention (e.g. a small `ScrollableScreen` container or the same
-      `ScrollView` wrapper on each) so it doesn't regress per-screen.
-- [ ] **Preserve inner scroll regions.** Portfolio's source-document `DisclosureGroup` already
-      has its own bounded `ScrollView` (`maxHeight: 220`); make sure the outer `ScrollView`
-      composes with it (and with the `TextEditor`) without gesture conflicts or a collapsed frame.
-- [ ] **Manual check.** Resize the window very short on each tab and confirm every control is
-      reachable by scrolling; no clipped buttons, no trapped content. (Layout is a manual/visual
-      check — note it; no unit test asserts scrollability.)
+- [x] **Wrap Portfolio content in a scroll container.** Added a reusable `View.scrollableScreen()`
+      modifier (`lib/src/Presentation/Components/ScrollableScreen.swift`) — wraps the content in a
+      vertical `ScrollView` and makes it fill the width (left-aligned as before). `PortfolioView`
+      drops its trailing `Spacer()` and applies `.scrollableScreen()` after `.padding(24)`.
+- [x] **Audit + fix the other tabs sharing the pattern.** `SearchView` got the same treatment
+      (drop `Spacer()` + `.scrollableScreen()`), so the Fetch button is reachable. Audited the rest:
+      `ResultsView` / `TrackerView` use `List` (scrolls natively), `SettingsView` uses `Form(.grouped)`
+      (scrolls natively), and `ApplicationSheet` is a min-sized sheet whose body already scrolls — none
+      need the wrapper. Chose the shared modifier so it doesn't regress per-screen.
+- [x] **Preserve inner scroll regions.** Portfolio's source-document `DisclosureGroup` (bounded
+      `ScrollView`, `maxHeight: 220`) and the `TextEditor(minHeight: 200)` compose inside the outer
+      `ScrollView` — each keeps its own bounded scroll; the page scrolls around them.
+- [ ] **Manual check (device).** Resize the window very short on Portfolio + Search and confirm every
+      control — especially Search's **Fetch** button — is reachable by scrolling. (Layout is a
+      manual/visual check; no unit test asserts scrollability. Full test suite green.)
 
-### S-E — Saved-profile tile gestures  ⬜
+### S-E — Saved-profile tile gestures  ✅ done
 
 Today a saved-profile tile's tap (`toggleSelection`) and long-press (`setDefault`) gestures sit
 on the inner radio-dial + text HStack only, so the user has to hit the dial/title. Make the
 **whole tile** the target.
 
-- [ ] **Long-press anywhere → set default.** Move the `setDefault` long-press gesture from the
-      inner HStack to the entire row/tile in `savedProfileRow`
+- [x] **Long-press anywhere → set default.** Moved the `setDefault` `LongPressGesture` from the
+      inner HStack to the whole row in `savedProfileRow`
       (`lib/src/Presentation/Portfolio/View/PortfolioView.swift`).
-- [ ] **Tap anywhere → show/load the profile.** Move the `toggleSelection` tap gesture to the whole
-      tile (with `.contentShape(Rectangle())` so empty space is hittable), so a click anywhere loads
-      the profile — not only the radio dial. The dial stays as the selection **indicator**, no longer
-      the required tap target.
-- [ ] **Keep the trash button independent.** The delete button must still intercept its own taps
-      (not trigger select/default); verify the row tap + long-press coexist with it (the existing
-      `simultaneousGesture` pattern for tap-vs-long-press stays).
-- [ ] **Tests / manual.** `PortfolioViewModel` `toggleSelection` / `setDefault` are already covered;
-      this is a gesture-placement change — a manual check that tapping/long-pressing anywhere on the
-      tile (including padding) works and delete is unaffected.
+- [x] **Tap anywhere → show/load the profile.** Moved the `toggleSelection` tap gesture to the whole
+      tile with `.contentShape(Rectangle())` (over the row's `.padding(.vertical, 2)` + the `Spacer`),
+      so a click anywhere loads the profile. The dial is now only the selection **indicator**.
+- [x] **Keep the trash button independent.** The trash `Button` is a control, so it still handles its
+      own taps and isn't triggered by the row-level tap/long-press; the `simultaneousGesture` pattern
+      for tap-vs-long-press is retained.
+- [x] **Tests / manual.** `PortfolioViewModel.toggleSelection` / `setDefault` stay covered by the
+      existing VM tests (this is only gesture placement); full suite green. Manual (device) check that
+      tapping/long-pressing anywhere on the tile — including padding — works and delete is unaffected.
 
 ## Milestone T — Two-document portfolio (résumé + cover letter) as generation grounding  ⬜ not started  (`Data/Models`, Portfolio input, `TidyDocumentUseCase`, `GenerateApplicationUseCase` / `LLMProvider` / `Prompts`, Application plumbing)
 

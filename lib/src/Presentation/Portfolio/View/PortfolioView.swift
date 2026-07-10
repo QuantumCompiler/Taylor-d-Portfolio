@@ -70,10 +70,9 @@ struct PortfolioView: View {
             if viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty {
                 savedProfilesSection
             }
-
-            Spacer()
         }
         .padding(24)
+        .scrollableScreen()
         .task { await viewModel.reloadProfiles() }
     }
 
@@ -128,7 +127,9 @@ struct PortfolioView: View {
         }
     }
 
-    /// One saved-profile row. Tap toggles selection; long-press toggles default.
+    /// One saved-profile row. Tap **anywhere on the tile** toggles selection; long-press
+    /// **anywhere** toggles default. The dial is only an indicator, and the trash button
+    /// still intercepts its own taps.
     private func savedProfileRow(_ saved: SavedProfile) -> some View {
         let isSelected = viewModel.selectedProfileID == saved.id
         let isDefault = viewModel.isDefault(saved)
@@ -149,16 +150,6 @@ struct PortfolioView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
-            .contentShape(Rectangle())
-            .onTapGesture { viewModel.toggleSelection(saved) }
-            // A simultaneous long-press so it coexists with the tap-to-select instead of
-            // the two gestures cancelling each other out.
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.4)
-                    .onEnded { _ in viewModel.setDefault(saved) }
-            )
-            .help(isDefault ? "Default — long-press to unset · tap to load"
-                            : "Tap to load · long-press to set as default")
 
             Spacer()
 
@@ -171,6 +162,18 @@ struct PortfolioView: View {
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
+        // Make the whole tile (including the Spacer and padding) the hit target.
+        .contentShape(Rectangle())
+        .onTapGesture { viewModel.toggleSelection(saved) }
+        // A simultaneous long-press so it coexists with the tap-to-select instead of
+        // the two gestures cancelling each other out. The trash Button, being a control,
+        // still handles its own taps and isn't triggered by this row gesture.
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.4)
+                .onEnded { _ in viewModel.setDefault(saved) }
+        )
+        .help(isDefault ? "Default — long-press to unset · tap to load"
+                        : "Tap to load · long-press to set as default")
     }
 
     /// Document types accepted by the importer.

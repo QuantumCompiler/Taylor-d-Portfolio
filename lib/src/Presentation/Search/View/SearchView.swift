@@ -77,10 +77,9 @@ struct SearchView: View {
                 Divider()
                 linkSection
             }
-
-            Spacer()
         }
         .padding(24)
+        .scrollableScreen()
         .task { await viewModel.reloadProfiles() }
     }
 
