@@ -45,6 +45,7 @@ struct ApplicationSheet: View {
 
                     Menu {
                         Button("PDF (.pdf)") { startExport(.pdf) }
+                        Button("Word (.docx)") { startExport(.docx) }
                         Button("Markdown (.md)") { startExport(.markdown) }
                         Button("Plain Text (.txt)") { startExport(.plainText) }
                     } label: {

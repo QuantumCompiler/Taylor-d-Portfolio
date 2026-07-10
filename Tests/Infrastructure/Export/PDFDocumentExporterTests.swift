@@ -60,9 +60,8 @@ struct RoutingDocumentExporterTests {
         #expect(data.prefix(4).elementsEqual(Data("%PDF".utf8)))
     }
 
-    @Test func docxIsStillUnsupported() {
-        #expect(throws: ExportError.unsupportedFormat(.docx)) {
-            _ = try router.export(markdown: "x", as: .docx)
-        }
+    @Test func dispatchesDOCXToTheDocxExporter() throws {
+        let data = try router.export(markdown: "# H\n\nbody", as: .docx)
+        #expect(data.prefix(4).elementsEqual(Data([0x50, 0x4b, 0x03, 0x04])))  // PK zip header
     }
 }

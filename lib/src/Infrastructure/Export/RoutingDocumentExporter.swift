@@ -13,6 +13,7 @@ import Foundation
 nonisolated struct RoutingDocumentExporter: DocumentExporter {
     var text: any DocumentExporter = MarkdownDocumentExporter()
     var pdf: any DocumentExporter = PDFDocumentExporter()
+    var docx: any DocumentExporter = DocxDocumentExporter()
 
     nonisolated func export(markdown: String, as format: ExportFormat) throws -> Data {
         switch format {
@@ -21,7 +22,7 @@ nonisolated struct RoutingDocumentExporter: DocumentExporter {
         case .pdf:
             return try pdf.export(markdown: markdown, as: format)
         case .docx:
-            throw ExportError.unsupportedFormat(.docx)
+            return try docx.export(markdown: markdown, as: format)
         }
     }
 }

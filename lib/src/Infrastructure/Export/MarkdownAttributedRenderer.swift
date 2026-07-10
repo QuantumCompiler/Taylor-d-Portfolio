@@ -37,21 +37,16 @@ nonisolated enum MarkdownAttributedRenderer {
 
     /// Renders one source line as a single styled paragraph (no trailing newline).
     private static func paragraph(for line: String) -> NSAttributedString {
-        if line.trimmingCharacters(in: .whitespaces).isEmpty {
-            // Preserve blank lines as a small spacer.
-            let s = NSMutableAttributedString(string: "")
-            s.addAttribute(.font, value: font(size: bodySize / 2, traits: []),
-                           range: NSRange(location: 0, length: 0))
-            return s
-        }
-        if let (level, text) = heading(line) {
+        switch MarkdownBlockParser.classify(line) {
+        case .blank:
+            return NSAttributedString(string: "")   // spacer; the caller adds the newline
+        case .heading(let level, let text):
             let size: CGFloat = level <= 1 ? 22 : (level == 2 ? 16 : 13)
             let style = NSMutableParagraphStyle()
             style.paragraphSpacingBefore = level <= 1 ? 4 : 8
             style.paragraphSpacing = 3
             return styled(text, size: size, baseTraits: .bold, paragraph: style)
-        }
-        if let text = bullet(line) {
+        case .bullet(let text):
             let style = NSMutableParagraphStyle()
             style.headIndent = 16
             style.tabStops = [NSTextTab(textAlignment: .left, location: 16)]
@@ -64,10 +59,11 @@ nonisolated enum MarkdownAttributedRenderer {
             s.append(styledInline(text, size: bodySize, baseTraits: []))
             s.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: s.length))
             return s
+        case .paragraph(let text):
+            let style = NSMutableParagraphStyle()
+            style.paragraphSpacing = 4
+            return styled(text, size: bodySize, baseTraits: [], paragraph: style)
         }
-        let style = NSMutableParagraphStyle()
-        style.paragraphSpacing = 4
-        return styled(line, size: bodySize, baseTraits: [], paragraph: style)
     }
 
     /// A whole-paragraph inline render with a shared paragraph style applied.
@@ -107,25 +103,5 @@ nonisolated enum MarkdownAttributedRenderer {
         let base = NSFont.systemFont(ofSize: size)
         guard !traits.isEmpty else { return base }
         return NSFont(descriptor: base.fontDescriptor.withSymbolicTraits(traits), size: size) ?? base
-    }
-
-    // MARK: Line parsing
-
-    /// A heading line → (level, text); `nil` if not a heading.
-    private static func heading(_ line: String) -> (level: Int, text: String)? {
-        let trimmed = line.drop { $0 == " " }
-        var level = 0
-        var rest = Substring(trimmed)
-        while rest.first == "#" { level += 1; rest = rest.dropFirst() }
-        guard (1...6).contains(level), rest.first == " " else { return nil }
-        return (level, rest.trimmingCharacters(in: .whitespaces))
-    }
-
-    /// A bullet line → its text; `nil` if not a bullet.
-    private static func bullet(_ line: String) -> String? {
-        let trimmed = line.drop { $0 == " " }
-        guard let marker = trimmed.first, "-*+".contains(marker),
-              trimmed.dropFirst().first == " " else { return nil }
-        return trimmed.dropFirst().trimmingCharacters(in: .whitespaces)
     }
 }

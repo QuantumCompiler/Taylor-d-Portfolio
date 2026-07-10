@@ -196,8 +196,10 @@ Taylor'd Portfolio/
     Documents/    DocumentTextExtractor, PlatformDocumentTextExtractor
     Config/       AppConfig, BundleAppConfig   (build-time secrets ← Info.plist ← Secrets.xcconfig)
     Export/       ExportFormat, DocumentExporter (domain-agnostic: Markdown → Data), RoutingDocumentExporter
-                  → MarkdownDocumentExporter (md/txt) + PDFDocumentExporter (Core Text) + MarkdownAttributedRenderer
-    Text/         HTMLStripper, MarkdownPlainText   (HTML/Markdown → plain text; used by Data + Presentation + Export)
+                  → MarkdownDocumentExporter (md/txt) + PDFDocumentExporter (Core Text, MarkdownAttributedRenderer)
+                  + DocxDocumentExporter (OOXMLDocument + ZipArchiveWriter — hand-rolled minimal .docx)
+    Text/         HTMLStripper, MarkdownPlainText, MarkdownBlockParser, MarkdownInline
+                  (HTML/Markdown → text/blocks/runs; shared by Data + Presentation + Export)
     Embedding/    EmbeddingClient      (roadmap)
     Store/        KeyValueStore, UserDefaultsStore,
                   PersistentRecordStore, SwiftDataRecordStore (+ StoredRecord @Model)

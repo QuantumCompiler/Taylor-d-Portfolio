@@ -24,8 +24,9 @@ milestone.
 > should make Search's **Fetch** button reachable) and **S-E** (whole-tile saved-profile
 > tap/long-press). **⚠️ Awaiting the user's device check** that the Fetch button is now
 > reachable/clickable; if it's *greyed-out* rather than off-screen, the profile isn't reaching the
-> Search VM — a wiring check to do next. **Phase 2: Q — Export** — **Q-A (copy + Markdown/plain-text)
-> and Q-B (PDF, native Core Text) are done**; next is **Q-C (DOCX, hand-rolled OOXML)**. Then
+> Search VM — a wiring check to do next. **Phase 2: Q — Export is COMPLETE** (Q-A copy +
+> Markdown/plain-text, Q-B PDF via native Core Text, Q-C DOCX via a hand-rolled OOXML/ZIP writer).
+> **Next (Phase 3): T — Two-document portfolio** (T-A input + model → T-B generation grounding). Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -645,7 +646,7 @@ Note: this is a defect in v2's Milestone M-A, pulled to the front of v3 because 
 shipped feature. It touches only the Search/fetch flow plus a backward-compatible `HTTPClient`
 port addition — no new seam, no layer-rule change.
 
-## Milestone Q — Export résumé & cover letter  🔨 in progress (Q-A + Q-B done; Q-C next)  (`Infrastructure/Export`, `Business/UseCases`, Application/detail UI)
+## Milestone Q — Export résumé & cover letter  ✅ done (Q-A + Q-B + Q-C)  (`Infrastructure/Export`, `Business/UseCases`, Application/detail UI)
 
 Goal: let the user get a generated `ApplicationKit` (résumé + cover letter) out of the app as
 polished files — copy, Markdown/plain-text, PDF, and true DOCX. New `DocumentExporter` seam
@@ -703,22 +704,30 @@ Q-B is the core value, Q-C is the heaviest single piece — all three share one 
       rejects non-PDF formats) + `RoutingDocumentExporterTests` (dispatch per format; docx still
       unsupported). Full suite green, no warnings. **Visual fidelity is a manual (device) check.**
 
-### Q-C — DOCX export (hand-rolled OOXML)  ⬜
+### Q-C — DOCX export (hand-rolled OOXML)  ✅ done
 
-- [ ] **Minimal OOXML `.docx` writer (Infrastructure/Export).** macOS has **no native `.docx`
-      writer** — build a minimal zipped-OOXML package (`[Content_Types].xml`,
-      `word/document.xml`, `_rels/.rels`, `word/_rels/document.xml.rels`) from the kit's
-      Markdown. Pure Swift, no external deps (Foundation + a small zip helper / `Compression`).
-- [ ] **Map Markdown → OOXML.** Headings, paragraphs, bold/italic, bullet lists — the subset
-      the résumé/cover letter actually use. Unsupported markup degrades to plain paragraphs
-      (never crashes). Document the fidelity limits in the milestone.
-- [ ] **Wire into the export menu + `.fileExporter`** (`.docx`).
-- [ ] **Tests.** Output is a valid zip containing the required parts; a known kit yields the
-      expected `document.xml` structure (assert on parsed XML, not byte-exact); opens in Word
-      (manual check).
+- [x] **Minimal OOXML `.docx` writer (Infrastructure/Export).** macOS has **no native `.docx`
+      writer**, so `DocxDocumentExporter` assembles the four minimal parts (`[Content_Types].xml`,
+      `_rels/.rels`, `word/document.xml`, `word/_rels/document.xml.rels`) and packages them with a
+      new **`ZipArchiveWriter`** — a pure-Foundation ZIP writer using the **STORED (uncompressed)**
+      method + a hand-written CRC-32, so no compression dependency and no external libs.
+- [x] **Map Markdown → OOXML.** `OOXMLDocument` maps blocks (shared `MarkdownBlockParser`) +
+      inline (shared `MarkdownInline`) to `document.xml` with **direct run formatting** (no
+      `styles.xml`): headings = bold + larger `w:sz`, bullets = a literal `•` + `w:ind` indent
+      (no `numbering.xml`), inline **bold**/*italic* as `w:b`/`w:i`. XML-escaped. **Fidelity limits
+      (documented):** no tables/images/nested lists/real list numbering; links collapse to text.
+- [x] **Wire into the export menu + `.fileExporter`** (`.docx`). `RoutingDocumentExporter` routes
+      `.docx` → `DocxDocumentExporter`; **Word (.docx)** added to the `ApplicationSheet` menu.
+- [x] **Tests.** `OOXMLDocumentTests` (well-formed via `XMLDocument`; heading/bold runs; bullet
+      indent + glyph; `&`/`<`/`>` escaping); `ZipArchiveWriterTests` (CRC-32 known-answer 0xCBF43926;
+      signatures + entry names); `DocxDocumentExporterTests` (PK zip with all four parts; rejects
+      non-docx; **a pure-Swift STORED-zip round-trip** that re-extracts `word/document.xml` and
+      confirms it's byte-identical + valid XML — proving the offsets/CRC are correct);
+      `MarkdownBlockParser`/`MarkdownInline` parser tests. Full suite green, no warnings.
+      **Opening in Word is a manual (device) check.**
 
-Note: all three formats sit behind the single `DocumentExporter` port + `ExportApplicationUseCase`
-— adding a format is a new `ExportFormat` case + impl, no new seam.
+Note: all three formats sit behind the single `DocumentExporter` port + `ExportApplicationUseCase`,
+now composed by `RoutingDocumentExporter` — adding a format is a new sub-exporter + one `case`, no new seam.
 
 ## Milestone R — Saved / re-runnable searches  ⬜ not started  (`Data/Persistence`, `Business/UseCases`, Search UI)
 

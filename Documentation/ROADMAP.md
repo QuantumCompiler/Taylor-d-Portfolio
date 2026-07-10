@@ -180,12 +180,16 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       the fetch hardening; full suite green. Seam: Search flow (`SearchViewModel` / `SearchView`),
       `FetchPostingUseCase`, `LinkJobPostingSource`, `HTTPClient`, RootView results wiring.
 
-- [ ] **Export résumé & cover letter (Markdown / PDF / DOCX).** _Q-A ✅ + Q-B ✅ done — copy,
-      Markdown/plain-text, and **PDF** export shipped (domain-agnostic `DocumentExporter` port +
-      `RoutingDocumentExporter`, `ExportApplicationUseCase`, an Export menu + Copy on the Application
-      sheet). PDF renderer decision: native `NSAttributedString` → Core Text (not WebKit) — sync +
-      `nonisolated`, self-contained; coarser layout is the trade-off (see Milestone X). **Q-C (DOCX)
-      remains.**_ The flagged
+- [x] **Export résumé & cover letter (Markdown / PDF / DOCX).** ✅ **Done (Q-A + Q-B + Q-C).**
+      Copy, Markdown/plain-text, **PDF**, and true **DOCX** export all shipped behind one
+      domain-agnostic `DocumentExporter` port composed by `RoutingDocumentExporter`
+      (`MarkdownDocumentExporter` + `PDFDocumentExporter` + `DocxDocumentExporter`), an
+      `ExportApplicationUseCase`, and an Export menu + Copy on the Application sheet. PDF renderer:
+      native `NSAttributedString` → Core Text (not WebKit) — sync + `nonisolated`, self-contained;
+      coarser layout is the trade-off (see Milestone X). DOCX: a hand-rolled minimal OOXML package +
+      a pure-Foundation STORED-method `ZipArchiveWriter` (no compression/external deps), verified by
+      a zip round-trip test. Fidelity limits (no tables/images/list numbering) documented in TODO.
+      The flagged
       highest-value fast-follow: let the user get a generated `ApplicationKit` (résumé +
       cover letter) out of the app as polished files. New `DocumentExporter` port
       (Infrastructure — CLAUDE.md already reserves "exporters" as protocol-worthy) with
