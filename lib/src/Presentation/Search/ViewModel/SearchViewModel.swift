@@ -34,6 +34,10 @@ final class SearchViewModel {
     /// Pasted posting text — the fallback when a page can't be fetched.
     var pastedPosting: String = ""
     private(set) var isFetchingLink = false
+    /// A failure from the link-fetch / pasted-text flow. Kept separate from
+    /// ``errorMessage`` (the keyword-search error) so the Search screen can show it
+    /// **next to the Fetch action**, not next to the Search button.
+    private(set) var linkErrorMessage: String?
 
     /// The user's persisted library of common role titles, shown as toggle tiles.
     private(set) var commonRoleTitles: [String] = []
@@ -221,26 +225,26 @@ final class SearchViewModel {
     func fetchFromLink() async {
         guard let fetchPosting else { return }
         guard let profile else {
-            errorMessage = "Build your profile on the Portfolio tab first."
+            linkErrorMessage = "Build your profile on the Portfolio tab first."
             return
         }
         let raw = postingURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: raw), url.scheme == "http" || url.scheme == "https" else {
-            errorMessage = "Enter a valid http(s) link to a job posting."
+            linkErrorMessage = "Enter a valid http(s) link to a job posting."
             return
         }
         isFetchingLink = true
-        errorMessage = nil
+        linkErrorMessage = nil
         warningMessage = nil
         defer { isFetchingLink = false }
         do {
             results = [try await fetchPosting(url: url, profile: profile)]
             await persistResults()
         } catch is JobPostingSourceError {
-            errorMessage = "Couldn't read that posting — the page may need a login or block automated access. "
+            linkErrorMessage = "Couldn't read that posting — the page may need a login or block automated access. "
                 + "Paste the posting text below and use “Generate from pasted text” instead."
         } catch {
-            errorMessage = Self.message(for: error)
+            linkErrorMessage = Self.message(for: error)
         }
     }
 
@@ -249,16 +253,16 @@ final class SearchViewModel {
     func generateFromPastedText() async {
         guard let fetchPosting else { return }
         guard let profile else {
-            errorMessage = "Build your profile on the Portfolio tab first."
+            linkErrorMessage = "Build your profile on the Portfolio tab first."
             return
         }
         let text = pastedPosting.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
-            errorMessage = "Paste the job posting text first."
+            linkErrorMessage = "Paste the job posting text first."
             return
         }
         isFetchingLink = true
-        errorMessage = nil
+        linkErrorMessage = nil
         warningMessage = nil
         defer { isFetchingLink = false }
         do {
@@ -266,9 +270,9 @@ final class SearchViewModel {
             results = [try await fetchPosting(pastedText: text, sourceURL: sourceURL, profile: profile)]
             await persistResults()
         } catch is JobPostingSourceError {
-            errorMessage = "That didn't look like a job posting — make sure you pasted the full description."
+            linkErrorMessage = "That didn't look like a job posting — make sure you pasted the full description."
         } catch {
-            errorMessage = Self.message(for: error)
+            linkErrorMessage = Self.message(for: error)
         }
     }
 

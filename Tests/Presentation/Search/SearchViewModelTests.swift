@@ -20,6 +20,20 @@ private struct FailingTitleJobSource: JobSource {
     }
 }
 
+/// A `JobPostingSource` stub for the link/paste flow: returns a canned listing or throws.
+private struct StubPostingSource: JobPostingSource {
+    var listing = JobListing(id: "link-1", title: "iOS Engineer", company: "Acme", location: "Remote", description: "Swift.")
+    var error: Error?
+    func fetchPosting(from url: URL) async throws -> JobListing {
+        if let error { throw error }
+        return listing
+    }
+    func extractPosting(fromText text: String, sourceURL: URL?) async throws -> JobListing {
+        if let error { throw error }
+        return listing
+    }
+}
+
 @MainActor
 @Suite("SearchViewModel")
 struct SearchViewModelTests {
@@ -33,6 +47,23 @@ struct SearchViewModelTests {
         let ranker = JobRanker(provider: PresentationStubProvider(matches: matches), shortlistLimit: 10)
         let useCase = SearchAndRankUseCase(jobSource: PresentationStubJobSource(jobs: jobs), ranker: ranker)
         return SearchViewModel(searchAndRank: useCase, roleTitleStore: roleTitleStore, adzunaConfigured: adzunaConfigured)
+    }
+
+    /// Builds a VM with the link-fetch flow wired to `postingSource`.
+    private func makeLinkVM(postingSource: StubPostingSource) -> SearchViewModel {
+        let searchUseCase = SearchAndRankUseCase(
+            jobSource: PresentationStubJobSource(jobs: []),
+            ranker: JobRanker(provider: PresentationStubProvider())
+        )
+        let fetch = FetchPostingUseCase(
+            postingSource: postingSource,
+            ranker: JobRanker(provider: PresentationStubProvider())
+        )
+        return SearchViewModel(
+            searchAndRank: searchUseCase,
+            roleTitleStore: RoleTitleStore(store: PresentationMemoryStore()),
+            fetchPosting: fetch
+        )
     }
 
     private var profile: CandidateProfile {
@@ -221,6 +252,80 @@ struct SearchViewModelTests {
         await vm.search()
         #expect(vm.results.isEmpty)
         #expect(vm.errorMessage != nil)          // a message is surfaced, not a silent failure
+    }
+
+    // MARK: Link fetch / pasted text (Hotfix — M-A regression)
+
+    @Test func fetchFromLinkSuccessPushesSingleRankedResult() async {
+        let vm = makeLinkVM(postingSource: StubPostingSource())
+        vm.profile = profile
+        vm.postingURL = "https://example.com/jobs/1"
+
+        #expect(vm.canFetchLink)                 // profile + URL + wired
+        await vm.fetchFromLink()
+
+        // A single ranked job lands in `results` (so RootView propagates it + jumps),
+        // indistinguishable from a keyword-search result.
+        #expect(vm.results.map(\.id) == ["link-1"])
+        #expect(vm.linkErrorMessage == nil)
+        #expect(vm.errorMessage == nil)          // the search-stage error is untouched
+        #expect(vm.isFetchingLink == false)
+    }
+
+    @Test func fetchFromLinkUnreadableShowsVisibleErrorAndLeavesResultsUntouched() async {
+        let vm = makeLinkVM(postingSource: StubPostingSource(error: JobPostingSourceError.unreadable))
+        vm.profile = profile
+        vm.postingURL = "https://example.com/jobs/1"
+
+        await vm.fetchFromLink()
+
+        #expect(vm.results.isEmpty)                        // nothing pushed to Results
+        #expect(vm.linkErrorMessage != nil)               // failure surfaced at the Fetch action
+        #expect(vm.linkErrorMessage?.contains("Paste") == true)  // and points to the fallback
+        #expect(vm.errorMessage == nil)                   // not the search-button error slot
+    }
+
+    @Test func fetchFromLinkRequiresValidHTTPURL() async {
+        let vm = makeLinkVM(postingSource: StubPostingSource())
+        vm.profile = profile
+        vm.postingURL = "not a url"
+        await vm.fetchFromLink()
+        #expect(vm.results.isEmpty)
+        #expect(vm.linkErrorMessage != nil)
+    }
+
+    @Test func canFetchLinkGating() {
+        let vm = makeLinkVM(postingSource: StubPostingSource())
+        #expect(vm.canUseLink)
+        #expect(vm.canFetchLink == false)        // no profile, no URL
+        vm.profile = profile
+        #expect(vm.canFetchLink == false)        // still no URL
+        vm.postingURL = "https://example.com/jobs/1"
+        #expect(vm.canFetchLink)                 // profile + URL + wired
+    }
+
+    @Test func linkFlowUnavailableWhenNotWired() {
+        let vm = makeVM()                        // no fetchPosting injected
+        #expect(vm.canUseLink == false)
+        #expect(vm.canFetchLink == false)
+    }
+
+    @Test func generateFromPastedTextSuccessPushesResult() async {
+        let vm = makeLinkVM(postingSource: StubPostingSource())
+        vm.profile = profile
+        vm.pastedPosting = "iOS Engineer at Acme. Swift, SwiftUI."
+        await vm.generateFromPastedText()
+        #expect(vm.results.map(\.id) == ["link-1"])
+        #expect(vm.linkErrorMessage == nil)
+    }
+
+    @Test func generateFromPastedTextEmptyShowsError() async {
+        let vm = makeLinkVM(postingSource: StubPostingSource())
+        vm.profile = profile
+        vm.pastedPosting = "   "
+        await vm.generateFromPastedText()
+        #expect(vm.results.isEmpty)
+        #expect(vm.linkErrorMessage != nil)
     }
 
     // MARK: Saved-profile selection

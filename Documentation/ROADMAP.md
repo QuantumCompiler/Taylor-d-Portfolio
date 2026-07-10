@@ -167,17 +167,18 @@ letters are a catalogue, **not** the build order — see **"Recommended implemen
 (v3)"** in `TODO.md` for the phased sequence (fixes → Export → grounding/search → results
 experience → cohesive polish → stretch). `TODO.md` has the granular breakdown.
 
-- [ ] **🔧 Hotfix — job-posting URL fetch is broken (do first).** The Search screen's
-      "Or generate from a specific posting" flow (Milestone M-A) doesn't work: pasting a
-      URL and pressing **Fetch** produces no result — the posting is never fetched/ranked,
-      and nothing lands in the Results tab. It should behave exactly like a keyword search:
-      fetch the URL → extract → rank → push a single `RankedJob` into Results (auto-jump),
-      with a clear, prominent message (and the paste-text fallback) when a page genuinely
-      can't be read. The plumbing already exists end-to-end (`SearchViewModel.fetchFromLink`
-      → `FetchPostingUseCase` → `LinkJobPostingSource` → `RootView.onChange(of: search.results)`),
-      so this is **reproduce → root-cause → fix**, not a new build. Seam: Search flow
-      (`SearchViewModel` / `SearchView`), `FetchPostingUseCase`, `LinkJobPostingSource`,
-      RootView results wiring. On-device: fetch needs network; extraction + ranking use the LLM.
+- [x] **🔧 Hotfix — job-posting URL fetch is broken (do first).** ✅ **Done.** The Search screen's
+      "Or generate from a specific posting" flow (Milestone M-A) produced no result. Root cause was
+      **not** a propagation break (the `fetchFromLink` → `onChange(of: search.results)` → Results
+      wiring was correct): the fetch itself failed for real boards because `URLSessionHTTPClient`
+      sent no browser-like `User-Agent`/`Accept` headers and decoded only UTF-8 → `.unreadable`;
+      and the error was rendered next to the Search button, not the Fetch action, so it looked like
+      nothing happened. Fixed by (1) extending the `HTTPClient` port with a backward-compatible
+      `get(_:headers:)`, having `LinkJobPostingSource` present as a browser + fall back UTF-8→ISO
+      Latin-1 on decode, and (2) a dedicated `linkErrorMessage` surfaced prominently in the link
+      section, auto-expanding the paste-text fallback. Regression tests cover both the VM flow and
+      the fetch hardening; full suite green. Seam: Search flow (`SearchViewModel` / `SearchView`),
+      `FetchPostingUseCase`, `LinkJobPostingSource`, `HTTPClient`, RootView results wiring.
 
 - [ ] **Export résumé & cover letter (Markdown / PDF / DOCX).** The flagged
       highest-value fast-follow: let the user get a generated `ApplicationKit` (résumé +

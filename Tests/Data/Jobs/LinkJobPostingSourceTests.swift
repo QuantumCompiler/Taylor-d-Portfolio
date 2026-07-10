@@ -19,6 +19,19 @@ private struct StubHTTP: HTTPClient {
     }
 }
 
+/// An `HTTPClient` that records the headers of the last GET (to prove the fetch presents
+/// as a browser). Reference type so the recorded value survives the `nonisolated` call.
+private final class RecordingHTTP: HTTPClient, @unchecked Sendable {
+    var body: Data
+    private(set) var lastHeaders: [String: String] = [:]
+    init(body: Data) { self.body = body }
+    func get(_ url: URL) async throws -> Data { body }
+    func get(_ url: URL, headers: [String: String]) async throws -> Data {
+        lastHeaders = headers
+        return body
+    }
+}
+
 /// A stub `LLMProvider` that returns a canned extraction (only `extractPosting` matters).
 private struct StubExtractor: LLMProvider {
     var extracted: ExtractedPosting = ExtractedPosting(title: "iOS Engineer", company: "Acme", location: "Remote", description: "Swift.")
@@ -96,5 +109,29 @@ struct LinkJobPostingSourceTests {
         await #expect(throws: JobPostingSourceError.unreadable) {
             _ = try await source.extractPosting(fromText: "   ", sourceURL: nil)
         }
+    }
+
+    // MARK: Fetch hardening (Hotfix)
+
+    @Test func fetchPresentsAsABrowser() async throws {
+        let html = Data("<html><body><h1>iOS Engineer</h1><p>\(String(repeating: "Swift and SwiftUI. ", count: 30))</p></body></html>".utf8)
+        let http = RecordingHTTP(body: html)
+        let source = LinkJobPostingSource(http: http, extractor: StubExtractor())
+
+        _ = try await source.fetchPosting(from: url)
+        // A browser-like User-Agent is sent so boards that block non-browser clients answer.
+        #expect(http.lastHeaders["User-Agent"]?.contains("Mozilla/5.0") == true)
+        #expect(http.lastHeaders["Accept"] != nil)
+    }
+
+    @Test func nonUTF8PageStillDecodesAndExtracts() async throws {
+        // A page with a byte that isn't valid UTF-8 (0xE9 = 'é' in ISO Latin-1).
+        let latin1 = "<html><body><h1>iOS Engineer</h1><p>\(String(repeating: "Swift café SwiftUI. ", count: 30))</p></body></html>"
+        let data = latin1.data(using: .isoLatin1)!
+        #expect(String(data: data, encoding: .utf8) == nil)   // genuinely not UTF-8
+
+        let source = LinkJobPostingSource(http: StubHTTP(body: data), extractor: StubExtractor())
+        let listing = try await source.fetchPosting(from: url)
+        #expect(listing.title == "iOS Engineer")              // decoded via the Latin-1 fallback
     }
 }

@@ -18,8 +18,12 @@ milestone.
 > `.auto` / `.onDevice` still selectable) and named `SavedProfile`s (with source document +
 > default-profile pointer).
 >
-> **v3 — output & polish is the current target.** A priority **hotfix** comes first:
-> **the job-posting URL fetch is broken** — pasting a URL + Fetch produces no result. Then
+> **v3 — output & polish is the current target.** The priority **hotfix** is now **done**
+> — the job-posting URL fetch worked end-to-end but failed because the fetch didn't present as a
+> browser (→ `.unreadable`) and the error was rendered away from the Fetch action; fixed with
+> browser headers + a non-UTF-8 decode fallback + a dedicated `linkErrorMessage` in the link
+> section. **Next up (Phase 1): S-D — scrollable screens + S-E — saved-profile tile gestures**
+> (two cheap Presentation fixes), then **Q — Export**. Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -585,7 +589,7 @@ S-D/S-E go in Phase 1; its broad polish S-A/B/C lands in Phase 5.)
 
 **Start at the Hotfix below.**
 
-## 🔧 Hotfix — job-posting URL fetch is broken  ⬜ do first  (Search flow: `SearchViewModel` / `SearchView` / `FetchPostingUseCase` / `LinkJobPostingSource` / RootView)
+## 🔧 Hotfix — job-posting URL fetch is broken  ✅ done  (Search flow: `SearchViewModel` / `SearchView` / `FetchPostingUseCase` / `LinkJobPostingSource` / RootView / `HTTPClient`)
 
 Goal: the Search screen's "Or generate from a specific posting" flow (shipped in Milestone
 M-A) doesn't work — pasting a URL and pressing **Fetch** produces no result: the posting is
@@ -594,37 +598,50 @@ keyword search**: fetch → extract → rank → push a single `RankedJob` into 
 or show a clear, prominent failure with the paste-text fallback. The plumbing already exists
 end-to-end, so this is **reproduce → root-cause → fix**, not a rebuild.
 
-- [ ] **Reproduce with a real posting URL** and confirm the failure mode. The known-good
-      path is `SearchView` Fetch button → `SearchViewModel.fetchFromLink()` sets
-      `results = [try await fetchPosting(url:profile:)]` → `RootView.onChange(of: search.results)`
-      copies to `results.results` and jumps to the Results tab. Determine **where it breaks**.
-- [ ] **Check the strongest candidates first** (found during planning — verify, don't assume):
-      1. **Button gated / no fetch attempted.** `canFetchLink` requires `hasProfile` **and** a
-         non-empty `postingURL`; if the Search VM's `profile` isn't set (or the URL fails the
-         `http/https` scheme check), the button is disabled or `fetchFromLink` returns early —
-         "it doesn't even fetch." Confirm `search.profile` is actually populated on the Search tab.
-      2. **`.unreadable` thrown but not noticed.** Most real job boards are JS-gated or block
-         non-browser requests → `LinkJobPostingSource.fetchPosting` throws `JobPostingSourceError.unreadable`
-         (non-2xx, non-UTF8 body, stripped text under `minReadableCharacters`, or extractor
-         returns not-`looksReal`). The VM sets a small red `errorMessage` the user may overlook.
-      3. **Result set but not propagated.** Verify `onChange(of: search.results)` fires for the
-         single-item fetch result the same way it does for `search()` (same `results` property,
-         so it should — but confirm it isn't overwritten by `ResultsViewModel`'s saved-jobs load).
-- [ ] **Fix the identified break** so a valid posting URL yields a ranked result in Results,
-      indistinguishable from a keyword-search result (same detail → generate flow).
-- [ ] **Make failure visible + actionable.** If a page truly can't be read, surface the error
-      prominently (not a small trailing label) and point to the paste-text fallback. Never fail silently.
-- [ ] **Harden the fetch (as needed).** Consider a browser-like `User-Agent`/`Accept` header
-      and non-UTF8 decoding fallback so common boards succeed rather than tripping `.unreadable`;
-      keep the "fail loudly, never guess a role" contract intact.
-- [ ] **Regression test.** `SearchViewModelTests`: a stubbed `FetchPostingUseCase` success sets
-      `results` to the single ranked job (so RootView would propagate + jump); a `.unreadable`
-      throw sets a visible `errorMessage` and leaves `results` untouched; the pasted-text path
-      likewise. Assert the Fetch gating (`canFetchLink`) with/without profile + URL.
-- [ ] **Docs.** Tick the ROADMAP hotfix; note the root cause + fix in this item when done.
+**Root cause (two compounding defects — the propagation was fine):** the wiring
+(`fetchFromLink` → `onChange(of: search.results)` → Results tab) was correct all along, so
+candidate #3 was ruled out. What actually broke it:
+  1. **The fetch failed for virtually every real job board.** `URLSessionHTTPClient.get` used
+     `session.data(from:)` with URLSession's default (non-browser) `User-Agent`, no `Accept`
+     headers, and decoded the body only as UTF-8 — so real boards answered 403/429, a JS/consent
+     shell, or non-UTF-8 bytes and `LinkJobPostingSource.fetchPosting` threw `.unreadable`
+     (candidate #2 confirmed as the dominant cause). The happy path almost never ran.
+  2. **The failure was invisible.** `fetchFromLink` / `generateFromPastedText` set the shared
+     `errorMessage`, but `SearchView` rendered `errorMessage` **only next to the Search button**,
+     never in the link section — so pressing Fetch set an error far above/off-screen and "nothing
+     happened" at the action.
+
+**Fix:**
+- [x] **Reproduce / root-cause.** Traced the whole path (`SearchView` Fetch → `fetchFromLink`
+      → `onChange(of: search.results)` → `results.results` + tab jump). Confirmed propagation is
+      correct and `ResultsViewModel.loadSavedIfNeeded()` guards on `results.isEmpty` so it can't
+      clobber a fresh single-item fetch. Ruled candidate #1 out (a wired profile enables *both*
+      Search and Fetch) and #3 out; #2 (fetch fails + error unnoticed) is the real cause.
+- [x] **Harden the fetch.** Extended the `HTTPClient` port with `get(_:headers:)` (protocol-
+      extension default calls `get(_:)`, so stubs are untouched); `URLSessionHTTPClient` now sends
+      the headers via a `URLRequest`. `LinkJobPostingSource.fetchPosting` passes browser-like
+      headers (`browserHeaders`: Safari `User-Agent` + `Accept` / `Accept-Language`) and decodes
+      via a new `decode(_:)` helper that falls back from UTF-8 to ISO Latin-1 (never fails). The
+      "fail loudly, never guess a role" contract is intact — a genuinely unreadable page still
+      throws `.unreadable`.
+- [x] **Make failure visible + actionable.** Added a dedicated `linkErrorMessage` on
+      `SearchViewModel` (separate from the search `errorMessage`); `fetchFromLink` /
+      `generateFromPastedText` set it. `SearchView` renders it **prominently in the link section**
+      (triangle icon, red, multi-line) right at the Fetch action, and a failed fetch auto-expands
+      the "paste the posting text" disclosure so the recovery path is visible.
+- [x] **Regression test.** `SearchViewModelTests`: fetch success pushes the single ranked job to
+      `results` (RootView would propagate + jump) with no error; `.unreadable` sets a visible
+      `linkErrorMessage` (pointing to the paste fallback) and leaves `results` untouched and the
+      search `errorMessage` nil; invalid-URL and empty-paste guards; `canFetchLink` gating with/
+      without profile + URL; link flow unavailable when unwired; pasted-text success/empty.
+      `LinkJobPostingSourceTests`: `fetchPresentsAsABrowser` (a `RecordingHTTP` asserts the
+      `User-Agent`/`Accept` headers reach the client) and `nonUTF8PageStillDecodesAndExtracts`
+      (an ISO-Latin-1 body that isn't valid UTF-8 still extracts). Full suite green on macOS.
+- [x] **Docs.** ROADMAP hotfix ticked; this item records the root cause + fix.
 
 Note: this is a defect in v2's Milestone M-A, pulled to the front of v3 because it blocks a
-shipped feature. It touches only the Search/fetch flow — no new seam, no layer-rule change.
+shipped feature. It touches only the Search/fetch flow plus a backward-compatible `HTTPClient`
+port addition — no new seam, no layer-rule change.
 
 ## Milestone Q — Export résumé & cover letter  ⬜ not started  (`Infrastructure/Export`, `Business/UseCases`, Application/detail UI)
 

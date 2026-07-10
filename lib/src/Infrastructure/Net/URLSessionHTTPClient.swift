@@ -16,7 +16,15 @@ nonisolated struct URLSessionHTTPClient: HTTPClient {
     }
 
     func get(_ url: URL) async throws -> Data {
-        let (data, response) = try await session.data(from: url)
+        try await get(url, headers: [:])
+    }
+
+    func get(_ url: URL, headers: [String: String]) async throws -> Data {
+        var request = URLRequest(url: url)
+        for (field, value) in headers {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
+        let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw HTTPError.nonHTTPResponse
         }

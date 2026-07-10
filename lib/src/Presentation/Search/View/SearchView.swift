@@ -11,6 +11,9 @@ import SwiftUI
 /// then a merged multi-title ranking run.
 struct SearchView: View {
     @Bindable var viewModel: SearchViewModel
+    /// Expands the "paste the posting text" fallback — opened automatically when a
+    /// link fetch fails so the user is pointed straight at the recovery path.
+    @State private var showPasteFallback = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -118,7 +121,16 @@ struct SearchView: View {
                 }
                 .disabled(!viewModel.canFetchLink)
             }
-            DisclosureGroup("Page won’t load? Paste the posting text") {
+
+            // Surface a fetch/paste failure prominently, right at the action.
+            if let linkError = viewModel.linkErrorMessage {
+                Label(linkError, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            DisclosureGroup("Page won’t load? Paste the posting text", isExpanded: $showPasteFallback) {
                 VStack(alignment: .leading, spacing: 6) {
                     TextEditor(text: $viewModel.pastedPosting)
                         .frame(minHeight: 100)
@@ -129,6 +141,10 @@ struct SearchView: View {
                     .disabled(!viewModel.hasProfile || viewModel.isFetchingLink)
                 }
             }
+        }
+        // A failed fetch opens the paste fallback so the recovery path is visible.
+        .onChange(of: viewModel.linkErrorMessage) { _, newValue in
+            if newValue != nil { showPasteFallback = true }
         }
     }
 
