@@ -11,28 +11,48 @@ import UniformTypeIdentifiers
 /// Import-or-paste-your-portfolio screen: text in, a structured profile out.
 struct PortfolioView: View {
     @Bindable var viewModel: PortfolioViewModel
-    @State private var showImporter = false
+    @State private var showResumeImporter = false
+    @State private var showCoverLetterImporter = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Portfolio").font(.largeTitle.bold())
-            Text("Import a document (PDF, Word, RTF, or text) or paste your resume, projects, and links below. We'll distil a structured profile.")
+            Text("Import or paste your résumé / portfolio (required) — we distil a structured profile from it. You can also add an optional cover letter, used only as a voice and tone example when generating.")
                 .foregroundStyle(.secondary)
 
-            TextEditor(text: $viewModel.portfolioText)
-                .font(.body.monospaced())
-                .frame(minHeight: 200)
-                .padding(8)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
+            documentSlot(
+                title: "Résumé / portfolio",
+                fileName: viewModel.sourceFileName,
+                text: $viewModel.portfolioText,
+                minHeight: 180
+            ) { showResumeImporter = true }
+            .fileImporter(
+                isPresented: $showResumeImporter,
+                allowedContentTypes: Self.allowedTypes,
+                allowsMultipleSelection: false
+            ) { result in
+                if case .success(let urls) = result, let url = urls.first {
+                    Task { await viewModel.importDocument(from: url) }
+                }
+            }
+
+            documentSlot(
+                title: "Cover letter (optional)",
+                fileName: viewModel.coverLetterFileName,
+                text: $viewModel.coverLetterText,
+                minHeight: 120
+            ) { showCoverLetterImporter = true }
+            .fileImporter(
+                isPresented: $showCoverLetterImporter,
+                allowedContentTypes: Self.allowedTypes,
+                allowsMultipleSelection: false
+            ) { result in
+                if case .success(let urls) = result, let url = urls.first {
+                    Task { await viewModel.importCoverLetter(from: url) }
+                }
+            }
 
             HStack(spacing: 12) {
-                Button {
-                    showImporter = true
-                } label: {
-                    Label("Import Document…", systemImage: "doc.badge.plus")
-                }
-                .disabled(viewModel.isBusy)
-
                 Button("Build Profile") {
                     Task { await viewModel.build() }
                 }
@@ -47,20 +67,11 @@ struct PortfolioView: View {
                     Text(error).font(.callout).foregroundStyle(.red)
                 }
             }
-            .fileImporter(
-                isPresented: $showImporter,
-                allowedContentTypes: Self.allowedTypes,
-                allowsMultipleSelection: false
-            ) { result in
-                if case .success(let urls) = result, let url = urls.first {
-                    Task { await viewModel.importDocument(from: url) }
-                }
-            }
 
             if let profile = viewModel.profile {
                 ProfileSummary(profile: profile, isDefault: viewModel.isSelectedProfileDefault)
-                if !viewModel.readableText.isEmpty {
-                    sourceDocumentSection
+                if hasSourceDocuments {
+                    sourceDocumentsSection
                 }
                 if viewModel.supportsSavedProfiles {
                     saveRow
@@ -76,12 +87,63 @@ struct PortfolioView: View {
         .task { await viewModel.reloadProfiles() }
     }
 
-    /// Shows the imported document this profile was built on, in the LLM-tidied readable
-    /// form — collapsed by default since it can be long.
-    private var sourceDocumentSection: some View {
+    /// A labelled import-or-paste slot for one document (résumé or cover letter).
+    private func documentSlot(
+        title: String,
+        fileName: String?,
+        text: Binding<String>,
+        minHeight: CGFloat,
+        onImport: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(title).font(.headline)
+                if let fileName {
+                    Text("· \(fileName)").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button(action: onImport) {
+                    Label("Import…", systemImage: "doc.badge.plus")
+                }
+                .disabled(viewModel.isBusy)
+            }
+            TextEditor(text: text)
+                .font(.body.monospaced())
+                .frame(minHeight: minHeight)
+                .padding(8)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
+        }
+    }
+
+    /// Whether either document has readable text to show under the profile.
+    private var hasSourceDocuments: Bool {
+        !viewModel.readableText.isEmpty || !viewModel.coverLetterReadableText.isEmpty
+    }
+
+    /// Shows the documents this profile was built on, in their LLM-tidied readable form —
+    /// each collapsed by default since they can be long.
+    private var sourceDocumentsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !viewModel.readableText.isEmpty {
+                documentDisclosure(
+                    label: viewModel.sourceFileName.map { "Résumé — \($0)" } ?? "Résumé / portfolio",
+                    text: viewModel.readableText
+                )
+            }
+            if !viewModel.coverLetterReadableText.isEmpty {
+                documentDisclosure(
+                    label: viewModel.coverLetterFileName.map { "Cover letter — \($0)" } ?? "Cover letter",
+                    text: viewModel.coverLetterReadableText
+                )
+            }
+        }
+    }
+
+    /// One collapsed, scrollable readable-document disclosure.
+    private func documentDisclosure(label: String, text: String) -> some View {
         DisclosureGroup {
             ScrollView {
-                Text(viewModel.readableText)
+                Text(text)
                     .font(.callout)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -89,11 +151,7 @@ struct PortfolioView: View {
             }
             .frame(maxHeight: 220)
         } label: {
-            Label(
-                viewModel.sourceFileName.map { "Source document — \($0)" } ?? "Source document",
-                systemImage: "doc.text"
-            )
-            .font(.headline)
+            Label(label, systemImage: "doc.text").font(.headline)
         }
     }
 

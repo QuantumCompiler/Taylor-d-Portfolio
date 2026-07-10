@@ -37,6 +37,16 @@ final class PortfolioViewModel {
     /// The LLM-tidied, readable form of the source document, shown with the profile.
     private(set) var readableText: String = ""
 
+    /// The **optional** cover letter's editable text (import/paste). A voice/tone exemplar
+    /// for generation only — the profile is never distilled from it (ROADMAP Milestone T).
+    var coverLetterText: String = ""
+    /// The imported cover letter's file name (nil if pasted or absent).
+    private(set) var coverLetterFileName: String?
+    /// The raw cover-letter text the current profile was built alongside.
+    private(set) var coverLetterSourceText: String = ""
+    /// The LLM-tidied, readable form of the cover letter, shown with the profile.
+    private(set) var coverLetterReadableText: String = ""
+
     /// Whether the default profile has been auto-applied yet (so it's applied once, on
     /// first load, and never clobbers a later manual selection).
     private var hasAppliedDefault = false
@@ -98,6 +108,21 @@ final class PortfolioViewModel {
         }
     }
 
+    /// Reads a picked document into the **optional** cover-letter slot. Never gates Build.
+    func importCoverLetter(from url: URL) async {
+        isImporting = true
+        errorMessage = nil
+        defer { isImporting = false }
+        do {
+            coverLetterText = try await importPortfolio(fileURL: url)
+            coverLetterFileName = url.lastPathComponent
+        } catch let error as DocumentExtractionError {
+            errorMessage = Self.message(for: error)
+        } catch {
+            errorMessage = "Couldn't read that cover letter. Try a PDF, Word, RTF, or text file."
+        }
+    }
+
     private static func message(for error: DocumentExtractionError) -> String {
         switch error {
         case .unsupportedType(let ext):
@@ -128,6 +153,21 @@ final class PortfolioViewModel {
                 readableText = (try? await tidyDocument(rawText: text)) ?? text
             } else {
                 readableText = text
+            }
+            // Cover letter (optional): captured + tidied the same way, but NEVER distilled
+            // into the profile — it's a voice/tone exemplar for generation only (Milestone T).
+            let letter = coverLetterText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if letter.isEmpty {
+                coverLetterSourceText = ""
+                coverLetterReadableText = ""
+                coverLetterFileName = nil
+            } else {
+                coverLetterSourceText = letter
+                if let tidyDocument {
+                    coverLetterReadableText = (try? await tidyDocument(rawText: letter)) ?? letter
+                } else {
+                    coverLetterReadableText = letter
+                }
             }
         } catch {
             errorMessage = "Couldn't build your profile. Check that an engine is available in Settings, then try again."
@@ -181,6 +221,9 @@ final class PortfolioViewModel {
             let saved = try await saveProfile(
                 profile, name: name,
                 sourceFileName: sourceFileName, sourceText: sourceText, readableText: readableText,
+                coverLetterFileName: coverLetterFileName,
+                coverLetterText: coverLetterSourceText,
+                coverLetterReadableText: coverLetterReadableText,
                 existing: existing
             )
             selectedProfileID = saved.id
@@ -199,6 +242,9 @@ final class PortfolioViewModel {
         sourceFileName = saved.sourceFileName
         sourceText = saved.sourceText
         readableText = saved.readableText
+        coverLetterFileName = saved.coverLetterFileName
+        coverLetterSourceText = saved.coverLetterText
+        coverLetterReadableText = saved.coverLetterReadableText
         errorMessage = nil
     }
 
@@ -220,6 +266,10 @@ final class PortfolioViewModel {
         sourceFileName = nil
         sourceText = ""
         readableText = ""
+        coverLetterText = ""
+        coverLetterFileName = nil
+        coverLetterSourceText = ""
+        coverLetterReadableText = ""
         errorMessage = nil
     }
 

@@ -26,7 +26,8 @@ milestone.
 > reachable/clickable; if it's *greyed-out* rather than off-screen, the profile isn't reaching the
 > Search VM — a wiring check to do next. **Phase 2: Q — Export is COMPLETE** (Q-A copy +
 > Markdown/plain-text, Q-B PDF via native Core Text, Q-C DOCX via a hand-rolled OOXML/ZIP writer).
-> **Next (Phase 3): T — Two-document portfolio** (T-A input + model → T-B generation grounding). Then
+> **Phase 3: T — Two-document portfolio** — **T-A (optional cover-letter input + model) is done**;
+> next is **T-B (reference both documents in generation grounding)**. Then U → R, then V → W. Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -835,7 +836,7 @@ on the inner radio-dial + text HStack only, so the user has to hit the dial/titl
       existing VM tests (this is only gesture placement); full suite green. Manual (device) check that
       tapping/long-pressing anywhere on the tile — including padding — works and delete is unaffected.
 
-## Milestone T — Two-document portfolio (résumé + cover letter) as generation grounding  ⬜ not started  (`Data/Models`, Portfolio input, `TidyDocumentUseCase`, `GenerateApplicationUseCase` / `LLMProvider` / `Prompts`, Application plumbing)
+## Milestone T — Two-document portfolio (résumé + cover letter) as generation grounding  🔨 in progress (T-A done; T-B next)  (`Data/Models`, Portfolio input, `TidyDocumentUseCase`, `GenerateApplicationUseCase` / `LLMProvider` / `Prompts`, Application plumbing)
 
 Goal: the Portfolio tab accepts **two** documents — a résumé/portfolio (the existing import,
 now the primary slot) and an **optional cover letter** — and both are referenced when
@@ -848,26 +849,29 @@ Cover letter is optional and back-compatible with existing single-document profi
 the concrete realization of SPEC's "inject the bounded portfolio directly into generation",
 extended to two documents (later upgradable to embedding retrieval over the same documents).
 
-### T-A — Two-document input + model  ⬜
+### T-A — Two-document input + model  ✅ done
 
-- [ ] **Extend `SavedProfile` with cover-letter document fields.** Add `coverLetterFileName:
+- [x] **Extended `SavedProfile` with cover-letter document fields.** Added `coverLetterFileName:
       String?`, `coverLetterText: String` (raw), `coverLetterReadableText: String` (LLM-tidied)
-      alongside the existing résumé/portfolio `sourceFileName` / `sourceText` / `readableText`.
-      Keep the custom `init(from:)` legacy-decode pattern so older single-document saves still
-      load (new fields default to nil/empty). `@Model` stays in Infrastructure (blob only).
-- [ ] **Second import/paste slot on the Portfolio tab.** Relabel the existing import as
-      **"Résumé / portfolio"**; add an optional **"Cover letter"** import/paste slot. Both reuse
-      `ImportPortfolioUseCase` / `DocumentTextExtractor` + `.fileImporter` (same accepted types).
-      The cover letter never gates Build Profile (`canBuild` unchanged).
-- [ ] **Tidy both documents on build.** Run `TidyDocumentUseCase` (routed through the `.profile`
-      task) on the cover letter too, storing `coverLetterReadableText`. The `CandidateProfile`
-      is **still distilled from the résumé/portfolio only** — the cover letter is not mined into
-      profile facts.
-- [ ] **Show both source documents.** The Portfolio source-document `DisclosureGroup` gains a
-      second (collapsed) section for the cover letter when present.
-- [ ] **Tests.** `SavedProfile` round-trip incl. cover-letter fields + legacy decode (old blob →
-      empty cover-letter fields); `PortfolioViewModel` imports/pastes a cover letter; build tidies
-      both; build still works with no cover letter (optional).
+      alongside the résumé/portfolio fields. The custom `init(from:)` decodes them with
+      `decodeIfPresent` → empty defaults, so **older single-document (and pre-source-document)
+      saves still load**. `@Model` stays in Infrastructure (blob only). `SaveProfileUseCase`
+      threads the three new fields through.
+- [x] **Second import/paste slot on the Portfolio tab.** Refactored the input into a reusable
+      `documentSlot` (label + `TextEditor` + per-slot `Import…`): the existing one is relabelled
+      **"Résumé / portfolio"**; a new optional **"Cover letter (optional)"** slot sits below it,
+      reusing `importPortfolio`/`DocumentTextExtractor` via `importCoverLetter`. The cover letter
+      **never gates Build** (`canBuild` unchanged — still requires only the résumé text).
+- [x] **Tidy both documents on build.** `build()` tidies the cover letter through the same
+      `TidyDocumentUseCase` (→ `coverLetterReadableText`), captured into `coverLetterSourceText`.
+      The `CandidateProfile` is **still distilled from the résumé/portfolio only** — the cover
+      letter is never mined into profile facts. An absent cover letter leaves all three fields empty.
+- [x] **Show both source documents.** The source-document area now renders one collapsed,
+      scrollable `documentDisclosure` per document — résumé and (when present) cover letter.
+- [x] **Tests.** `SavedProfileTests` (round-trip incl. cover-letter fields; **legacy** blob and
+      single-document blob both decode with empty cover-letter defaults); `PortfolioViewModelTests`
+      (cover-letter import fills its own slot; doesn't gate build; build tidies it while the profile
+      stays résumé-only; build without one leaves it empty; save+select round-trip). Suite green.
 
 ### T-B — Reference both documents in generation  ⬜
 

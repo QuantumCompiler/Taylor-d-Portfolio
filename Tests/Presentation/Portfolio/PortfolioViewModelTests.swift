@@ -265,4 +265,68 @@ struct PortfolioViewModelTests {
         #expect(vm.sourceFileName == "cv.pdf")
         #expect(vm.readableText == "TIDY:\nEXTRACTED RESUME")
     }
+
+    // MARK: T-A — optional cover letter
+
+    @Test func importCoverLetterFillsItsOwnSlotNotThePortfolio() async {
+        let vm = makePersistingVM(importText: "COVER LETTER TEXT")
+        await vm.importCoverLetter(from: URL(fileURLWithPath: "/tmp/letter.docx"))
+        #expect(vm.coverLetterText == "COVER LETTER TEXT")
+        #expect(vm.coverLetterFileName == "letter.docx")
+        #expect(vm.portfolioText.isEmpty)          // the résumé slot is untouched
+        #expect(vm.errorMessage == nil)
+    }
+
+    @Test func coverLetterDoesNotGateBuild() {
+        let vm = makePersistingVM()
+        vm.coverLetterText = "a letter"          // only the cover letter, no résumé
+        #expect(vm.canBuild == false)            // still gated on the résumé/portfolio
+        vm.portfolioText = "resume"
+        #expect(vm.canBuild)
+    }
+
+    @Test func buildTidiesTheCoverLetterButKeepsTheProfileResumeOnly() async {
+        let vm = makePersistingVM()
+        vm.portfolioText = "raw resume"
+        vm.coverLetterText = "raw letter"
+        await vm.build()
+        // Résumé grounding unchanged; profile still distilled from the résumé only.
+        #expect(vm.sourceText == "raw resume")
+        #expect(vm.profile?.seniority == "BUILT")
+        // Cover letter captured + tidied alongside.
+        #expect(vm.coverLetterSourceText == "raw letter")
+        #expect(vm.coverLetterReadableText == "TIDY:\nraw letter")
+    }
+
+    @Test func buildWithoutACoverLetterLeavesItEmpty() async {
+        let vm = makePersistingVM()
+        vm.portfolioText = "raw resume"
+        await vm.build()
+        #expect(vm.coverLetterSourceText.isEmpty)
+        #expect(vm.coverLetterReadableText.isEmpty)
+        #expect(vm.coverLetterFileName == nil)
+    }
+
+    @Test func coverLetterRoundTripsThroughSaveAndSelect() async {
+        let vm = makePersistingVM()
+        vm.portfolioText = "resume"
+        vm.coverLetterText = "my letter"
+        await vm.importCoverLetter(from: URL(fileURLWithPath: "/tmp/note.txt"))  // sets file name (+ text)
+        vm.coverLetterText = "my letter"        // keep deterministic raw text
+        await vm.build()
+        vm.profileName = "Primary"
+        await vm.saveProfile()
+
+        let saved = vm.savedProfiles[0]
+        #expect(saved.coverLetterFileName == "note.txt")
+        #expect(saved.coverLetterText == "my letter")
+        #expect(saved.coverLetterReadableText == "TIDY:\nmy letter")
+
+        vm.deselect()
+        #expect(vm.coverLetterReadableText.isEmpty)
+        vm.select(saved)
+        #expect(vm.coverLetterFileName == "note.txt")
+        #expect(vm.coverLetterSourceText == "my letter")
+        #expect(vm.coverLetterReadableText == "TIDY:\nmy letter")
+    }
 }

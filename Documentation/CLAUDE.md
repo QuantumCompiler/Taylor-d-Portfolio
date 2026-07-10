@@ -96,8 +96,12 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
   the raw `sourceText`, and a `readableText` — the raw import reflowed into clean plain
   text by `TidyDocumentUseCase` (`LLMProvider.tidyDocument`, routed through the `.profile`
   task so it uses the same engine that built the profile). Viewable with the profile on
-  the Portfolio tab. `SavedProfile` decodes legacy blobs (document fields default) so older
-  saves still load.
+  the Portfolio tab. It optionally pairs a **second document, a cover letter**
+  (`coverLetterFileName` / `coverLetterText` / `coverLetterReadableText`) — imported/pasted
+  in its own Portfolio slot and tidied the same way, but **never distilled into the profile**
+  (the profile stays résumé-only; the cover letter is a voice/tone exemplar for generation —
+  ROADMAP Milestone T). `SavedProfile` decodes legacy blobs (source- and cover-letter fields
+  default to empty) so older single-document saves still load.
 - Search suggestions: `SuggestionProvider` (Data/Search) — profile-seeded starting
   titles + static locations + salary presets; pure, on-device. Common role titles are
   **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
