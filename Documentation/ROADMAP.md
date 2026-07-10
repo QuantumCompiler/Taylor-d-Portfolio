@@ -5,7 +5,7 @@ then handed to the Claude Code session to build. This file is the high-level
 running list; `TODO.md` breaks the current target into granular, checkable tasks.
 As TODO items land, tick them here too so this stays an accurate progress board.
 
-## v1 — foundation (current target)
+## v1 — foundation (complete)
 
 - [x] Project scaffold: SwiftUI macOS app, folder layout per `CLAUDE.md`
       (four-layer `lib/src`, feature-based Presentation, landing screen, template removed)
@@ -22,7 +22,7 @@ As TODO items land, tick them here too so this stays an accurate progress board.
       end to end (wiring proven by `EndToEndTests` + launch smoke; live-engine run is a
       manual device step)
 
-## v2 — reliability (current target)
+## v2 — reliability (complete)
 
 The theme is turning "misconfigured / weak output" into problems that surface early
 and clearly, rather than as silent runtime failures. See `TODO.md` for the granular
@@ -155,14 +155,156 @@ breakdown.
       manual date edit is an optional later touch. Builds on O (persistence); replaces the
       "applied-to tracker" that was parked in the SwiftData fast-follow.
 
+## v3 — output & polish (current target)
+
+The theme: get the generated materials cleanly *out* of the app (Export), finish the
+persistence fast-follow (saved/re-runnable searches), and polish the app that produces
+them. A priority **hotfix** (the job-posting URL fetch is broken) comes first, then
+Milestones Q (Export), R (Saved searches), S (Polish), T (two-document portfolio),
+U (expanded search parameters), V (results ↔ tracker interaction), W (results filtering);
+X (templates + one-page gate) is a stretch. **v0.3.0 scope is closed.** The milestone
+letters are a catalogue, **not** the build order — see **"Recommended implementation order
+(v3)"** in `TODO.md` for the phased sequence (fixes → Export → grounding/search → results
+experience → cohesive polish → stretch). `TODO.md` has the granular breakdown.
+
+- [ ] **🔧 Hotfix — job-posting URL fetch is broken (do first).** The Search screen's
+      "Or generate from a specific posting" flow (Milestone M-A) doesn't work: pasting a
+      URL and pressing **Fetch** produces no result — the posting is never fetched/ranked,
+      and nothing lands in the Results tab. It should behave exactly like a keyword search:
+      fetch the URL → extract → rank → push a single `RankedJob` into Results (auto-jump),
+      with a clear, prominent message (and the paste-text fallback) when a page genuinely
+      can't be read. The plumbing already exists end-to-end (`SearchViewModel.fetchFromLink`
+      → `FetchPostingUseCase` → `LinkJobPostingSource` → `RootView.onChange(of: search.results)`),
+      so this is **reproduce → root-cause → fix**, not a new build. Seam: Search flow
+      (`SearchViewModel` / `SearchView`), `FetchPostingUseCase`, `LinkJobPostingSource`,
+      RootView results wiring. On-device: fetch needs network; extraction + ranking use the LLM.
+
+- [ ] **Export résumé & cover letter (Markdown / PDF / DOCX).** The flagged
+      highest-value fast-follow: let the user get a generated `ApplicationKit` (résumé +
+      cover letter) out of the app as polished files. New `DocumentExporter` port
+      (Infrastructure — CLAUDE.md already reserves "exporters" as protocol-worthy) with
+      format-specific impls, an `ExportApplicationUseCase` (Business), and an export
+      control on the Application sheet / job-detail view. Three formats: **Markdown /
+      plain-text** (trivial — clipboard + save-as, lands first), **PDF** (the core
+      deliverable — the concrete renderer, HTML-template→PDF vs AttributedString→PDF, is
+      an **open design decision inside the milestone**, with the one-page-gate implication
+      noted), and **DOCX** (true Word format via a **hand-rolled minimal OOXML / zipped-XML
+      writer** — macOS has no native `.docx` writer, so this is the heaviest single piece).
+      Seam: `Infrastructure/Export` (new) + `Business/UseCases` + a Presentation affordance.
+      On-device: yes — pure local rendering, no network. Note: AGENT.md's LaTeX/PDF
+      toolchain stays out of scope; this is native rendering only.
+
+- [ ] **Saved / re-runnable searches.** Finish the persistence fast-follow: persist each
+      `JobSearchRequest` (titles + shared location + salary floor), list saved searches,
+      and **re-run** one later against the current profile through the existing search→rank
+      pipeline, deduping against already-seen listings. New `SavedSearchesRepository`
+      (Data/Persistence) on Milestone O's `PersistentRecordStore` (new `kind`); save/load/
+      delete use cases; re-run reuses `SearchAndRankUseCase`; a Presentation surface on the
+      Search screen. The *other* half of the old fast-follow — caching the built profile
+      across launches — already shipped via named `SavedProfile`s, so it's **done**.
+      On-device: yes — local SwiftData store; the re-run itself hits Adzuna as any search does.
+
+- [ ] **Polish pass.** Make the six-tab app feel finished. Five parts: (1) in-app
+      **markdown rendering** of the generated résumé/cover letter (styled text + copy
+      buttons) instead of raw markdown; (2) consistent **empty / loading / error states**
+      across all tabs (no profile, no results, fetch/generation failure); (3) **results /
+      saved-jobs / Tracker cohesion** so "already seen / already generated / applied" reads
+      as one history; (4) **scrollable screens / small-window layout** — a **bug fix**: the
+      Portfolio tab (and other tabs sharing the same `VStack { … Spacer() }` pattern, e.g.
+      Search) can't scroll when the window is short, so lower controls are unreachable.
+      Wrap each screen's content in a `ScrollView` so everything stays reachable at any
+      window size; (5) **saved-profile tile gestures** — long-press *anywhere* on a
+      saved-profile tile to set it as the default (not just the title), and tap *anywhere*
+      on the tile to load/show that profile (not only the radio dial). Seam: mostly
+      Presentation (Views + VMs), with small Data/use-case touches for the history joins.
+      On-device: yes.
+
+- [ ] **Two-document portfolio (résumé/portfolio + cover letter) as generation grounding.**
+      Let the Portfolio tab accept **two** documents — a résumé/portfolio (the existing
+      import, now the primary slot) and an **optional cover letter** — and reference both
+      when generating a job's tailored materials. The résumé/portfolio stays the *factual*
+      grounding: the `CandidateProfile` is still distilled from it, and its real text grounds
+      both outputs. The uploaded cover letter is a **voice / tone / structure exemplar** for
+      the generated cover letter only — the output mirrors the candidate's real style, but
+      facts, metrics, employers, and dates are **never imported from it** (the "never
+      fabricate" guardrail holds; facts come from the résumé/profile). Both documents are
+      LLM-tidied (`TidyDocumentUseCase`) and carried on `SavedProfile`; generation injects
+      their bounded text — the concrete v1 grounding approach in SPEC ("inject the bounded
+      portfolio directly"), later upgradable to embedding retrieval over the same documents.
+      Cover letter is **optional** and back-compatible with existing single-document profiles.
+      Seam: `SavedProfile` (second-document fields), Portfolio input (second importer/paste
+      slot), `TidyDocumentUseCase`, `GenerateApplicationUseCase` + `LLMProvider.generateApplication`
+      + `Prompts` (grounding injection), and the plumbing carrying the documents from
+      Portfolio → Application. On-device: yes — import + tidy + generation are on-device-friendly;
+      bound both inputs for the small context window.
+
+- [ ] **Expanded, optional search parameters.** Give the search step more control — every
+      field **optional**, so a blank field leaves today's behaviour unchanged:
+      - **Position type** (full-time, part-time, contract, permanent…) — a new optional filter
+        mapped to Adzuna's contract params inside `AdzunaJobSource`.
+      - **Typeable + saveable location** — the user can *type* a location (not only pick a
+        preset) and **save it as a preset**; saved locations persist (a new `LocationStore`,
+        mirroring `RoleTitleStore`) and join the suggestions.
+      - **Typeable + saveable minimum salary** — same pattern: type a custom floor and
+        optionally save it as a reusable preset.
+      - **Desired result count** — a soft **goal**, not a guarantee: the search pages/pulls
+        toward it, but if it can't be reached it returns what's available with a note — it
+        **never fails** the search.
+      - **Minimum-rank (score) filter** — keep only results scoring ≥ N; if none qualify, tell
+        the user nothing met their minimum (distinct from "no results found at all").
+      Seam: new optional fields on `JobSearchRequest` / `JobQuery`; a `PositionType` domain type;
+      `AdzunaJobSource` (position-type param + paging toward the goal); `SearchAndRankUseCase`
+      (result-count goal via bounded paging + the post-rank score filter); new persisted
+      `LocationStore` / salary-preset store + a `SuggestionProvider` merge; `SearchViewModel` +
+      Search UI. On-device: suggestions + persistence are local; the search itself hits Adzuna
+      (mind free-tier rate limits when paging toward a large goal — cap the pages).
+
+- [ ] **Results ↔ Tracker interaction overhaul.** Change how the user acts on a ranked
+      result, and move generation out of the Results path:
+      - **Per-row actions.** Each result tile gets a **Save to Tracker** icon and, to its
+        right, a **Delete** (trash) icon.
+      - **Save = mark `saved`.** "Save to Tracker" marks the job at the `saved` stage
+        (`MarkStatusUseCase`), so it appears in the Tracker; the row then carries a "Saved"
+        badge. (Reuses Milestone P — no new status model.)
+      - **Delete = fully forget.** Deleting removes the result from the list and the
+        saved-jobs store and — by decision — clears its tracker status (and any saved
+        materials) too, so there are no orphaned entries.
+      - **Swipeable card.** Opening a result presents a card the user can drag horizontally
+        (macOS trackpad/mouse drag): **right = save to Tracker**, **left = dismiss** (no save,
+        no delete). Delete stays the explicit trash icon.
+      - **Generation moves to the Tracker.** Remove the "Generate résumé & cover letter"
+        action from the Results→detail path — from Results the user only reads the posting and
+        chooses whether to save. **Generation stays available from the Tracker** (unchanged:
+        brief → tailor, persisted `ApplicationKit`) for a saved job.
+      Seam: `SavedJobsRepository.delete` + `DeleteSavedJobUseCase` (clears the saved job, its
+      status, and its saved `ApplicationKit`); `ResultsViewModel` (save/delete + badge refresh);
+      Results row actions + a swipeable detail card (Presentation); `JobDetailView` gains a
+      generation-context flag (Results = no generate, shows Save; Tracker = generate); updated
+      Tracker empty-state copy. On-device: yes — all local; reuses the Milestone O/P persistence
+      + status seams.
+
+- [ ] **Results filtering.** Let the user **interactively narrow the displayed results** in the
+      Results view — by **minimum rank**, **keywords**, **location**, and a few more facets
+      (company, salary floor, tracked status) — without re-running the search. Non-destructive: a
+      filter only hides rows (delete/save still act on what's shown), and it's live + reversible.
+      This is **distinct from Milestone U-E's search-time min-rank filter** (which trims the
+      persisted/ranked set): W is a view filter over the already-loaded `[RankedJob]`. Seam: a pure
+      `ResultsFilter` value with `apply(to:)` (unit-tested); `ResultsViewModel` filter state +
+      `filteredResults`; a filter bar on the Results view (pickers populated from the values present
+      in the current results) + an empty-filtered state. On-device: yes — pure, local, no network,
+      no persistence (session-only; a saved-filter option is a later idea).
+
+- [ ] *(stretch)* **Export templates + one-page gate.** Once PDF export lands: 1–2
+      selectable résumé templates and AGENT.md's one-page length gate (warn / offer a
+      tightened variant when the résumé overflows a page — surfaced, never silently
+      truncating). Depends on the Q PDF-renderer choice (the HTML-template path makes both
+      realistic). Promote into v3 proper only if Q completes early; otherwise it seeds v4.
+
 ## Fast follow (next up)
 
-- [ ] **Persistence with SwiftData** — store profile cache and saved/re-runnable
-      searches. (Pulled listings + generated materials are persisted in v2 Milestone O;
-      the applied-to tracker is v2 Milestone P; this fast-follow covers the *rest*:
-      caching the built profile across launches, and saved searches you can re-run.)
-      Unlocks "already seen."
-- [ ] **Export** — resume/cover letter to PDF and/or DOCX.
+- Export and saved/re-runnable searches moved **up into v3** (see above); the profile-cache
+  half of the old "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`.
+  When v3 completes, pull the next item up from Backlog.
 
 ## Backlog (to be specced from chat)
 

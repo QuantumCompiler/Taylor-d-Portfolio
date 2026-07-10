@@ -17,26 +17,43 @@ the human in control of every application.
 
 Four stages, run locally on the user's Mac:
 
-1. **Portfolio → profile.** The user pastes their resume, projects, and links.
-   The app distills this once into a structured `CandidateProfile` and caches it.
+1. **Portfolio → profile.** The user provides a **resume/portfolio** (paste or import)
+   and, optionally, a **cover letter** — two separate documents. The app distills the
+   resume/portfolio once into a structured `CandidateProfile` and caches it; both
+   documents are kept and later referenced to ground generation (see ROADMAP v3
+   Milestone T).
 2. **Search → listings.** The user sets parameters — one or more role titles (as
    chips, autocompleted and pre-seeded from the profile) plus a shared location and
-   salary floor. The app runs one search per title, merges and de-duplicates the
-   listings, and returns a single candidate set.
+   salary floor. Optionally, the user can also set a **position type**, **type in** a
+   custom location or salary floor (and save either as a reusable preset), request a
+   **desired number of results** (a best-effort goal, never a hard requirement), and set
+   a **minimum-rank filter** — all optional, so leaving them blank keeps the original
+   behaviour (ROADMAP v3 Milestone U). The app runs one search per title, merges and
+   de-duplicates the listings, and returns a single candidate set.
 3. **Rank.** A cheap prefilter trims the set to a shortlist, then the LLM
    re-ranks the shortlist against the profile, producing a fit score, a reason,
-   and matched/missing skills per job.
-4. **Apply → generate.** When the user taps "Apply" on a job, the app generates
-   a tailored resume and cover letter grounded strictly in the real portfolio.
+   and matched/missing skills per job. In the Results view the user can then
+   **interactively filter** the ranked list — by rank, keywords, location, and more —
+   without re-running the search (ROADMAP v3 Milestone W).
+4. **Save → generate.** From the results, the user **saves** a job to the Tracker (a
+   save icon on the row, or swiping the opened result right) rather than generating on
+   the spot — or **deletes** a result they don't want (a trash icon; swiping left just
+   dismisses). Then, from the **Tracker**, the app generates a tailored resume and cover
+   letter for a saved job, grounded strictly in the real portfolio (ROADMAP v3 Milestone
+   V). The user can then **export** those materials — copy them, or save as Markdown, PDF,
+   or DOCX (see ROADMAP v3 Milestone Q). Export renders natively on-device; it never
+   alters the grounded content.
 
 Alongside search, the user can also paste a **specific job-posting URL** (or the
 posting text, when a page can't be fetched); the app extracts it into the same
 ranked-listing flow. If a page is JS-gated, paywalled, or blocks fetching, the app
 says so and asks for the pasted text rather than guessing a role.
 
-The user can **track** where each application stands — mark it applied (the date is
-stamped automatically) and flag later stages (interview, offer, outcome). A Tracker
-screen lists tracked jobs and a status badge appears on results. This stays
+The user can **track** where each application stands. A job enters the Tracker when the
+user **saves** it from the results (the save icon or a right swipe, which marks it
+`saved`); from there they generate its materials and advance its stage — mark it applied
+(the date is stamped automatically) and flag later stages (interview, offer, outcome). A
+Tracker screen lists tracked jobs and a status badge appears on results. This stays
 human-in-the-loop: the user applies themselves, then records it — no auto-submission.
 
 ## v1 scope (in)
@@ -63,8 +80,10 @@ user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
 - No job-board browsing beyond the search feature
 - Pulled listings + their match results — and the generated resume/cover letter for a
   job — now **persist** across launches (SwiftData; see ROADMAP v2 Milestone O).
-  Reopening a job with saved materials shows them without regenerating. Broader
-  persistence — profile cache, saved/re-runnable searches — remains a fast follow.
+  Reopening a job with saved materials shows them without regenerating. The built
+  profile also persists, as a named `SavedProfile` (with its source document). The
+  remaining persistence gap — **saved/re-runnable searches** — is a v3 target (ROADMAP
+  Milestone R).
 
 ## Principles
 
@@ -76,6 +95,11 @@ user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
   tailor against it — mapping each signal to a true profile fact, foregrounding the
   best-fit overlap, flagging gaps (never faking them), and structuring the cover
   letter as *About Me / Why \<company\> / Why Me*.
+  When the user has uploaded a **cover letter** (ROADMAP v3 Milestone T), it serves
+  only as a **voice / tone / structure exemplar** for the generated cover letter — the
+  output mirrors the candidate's real style, but facts, metrics, employers, and dates
+  are never imported from it. Factual grounding always comes from the resume/portfolio
+  and the distilled profile.
 - **On-device first.** Default to Apple Foundation Models: free, private, offline.
   Escalate to Claude only when chosen or when the on-device model is unavailable.
 - **Swappable seams.** The LLM engine and the job source are both behind
