@@ -161,6 +161,11 @@ gitignored `Secrets.xcconfig`).
   return `[JobListing]`, don't leak API-specific types past the protocol.
 - **Ranking funnel** — `JobRanker` (Business): `prefilter(...)` (cheap shortlist;
   upgrade to embedding similarity) then batched `rank(...)` → `[RankedJob]`.
+- **Results view filter** — `ResultsFilter` (Presentation/Results): a pure, session-only
+  `apply(to:isTracked:)` over the loaded `[RankedJob]` (minScore / keywords / location /
+  company / salaryMin / tracked-status), non-destructive — it only hides rows, never
+  re-runs the search or touches persistence (Milestone W). Distinct from U-E's search-time
+  min-rank filter, which trims the ranked set before it's stored.
 - **Multi-title fan-out** — `SearchAndRankUseCase` (Business) expands a
   `JobSearchRequest` (many titles, shared location/salary) into one `JobQuery` per
   title, runs them with bounded concurrency (Adzuna rate-limit guard), merges and

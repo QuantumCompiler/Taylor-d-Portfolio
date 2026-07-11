@@ -5,6 +5,7 @@
 //  Presentation · Results · ViewModel
 //
 
+import Foundation
 import Observation
 
 /// Drives the Results screen: presents a ranked list and tracks which job the user
@@ -17,6 +18,8 @@ final class ResultsViewModel {
     var results: [RankedJob]
     var selectedJob: RankedJob?
     private(set) var statusesByID: [String: ApplicationStatus] = [:]
+    /// The live, non-destructive view filter over `results` (Milestone W).
+    var filter = ResultsFilter()
 
     private let loadSavedJobs: LoadSavedJobsUseCase?
     private let loadTrackedJobs: LoadTrackedJobsUseCase?
@@ -41,6 +44,35 @@ final class ResultsViewModel {
     }
 
     var isEmpty: Bool { results.isEmpty }
+
+    // MARK: Filtering (Milestone W — view-only, non-destructive)
+
+    /// The results after applying the live `filter` (what the list shows).
+    var filteredResults: [RankedJob] {
+        filter.apply(to: results, isTracked: { [statusesByID] in statusesByID[$0.id] != nil })
+    }
+    var visibleCount: Int { filteredResults.count }
+    var totalCount: Int { results.count }
+    /// True when a filter is active but hides every row (a distinct empty state).
+    var isFilteredEmpty: Bool { !results.isEmpty && filter.isActive && filteredResults.isEmpty }
+
+    /// Distinct locations present in the loaded results, for the filter's location picker.
+    var locationOptions: [String] { distinct(results.map(\.listing.location)) }
+    /// Distinct companies present in the loaded results, for the filter's company picker.
+    var companyOptions: [String] { distinct(results.map(\.listing.company)) }
+
+    func clearFilter() { filter = ResultsFilter() }
+
+    private func distinct(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        var result = [String]()
+        for value in values {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { continue }
+            result.append(trimmed)
+        }
+        return result.sorted()
+    }
 
     func select(_ job: RankedJob) {
         selectedJob = job

@@ -18,6 +18,8 @@ struct ResultsView: View {
     /// The candidate's real documents for grounded generation (Milestone T).
     var grounding: PortfolioGrounding? = nil
 
+    @State private var showFilters = false
+
     var body: some View {
         Group {
             if viewModel.isEmpty {
@@ -27,14 +29,27 @@ struct ResultsView: View {
                     description: Text("Run a search to see jobs ranked against your profile.")
                 )
             } else {
-                List(viewModel.results) { ranked in
-                    HStack(spacing: 8) {
-                        RankedRow(ranked: ranked, status: viewModel.status(for: ranked))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
-                            .onTapGesture { viewModel.select(ranked) }
-                        if viewModel.supportsRowActions {
-                            rowActions(ranked)
+                VStack(spacing: 0) {
+                    filterBar
+                    if viewModel.isFilteredEmpty {
+                        ContentUnavailableView {
+                            Label("No results match your filters", systemImage: "line.3.horizontal.decrease.circle")
+                        } description: {
+                            Text("Clear or loosen your filters to see the ranked results.")
+                        } actions: {
+                            Button("Clear filters") { viewModel.clearFilter() }
+                        }
+                    } else {
+                        List(viewModel.filteredResults) { ranked in
+                            HStack(spacing: 8) {
+                                RankedRow(ranked: ranked, status: viewModel.status(for: ranked))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { viewModel.select(ranked) }
+                                if viewModel.supportsRowActions {
+                                    rowActions(ranked)
+                                }
+                            }
                         }
                     }
                 }
@@ -54,6 +69,80 @@ struct ResultsView: View {
         .onChange(of: viewModel.selectedJob) { _, newValue in
             if newValue == nil { Task { await viewModel.refreshStatuses() } }
         }
+    }
+
+    // MARK: Filter bar (Milestone W)
+
+    private var filterBar: some View {
+        DisclosureGroup(isExpanded: $showFilters) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Minimum rank").frame(width: 120, alignment: .leading).foregroundStyle(.secondary)
+                    Slider(
+                        value: Binding(
+                            get: { Double(viewModel.filter.minScore ?? 0) },
+                            set: { viewModel.filter.minScore = $0 >= 1 ? Int($0) : nil }
+                        ),
+                        in: 0...100, step: 5
+                    ).frame(maxWidth: 200)
+                    Text(viewModel.filter.minScore.map { "\($0)+" } ?? "Any").monospacedDigit()
+                }
+                filterField("Keywords") {
+                    TextField("Any", text: $viewModel.filter.keywords).textFieldStyle(.roundedBorder).frame(maxWidth: 220)
+                }
+                filterField("Location") {
+                    optionPicker(selection: $viewModel.filter.location, options: viewModel.locationOptions)
+                }
+                filterField("Company") {
+                    optionPicker(selection: $viewModel.filter.company, options: viewModel.companyOptions)
+                }
+                filterField("Min salary") {
+                    TextField("Any", text: Binding(
+                        get: { viewModel.filter.salaryMin.map { String(Int($0)) } ?? "" },
+                        set: { viewModel.filter.salaryMin = Double($0.filter(\.isNumber)) }
+                    )).textFieldStyle(.roundedBorder).frame(maxWidth: 140)
+                }
+                filterField("Tracked") {
+                    Picker("", selection: $viewModel.filter.trackedStatus) {
+                        Text("Any").tag(ResultsFilter.TrackedFilter.any)
+                        Text("Tracked").tag(ResultsFilter.TrackedFilter.tracked)
+                        Text("Not tracked").tag(ResultsFilter.TrackedFilter.untracked)
+                    }.pickerStyle(.segmented).labelsHidden().fixedSize()
+                }
+            }
+            .padding(.top, 6)
+        } label: {
+            HStack {
+                Label("Filters", systemImage: "line.3.horizontal.decrease.circle")
+                Spacer()
+                Text("Showing \(viewModel.visibleCount) of \(viewModel.totalCount)")
+                    .font(.caption).foregroundStyle(.secondary)
+                if viewModel.filter.isActive {
+                    Button("Clear") { viewModel.clearFilter() }.font(.caption)
+                }
+            }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 8)
+    }
+
+    private func filterField<Controls: View>(_ label: String, @ViewBuilder controls: () -> Controls) -> some View {
+        HStack(spacing: 8) {
+            Text(label).frame(width: 120, alignment: .leading).foregroundStyle(.secondary)
+            controls()
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// A picker over `options` (plus "Any") bound to an optional string.
+    private func optionPicker(selection: Binding<String?>, options: [String]) -> some View {
+        Picker("", selection: Binding(
+            get: { selection.wrappedValue ?? "" },
+            set: { selection.wrappedValue = $0.isEmpty ? nil : $0 }
+        )) {
+            Text("Any").tag("")
+            ForEach(options, id: \.self) { Text($0).tag($0) }
+        }
+        .labelsHidden().fixedSize()
     }
 
     /// Per-row Save-to-Tracker + Delete icons (Milestone V-A/V-B); each intercepts its own tap.

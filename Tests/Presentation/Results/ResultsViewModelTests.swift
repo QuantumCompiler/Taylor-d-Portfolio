@@ -109,4 +109,58 @@ struct ResultsViewModelTests {
         let vm = ResultsViewModel(results: [ranked("a")])
         #expect(vm.supportsRowActions == false)
     }
+
+    // MARK: Filtering (Milestone W)
+
+    private func ranked(_ id: String, score: Int, company: String = "Acme", location: String = "Remote") -> RankedJob {
+        RankedJob(
+            listing: JobListing(id: id, title: "t", company: company, location: location, description: "d"),
+            match: JobMatch(jobId: id, score: score, reason: "", matchedSkills: [], missingSkills: [])
+        )
+    }
+
+    @Test func filteredResultsCountsAndClear() {
+        let vm = ResultsViewModel(results: [ranked("a", score: 80), ranked("b", score: 40), ranked("c", score: 60)])
+        #expect(vm.filteredResults.count == 3)          // no filter ⇒ identity
+        #expect(vm.totalCount == 3)
+
+        vm.filter.minScore = 60
+        #expect(vm.filteredResults.map(\.id) == ["a", "c"])
+        #expect(vm.visibleCount == 2)
+        #expect(vm.totalCount == 3)                     // total is unfiltered
+        #expect(vm.isFilteredEmpty == false)
+
+        vm.clearFilter()
+        #expect(vm.filteredResults.count == 3)
+        #expect(vm.filter.isActive == false)
+    }
+
+    @Test func isFilteredEmptyWhenFilterHidesEverything() {
+        let vm = ResultsViewModel(results: [ranked("a", score: 40)])
+        vm.filter.minScore = 90
+        #expect(vm.filteredResults.isEmpty)
+        #expect(vm.isFilteredEmpty)                     // distinct from "no results yet"
+    }
+
+    @Test func filterOptionsAreDistinctValuesFromResults() {
+        let vm = ResultsViewModel(results: [
+            ranked("a", score: 80, company: "Acme", location: "Remote"),
+            ranked("b", score: 40, company: "Globex", location: "Lehi, UT"),
+            ranked("c", score: 60, company: "Acme", location: "Remote"),
+        ])
+        #expect(vm.companyOptions == ["Acme", "Globex"])
+        #expect(vm.locationOptions == ["Lehi, UT", "Remote"])
+    }
+
+    @Test func trackedFacetUsesTheStatusMap() async throws {
+        let (vm, jobs, statuses, _) = makeRowActionVM(results: [ranked("a"), ranked("b")])
+        try await jobs.save([ranked("a")])
+        try await statuses.save(ApplicationStatus(stage: .saved), forJobID: "a")
+        await vm.refreshStatuses()
+
+        vm.filter.trackedStatus = .tracked
+        #expect(vm.filteredResults.map(\.id) == ["a"])
+        vm.filter.trackedStatus = .untracked
+        #expect(vm.filteredResults.map(\.id) == ["b"])
+    }
 }

@@ -316,7 +316,12 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       Tracker empty-state copy. On-device: yes — all local; reuses the Milestone O/P persistence
       + status seams.
 
-- [ ] **Results filtering.** Let the user **interactively narrow the displayed results** in the
+- [x] **Results filtering.** ✅ **Done.** A pure, unit-tested `ResultsFilter` (minScore / keywords /
+      location / company / salaryMin / tracked-status) applied live over the loaded `[RankedJob]` via
+      `ResultsViewModel.filteredResults`; a collapsible filter bar with "Showing X of Y" + Clear and a
+      distinct empty-filtered state. View-only — never re-runs the search or mutates persistence, so
+      V's row actions act on the filtered rows.
+      Let the user **interactively narrow the displayed results** in the
       Results view — by **minimum rank**, **keywords**, **location**, and a few more facets
       (company, salary floor, tracked status) — without re-running the search. Non-destructive: a
       filter only hides rows (delete/save still act on what's shown), and it's live + reversible.

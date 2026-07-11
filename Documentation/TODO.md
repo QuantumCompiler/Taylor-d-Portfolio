@@ -26,9 +26,10 @@ milestone.
 > reachable/clickable; if it's *greyed-out* rather than off-screen, the profile isn't reaching the
 > Search VM — a wiring check to do next. **Phase 2: Q — Export is COMPLETE** (Q-A copy +
 > Markdown/plain-text, Q-B PDF via native Core Text, Q-C DOCX via a hand-rolled OOXML/ZIP writer).
-> **Phases 3 + V done:** T, U, R, and **V — Results ↔ Tracker interaction overhaul (V-A…V-E)** are
-> complete. **Next: W — Results filtering** (a live, non-destructive view filter over the loaded
-> `[RankedJob]`), then Phase 5 polish (S-A/B/C), then stretch X. Then
+> **Q, R, S-D/S-E, T, U, V, W all complete.** The v3 catalogue (Q–W) is done except the broad
+> **polish pass S-A/S-B/S-C** (Phase 5: in-app markdown rendering, empty/loading/error states,
+> results/saved/Tracker cohesion) and the **stretch X** (export templates + one-page gate). **Next:
+> S-A/B/C.** Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -1107,7 +1108,7 @@ just marking `.saved`. Sub-parts are mostly independent (V-A delete, V-B save-ic
 generation-move); V-D is the one behaviour change users will notice most, so pair it with the
 Tracker-copy update in V-E.
 
-## Milestone W — Results filtering  ⬜ not started  (`ResultsViewModel`, a pure `ResultsFilter`, Results UI)
+## Milestone W — Results filtering  ✅ done  (`ResultsViewModel`, a pure `ResultsFilter`, Results UI)
 
 Goal: let the user **interactively narrow the displayed ranked results** in the Results view — by
 minimum rank, keywords, location, and a few more facets — **without re-running the search**.
@@ -1115,32 +1116,43 @@ Non-destructive: filters only hide rows (delete/save still act on what's shown).
 Milestone U-E's search-time min-rank filter** (which trims the persisted/ranked set); W is a **live,
 reversible view filter** over the already-loaded `[RankedJob]`.
 
-- [ ] **Pure `ResultsFilter`** (Presentation/Results, or Data if reused). A `Sendable`/`Equatable`
+**✅ Done.** Pure `ResultsFilter` (Presentation/Results) with facets `minScore` / `keywords`
+(title + company + description + matched skills, case-insensitive substring) / `location` /
+`company` / `salaryMin` / a `trackedStatus` facet — `apply(to:isTracked:)` ANDs active facets,
+empty ⇒ identity; unit-tested. `ResultsViewModel` holds the filter and exposes `filteredResults`
+(what the List iterates), `visibleCount`/`totalCount`, `isFilteredEmpty`, `clearFilter`, and
+distinct `locationOptions`/`companyOptions` from the loaded results. `ResultsView` gained a
+collapsible filter bar (min-rank slider, keyword field, location/company pickers, salary floor,
+tracked segmented control), a "Showing X of Y" + Clear header, and a distinct "No results match
+your filters" empty state. Filters are session-only and never mutate `results`/persistence, so V's
+delete/save act on the visible rows. Suite green; the filter-bar layout is a manual (device) check.
+
+- [x] **Pure `ResultsFilter`** (Presentation/Results, or Data if reused). A `Sendable`/`Equatable`
       value holding the active filters — `minScore: Int?`, `keywords: String`, `location: String?`,
       plus optional facets (`company: String?`, `salaryMin: Double?`, a tracked-status facet) — with a
       pure `apply(to: [RankedJob]) -> [RankedJob]` (AND across active filters; an empty filter ⇒
       identity). Keyword match is case-insensitive substring over title + company + description +
       matched skills (**record the exact field set** as a small design decision). Unit-tested.
-- [ ] **`ResultsViewModel` filter state.** Hold a `ResultsFilter`; expose `filteredResults`
+- [x] **`ResultsViewModel` filter state.** Hold a `ResultsFilter`; expose `filteredResults`
       (`filter.apply(to: results)`) and `visibleCount` / `totalCount`. The `List` iterates
       `filteredResults`; the status/badge map is unchanged. Filters **never** mutate `results` or
       persistence.
-- [ ] **Filter bar UI.** A collapsible filter section atop the Results list: a **min-rank**
+- [x] **Filter bar UI.** A collapsible filter section atop the Results list: a **min-rank**
       slider/stepper (0–100), a **keyword** search field, a **location** picker (populated from the
       locations present in the current results, + "Any"), and the optional facets (company field,
       salary floor, tracked-status). A **Clear filters** button and a "Showing X of Y" count.
-- [ ] **Options from the data.** Populate the location (and company) pickers from the *distinct*
+- [x] **Options from the data.** Populate the location (and company) pickers from the *distinct*
       values in the loaded results, so they only offer values that can actually match.
-- [ ] **Empty-filtered state.** When the active filter excludes everything, show "No results match
+- [x] **Empty-filtered state.** When the active filter excludes everything, show "No results match
       your filters" + a Clear action — distinct from the "No results yet" empty state (composes with
       Milestone S-B).
-- [ ] **Composes with V.** Delete (V-A) and save-to-tracker (V-B) act on the **visible (filtered)**
+- [x] **Composes with V.** Delete (V-A) and save-to-tracker (V-B) act on the **visible (filtered)**
       rows; a filtered-out row is never deleted. Filters are session-only (reset on relaunch; a
       saved-filter option is a later idea).
-- [ ] **Tests.** `ResultsFilter.apply` (each facet; AND composition; empty ⇒ identity; keyword field
+- [x] **Tests.** `ResultsFilter.apply` (each facet; AND composition; empty ⇒ identity; keyword field
       coverage; min-rank boundary); `ResultsViewModel` filteredResults + counts + clear;
       empty-filtered state.
-- [ ] **Docs.** SPEC (ranked results are interactively filterable — done in this planning pass);
+- [x] **Docs.** SPEC (ranked results are interactively filterable — done in this planning pass);
       CLAUDE.md (`ResultsFilter` + the Results filter state; note it's view-only, distinct from U-E).
 
 Note: W is **view-only** over loaded results — no new persistence, no re-search. It layers cleanly
