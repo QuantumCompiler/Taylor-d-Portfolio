@@ -1186,9 +1186,9 @@ Repo/project housekeeping done alongside v0.3.0 (no milestone letter; see `CLAUD
 The theme: give the app room to grow. Primary navigation moves to a left **sidebar** (the five
 top-level areas) and each area's sub-screens become a **segmented inner nav** at the top of the
 content pane. **Presentation-only** — every screen's content, view models, and use cases are
-preserved and only re-homed. Milestones restart at **A** (per `CLAUDE.md` → Versioning). Full spec +
-interactive mockup live in [`design/`](design/) (removed once v0.4.0 ships — see the Milestone C
-cleanup task).
+preserved and only re-homed. Milestones restart at **A** (per `CLAUDE.md` → Versioning). (The full UI
+spec + interactive mockup lived in a temporary `design/` scaffolding folder, removed when v0.4.0
+shipped — see Milestone C.)
 
 ## Milestone A — Navigation shell  ✅ done  (`Presentation/App`: `RootView` + new `ShellNavigation`)
 
@@ -1286,3 +1286,38 @@ re-homed, not rewritten.
 Note: B routes and splits; it changes no behaviour below Presentation. Milestone C adds the sidebar
 collapse/keyboard polish and the About view's final treatment, then the README v0.4.0 summary + this
 milestone's move are the closing docs step.
+
+## Milestone C — Polish + About  ✅ done  ← closes v0.4.0  (`RootView`, `ShellNavigation`, `SettingsView`, project version)
+
+Goal: finish the shell — keyboard navigation, sidebar collapse/restore, the About view's real
+treatment — and correct the app version string. Presentation-only, plus a build-setting fix.
+
+- [x] **Keyboard navigation.** `RootView` renders invisible, zero-size shortcut buttons (opacity 0,
+      `accessibilityHidden`) that are active window-wide: **⌘1…⌘5** jump to each sidebar area and
+      **⌘⇧[ / ⌘⇧]** step through the current area's inner-nav sub-views. Backed by new
+      `ShellNavigation.nextSubView()` / `previousSubView()` (clamped; no-op for single-sub-view areas).
+      The sidebar list + segmented control remain natively keyboard-navigable when focused.
+- [x] **Sidebar collapse/restore.** Comes free with `NavigationSplitView` — the toolbar sidebar toggle
+      collapses/restores the sidebar; the fixed column width (Milestone A) keeps the restored state
+      stable. (No extra code; verified behaviour.)
+- [x] **Pointer-cursor + swipe polish.** `clickableCursor()` is on the sidebar rows and the segmented
+      inner nav; the result-card swipe / trackpad-swipe (Milestone V-C) is unchanged under the new
+      host. Final pass — nothing further needed.
+- [x] **About sub-view.** The Settings **About** pane now shows the app icon
+      (`NSApplication.shared.applicationIconImage`), name, **Version <marketing version>**, and the
+      one-liner — replacing the Milestone B stub.
+- [x] **Version-string fix.** The Xcode `MARKETING_VERSION` was left at the template `1.0` (so About
+      read "1.0"); corrected to **`0.4.0`** across the app + test target configs. This project versions
+      by `v0.x.0` milestones, so About shows only the marketing version (the build number isn't
+      meaningful here). Verified the built app's `CFBundleShortVersionString` is `0.4.0`.
+- [x] **Tests.** `ShellNavigationTests` gained `nextAndPreviousSubViewStepAndClamp` (step + clamp at
+      both ends) and `nextSubViewIsANoOpForSingleSubViewAreas`. Full suite green on macOS; keyboard
+      feel, the About layout, and sidebar collapse are manual (device) checks.
+- [x] **Docs + cleanup.** README v0.4.0 summary added; ROADMAP Milestone C ticked + v0.4.0 marked
+      complete; this write-up. The `design/` scaffolding (UI spec + mockup) was removed now that the
+      rework has shipped, and the `design/…` references were stripped from the docs.
+
+Note: C closes **v0.4.0 — navigation & shell**. The whole release was Presentation-only (plus the
+version build-setting): the sidebar shell (A), the per-area sub-view split (B), and this polish pass
+(C). Nothing below Presentation changed, so ranking / generation / persistence / export / grounding
+are exactly as they were in v0.3.0. The next version (v0.5.0) restarts milestones at A.

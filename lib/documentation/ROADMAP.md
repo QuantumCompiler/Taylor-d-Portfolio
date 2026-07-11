@@ -346,7 +346,7 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       `ExportApplicationUseCase.resumePageCount` → an **advisory** banner on the Application sheet
       when the résumé overflows a page (suggests Compact / tightening — **never** truncates).
 
-## v0.4.0 — navigation & shell (current target)
+## v0.4.0 — navigation & shell (complete)
 
 The theme: give the app room to grow. As of v0.3.0 several areas have real internal
 depth, and the single top tab strip can't scale. Move primary navigation to a **left
@@ -369,19 +369,18 @@ Business/Data/Infrastructure changes. `TODO.md` has the granular breakdown.
       area (labels derive `MainArea.subViews`); each screen takes a `section:` param and renders
       the matching piece with empty states. Tracker stage filters reuse the existing status data
       via a pure `TrackerSection.includes(_:)` policy + `TrackerViewModel.jobs(in:)`.
-- [ ] **Milestone C — Polish + About.** Sidebar collapse/restore, keyboard navigation,
-      pointer-cursor + swipe polish carried over, and a small **About** sub-view
-      (identity / version / one-liner).
-
-**Design references (this branch):**
-- UI spec: [`design/UI-Navigation-Redesign-v0.4.0.md`](design/UI-Navigation-Redesign-v0.4.0.md)
-- Interactive mockup: [`design/Refined-UI-mockup-v0.4.0.html`](design/Refined-UI-mockup-v0.4.0.html)
+- [x] **Milestone C — Polish + About.** ✅ **Done.** Keyboard navigation (⌘1–⌘5 to areas,
+      ⌘⇧[ / ⌘⇧] to step sub-views), native `NavigationSplitView` sidebar collapse/restore,
+      carried-over pointer-cursor + swipe polish, and a polished Settings **About** sub-view
+      (app icon + name + version + one-liner). Also corrected the app's `MARKETING_VERSION`
+      1.0 → **0.4.0** so About reports the real version.
 
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
-  "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** is the
-  navigation & shell rework (above). When it completes, pull the next feature item up from Backlog.
+  "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
+  & shell) has shipped. **v0.5.0** should pull the next feature item up from Backlog (native
+  `LanguageModel` provider seam, on-device embedding RAG, or optional MCP tools) and letter it A, B, C….
 
 > **Numbering the versions.** Each version letters its own milestones **A, B, C…** from scratch —
 > v0.4.0 restarts at Milestone A (it does **not** continue from v0.3.0's X). See `CLAUDE.md` →

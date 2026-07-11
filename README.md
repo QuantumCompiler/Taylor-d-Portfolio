@@ -72,9 +72,19 @@ Made the output first-class and the app feel finished:
   project housekeeping (tests under `lib/tests/`, config under `lib/`, corrected
   `com.veritum` bundle identifier). *(Hotfix + Milestones Q–X.)*
 
-**Next:** v0.4.0 — **navigation & shell** (in progress): a Presentation-only rework moving primary
-navigation to a left **sidebar** with a **segmented inner nav** per area, so the app can grow past a
-single tab strip. Its milestones restart numbering at Milestone A.
+### v0.4.0 — navigation & shell
+Reworked the app's navigation so it can grow past a single tab strip — a **Presentation-only** change
+(every screen's content, view models, and use cases preserved, only re-homed):
+- A left **sidebar** (`NavigationSplitView`) for the five top-level areas, with accent-fill selection
+  and Results/Tracker count badges, plus a **segmented inner nav** per area (A).
+- Each area split into its sub-views (B): Portfolio → Profile / Saved Profiles / Source Documents;
+  Search → New Search / Saved Searches / From a Link; Results → Ranked; Tracker → All / Applied /
+  Interviewing / Offers (stage filters); Settings → Engines / Adzuna / About.
+- Polish (C): keyboard navigation (⌘1–⌘5, ⌘⇧[ / ⌘⇧]), sidebar collapse/restore, and an **About**
+  pane — plus a version-string fix so the app reports `0.4.0`. *(Milestones A–C.)*
+
+**Next:** v0.5.0 (theme TBD; its milestones restart numbering at Milestone A) — likely the native
+`LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool layer.
 
 ## Build & run
 
@@ -96,3 +106,9 @@ xcodebuild test -project "Taylor'd Portfolio.xcodeproj" -scheme "Taylor'd Portfo
 - [`lib/documentation/TODO.md`](lib/documentation/TODO.md) — the granular checklist of remaining work.
 - [`lib/documentation/MILESTONES.md`](lib/documentation/MILESTONES.md) — the detailed record of completed milestones.
 - [`lib/documentation/CLAUDE.md`](lib/documentation/CLAUDE.md) — architecture, conventions, and working process for contributors.
+
+## License
+
+**Proprietary — all rights reserved.** Copyright © 2026 Veritum LLC. This is *not* open-source
+software: no right to use, copy, modify, or distribute it is granted without prior written permission.
+See [`LICENSE`](LICENSE) for the full terms.

@@ -42,6 +42,27 @@ struct ShellNavigationTests {
         #expect(nav.selectedSubView == 1)   // unchanged
     }
 
+    @Test func nextAndPreviousSubViewStepAndClamp() {
+        let nav = ShellNavigation(area: .portfolio)   // 3 sub-views
+        #expect(nav.selectedSubView == 0)
+        nav.nextSubView()
+        #expect(nav.selectedSubView == 1)
+        nav.nextSubView()
+        nav.nextSubView()                              // clamps at the last (index 2)
+        #expect(nav.selectedSubView == 2)
+        nav.previousSubView()
+        #expect(nav.selectedSubView == 1)
+        nav.previousSubView()
+        nav.previousSubView()                          // clamps at the first (index 0)
+        #expect(nav.selectedSubView == 0)
+    }
+
+    @Test func nextSubViewIsANoOpForSingleSubViewAreas() {
+        let nav = ShellNavigation(area: .results)      // 1 sub-view ("Ranked")
+        nav.nextSubView()
+        #expect(nav.selectedSubView == 0)
+    }
+
     @Test func breadcrumbIsBareAreaNameForSingleSubViewAreas() {
         // Results is the only area with a single sub-view, so its breadcrumb is the bare
         // area name (no `Area / Sub-view` split).

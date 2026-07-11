@@ -46,6 +46,7 @@ struct RootView: View {
         } detail: {
             contentPane
         }
+        .background(keyboardShortcuts)
         // Profile built or selected on Portfolio flows into Search…
         .onChange(of: portfolio.profile) { _, newProfile in
             search.profile = newProfile
@@ -142,6 +143,29 @@ struct RootView: View {
             get: { nav.selectedSubView },
             set: { nav.selectSubView($0) }
         )
+    }
+
+    // MARK: Keyboard navigation (Milestone C)
+
+    /// Invisible controls that give the shell window-wide keyboard navigation:
+    /// **⌘1…⌘5** jump to each sidebar area, and **⌘⇧[ / ⌘⇧]** step through the current
+    /// area's inner-nav sub-views. Rendered with zero opacity/size so they don't show but
+    /// still register their shortcuts. (The sidebar list and segmented control are also
+    /// natively keyboard-navigable when focused.)
+    private var keyboardShortcuts: some View {
+        ZStack {
+            ForEach(Array(MainArea.allCases.enumerated()), id: \.element) { index, area in
+                Button("Go to \(area.title)") { nav.select(area) }
+                    .keyboardShortcut(KeyEquivalent(Character(String(index + 1))), modifiers: .command)
+            }
+            Button("Next sub-view") { nav.nextSubView() }
+                .keyboardShortcut("]", modifiers: [.command, .shift])
+            Button("Previous sub-view") { nav.previousSubView() }
+                .keyboardShortcut("[", modifiers: [.command, .shift])
+        }
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder private var selectedContent: some View {

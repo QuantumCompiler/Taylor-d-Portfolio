@@ -288,10 +288,8 @@ project at all:
   its committed template `Secrets.example.xcconfig`. See "Build & run" for the credential flow.
 - **`lib/documentation/`** — the contributor docs (`SPEC.md`, `ROADMAP.md`, `TODO.md`,
   `MILESTONES.md`, and this `CLAUDE.md`), relocated here from a former root-level `Documentation/`.
-  The root `README.md` is the only doc that stays at the repo root. A `design/` subfolder holds
-  per-release design references (currently the v0.4.0 navigation-shell UI spec
-  `UI-Navigation-Redesign-v0.4.0.md` + its self-contained interactive mockup
-  `Refined-UI-mockup-v0.4.0.html`).
+  The root `README.md` is the only doc that stays at the repo root. (Per-release design references
+  can live in a temporary `design/` subfolder during a rework and are removed once it ships.)
 
 Build & test from the CLI:
 
@@ -394,10 +392,19 @@ The loop, so any session can pick up where the last left off:
 Keep these updates in the same commit/change as the code they describe.
 
 **Versioning.** Releases are numbered **`v0.x.0`** (`v0.1.0` foundation, `v0.2.0` reliability,
-`v0.3.0` output & polish, `v0.4.0` next). The **current version isn't hard-coded in these docs**
-— at the **start of every session, ask the user what version is in progress** and use that
-number for commit-label suggestions. (The `## v0.x.0 —` headers in `ROADMAP.md` / `MILESTONES.md`
-name the release *themes*, not the live working version.)
+`v0.3.0` output & polish, `v0.4.0` navigation & shell; `v0.5.0` next). The **current version isn't
+hard-coded in these docs** — at the **start of every session, ask the user what version is in
+progress** and use that number for commit-label suggestions. (The `## v0.x.0 —` headers in
+`ROADMAP.md` / `MILESTONES.md` name the release *themes*, not the live working version.)
+
+**Keep the project version in sync — update it when a new version starts.** The app's
+`MARKETING_VERSION` build setting (in `Taylor'd Portfolio.xcodeproj/project.pbxproj` — **4 copies**,
+one per Debug/Release × app/test config) feeds `CFBundleShortVersionString`, which the
+**Settings → About** pane displays. When a new `v0.x.0` begins, set **every** `MARKETING_VERSION` to
+that bare `0.x.0` (e.g. `MARKETING_VERSION = 0.5.0;`) so About reports the real version — never leave
+it at a stale or template value. (This was missed until `v0.4.0`, where it sat at the Xcode template
+`1.0` until corrected — see `MILESTONES.md` → v0.4.0 Milestone C.) The build number
+`CURRENT_PROJECT_VERSION` isn't shown, so it needn't track the milestone.
 
 **Milestone letters restart at A each version.** `v0.1.0`–`v0.3.0` ran A–X *continuously*, but
 from **`v0.4.0` onward every new version begins its milestones again at Milestone A** (A, B, C…).
@@ -412,6 +419,33 @@ sub-part / hotfix it was** (e.g. "Milestone S-A", "Milestone Q-A", "URL-fetch Ho
 label is what goes in the commit message. Do this even for partial completions (name the milestone
 and say it's partial). Ad-hoc user-requested tweaks have no milestone letter — say so and suggest a
 `v0.x.0 : <short description>` message instead. Don't run `git commit` unless explicitly asked.
+
+### Making a branch merge-ready (shipping a version)
+
+Each `v0.x.0` is developed on its **own branch** (e.g. `v0.4.0`) and merged into `main` via a **PR**
+when the version's milestones are all done (see the `v0.2.0` / `v0.3.0` merge PRs in the history).
+Before a version branch is merge-ready, bring the docs **and** the project to a *shipped* state — not
+mid-flight state — and check each of these:
+
+- **`ROADMAP.md`** — the version's `## v0.x.0 —` header reads **(complete)**, and every milestone under
+  it is ticked ✅. The fast-follow / "next version" note points forward.
+- **`MILESTONES.md`** — every completed milestone / sub-part has its write-up here (moved out of
+  `TODO.md`), grouped under the version's `## v0.x.0 —` header.
+- **`TODO.md`** — holds **no remaining work for the shipped version**; "Current focus" points at the
+  next version (milestones restart at A) with only its placeholder + the carried-forward "Awaiting
+  device checks" note below.
+- **`README.md`** — has the shipped version's one-paragraph summary under "Version history", and the
+  **Next:** line names the upcoming version.
+- **Project version** — every `MARKETING_VERSION` equals the shipped `0.x.0` (see **Versioning**
+  above); confirm the built app's `CFBundleShortVersionString` matches.
+- **Scaffolding removed** — any temporary per-release references (e.g. a `design/` subfolder) are
+  deleted and their doc links stripped, so nothing dangles.
+- **Tests green** — the full suite passes (`xcodebuild test …`); genuinely manual/device-only checks
+  are called out in the `TODO.md` "Awaiting device checks" note, never silently skipped.
+
+The agent prepares all of this **in the working tree**; **Taylor makes the actual commit, merge, and
+PR** (the agent doesn't run `git commit` / `git merge` or open the PR unless explicitly asked). When
+the branch is ready, say so and suggest the wrap-up message (e.g. `v0.x.0 : <theme> complete`).
 
 ## How to work in this repo
 

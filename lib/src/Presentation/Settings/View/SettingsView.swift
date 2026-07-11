@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// Settings: assign an LLM engine (and Claude model) to each task, and choose the
 /// Adzuna country. Adzuna credentials are baked in at build time, so they're shown
@@ -74,23 +75,32 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: About — app identity (Milestone B stub; polished in Milestone C)
+    // MARK: About — app identity (Milestone C)
 
     private var aboutSection: some View {
         Section("About") {
-            LabeledContent("App", value: "Taylor'd Portfolio")
-            LabeledContent("Version", value: appVersion)
+            HStack(spacing: 14) {
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable()
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Taylor'd Portfolio").font(.headline)
+                    Text("Version \(appVersion)").font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+
             Text("Searches jobs, ranks them against your portfolio, and generates a tailored "
                 + "résumé & cover letter for a job you pick — human-in-the-loop, never auto-submitting.")
                 .font(.callout).foregroundStyle(.secondary)
         }
     }
 
-    /// The app's marketing version (+ build number when present), read from the bundle.
+    /// The app's marketing version (`CFBundleShortVersionString`), read from the bundle.
+    /// This project versions by `v0.x.0` milestones, so the build number isn't shown.
     private var appVersion: String {
-        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-        return build.map { "\(short) (\($0))" } ?? short
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
     }
 
     /// One task's engine + (conditional) Claude-model controls.

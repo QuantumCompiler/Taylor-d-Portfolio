@@ -167,6 +167,20 @@ final class ShellNavigation {
         selectedSubView = index
     }
 
+    /// Moves to the next sub-view in the current area (clamped at the last), for keyboard
+    /// navigation (⌘⇧]). No-op for single-sub-view areas.
+    func nextSubView() {
+        let count = selectedArea.subViews.count
+        guard count > 1 else { return }
+        selectedSubView = min(selectedSubView + 1, count - 1)
+    }
+
+    /// Moves to the previous sub-view in the current area (clamped at the first), for
+    /// keyboard navigation (⌘⇧[).
+    func previousSubView() {
+        selectedSubView = max(selectedSubView - 1, 0)
+    }
+
     /// The content-pane title: `Area / Sub-view` when the area has more than one
     /// sub-view, otherwise just the area name (Milestone A, where each area is a
     /// single view, reads as the bare area name).
