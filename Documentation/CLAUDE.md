@@ -110,7 +110,9 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
 - Search suggestions: `SuggestionProvider` (Data/Search) — profile-seeded starting
   titles + static locations + salary presets; pure, on-device. Common role titles are
   **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
-  not a static vocabulary.
+  not a static vocabulary. Custom **locations** and **salary floors** the user types are
+  likewise saveable and persisted via `LocationStore` / `SalaryPresetStore` (Data/Search),
+  merged into the suggestions (Milestone U-B/U-C).
 - Retrieval gateway: `Retriever` (protocol) + impl (roadmap).
 - `AppSettings` (`engines: [LLMTask: TaskEngineConfig]` + `adzunaCountry`) +
   `SettingsStore`; `LLMTask` (profile / ranking / extraction / application),
@@ -161,7 +163,11 @@ gitignored `Secrets.xcconfig`).
   title, runs them with bounded concurrency (Adzuna rate-limit guard), merges and
   de-dupes by `JobListing.id`, then ranks the combined set **once**. A single title's
   failure is a soft note (`Output.failedTitles`); it only throws if *all* fail.
-  `JobQuery` stays the single-`what` unit the seam understands.
+  `JobQuery` stays the single-`what` unit the seam understands. With an optional
+  **desired-result-count** goal it pages toward the target (round-robin pages, 50/page,
+  a page cap; a shortfall is `Output.resultShortfall`, never an error), and an optional
+  **minimum-rank** score filter trims after ranking (`Output.noneMetMinimum` when it empties
+  a non-empty set) — Milestone U-D/U-E.
 
 ### Composition root
 
@@ -195,7 +201,7 @@ Taylor'd Portfolio/
     Ranking/      JobRanker
   Data/
     Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,
-                  ApplicationKit, ApplicationStatus, JobQuery, JobSearchRequest,
+                  ApplicationKit, ApplicationStatus, JobQuery, JobSearchRequest, PositionType,
                   RankedJob, TrackedJob, SavedProfile, PortfolioGrounding
     LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
                   LLMRouter, LLMChoice, LLMTask, TaskEngineConfig, ClaudeModel, Prompts

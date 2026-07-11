@@ -26,9 +26,9 @@ milestone.
 > reachable/clickable; if it's *greyed-out* rather than off-screen, the profile isn't reaching the
 > Search VM — a wiring check to do next. **Phase 2: Q — Export is COMPLETE** (Q-A copy +
 > Markdown/plain-text, Q-B PDF via native Core Text, Q-C DOCX via a hand-rolled OOXML/ZIP writer).
-> **Phase 3: T — Two-document portfolio is COMPLETE** (T-A optional cover-letter input + model;
-> T-B both documents injected as generation grounding). **Next: U — Expanded search parameters**
-> (U-A…U-F), then **R — Saved searches**, then V → W. Then
+> **Phase 3 COMPLETE:** T — Two-document portfolio (T-A + T-B) and **U — Expanded search parameters
+> (U-A…U-F)** are done. **Next: R — Saved / re-runnable searches** (now that `JobSearchRequest` has
+> grown), then Phase 4 **V → W**. Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -911,89 +911,101 @@ decision** (facts strictly from the résumé/portfolio), keeping the "never fabr
 enforceable. Composes with the embedding-RAG backlog item, which would later retrieve top-k chunks
 from these same documents instead of injecting them whole.
 
-## Milestone U — Expanded, optional search parameters  ⬜ not started  (`Data/Models`, `Data/Search`, `AdzunaJobSource`, `SearchAndRankUseCase`, `SearchViewModel` + Search UI)
+## Milestone U — Expanded, optional search parameters  ✅ done (U-A…U-F)  (`Data/Models`, `Data/Search`, `AdzunaJobSource`, `SearchAndRankUseCase`, `SearchViewModel` + Search UI)
 
 Goal: enrich the search step with more control — a position-type filter, a typeable **and
 saveable** location and salary, a **desired-result-count goal**, and a **minimum-rank filter**.
 Every field is **optional**: leaving them blank produces exactly today's `JobSearchRequest` and
 today's behaviour. Sub-parts A–F are separable and each lands without breaking the current flow.
 
-### U-A — Position-type filter  ⬜
+**✅ Done (all of U).** New `PositionType` (U-A) + optional `positionType`/`desiredResultCount`/
+`minimumScore` on `JobSearchRequest` (existing `location`/`salaryMin` reused); `AdzunaJobSource`
+maps position type to its contract flag. `SearchAndRankUseCase` pages toward the goal
+(round-robin pages, 50/page, a 5-page cap; never throws on a shortfall → `Output.resultShortfall`)
+and applies a post-rank score filter (`Output.noneMetMinimum`, distinct from no-results). New
+`LocationStore` + `SalaryPresetStore` (U-B/U-C) with `SuggestionProvider` merges. `SearchViewModel`
+gained typeable location + saved-location chips, typeable salary + saved-salary chips (lenient
+parsing), position-type picker, desired-count field, and a 0–100 min-rank slider; `canSearch` is
+unchanged and an all-blank form assembles byte-for-byte today's request (asserted). Shortfall +
+none-met-minimum surface as distinct notes. Full suite green; the visual layout of the new Search
+filters is a manual (device) check.
 
-- [ ] **`PositionType` domain type (`Data/Models`).** `nonisolated` `Codable`/`Sendable` enum
+### U-A — Position-type filter  ✅ done
+
+- [x] **`PositionType` domain type (`Data/Models`).** `nonisolated` `Codable`/`Sendable` enum
       (e.g. `fullTime`, `partTime`, `contract`, `permanent`) with a `label`. Add an optional
       `positionType` to `JobSearchRequest` (shared across titles) → `JobQuery`.
-- [ ] **Map to Adzuna.** `AdzunaJobSource.buildURL` translates it to Adzuna's contract params
+- [x] **Map to Adzuna.** `AdzunaJobSource.buildURL` translates it to Adzuna's contract params
       (`full_time` / `part_time` / `contract` / `permanent`); Adzuna specifics stay private. Nil
       ⇒ no param (unchanged URL).
-- [ ] **UI.** An optional picker on Search ("Any" default).
-- [ ] **Tests.** `buildURL` includes the right param when set and is unchanged when nil;
+- [x] **UI.** An optional picker on Search ("Any" default).
+- [x] **Tests.** `buildURL` includes the right param when set and is unchanged when nil;
       `JobSearchRequest.query(forTitle:)` propagates it.
 
-### U-B — Typeable + saveable location (can become a preset)  ⬜
+### U-B — Typeable + saveable location (can become a preset)  ✅ done
 
-- [ ] **`LocationStore` (Data/Search, on `KeyValueStore`).** Mirrors `RoleTitleStore`: a
+- [x] **`LocationStore` (Data/Search, on `KeyValueStore`).** Mirrors `RoleTitleStore`: a
       persisted library of user-saved locations; round-trip + corrupt→empty. `SuggestionProvider`
       merges static locations + saved ones (dedup, keep "Anywhere"/"Remote").
-- [ ] **Typeable input.** Location becomes a combo — type a custom value *or* pick a preset;
+- [x] **Typeable input.** Location becomes a combo — type a custom value *or* pick a preset;
       single-value semantics unchanged (`JobSearchRequest.location` stays one optional string).
-- [ ] **Save / remove as preset.** A "save this location" affordance persists a typed value into
+- [x] **Save / remove as preset.** A "save this location" affordance persists a typed value into
       `LocationStore` (and a remove-from-library control), mirroring the common-role-titles UX but
       single-select.
-- [ ] **Tests.** `LocationStoreTests` (round-trip, shared-backing persistence, corrupt→empty);
+- [x] **Tests.** `LocationStoreTests` (round-trip, shared-backing persistence, corrupt→empty);
       `SuggestionProvider` merge; `SearchViewModel` type/save/select/remove.
 
-### U-C — Typeable + saveable minimum salary (can become a preset)  ⬜
+### U-C — Typeable + saveable minimum salary (can become a preset)  ✅ done
 
-- [ ] **Custom salary presets store (Data/Search).** Same pattern as U-B for salary — a persisted
+- [x] **Custom salary presets store (Data/Search).** Same pattern as U-B for salary — a persisted
       library of user-saved salary floors joined with `SuggestionProvider.salaryPresets`.
-- [ ] **Typeable input.** A numeric field alongside the preset brackets; parse + validate (ignore
+- [x] **Typeable input.** A numeric field alongside the preset brackets; parse + validate (ignore
       non-numeric); nil ⇒ "Any". `JobSearchRequest.salaryMin` stays one optional value.
-- [ ] **Save / remove as preset.** Save a typed floor into the library (+ remove).
-- [ ] **Tests.** Store round-trip/persist; `SearchViewModel` parse/save/select; invalid input ignored.
+- [x] **Save / remove as preset.** Save a typed floor into the library (+ remove).
+- [x] **Tests.** Store round-trip/persist; `SearchViewModel` parse/save/select; invalid input ignored.
 
-### U-D — Desired result count (a soft goal)  ⬜
+### U-D — Desired result count (a soft goal)  ✅ done
 
-- [ ] **Optional `desiredResultCount: Int?` on `JobSearchRequest`.** Drives how many listings the
+- [x] **Optional `desiredResultCount: Int?` on `JobSearchRequest`.** Drives how many listings the
       search pulls/ranks: `SearchAndRankUseCase` raises `JobQuery.resultsPerPage` (up to Adzuna's
       max, 50) and/or **pages** additional pages per title until the merged + deduped count reaches
       the goal or the sources are exhausted.
-- [ ] **Never fail if unreachable.** If the goal can't be met, return what's available with a soft
+- [x] **Never fail if unreachable.** If the goal can't be met, return what's available with a soft
       note (e.g. `Output.resultShortfall` → "found 12 of a desired 25"); the run never throws for a
       shortfall. Bound the effort with a **page cap** + the existing `maxConcurrentSearches`
       rate-limit guard.
-- [ ] **Design note (record in the milestone).** Whether the goal counts candidates *fetched/ranked*
+- [x] **Design note (record in the milestone).** Whether the goal counts candidates *fetched/ranked*
       vs *final results after the U-E score filter*. Default: it targets fetched/ranked candidates,
       and the final shown count may be lower once U-E trims — note this to the user.
-- [ ] **Tests.** Goal reached stops paging early; goal unreachable returns all available + note (no
+- [x] **Tests.** Goal reached stops paging early; goal unreachable returns all available + note (no
       throw); page cap respected; nil ⇒ today's single-page behaviour.
 
-### U-E — Minimum-rank (score) filter  ⬜
+### U-E — Minimum-rank (score) filter  ✅ done
 
-- [ ] **Optional `minimumScore: Int?` (0–100) on `JobSearchRequest`.** After `ranker.rank`,
+- [x] **Optional `minimumScore: Int?` (0–100) on `JobSearchRequest`.** After `ranker.rank`,
       `SearchAndRankUseCase` keeps only `RankedJob`s with `match.score >= minimumScore`.
-- [ ] **Distinguish "none qualified" from "none found".** When the filter empties the set, the
+- [x] **Distinguish "none qualified" from "none found".** When the filter empties the set, the
       output flags it (e.g. `Output.filteredOutByScore` / a `noneMetMinimum` note) so the VM shows
       "No results met your minimum rank of N" — different copy from "no results found at all".
-- [ ] **Composes with multi-title + the goal.** Filter applies once, post-rank, over the merged set.
+- [x] **Composes with multi-title + the goal.** Filter applies once, post-rank, over the merged set.
       Nil ⇒ no filtering.
-- [ ] **Tests.** Filters below threshold; all-below → empty + `noneMetMinimum`; nil ⇒ unfiltered;
+- [x] **Tests.** Filters below threshold; all-below → empty + `noneMetMinimum`; nil ⇒ unfiltered;
       composes with U-D (goal fetches, filter trims).
 
-### U-F — Search UI + wiring  ⬜
+### U-F — Search UI + wiring  ✅ done
 
-- [ ] **`SearchViewModel` fields.** Add optional `positionType`, typeable `location` + saved
+- [x] **`SearchViewModel` fields.** Add optional `positionType`, typeable `location` + saved
       locations, typeable `salaryMin` + saved salary presets, `desiredResultCount`, `minimumScore`.
       `canSearch` is **unchanged** (all new fields optional). Assemble the `JobSearchRequest` from
       whatever is set.
-- [ ] **Surface the new notes distinctly.** Wire the result-count shortfall and the
+- [x] **Surface the new notes distinctly.** Wire the result-count shortfall and the
       none-met-minimum outcomes into separate, clear messages (feeds Milestone S's empty/error-state
       polish).
-- [ ] **Composition.** Wire the new `LocationStore` / salary-preset store; persisted presets reload
+- [x] **Composition.** Wire the new `LocationStore` / salary-preset store; persisted presets reload
       on launch like role titles.
-- [ ] **Tests.** Request assembly with any subset of optional fields; **back-compat** — all blank ⇒
+- [x] **Tests.** Request assembly with any subset of optional fields; **back-compat** — all blank ⇒
       byte-for-byte the same `JobSearchRequest` the app builds today.
-- [ ] **Docs.** SPEC ("Search → listings": the optional new params — done in this planning pass);
+- [x] **Docs.** SPEC ("Search → listings": the optional new params — done in this planning pass);
       CLAUDE.md (`PositionType`, `LocationStore` + salary-preset store, the grown `JobSearchRequest`/
       `JobQuery`, the use-case goal-paging + score filter, the `SuggestionProvider` merge).
 

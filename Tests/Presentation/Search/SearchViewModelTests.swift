@@ -20,6 +20,15 @@ private struct FailingTitleJobSource: JobSource {
     }
 }
 
+/// A `JobSource` that records the last `JobQuery` it was handed (to assert request assembly).
+private actor CapturingJobSource: JobSource {
+    private(set) var lastQuery: JobQuery?
+    func search(_ query: JobQuery) async throws -> [JobListing] {
+        lastQuery = query
+        return []
+    }
+}
+
 /// A `JobPostingSource` stub for the link/paste flow: returns a canned listing or throws.
 private struct StubPostingSource: JobPostingSource {
     var listing = JobListing(id: "link-1", title: "iOS Engineer", company: "Acme", location: "Remote", description: "Swift.")
@@ -326,6 +335,104 @@ struct SearchViewModelTests {
         await vm.generateFromPastedText()
         #expect(vm.results.isEmpty)
         #expect(vm.linkErrorMessage != nil)
+    }
+
+    // MARK: Expanded search parameters (Milestone U)
+
+    /// A VM wired with in-memory location + salary stores for the U-F tests.
+    private func makeParamVM(
+        capture: CapturingJobSource,
+        matches: [JobMatch] = []
+    ) -> SearchViewModel {
+        let useCase = SearchAndRankUseCase(jobSource: capture,
+                                           ranker: JobRanker(provider: PresentationStubProvider(matches: matches), shortlistLimit: 50))
+        return SearchViewModel(
+            searchAndRank: useCase,
+            roleTitleStore: RoleTitleStore(store: PresentationMemoryStore()),
+            locationStore: LocationStore(store: PresentationMemoryStore()),
+            salaryPresetStore: SalaryPresetStore(store: PresentationMemoryStore())
+        )
+    }
+
+    @Test func allBlankFieldsProduceTodaysRequest() async {
+        let capture = CapturingJobSource()
+        let vm = makeParamVM(capture: capture)
+        vm.profile = profile
+        vm.titles = ["iOS Engineer"]
+        await vm.search()
+
+        let query = await capture.lastQuery
+        #expect(query?.location == nil)
+        #expect(query?.salaryMin == nil)
+        #expect(query?.positionType == nil)
+        #expect(query?.resultsPerPage == 25)      // no goal ⇒ single default page
+    }
+
+    @Test func optionalFieldsAssembleIntoTheRequest() async {
+        let capture = CapturingJobSource()
+        let vm = makeParamVM(capture: capture)
+        vm.profile = profile
+        vm.titles = ["iOS Engineer"]
+        vm.location = "Lehi, UT"
+        vm.salaryText = "$120,000"                 // parsed leniently
+        vm.positionType = .contract
+        vm.desiredResultText = "40"
+        vm.minimumScore = 60
+        await vm.search()
+
+        let query = await capture.lastQuery
+        #expect(query?.location == "Lehi, UT")
+        #expect(query?.salaryMin == 120_000)
+        #expect(query?.positionType == .contract)
+        #expect(query?.resultsPerPage == 50)       // a goal switches to the larger page size
+        #expect(vm.effectiveMinimumScore == 60)
+        #expect(vm.desiredResultCount == 40)
+    }
+
+    @Test func salaryAndDesiredCountParseLenientlyAndZeroSliderMeansNoFilter() {
+        let vm = makeParamVM(capture: CapturingJobSource())
+        vm.salaryText = "abc"
+        #expect(vm.effectiveSalaryMin == nil)
+        vm.salaryText = "90k"                       // digits extracted
+        #expect(vm.effectiveSalaryMin == 90)
+        vm.desiredResultText = ""
+        #expect(vm.desiredResultCount == nil)
+        vm.minimumScore = 0
+        #expect(vm.effectiveMinimumScore == nil)
+    }
+
+    @Test func savedLocationsAndSalariesRoundTripAndDeduplicate() {
+        let vm = makeParamVM(capture: CapturingJobSource())
+        vm.location = "Boston, MA"
+        vm.saveCurrentLocation()
+        vm.location = "boston, ma"                  // case-insensitive dupe
+        vm.saveCurrentLocation()
+        #expect(vm.savedLocations == ["Boston, MA"])
+        #expect(vm.locationOptions.contains("Boston, MA"))
+
+        vm.salaryText = "175000"
+        vm.saveCurrentSalary()
+        #expect(vm.savedSalaries == [175_000])
+        #expect(vm.salaryPresetOptions.contains(175_000))
+
+        vm.removeSavedLocation("Boston, MA")
+        vm.removeSavedSalary(175_000)
+        #expect(vm.savedLocations.isEmpty)
+        #expect(vm.savedSalaries.isEmpty)
+    }
+
+    @Test func searchNotesCombineShortfallAndNoneMetMinimum() {
+        let shortfall = SearchAndRankUseCase.Output(
+            rankedJobs: [], failedTitles: ["bad"],
+            resultShortfall: .init(found: 12, desired: 25), noneMetMinimum: true
+        )
+        let note = SearchViewModel.note(for: shortfall, minimumScore: 70)
+        #expect(note?.contains("bad") == true)
+        #expect(note?.contains("12 of a desired 25") == true)
+        #expect(note?.contains("minimum rank of 70") == true)
+
+        let clean = SearchAndRankUseCase.Output(rankedJobs: [])
+        #expect(SearchViewModel.note(for: clean, minimumScore: nil) == nil)
     }
 
     // MARK: Saved-profile selection

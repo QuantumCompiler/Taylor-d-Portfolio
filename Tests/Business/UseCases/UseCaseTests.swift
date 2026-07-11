@@ -46,6 +46,18 @@ private struct PerTitleJobSource: JobSource {
     }
 }
 
+/// A `JobSource` with a fixed pool of `totalAvailable` unique listings per title, sliced
+/// by the query's `page` / `resultsPerPage` — so paging toward a goal accumulates (U-D).
+private struct PagingJobSource: JobSource {
+    let totalAvailable: Int
+    func search(_ query: JobQuery) async throws -> [JobListing] {
+        let start = (query.page - 1) * query.resultsPerPage
+        guard start < totalAvailable else { return [] }
+        let end = min(start + query.resultsPerPage, totalAvailable)
+        return (start..<end).map { listing(String($0 + 1)) }
+    }
+}
+
 /// An `LLMProvider` whose `rank` records how many jobs it was asked to rank (to prove
 /// the merged set is ranked exactly once) and scores each job by its trailing digits.
 private actor CountingRankProvider: LLMProvider {
@@ -151,6 +163,71 @@ struct UseCaseTests {
     }
 
     // MARK: FetchPostingUseCase (M-A)
+
+    // MARK: U-D — desired-result-count goal
+
+    @Test func nilGoalFetchesASinglePage() async throws {
+        let useCase = SearchAndRankUseCase(jobSource: PagingJobSource(totalAvailable: 500),
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 1000))
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"]), profile: profile)
+        #expect(output.rankedJobs.count == 25)      // one default page, no paging
+        #expect(output.resultShortfall == nil)
+    }
+
+    @Test func goalPagesUntilReachedThenStopsEarly() async throws {
+        let useCase = SearchAndRankUseCase(jobSource: PagingJobSource(totalAvailable: 500),
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 1000))
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"], desiredResultCount: 60), profile: profile)
+        #expect(output.rankedJobs.count >= 60)      // goal met…
+        #expect(output.rankedJobs.count < 500)      // …without draining the whole source
+        #expect(output.resultShortfall == nil)
+    }
+
+    @Test func unreachableGoalReturnsWhatsAvailableWithAShortfallNote() async throws {
+        let useCase = SearchAndRankUseCase(jobSource: PagingJobSource(totalAvailable: 20),
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 1000))
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"], desiredResultCount: 100), profile: profile)
+        #expect(output.rankedJobs.count == 20)      // never throws on a shortfall
+        #expect(output.resultShortfall == .init(found: 20, desired: 100))
+    }
+
+    @Test func pageCapBoundsTheEffort() async throws {
+        // 5 pages × 50/page = 250 max, even though 10_000 exist and the goal is higher.
+        let useCase = SearchAndRankUseCase(jobSource: PagingJobSource(totalAvailable: 10_000),
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 100_000))
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"], desiredResultCount: 10_000), profile: profile)
+        #expect(output.rankedJobs.count == 250)
+        #expect(output.resultShortfall == .init(found: 250, desired: 10_000))
+    }
+
+    // MARK: U-E — minimum-rank filter
+
+    @Test func minimumScoreKeepsOnlyQualifyingResults() async throws {
+        let jobs = ["80", "40", "20"].map { listing($0) }   // scores 80/40/20
+        let useCase = SearchAndRankUseCase(jobSource: StubJobSource(jobs: jobs),
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 10))
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"], minimumScore: 50), profile: profile)
+        #expect(output.rankedJobs.map(\.id) == ["80"])
+        #expect(output.noneMetMinimum == false)
+    }
+
+    @Test func minimumScoreThatMatchesNothingFlagsNoneMetMinimum() async throws {
+        let jobs = ["10", "20"].map { listing($0) }
+        let useCase = SearchAndRankUseCase(jobSource: StubJobSource(jobs: jobs),
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 10))
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"], minimumScore: 90), profile: profile)
+        #expect(output.rankedJobs.isEmpty)
+        #expect(output.noneMetMinimum)              // distinct from "no results found at all"
+    }
+
+    @Test func nilMinimumScoreDoesNotFilter() async throws {
+        let jobs = ["10", "90"].map { listing($0) }
+        let useCase = SearchAndRankUseCase(jobSource: StubJobSource(jobs: jobs),
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 10))
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"]), profile: profile)
+        #expect(output.rankedJobs.count == 2)
+        #expect(output.noneMetMinimum == false)
+    }
 
     @Test func fetchPostingRanksTheSingleListing() async throws {
         let source = StubPostingSource(listing: listing("55"))

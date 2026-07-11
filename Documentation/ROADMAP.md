@@ -254,7 +254,13 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       Portfolio → Application. On-device: yes — import + tidy + generation are on-device-friendly;
       bound both inputs for the small context window.
 
-- [ ] **Expanded, optional search parameters.** Give the search step more control — every
+- [x] **Expanded, optional search parameters.** ✅ **Done (U-A…U-F).** Position-type filter
+      (`PositionType` → Adzuna contract flag), typeable **and saveable** location + minimum salary
+      (`LocationStore` / `SalaryPresetStore` + `SuggestionProvider` merges), a best-effort
+      **desired-result-count** goal (`SearchAndRankUseCase` pages toward it, capped, never fails →
+      `resultShortfall` note), and a post-rank **minimum-rank** filter (`noneMetMinimum`, distinct
+      from no-results). All fields optional — an all-blank form assembles today's exact request.
+      Give the search step more control — every
       field **optional**, so a blank field leaves today's behaviour unchanged:
       - **Position type** (full-time, part-time, contract, permanent…) — a new optional filter
         mapped to Adzuna's contract params inside `AdzunaJobSource`.

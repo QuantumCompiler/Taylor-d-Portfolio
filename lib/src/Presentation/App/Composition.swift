@@ -135,6 +135,8 @@ struct Composition {
             searchAndRank: searchAndRank,
             suggestions: SuggestionProvider(),
             roleTitleStore: RoleTitleStore(store: UserDefaultsStore()),
+            locationStore: LocationStore(store: UserDefaultsStore()),
+            salaryPresetStore: SalaryPresetStore(store: UserDefaultsStore()),
             fetchPosting: fetchPosting,
             saveResults: saveResults,
             loadProfiles: loadProfiles,

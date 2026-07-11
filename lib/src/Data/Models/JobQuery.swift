@@ -17,6 +17,8 @@ nonisolated struct JobQuery: Codable, Equatable, Sendable {
     var location: String?
     /// Optional lower bound on annual salary.
     var salaryMin: Double?
+    /// Optional employment-type filter (nil ⇒ any).
+    var positionType: PositionType?
     /// 1-based page index for paginated sources.
     var page: Int
     /// How many listings to request per page.
@@ -26,12 +28,14 @@ nonisolated struct JobQuery: Codable, Equatable, Sendable {
         keywords: String,
         location: String? = nil,
         salaryMin: Double? = nil,
+        positionType: PositionType? = nil,
         page: Int = 1,
         resultsPerPage: Int = 25
     ) {
         self.keywords = keywords
         self.location = location
         self.salaryMin = salaryMin
+        self.positionType = positionType
         self.page = page
         self.resultsPerPage = resultsPerPage
     }

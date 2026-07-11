@@ -25,16 +25,7 @@ struct SearchView: View {
 
             titlesSection
 
-            Form {
-                locationRow
-                Picker("Minimum salary", selection: $viewModel.salaryMin) {
-                    Text("Any").tag(Int?.none)
-                    ForEach(viewModel.salaryPresets, id: \.self) { amount in
-                        Text("$\(amount.formatted())+").tag(Int?.some(amount))
-                    }
-                }
-            }
-            .frame(maxHeight: 120)
+            filtersSection
 
             if let unavailable = viewModel.unavailableMessage {
                 Label(unavailable, systemImage: "exclamationmark.triangle.fill")
@@ -237,11 +228,103 @@ struct SearchView: View {
         .background(selected ? Color.accentColor : Color.accentColor.opacity(0.15), in: Capsule())
     }
 
-    private var locationRow: some View {
-        Picker("Location", selection: $viewModel.location) {
-            Text("Anywhere").tag("")
-            ForEach(viewModel.locationOptions, id: \.self) { place in
-                Text(place).tag(place)
+    // MARK: Filters (Milestone U — every field optional)
+
+    private var filtersSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Position type (U-A)
+            Picker("Position type", selection: $viewModel.positionType) {
+                Text("Any").tag(PositionType?.none)
+                ForEach(viewModel.positionTypes) { type in
+                    Text(type.label).tag(PositionType?.some(type))
+                }
+            }
+            .pickerStyle(.menu).fixedSize()
+
+            // Location — typeable + saveable (U-B)
+            filterRow(label: "Location") {
+                TextField("Anywhere", text: $viewModel.location)
+                    .textFieldStyle(.roundedBorder).frame(maxWidth: 220)
+                presetMenu(viewModel.locationOptions.map { ($0, $0) }) { viewModel.location = $0 }
+                Button("Save") { viewModel.saveCurrentLocation() }
+                    .disabled(viewModel.location.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            savedChips(viewModel.savedLocations, label: { $0 },
+                       onTap: { viewModel.location = $0 }, onRemove: viewModel.removeSavedLocation)
+
+            // Minimum salary — typeable + saveable (U-C)
+            filterRow(label: "Min salary") {
+                TextField("Any", text: $viewModel.salaryText)
+                    .textFieldStyle(.roundedBorder).frame(maxWidth: 140)
+                presetMenu(viewModel.salaryPresetOptions.map { (String($0), "$\($0.formatted())+") }) {
+                    viewModel.salaryText = $0
+                }
+                Button("Save") { viewModel.saveCurrentSalary() }
+                    .disabled(viewModel.effectiveSalaryMin == nil)
+            }
+            savedChips(viewModel.savedSalaries, label: { "$\($0.formatted())+" },
+                       onTap: { viewModel.salaryText = String($0) }, onRemove: viewModel.removeSavedSalary)
+
+            // Desired result count (U-D)
+            filterRow(label: "Desired results") {
+                TextField("Any", text: $viewModel.desiredResultText)
+                    .textFieldStyle(.roundedBorder).frame(maxWidth: 100)
+                Text("best-effort goal").font(.caption).foregroundStyle(.secondary)
+            }
+
+            // Minimum rank filter (U-E)
+            filterRow(label: "Minimum rank") {
+                Slider(value: $viewModel.minimumScore, in: 0...100, step: 5).frame(maxWidth: 220)
+                Text(viewModel.minimumScore >= 1 ? "\(Int(viewModel.minimumScore))+" : "Any")
+                    .font(.callout).monospacedDigit().frame(width: 44, alignment: .leading)
+            }
+        }
+    }
+
+    /// A labelled filter row: a fixed-width label + trailing controls.
+    private func filterRow<Controls: View>(label: String, @ViewBuilder controls: () -> Controls) -> some View {
+        HStack(spacing: 8) {
+            Text(label).frame(width: 120, alignment: .leading).foregroundStyle(.secondary)
+            controls()
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// A "Presets" menu that sets a value from `(value, label)` options.
+    private func presetMenu(_ options: [(value: String, label: String)], onPick: @escaping (String) -> Void) -> some View {
+        Menu("Presets") {
+            ForEach(options, id: \.value) { option in
+                Button(option.label) { onPick(option.value) }
+            }
+        }
+        .fixedSize()
+    }
+
+    /// A horizontal row of saved-value chips: tap fills the field, the "x" removes it.
+    private func savedChips<Value: Hashable>(
+        _ values: [Value],
+        label: @escaping (Value) -> String,
+        onTap: @escaping (Value) -> Void,
+        onRemove: @escaping (Value) -> Void
+    ) -> some View {
+        Group {
+            if !values.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(values, id: \.self) { value in
+                            HStack(spacing: 4) {
+                                Text(label(value)).font(.caption)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { onTap(value) }
+                                Button { onRemove(value) } label: { Image(systemName: "xmark.circle.fill") }
+                                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(.tint.opacity(0.15), in: Capsule())
+                        }
+                    }
+                }
+                .padding(.leading, 128)
             }
         }
     }

@@ -21,28 +21,58 @@ nonisolated struct SearchAndRankUseCase: Sendable {
     var maxConcurrentSearches: Int
     /// Hard cap on how many titles a single run will search.
     var maxTitles: Int
+    /// Listings requested per page when there's no desired-result-count goal.
+    var defaultResultsPerPage: Int
+    /// Listings requested per page when paging toward a goal (Adzuna's max is 50).
+    var maxResultsPerPage: Int
+    /// Hard cap on pages fetched per title when paging toward a goal (rate-limit guard).
+    var maxPagesPerTitle: Int
 
     init(
         jobSource: any JobSource,
         ranker: JobRanker,
         maxConcurrentSearches: Int = 4,
-        maxTitles: Int = 6
+        maxTitles: Int = 6,
+        defaultResultsPerPage: Int = 25,
+        maxResultsPerPage: Int = 50,
+        maxPagesPerTitle: Int = 5
     ) {
         self.jobSource = jobSource
         self.ranker = ranker
         self.maxConcurrentSearches = maxConcurrentSearches
         self.maxTitles = maxTitles
+        self.defaultResultsPerPage = defaultResultsPerPage
+        self.maxResultsPerPage = maxResultsPerPage
+        self.maxPagesPerTitle = maxPagesPerTitle
     }
 
-    /// The outcome of a multi-title search: the ranked jobs plus any titles whose
-    /// individual search failed (surfaced to the user as a soft warning).
+    /// How far a desired-result-count goal fell short (U-D).
+    struct Shortfall: Sendable, Equatable {
+        var found: Int
+        var desired: Int
+    }
+
+    /// The outcome of a multi-title search: the ranked jobs, any titles whose search
+    /// failed (a soft warning), and the optional U-D/U-E notes.
     struct Output: Sendable, Equatable {
         var rankedJobs: [RankedJob]
         var failedTitles: [String]
+        /// Set when a desired-result-count goal couldn't be met (U-D) — never fatal.
+        var resultShortfall: Shortfall?
+        /// True when a minimum-rank filter (U-E) removed *every* result from a non-empty
+        /// ranked set — distinct from "no results found at all".
+        var noneMetMinimum: Bool
 
-        init(rankedJobs: [RankedJob] = [], failedTitles: [String] = []) {
+        init(
+            rankedJobs: [RankedJob] = [],
+            failedTitles: [String] = [],
+            resultShortfall: Shortfall? = nil,
+            noneMetMinimum: Bool = false
+        ) {
             self.rankedJobs = rankedJobs
             self.failedTitles = failedTitles
+            self.resultShortfall = resultShortfall
+            self.noneMetMinimum = noneMetMinimum
         }
     }
 
@@ -50,18 +80,23 @@ nonisolated struct SearchAndRankUseCase: Sendable {
         let titles = Array(request.cleanedTitles.prefix(maxTitles))
         guard !titles.isEmpty else { return Output() }
 
-        let outcomes = await searchAll(titles, request: request)
+        let goal = request.desiredResultCount
+        let perPage = goal != nil ? maxResultsPerPage : defaultResultsPerPage
+        let pageCap = goal != nil ? maxPagesPerTitle : 1
 
-        // Flatten in title order, de-duplicating by listing id (first occurrence wins).
         var seen = Set<String>()
         var merged = [JobListing]()
         var failedTitles = [String]()
-        var lastError: Error?
 
+        // Round 1 (page 1) establishes each title's success/failure and seeds the results.
+        let firstOutcomes = await searchAll(titles, request: request, page: 1, resultsPerPage: perPage)
+        var lastError: Error?
+        var activeTitles = [String]()      // titles worth paging further (a full page came back)
         for (index, title) in titles.enumerated() {
-            switch outcomes[index] {
+            switch firstOutcomes[index] {
             case .success(let jobs):
                 for job in jobs where seen.insert(job.id).inserted { merged.append(job) }
+                if jobs.count >= perPage { activeTitles.append(title) }
             case .failure(let error):
                 failedTitles.append(title)
                 lastError = error
@@ -73,17 +108,61 @@ nonisolated struct SearchAndRankUseCase: Sendable {
             throw lastError
         }
 
+        // Additional pages toward the desired-result-count goal (U-D). Round-robin a page
+        // across all still-active titles, then re-check the goal — bounded by the page cap.
+        if let goal {
+            var page = 2
+            while merged.count < goal, page <= pageCap, !activeTitles.isEmpty {
+                let outcomes = await searchAll(activeTitles, request: request, page: page, resultsPerPage: perPage)
+                var stillActive = [String]()
+                for (index, title) in activeTitles.enumerated() {
+                    if case .success(let jobs) = outcomes[index] {
+                        for job in jobs where seen.insert(job.id).inserted { merged.append(job) }
+                        if jobs.count >= perPage { stillActive.append(title) }
+                    }
+                    // A failure on a later page just stops paging that title (best-effort).
+                }
+                activeTitles = stillActive
+                page += 1
+            }
+        }
+
+        // Shortfall is measured on the fetched/ranked candidate count, *before* the U-E
+        // score filter trims what's shown (documented so the user isn't surprised).
+        let shortfall: Shortfall? = goal.flatMap {
+            merged.count < $0 ? Shortfall(found: merged.count, desired: $0) : nil
+        }
+
         let ranked = try await ranker.rank(merged, for: profile)
-        return Output(rankedJobs: ranked, failedTitles: failedTitles)
+
+        // Minimum-rank filter (U-E): keep only scores ≥ the floor, and flag when that
+        // empties a non-empty set so the UI can say "none met your minimum".
+        var shown = ranked
+        var noneMetMinimum = false
+        if let minimum = request.minimumScore {
+            let filtered = ranked.filter { $0.match.score >= minimum }
+            noneMetMinimum = filtered.isEmpty && !ranked.isEmpty
+            shown = filtered
+        }
+
+        return Output(
+            rankedJobs: shown,
+            failedTitles: failedTitles,
+            resultShortfall: shortfall,
+            noneMetMinimum: noneMetMinimum
+        )
     }
 
     // MARK: Bounded-concurrency fan-out
 
-    /// Runs one search per title with at most `maxConcurrentSearches` in flight,
-    /// returning each title's result (success or failure) indexed by title position.
+    /// Runs one search per title (at `page`, `resultsPerPage`) with at most
+    /// `maxConcurrentSearches` in flight, returning each title's result (success or
+    /// failure) indexed by its position in `titles`.
     private func searchAll(
         _ titles: [String],
-        request: JobSearchRequest
+        request: JobSearchRequest,
+        page: Int,
+        resultsPerPage: Int
     ) async -> [Result<[JobListing], Error>] {
         let window = max(1, min(maxConcurrentSearches, titles.count))
         var outcomes = [Int: Result<[JobListing], Error>]()
@@ -91,7 +170,7 @@ nonisolated struct SearchAndRankUseCase: Sendable {
         await withTaskGroup(of: (Int, Result<[JobListing], Error>).self) { group in
             var next = 0
             func schedule(_ index: Int) {
-                let query = request.query(forTitle: titles[index])
+                let query = request.query(forTitle: titles[index], page: page, resultsPerPage: resultsPerPage)
                 group.addTask {
                     do { return (index, .success(try await jobSource.search(query))) }
                     catch { return (index, .failure(error)) }

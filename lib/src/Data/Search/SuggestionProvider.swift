@@ -42,6 +42,25 @@ nonisolated struct SuggestionProvider: Sendable {
         return locations.filter { $0.lowercased().contains(needle) }
     }
 
+    /// The static locations merged with the user's `saved` ones, de-duplicated
+    /// case-insensitively while preserving the static order first (U-B).
+    func locationSuggestions(saved: [String]) -> [String] {
+        var seen = Set<String>()
+        var result = [String]()
+        for value in locations + saved {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { continue }
+            result.append(trimmed)
+        }
+        return result
+    }
+
+    /// The built-in salary brackets merged with the user's `saved` ones, de-duplicated
+    /// and sorted ascending (U-C).
+    static func salaryPresets(saved: [Int]) -> [Int] {
+        Array(Set(salaryPresets + saved)).sorted()
+    }
+
     /// Preset salary brackets offered instead of free-text entry.
     static let salaryPresets: [Int] = [50_000, 75_000, 100_000, 125_000, 150_000, 200_000]
 

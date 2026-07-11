@@ -47,14 +47,37 @@ struct AdzunaJobSourceTests {
     }
 
     @Test func buildURLOmitsOptionalItemsWhenAbsent() throws {
-        let query = JobQuery(keywords: "ios") // no location, no salaryMin
+        let query = JobQuery(keywords: "ios") // no location, no salaryMin, no positionType
         let url = try AdzunaJobSource.buildURL(credentials: creds, query: query, baseURL: AdzunaJobSource.defaultBaseURL)
 
         let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)!
         let names = Set((comps.queryItems ?? []).map(\.name))
         #expect(!names.contains("where"))
         #expect(!names.contains("salary_min"))
+        #expect(!names.contains("full_time"))
+        #expect(!names.contains("contract"))
         #expect(comps.path == "/v1/api/jobs/us/search/1") // default page 1
+    }
+
+    @Test func buildURLMapsPositionTypeToTheContractFlag() throws {
+        let cases: [(PositionType, String)] = [
+            (.fullTime, "full_time"), (.partTime, "part_time"), (.contract, "contract"), (.permanent, "permanent"),
+        ]
+        for (type, flag) in cases {
+            let url = try AdzunaJobSource.buildURL(credentials: creds, query: JobQuery(keywords: "ios", positionType: type))
+            let items = Dictionary(uniqueKeysWithValues: (URLComponents(url: url, resolvingAgainstBaseURL: false)!.queryItems ?? []).map { ($0.name, $0.value) })
+            #expect(items[flag] == "1")
+        }
+    }
+
+    @Test func requestPropagatesPositionTypeAndPagingIntoTheQuery() {
+        let request = JobSearchRequest(titles: ["iOS"], location: "Remote", salaryMin: 90_000, positionType: .contract)
+        let query = request.query(forTitle: "iOS", page: 3, resultsPerPage: 50)
+        #expect(query.positionType == .contract)
+        #expect(query.page == 3)
+        #expect(query.resultsPerPage == 50)
+        #expect(query.location == "Remote")
+        #expect(query.salaryMin == 90_000)
     }
 
     // MARK: search / mapping

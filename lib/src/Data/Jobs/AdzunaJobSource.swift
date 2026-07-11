@@ -60,6 +60,11 @@ nonisolated struct AdzunaJobSource: JobSource {
         if let salaryMin = query.salaryMin {
             items.append(URLQueryItem(name: "salary_min", value: String(Int(salaryMin))))
         }
+        // Adzuna expresses employment type as boolean flags (full_time / part_time /
+        // contract / permanent); the enum's raw value is exactly the flag name.
+        if let positionType = query.positionType {
+            items.append(URLQueryItem(name: positionType.rawValue, value: "1"))
+        }
         components.queryItems = items
 
         guard let url = components.url else { throw JobSourceError.invalidURL }

@@ -25,9 +25,23 @@ final class SearchViewModel {
     var titles: [String] = []
     /// The in-progress title text (also searched if the user hits Search without adding it).
     var titleInput: String = ""
+    /// Typeable location — a custom value or a chosen preset (empty ⇒ "Anywhere").
     var location: String = ""
-    /// Selected salary floor (a preset bracket), or `nil` for "Any".
-    var salaryMin: Int?
+    /// Typeable minimum salary as text (empty/invalid ⇒ "Any"); parsed into `effectiveSalaryMin`.
+    var salaryText: String = ""
+
+    // MARK: Expanded, optional search parameters (Milestone U) — all default to today's behaviour.
+
+    /// Optional employment-type filter (U-A).
+    var positionType: PositionType?
+    /// A best-effort target number of results as text (U-D); empty/invalid ⇒ no goal.
+    var desiredResultText: String = ""
+    /// Minimum match score 0–100 (U-E); 0 ⇒ no filter. A `Double` for the slider.
+    var minimumScore: Double = 0
+
+    /// The user's persisted saved locations + salary floors (U-B / U-C).
+    private(set) var savedLocations: [String] = []
+    private(set) var savedSalaries: [Int] = []
 
     /// A job-posting URL to generate from directly (Milestone M-A).
     var postingURL: String = ""
@@ -69,6 +83,8 @@ final class SearchViewModel {
     private let searchAndRank: SearchAndRankUseCase
     private let suggestions: SuggestionProvider
     private let roleTitleStore: RoleTitleStore
+    private let locationStore: LocationStore?
+    private let salaryPresetStore: SalaryPresetStore?
     private let fetchPosting: FetchPostingUseCase?
     private let saveResults: SaveResultsUseCase?
     private let loadProfiles: LoadProfilesUseCase?
@@ -77,6 +93,8 @@ final class SearchViewModel {
         searchAndRank: SearchAndRankUseCase,
         suggestions: SuggestionProvider = SuggestionProvider(),
         roleTitleStore: RoleTitleStore,
+        locationStore: LocationStore? = nil,
+        salaryPresetStore: SalaryPresetStore? = nil,
         fetchPosting: FetchPostingUseCase? = nil,
         saveResults: SaveResultsUseCase? = nil,
         loadProfiles: LoadProfilesUseCase? = nil,
@@ -85,11 +103,67 @@ final class SearchViewModel {
         self.searchAndRank = searchAndRank
         self.suggestions = suggestions
         self.roleTitleStore = roleTitleStore
+        self.locationStore = locationStore
+        self.salaryPresetStore = salaryPresetStore
         self.fetchPosting = fetchPosting
         self.saveResults = saveResults
         self.loadProfiles = loadProfiles
         self.adzunaConfigured = adzunaConfigured
         self.commonRoleTitles = roleTitleStore.load()
+        self.savedLocations = locationStore?.load() ?? []
+        self.savedSalaries = salaryPresetStore?.load() ?? []
+    }
+
+    // MARK: Expanded search parameters (Milestone U)
+
+    /// All position-type options for the picker.
+    var positionTypes: [PositionType] { PositionType.allCases }
+
+    /// The parsed minimum-salary floor, or `nil` when the field is empty/non-numeric.
+    var effectiveSalaryMin: Int? { Self.parsePositiveInt(salaryText) }
+    /// The parsed desired-result-count goal, or `nil` when empty/non-numeric.
+    var desiredResultCount: Int? { Self.parsePositiveInt(desiredResultText) }
+    /// The effective minimum score, or `nil` when the slider is at 0 (no filter).
+    var effectiveMinimumScore: Int? { minimumScore >= 1 ? Int(minimumScore) : nil }
+
+    /// Location options: the static list merged with the user's saved locations (U-B).
+    var locationOptions: [String] { suggestions.locationSuggestions(saved: savedLocations) }
+    /// Salary preset options: built-in brackets merged with saved floors (U-C).
+    var salaryPresetOptions: [Int] { SuggestionProvider.salaryPresets(saved: savedSalaries) }
+
+    /// Saves the currently-typed location into the persisted library (U-B).
+    func saveCurrentLocation() {
+        let value = location.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty, !savedLocations.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame })
+        else { return }
+        savedLocations.append(value)
+        locationStore?.save(savedLocations)
+    }
+
+    /// Removes a saved location from the library (U-B).
+    func removeSavedLocation(_ value: String) {
+        savedLocations.removeAll { $0.caseInsensitiveCompare(value) == .orderedSame }
+        locationStore?.save(savedLocations)
+    }
+
+    /// Saves the currently-typed salary into the persisted library (U-C).
+    func saveCurrentSalary() {
+        guard let value = effectiveSalaryMin, !savedSalaries.contains(value) else { return }
+        savedSalaries.append(value)
+        salaryPresetStore?.save(savedSalaries)
+    }
+
+    /// Removes a saved salary preset from the library (U-C).
+    func removeSavedSalary(_ value: Int) {
+        savedSalaries.removeAll { $0 == value }
+        salaryPresetStore?.save(savedSalaries)
+    }
+
+    /// Parses a positive integer from free text (digits + separators), else `nil`.
+    private static func parsePositiveInt(_ text: String) -> Int? {
+        let digits = text.filter(\.isNumber)
+        guard let value = Int(digits), value > 0 else { return nil }
+        return value
     }
 
     // MARK: Saved-profile selection
@@ -142,9 +216,6 @@ final class SearchViewModel {
         }
         return result
     }
-
-    var locationOptions: [String] { suggestions.locationSuggestions() }
-    var salaryPresets: [Int] { SuggestionProvider.salaryPresets }
 
     /// A build-level banner shown when search is unavailable because credentials
     /// weren't baked in. Distinct from `errorMessage`, which reports run failures.
@@ -291,8 +362,11 @@ final class SearchViewModel {
 
         let request = JobSearchRequest(
             titles: effectiveTitles,
-            location: location.isEmpty ? nil : location,
-            salaryMin: salaryMin.map(Double.init)
+            location: location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : location,
+            salaryMin: effectiveSalaryMin.map(Double.init),
+            positionType: positionType,
+            desiredResultCount: desiredResultCount,
+            minimumScore: effectiveMinimumScore
         )
         isSearching = true
         errorMessage = nil
@@ -301,13 +375,28 @@ final class SearchViewModel {
         do {
             let output = try await searchAndRank(request: request, profile: profile)
             results = output.rankedJobs
-            warningMessage = output.failedTitles.isEmpty
-                ? nil
-                : "Couldn't search: \(output.failedTitles.joined(separator: ", "))."
+            warningMessage = Self.note(for: output, minimumScore: effectiveMinimumScore)
             await persistResults()
         } catch {
             errorMessage = Self.message(for: error)
         }
+    }
+
+    /// Builds the combined soft-note line from a search outcome: failed titles (N-A),
+    /// a result-count shortfall (U-D), and a none-met-minimum outcome (U-E). Each is a
+    /// distinct, clear message; `nil` when there's nothing to report.
+    static func note(for output: SearchAndRankUseCase.Output, minimumScore: Int?) -> String? {
+        var notes = [String]()
+        if !output.failedTitles.isEmpty {
+            notes.append("Couldn't search: \(output.failedTitles.joined(separator: ", ")).")
+        }
+        if let shortfall = output.resultShortfall {
+            notes.append("Found \(shortfall.found) of a desired \(shortfall.desired) — that's all that's available.")
+        }
+        if output.noneMetMinimum {
+            notes.append("No results met your minimum rank of \(minimumScore ?? 0). Lower it to see more.")
+        }
+        return notes.isEmpty ? nil : notes.joined(separator: " ")
     }
 
     /// Maps a search/ranking failure to an actionable message rather than a generic one.
