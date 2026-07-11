@@ -11,9 +11,9 @@ doing.
 
 > **Current focus.** v0.1.0 (A–J + document import), v0.2.0 (K, M, N, O, P), and nearly all of v0.3.0 are
 > **complete** — see `MILESTONES.md` for the full record (Hotfix, Q, R, S-D/S-E, T, U, V, W, plus
-> the ad-hoc QoL work). **What's left in v0.3.0:** the broad **polish pass** — **S-A** (in-app markdown
-> rendering), **S-B** (empty / loading / error states), **S-C** (results / saved-jobs / Tracker
-> cohesion) — and the **stretch, X** (export templates + one-page gate). **Next: S-A.**
+> the ad-hoc QoL work, plus **S-A** in-app markdown rendering). **What's left in v0.3.0:** the rest
+> of the polish pass — **S-B** (empty / loading / error states) and **S-C** (results / saved-jobs /
+> Tracker cohesion) — and the **stretch, X** (export templates + one-page gate). **Next: S-B.**
 >
 > **⚠️ Awaiting device checks** (verify on a real run, unrelated to the code below): the Search
 > **Fetch** button is reachable/clickable after the scroll fix; exported **PDF/DOCX** files open
@@ -30,18 +30,11 @@ down only).
 
 # v0.3.0 — output & polish (remaining)
 
-## Milestone S — Polish pass  ⬜ not started  (mostly Presentation; small Data/use-case touches)
+## Milestone S — Polish pass  🔨 in progress (S-A done; S-B, S-C remain)  (mostly Presentation; small Data/use-case touches)
 
-Goal: make the six-tab app feel finished. Three independent parts — ship in any order.
-
-### S-A — In-app markdown rendering  ⬜
-
-- [ ] **Render the generated résumé + cover letter as styled text** (SwiftUI
-      `Text(AttributedString(markdown:))` or an equivalent renderer) instead of raw markdown,
-      on `ApplicationSheet` / `JobDetailView`.
-- [ ] **Copy buttons** per document (résumé, cover letter) — composes with Q-A's clipboard export.
-- [ ] **Tests / previews.** Renderer helper unit-tested (markdown → attributed); previews for
-      both documents.
+Goal: make the six-tab app feel finished. Independent parts — ship in any order.
+(**S-A** in-app markdown rendering, **S-D** scrollable screens, **S-E** saved-profile tile
+gestures already shipped — see `MILESTONES.md`.)
 
 ### S-B — Empty / loading / error states  ⬜
 
@@ -61,8 +54,6 @@ Goal: make the six-tab app feel finished. Three independent parts — ship in an
       fresh search (extends O/P load behaviour).
 - [ ] **Tests.** Badge/state assembly (seen / generated / applied) on a `RankedJob`; no-clobber
       on a fresh search.
-
-> **Note:** S-D (scrollable screens) and S-E (saved-profile tile gestures) already shipped — see `MILESTONES.md`.
 
 ## Milestone X — Export templates + one-page gate  ⬜ stretch (v0.3.0 stretch / v0.4.0 seed)
 

@@ -667,9 +667,27 @@ old fast-follow — caching the built profile across launches — already shippe
 - [x] **Docs.** SPEC (saved searches persist — already noted); CLAUDE.md (`SavedSearchesRepository`
       + the three use cases + `SavedSearch`); ROADMAP tick.
 
-## Milestone S — Polish pass (completed sub-parts)  ✅ (S-D, S-E)
+## Milestone S — Polish pass (completed sub-parts)  ✅ (S-A, S-D, S-E)
 
-S-D and S-E shipped early as small bug-fixes; the broad polish S-A/S-B/S-C remains in `TODO.md`.
+S-D and S-E shipped early as small bug-fixes; S-A (markdown rendering) followed. The rest of the
+broad polish — S-B (empty/loading/error states) and S-C (results/saved/Tracker cohesion) — remains
+in `TODO.md`.
+
+### S-A — In-app markdown rendering  ✅ done
+
+- [x] **Render the generated résumé + cover letter as styled text.** New `MarkdownText`
+      (`Presentation/Components`) renders Markdown as styled, selectable SwiftUI `Text` —
+      heading levels, bullet lists, and inline **bold**/*italic* — by **reusing the same tested
+      parsers the exporters use** (`MarkdownBlockParser` for blocks + `MarkdownInline` for inline
+      runs, mapped to an `AttributedString` with presentation intents, so the on-screen rendering
+      stays in step with the PDF/DOCX output). `ApplicationSheet`'s résumé and cover-letter sections
+      now use it instead of raw markup; the advisory `gapNote` stays plain secondary text.
+- [x] **Copy buttons per document.** Each of the résumé / cover-letter section headers gained a
+      copy icon that puts that document's raw Markdown on the clipboard (composes with Q-A's export;
+      the header still has the whole-kit Copy + Export menu).
+- [x] **Tests / previews.** `MarkdownTextRenderingTests` asserts a realistic generated document
+      decomposes into the expected blocks + inline (bold/italic) runs the view renders; `#Preview`s
+      for both a résumé and a cover letter. Suite green, no warnings.
 
 ### S-D — Scrollable screens / small-window layout (bug fix)  ✅ done
 

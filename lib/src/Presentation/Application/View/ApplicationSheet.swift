@@ -104,10 +104,10 @@ struct ApplicationSheet: View {
         } else if let kit = viewModel.kit {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    section("Resume", kit.resumeMarkdown)
-                    section("Cover letter", kit.coverLetter)
+                    documentSection("Résumé", kit.resumeMarkdown)
+                    documentSection("Cover letter", kit.coverLetter)
                     if !kit.gapNote.isEmpty {
-                        section("Gaps", kit.gapNote, secondary: true)
+                        gapsSection(kit.gapNote)
                     }
                 }
             }
@@ -118,15 +118,43 @@ struct ApplicationSheet: View {
         }
     }
 
-    private func section(_ title: String, _ text: String, secondary: Bool = false) -> some View {
-        GroupBox(title) {
+    /// A generated document (résumé / cover letter): styled Markdown + a per-document
+    /// **copy** button that puts that document's raw Markdown on the clipboard (S-A).
+    private func documentSection(_ title: String, _ markdown: String) -> some View {
+        GroupBox {
+            MarkdownText(markdown: markdown)
+                .padding(4)
+        } label: {
+            HStack {
+                Text(title)
+                Spacer()
+                Button { copy(markdown) } label: {
+                    Label("Copy", systemImage: "doc.on.doc").labelStyle(.iconOnly)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help("Copy the \(title.lowercased()) (Markdown)")
+                .clickableCursor()
+            }
+        }
+    }
+
+    /// The advisory gap note — plain secondary text, not part of the deliverable.
+    private func gapsSection(_ text: String) -> some View {
+        GroupBox("Gaps") {
             Text(text)
                 .font(.callout)
-                .foregroundStyle(secondary ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+                .foregroundStyle(.secondary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(4)
         }
+    }
+
+    /// Copies raw text to the clipboard.
+    private func copy(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 }
 

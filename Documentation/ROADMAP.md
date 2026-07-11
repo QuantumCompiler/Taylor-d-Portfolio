@@ -222,9 +222,11 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       across launches — already shipped via named `SavedProfile`s, so it's **done**.
       On-device: yes — local SwiftData store; the re-run itself hits Adzuna as any search does.
 
-- [ ] **Polish pass.** Make the six-tab app feel finished. Five parts: (1) in-app
-      **markdown rendering** of the generated résumé/cover letter (styled text + copy
-      buttons) instead of raw markdown; (2) consistent **empty / loading / error states**
+- [ ] **Polish pass.** Make the six-tab app feel finished. Five parts: (1) ✅ **in-app
+      markdown rendering (done)** — a `MarkdownText` view renders the generated résumé/cover
+      letter as styled, selectable text (headings/bullets/bold-italic, reusing the exporter
+      parsers) with per-document copy buttons, on the Application sheet; (2) consistent **empty /
+      loading / error states**
       across all tabs (no profile, no results, fetch/generation failure); (3) **results /
       saved-jobs / Tracker cohesion** so "already seen / already generated / applied" reads
       as one history; (4) ✅ **scrollable screens / small-window layout (done)** — the
