@@ -2,8 +2,10 @@
 
 How we work: features get discussed in chat, written up here (and in `SPEC.md`),
 then handed to the Claude Code session to build. This file is the high-level
-running list; `TODO.md` breaks the current target into granular, checkable tasks.
-As TODO items land, tick them here too so this stays an accurate progress board.
+running list; `TODO.md` holds the granular checklist of **remaining** work, and
+`MILESTONES.md` records the **completed** milestones in detail. As items land, tick
+them here too so this stays an accurate progress board. (See `CLAUDE.md` → "Working
+process" for how these four docs fit together.)
 
 ## v1 — foundation (complete)
 

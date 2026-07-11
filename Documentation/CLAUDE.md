@@ -1,9 +1,10 @@
 # CLAUDE.md
 
 Project context for Claude Code. Read this before making changes. See `SPEC.md`
-for what we're building, `ROADMAP.md` for the high-level plan, and `TODO.md` for
-the granular, current checklist of where we are. **Starting a fresh session? Read
-`TODO.md` first — its "Current focus" line tells you exactly where to pick up.**
+for what we're building, `ROADMAP.md` for the high-level plan, `TODO.md` for the
+granular checklist of **remaining** work, and `MILESTONES.md` for the record of
+**completed** milestones. **Starting a fresh session? Read `TODO.md` first — its
+"Current focus" line tells you exactly where to pick up.**
 
 ## What this is
 
@@ -297,24 +298,30 @@ for you.
 
 ## Working process (docs as source of truth)
 
-The three planning docs form a pipeline, from broadest to most current:
+Four docs, from broadest to most granular:
 
 - **`SPEC.md`** — what we're building and why (stable; the north star).
-- **`ROADMAP.md`** — the high-level plan: v1 target, fast-follow, backlog, ideas.
-- **`TODO.md`** — the granular, *current* checklist. A segmented breakdown of the
-  ROADMAP's current target, with a "Current focus" line marking the next task.
+- **`ROADMAP.md`** — the high-level plan: v1 target, fast-follow, backlog, ideas
+  (a progress board — items are ticked as they land, but the detail lives elsewhere).
+- **`TODO.md`** — the granular checklist of **work that still needs doing**, with a
+  "Current focus" line marking the next task. It should *only* contain remaining work.
+- **`MILESTONES.md`** — the record of **completed** milestones (the detailed write-ups,
+  moved here out of `TODO.md`). History and reference: what shipped and how.
 
 The loop, so any session can pick up where the last left off:
 
 1. **On a fresh session,** read `CLAUDE.md` → `TODO.md` (start at "Current focus").
-   `SPEC.md` / `ROADMAP.md` give the why and the wider plan when you need them.
+   `SPEC.md` / `ROADMAP.md` give the why and the wider plan; `MILESTONES.md` shows what's
+   already done when you need the history.
 2. **Do the next unchecked `TODO.md` item** (respecting the layer dependency rule),
    in small focused changes.
-3. **When it's done,** check it off in `TODO.md`, tick the matching line in
-   `ROADMAP.md`, and move the "Current focus" pointer to the next item.
-4. **When you discover new sub-tasks,** add them as checkboxes under the right
-   `TODO.md` milestone. When a whole feature is discussed/specced in chat, write it
-   into `SPEC.md` / `ROADMAP.md` in the same change so the docs stay the truth.
+3. **When a milestone (or self-contained sub-part) is done,** *move its write-up out of
+   `TODO.md` into `MILESTONES.md`* (marked ✅), tick the matching line in `ROADMAP.md`, and
+   advance the "Current focus" pointer. `TODO.md` shrinks as work completes — it never
+   accumulates checked-off items.
+4. **When you discover new sub-tasks,** add them as checkboxes under the right `TODO.md`
+   milestone. When a whole feature is discussed/specced in chat, write it into `SPEC.md` /
+   `ROADMAP.md` in the same change so the docs stay the truth.
 
 Keep these updates in the same commit/change as the code they describe.
 
