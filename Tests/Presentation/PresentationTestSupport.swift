@@ -25,6 +25,10 @@ struct PresentationStubProvider: LLMProvider {
         if shouldThrow { throw Boom() }
         return "TIDY:\n" + rawText
     }
+    func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) async throws -> String {
+        if shouldThrow { throw Boom() }
+        return "REFINED:\(instruction)"
+    }
     func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] {
         if shouldThrow { throw Boom() }
         return matches

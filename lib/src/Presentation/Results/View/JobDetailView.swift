@@ -19,6 +19,8 @@ struct JobDetailView: View {
     let applicationViewModel: ApplicationViewModel
     var markStatus: MarkStatusUseCase? = nil
     var loadStatus: LoadStatusUseCase? = nil
+    /// The candidate's real documents for grounded generation (Milestone T).
+    var grounding: PortfolioGrounding? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var showingApplication = false
@@ -51,7 +53,7 @@ struct JobDetailView: View {
         }
         .sheet(isPresented: $showingApplication) {
             if let profile {
-                ApplicationSheet(viewModel: applicationViewModel, job: listing, profile: profile)
+                ApplicationSheet(viewModel: applicationViewModel, job: listing, profile: profile, grounding: grounding)
             }
         }
     }

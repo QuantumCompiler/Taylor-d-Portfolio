@@ -60,12 +60,20 @@ nonisolated struct LLMRouter: LLMProvider {
         try await run(.profile) { try await $0.tidyDocument(rawText: rawText) }
     }
 
+    func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) async throws -> String {
+        try await run(.profile) { try await $0.refineSummary(profile: profile, portfolio: portfolio, instruction: instruction) }
+    }
+
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await run(.application) { try await $0.buildTargetBrief(for: job) }
     }
 
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
-        try await run(.application) { try await $0.generateApplication(for: job, profile: profile, brief: brief) }
+        try await generateApplication(for: job, profile: profile, brief: brief, grounding: nil)
+    }
+
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
+        try await run(.application) { try await $0.generateApplication(for: job, profile: profile, brief: brief, grounding: grounding) }
     }
 
     // MARK: Routing

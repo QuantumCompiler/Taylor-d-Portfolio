@@ -15,6 +15,8 @@ struct ResultsView: View {
     let applicationViewModel: ApplicationViewModel
     var markStatus: MarkStatusUseCase? = nil
     var loadStatus: LoadStatusUseCase? = nil
+    /// The candidate's real documents for grounded generation (Milestone T).
+    var grounding: PortfolioGrounding? = nil
 
     var body: some View {
         Group {
@@ -37,7 +39,7 @@ struct ResultsView: View {
         .sheet(item: $viewModel.selectedJob) { ranked in
             JobDetailView(
                 ranked: ranked, profile: profile, applicationViewModel: applicationViewModel,
-                markStatus: markStatus, loadStatus: loadStatus
+                markStatus: markStatus, loadStatus: loadStatus, grounding: grounding
             )
         }
         // Refresh badges after the detail sheet (where status can change) closes.

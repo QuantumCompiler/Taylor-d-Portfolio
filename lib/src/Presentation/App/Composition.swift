@@ -91,6 +91,7 @@ struct Composition {
     private var buildProfile: BuildProfileUseCase { .init(provider: llmProvider) }
     private var importPortfolio: ImportPortfolioUseCase { .init(extractor: documentExtractor) }
     private var tidyDocument: TidyDocumentUseCase { .init(provider: llmProvider) }
+    private var refineSummary: RefineSummaryUseCase { .init(provider: llmProvider) }
     private var searchAndRank: SearchAndRankUseCase {
         .init(jobSource: jobSource, ranker: JobRanker(provider: llmProvider))
     }
@@ -122,6 +123,7 @@ struct Composition {
             buildProfile: buildProfile,
             importPortfolio: importPortfolio,
             tidyDocument: tidyDocument,
+            refineSummary: refineSummary,
             saveProfile: saveProfile,
             loadProfiles: loadProfiles,
             deleteProfile: deleteProfile,
@@ -195,11 +197,17 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     func tidyDocument(rawText: String) async throws -> String {
         try await router().tidyDocument(rawText: rawText)
     }
+    func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) async throws -> String {
+        try await router().refineSummary(profile: profile, portfolio: portfolio, instruction: instruction)
+    }
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await router().buildTargetBrief(for: job)
     }
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
         try await router().generateApplication(for: job, profile: profile, brief: brief)
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
+        try await router().generateApplication(for: job, profile: profile, brief: brief, grounding: grounding)
     }
 }
 

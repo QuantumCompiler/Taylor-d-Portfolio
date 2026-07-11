@@ -54,14 +54,14 @@ struct RootView: View {
 
             ResultsView(
                 viewModel: results, profile: portfolio.profile, applicationViewModel: application,
-                markStatus: markStatus, loadStatus: loadStatus
+                markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding
             )
                 .tabItem { Label("Results", systemImage: "list.number") }
                 .tag(MainTab.results)
 
             TrackerView(
                 viewModel: tracker, profile: portfolio.profile, applicationViewModel: application,
-                markStatus: markStatus, loadStatus: loadStatus
+                markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding
             )
                 .tabItem { Label("Tracker", systemImage: "briefcase") }
                 .tag(MainTab.tracker)

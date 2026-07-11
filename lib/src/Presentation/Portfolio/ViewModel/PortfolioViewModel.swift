@@ -51,9 +51,14 @@ final class PortfolioViewModel {
     /// first load, and never clobbers a later manual selection).
     private var hasAppliedDefault = false
 
+    /// The instruction the user types to steer a summary regeneration (e.g. "more concise").
+    var summaryPrompt: String = ""
+    private(set) var isRefiningSummary = false
+
     private let buildProfile: BuildProfileUseCase
     private let importPortfolio: ImportPortfolioUseCase
     private let tidyDocument: TidyDocumentUseCase?
+    private let refineSummary: RefineSummaryUseCase?
     private let saveProfile: SaveProfileUseCase?
     private let loadProfiles: LoadProfilesUseCase?
     private let deleteProfile: DeleteProfileUseCase?
@@ -63,6 +68,7 @@ final class PortfolioViewModel {
         buildProfile: BuildProfileUseCase,
         importPortfolio: ImportPortfolioUseCase,
         tidyDocument: TidyDocumentUseCase? = nil,
+        refineSummary: RefineSummaryUseCase? = nil,
         saveProfile: SaveProfileUseCase? = nil,
         loadProfiles: LoadProfilesUseCase? = nil,
         deleteProfile: DeleteProfileUseCase? = nil,
@@ -71,6 +77,7 @@ final class PortfolioViewModel {
         self.buildProfile = buildProfile
         self.importPortfolio = importPortfolio
         self.tidyDocument = tidyDocument
+        self.refineSummary = refineSummary
         self.saveProfile = saveProfile
         self.loadProfiles = loadProfiles
         self.deleteProfile = deleteProfile
@@ -79,6 +86,19 @@ final class PortfolioViewModel {
     }
 
     var isBusy: Bool { isBuilding || isImporting }
+
+    /// The real document text for grounded generation (Milestone T): the résumé's readable
+    /// text as factual grounding + the optional cover letter as a voice exemplar. `nil` when
+    /// there's no active profile or no stored résumé text (legacy profile) — generation then
+    /// falls back to profile-only, unchanged.
+    var grounding: PortfolioGrounding? {
+        guard profile != nil else { return nil }
+        let resume = readableText.isEmpty ? sourceText : readableText
+        guard !resume.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        let rawLetter = coverLetterReadableText.isEmpty ? coverLetterSourceText : coverLetterReadableText
+        let letter = rawLetter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : rawLetter
+        return PortfolioGrounding(resumeText: resume, coverLetterText: letter)
+    }
 
     var canBuild: Bool {
         !portfolioText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy
@@ -171,6 +191,38 @@ final class PortfolioViewModel {
             }
         } catch {
             errorMessage = "Couldn't build your profile. Check that an engine is available in Settings, then try again."
+        }
+    }
+
+    // MARK: Regenerate the profile summary (description)
+
+    /// Whether the regenerate-summary control should be offered in this build.
+    var supportsSummaryRegeneration: Bool { refineSummary != nil }
+
+    /// Whether a regenerate can run right now (wired, a profile is loaded, not busy).
+    var canRegenerateSummary: Bool {
+        refineSummary != nil && profile != nil && !isRefiningSummary && !isBusy
+    }
+
+    /// Regenerates the current profile's `summary` from `summaryPrompt`, grounded in the
+    /// profile and portfolio text. Leaves every other profile field untouched.
+    func regenerateSummary() async {
+        guard let refineSummary, var current = profile, canRegenerateSummary else { return }
+        isRefiningSummary = true
+        errorMessage = nil
+        defer { isRefiningSummary = false }
+        do {
+            let portfolio = readableText.isEmpty ? sourceText : readableText
+            let newSummary = try await refineSummary(
+                profile: current, portfolio: portfolio, instruction: summaryPrompt
+            )
+            let trimmed = newSummary.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            current.summary = trimmed
+            profile = current
+            summaryPrompt = ""
+        } catch {
+            errorMessage = "Couldn't regenerate the description. Check that an engine is available in Settings, then try again."
         }
     }
 

@@ -14,6 +14,9 @@ struct ApplicationSheet: View {
     @Bindable var viewModel: ApplicationViewModel
     let job: JobListing
     let profile: CandidateProfile
+    /// The candidate's real documents for grounded generation (Milestone T); nil falls
+    /// back to profile-only generation.
+    var grounding: PortfolioGrounding? = nil
     @Environment(\.dismiss) private var dismiss
 
     // Export state for the save panel.
@@ -55,7 +58,7 @@ struct ApplicationSheet: View {
                     .fixedSize()
                 }
                 if viewModel.kit != nil {
-                    Button("Regenerate") { Task { await viewModel.generate(for: job, profile: profile) } }
+                    Button("Regenerate") { Task { await viewModel.generate(for: job, profile: profile, grounding: grounding) } }
                         .disabled(viewModel.isGenerating)
                 }
                 Button("Done") { dismiss() }
@@ -66,7 +69,7 @@ struct ApplicationSheet: View {
         }
         .padding(24)
         .frame(minWidth: 520, minHeight: 440)
-        .task { await viewModel.open(for: job, profile: profile) }
+        .task { await viewModel.open(for: job, profile: profile, grounding: grounding) }
         .fileExporter(
             isPresented: $isExporting,
             document: exportDocument,

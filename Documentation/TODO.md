@@ -26,8 +26,9 @@ milestone.
 > reachable/clickable; if it's *greyed-out* rather than off-screen, the profile isn't reaching the
 > Search VM — a wiring check to do next. **Phase 2: Q — Export is COMPLETE** (Q-A copy +
 > Markdown/plain-text, Q-B PDF via native Core Text, Q-C DOCX via a hand-rolled OOXML/ZIP writer).
-> **Phase 3: T — Two-document portfolio** — **T-A (optional cover-letter input + model) is done**;
-> next is **T-B (reference both documents in generation grounding)**. Then U → R, then V → W. Then
+> **Phase 3: T — Two-document portfolio is COMPLETE** (T-A optional cover-letter input + model;
+> T-B both documents injected as generation grounding). **Next: U — Expanded search parameters**
+> (U-A…U-F), then **R — Saved searches**, then V → W. Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -836,7 +837,7 @@ on the inner radio-dial + text HStack only, so the user has to hit the dial/titl
       existing VM tests (this is only gesture placement); full suite green. Manual (device) check that
       tapping/long-pressing anywhere on the tile — including padding — works and delete is unaffected.
 
-## Milestone T — Two-document portfolio (résumé + cover letter) as generation grounding  🔨 in progress (T-A done; T-B next)  (`Data/Models`, Portfolio input, `TidyDocumentUseCase`, `GenerateApplicationUseCase` / `LLMProvider` / `Prompts`, Application plumbing)
+## Milestone T — Two-document portfolio (résumé + cover letter) as generation grounding  ✅ done (T-A + T-B)  (`Data/Models`, Portfolio input, `TidyDocumentUseCase`, `GenerateApplicationUseCase` / `LLMProvider` / `Prompts`, Application plumbing)
 
 Goal: the Portfolio tab accepts **two** documents — a résumé/portfolio (the existing import,
 now the primary slot) and an **optional cover letter** — and both are referenced when
@@ -873,32 +874,36 @@ extended to two documents (later upgradable to embedding retrieval over the same
       (cover-letter import fills its own slot; doesn't gate build; build tidies it while the profile
       stays résumé-only; build without one leaves it empty; save+select round-trip). Suite green.
 
-### T-B — Reference both documents in generation  ⬜
+### T-B — Reference both documents in generation  ✅ done
 
-- [ ] **Carry the documents to generation.** Introduce a lightweight `PortfolioGrounding` value
-      (`resumeText: String`, `coverLetterText: String?` — the tidied readable forms) and thread it
-      from the active profile / `SavedProfile` through `ApplicationViewModel.open` / `generate` and
-      the RootView / Results / Tracker wiring, so generation has the documents even for a freshly
-      built, unsaved profile.
-- [ ] **Grow the generation seam.** `GenerateApplicationUseCase.callAsFunction(job:profile:grounding:)`
-      passes the grounding to `LLMProvider.generateApplication(for:profile:brief:grounding:)`. Keep
-      both engines in lockstep — all new text lives in the shared `Prompts` enum.
-- [ ] **Inject grounding in the prompt.** The résumé/portfolio real text = **factual grounding**
-      for both outputs (reorder/rephrase real experience only). The cover letter = a **voice / tone
-      / structure exemplar** for the generated cover letter, with an explicit guardrail: match the
-      candidate's voice and the *About Me / Why \<company\> / Why Me* structure, but **do not** import
-      claims, metrics, employers, or dates from it as facts — facts come from the résumé/profile.
-      Bound both inputs (truncate for the small on-device context; reuse the existing `max…Characters`
-      bounds).
-- [ ] **Back-compat / fallback.** No cover letter (optional) or no stored document text (legacy
-      profile) → generation falls back to today's profile-only grounding, unchanged.
-- [ ] **Tests.** `PromptsTests`: the generation prompt includes the résumé grounding + a
-      cover-letter voice section + the "don't fabricate from the letter" guardrail; bounding applies;
-      an absent cover letter omits the voice section cleanly. `GenerateApplicationUseCase` threads
-      `grounding`; `ApplicationViewModel` passes the active documents; router/use-case delegation.
-- [ ] **Docs.** SPEC (two-document input + cover-letter-as-voice-reference under "Grounded
-      generation" — done in this planning pass); CLAUDE.md (`SavedProfile` second document,
-      `PortfolioGrounding`, the grown `generateApplication` signature + `GenerateApplicationUseCase`).
+- [x] **Carry the documents to generation.** New `PortfolioGrounding` value (`resumeText: String`,
+      `coverLetterText: String?` — the tidied readable forms) is threaded from
+      `PortfolioViewModel.grounding` (a computed property over the active profile's readable
+      documents, so it works for a freshly built, unsaved profile too) through
+      `RootView` → `ResultsView`/`TrackerView` → `JobDetailView` → `ApplicationSheet` →
+      `ApplicationViewModel.open` / `generate` (incl. Regenerate).
+- [x] **Grew the generation seam.** `GenerateApplicationUseCase.callAsFunction(job:profile:grounding:)`
+      passes grounding to a new `LLMProvider.generateApplication(for:profile:brief:grounding:)`
+      requirement. To keep the seam back-compatible, that requirement has a **forwarding default**
+      (ignores grounding → base method), so every existing stub is untouched; the real engines
+      (`FoundationModelsProvider`, `ClaudeCodeProvider`), `LLMRouter`, and the composition's
+      `SettingsBackedLLMProvider` override it. All new text lives in the shared `Prompts` enum.
+- [x] **Inject grounding in the prompt.** `Prompts.groundingSection` appends: the résumé real text
+      as **factual grounding** (reorder/rephrase only, never add absent facts), and — when present —
+      a **cover-letter voice/tone/structure exemplar** with an explicit guardrail (*match the voice,
+      but do NOT import facts, metrics, employers, or dates from it*). Both bounded
+      (`maxPortfolioCharacters` / new `maxCoverLetterCharacters`).
+- [x] **Back-compat / fallback.** `nil` grounding (no active documents / legacy profile) or an empty
+      cover letter omits the corresponding block — a profile-only prompt is **byte-for-byte
+      unchanged** (asserted by a test).
+- [x] **Tests.** `PromptsTests`: résumé grounding injected as factual grounding; cover letter as a
+      voice exemplar with the no-fabrication guardrail; absent cover letter omits the section; both
+      bounded; nil grounding == the old prompt. `ApplicationViewModelTests`: `generate` threads
+      grounding to the provider (recording provider), and without grounding falls back to nil.
+      Suite green, no warnings.
+- [x] **Docs.** SPEC (two-document input + cover-letter-as-voice reference under "Grounded
+      generation"); CLAUDE.md (`PortfolioGrounding`, the grown `generateApplication` signature +
+      `GenerateApplicationUseCase`); ROADMAP tick.
 
 Note: T-A (input + model) is independently shippable — it enriches what's saved even before
 generation uses it; T-B wires the grounding into output. The cover letter stays voice-only **by

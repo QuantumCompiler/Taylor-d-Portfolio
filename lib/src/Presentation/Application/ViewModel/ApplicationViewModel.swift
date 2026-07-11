@@ -67,8 +67,9 @@ final class ApplicationViewModel {
     }
 
     /// Opens the application for `job`: shows previously-saved materials if present
-    /// (no LLM call), otherwise generates fresh output.
-    func open(for job: JobListing, profile: CandidateProfile) async {
+    /// (no LLM call), otherwise generates fresh output. `grounding` carries the candidate's
+    /// real documents (résumé + optional cover letter) for grounded generation (Milestone T).
+    func open(for job: JobListing, profile: CandidateProfile, grounding: PortfolioGrounding? = nil) async {
         self.job = job
         if let loadApplication, let saved = try? await loadApplication(forJobID: job.id) {
             kit = saved
@@ -77,11 +78,11 @@ final class ApplicationViewModel {
             isGenerating = false
             return
         }
-        await generate(for: job, profile: profile)
+        await generate(for: job, profile: profile, grounding: grounding)
     }
 
     /// Generates fresh materials (also used by "Regenerate") and persists them.
-    func generate(for job: JobListing, profile: CandidateProfile) async {
+    func generate(for job: JobListing, profile: CandidateProfile, grounding: PortfolioGrounding? = nil) async {
         self.job = job
         isGenerating = true
         errorMessage = nil
@@ -89,7 +90,7 @@ final class ApplicationViewModel {
         isSaved = false
         defer { isGenerating = false }
         do {
-            let produced = try await generateApplication(job: job, profile: profile)
+            let produced = try await generateApplication(job: job, profile: profile, grounding: grounding)
             kit = produced
             // Best-effort persist — a storage failure shouldn't lose the generated output.
             try? await saveApplication?(produced, forJobID: job.id)

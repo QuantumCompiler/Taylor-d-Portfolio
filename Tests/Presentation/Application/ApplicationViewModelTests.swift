@@ -12,6 +12,7 @@ import Testing
 /// saved kit is loaded *without* calling the engine.
 private actor RecordingGenProvider: LLMProvider {
     private(set) var generateCalls = 0
+    private(set) var lastGrounding: PortfolioGrounding?
     func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
         .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
     }
@@ -20,7 +21,11 @@ private actor RecordingGenProvider: LLMProvider {
         .init(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
     }
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        try await generateApplication(for: job, profile: profile, brief: brief, grounding: nil)
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
         generateCalls += 1
+        lastGrounding = grounding
         return ApplicationKit(resumeMarkdown: "FRESH", coverLetter: "", gapNote: "")
     }
 }
@@ -107,6 +112,24 @@ struct ApplicationViewModelTests {
         #expect(vm.isSaved == false)
         #expect(await provider.generateCalls == 1)
         #expect(try await repo.kit(forJobID: job.id)?.resumeMarkdown == "FRESH")   // latest-wins persisted
+    }
+
+    // MARK: T-B — generation grounding
+
+    @Test func generateThreadsGroundingThroughToTheProvider() async {
+        let provider = RecordingGenProvider()
+        let vm = ApplicationViewModel(generateApplication: GenerateApplicationUseCase(provider: provider))
+        let grounding = PortfolioGrounding(resumeText: "my real resume", coverLetterText: "my voice")
+        await vm.generate(for: job, profile: profile, grounding: grounding)
+        #expect(vm.kit?.resumeMarkdown == "FRESH")
+        #expect(await provider.lastGrounding == grounding)   // résumé + cover letter reach the engine
+    }
+
+    @Test func openWithoutGroundingFallsBackToProfileOnly() async {
+        let provider = RecordingGenProvider()
+        let vm = ApplicationViewModel(generateApplication: GenerateApplicationUseCase(provider: provider))
+        await vm.open(for: job, profile: profile)            // no grounding passed
+        #expect(await provider.lastGrounding == nil)         // back-compat: profile-only
     }
 
     // MARK: Q-A — export

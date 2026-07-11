@@ -90,6 +90,11 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
   leaves Infrastructure. A built `CandidateProfile` is saved as a named `SavedProfile`
   (Save/Update on the Portfolio tab) and re-selected at build or search time via
   `SaveProfileUseCase` / `LoadProfilesUseCase` / `DeleteProfileUseCase` — no regeneration.
+  The profile's **summary/description can be regenerated** from a user prompt without
+  rebuilding the whole profile: `RefineSummaryUseCase` → `LLMProvider.refineSummary(profile:
+  portfolio:instruction:)` (a plain-text task routed through `.profile`, grounded in the
+  profile + portfolio, never fabricating) rewrites only `summary`; the Portfolio tab exposes a
+  prompt field + Submit, and the user Saves/Updates to persist it.
   Long-pressing a saved profile marks it the **default** (persisted via `DefaultProfileStore`,
   a single-id KeyValueStore pointer); the Portfolio VM auto-loads it once on launch.
   A `SavedProfile` also pairs the **source document** it was built on: `sourceFileName`,
@@ -138,8 +143,13 @@ gitignored `Secrets.xcconfig`).
   the task's chosen model. Shared prompts in `Prompts`; structured
   types are both `Generable` and `Codable`. **Generation is two-stage** (AGENT.md
   discipline): `buildTargetBrief(for:)` distils the posting into a `TargetBrief`,
-  then `generateApplication(for:profile:brief:)` tailors against it. Both are
-  `LLMProvider` methods; `GenerateApplicationUseCase` orchestrates the two calls. Availability via
+  then `generateApplication(for:profile:brief:grounding:)` tailors against it. Both are
+  `LLMProvider` methods; `GenerateApplicationUseCase` orchestrates the two calls. The optional
+  `grounding: PortfolioGrounding?` injects the candidate's **real** résumé text (factual
+  grounding) + an **optional cover-letter voice exemplar** (Milestone T); that requirement has a
+  forwarding default (ignores grounding) so stubs/engines needn't change, and it's threaded from
+  `PortfolioViewModel.grounding` → Results/Tracker → `JobDetailView` → `ApplicationSheet`, nil
+  falling back to profile-only. Availability via
   `SystemLanguageModel.default.availability` → `.available` /
   `.unavailable(.deviceNotEligible | .appleIntelligenceNotEnabled | .modelNotReady)`.
 - **Job seam** — `JobSource` (Data). Implement it (Adzuna, JSearch, USAJOBS…),
@@ -186,7 +196,7 @@ Taylor'd Portfolio/
   Data/
     Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,
                   ApplicationKit, ApplicationStatus, JobQuery, JobSearchRequest,
-                  RankedJob, TrackedJob
+                  RankedJob, TrackedJob, SavedProfile, PortfolioGrounding
     LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
                   LLMRouter, LLMChoice, LLMTask, TaskEngineConfig, ClaudeModel, Prompts
     Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource

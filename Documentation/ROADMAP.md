@@ -229,7 +229,13 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       Presentation (Views + VMs), with small Data/use-case touches for the history joins.
       On-device: yes.
 
-- [ ] **Two-document portfolio (résumé/portfolio + cover letter) as generation grounding.**
+- [x] **Two-document portfolio (résumé/portfolio + cover letter) as generation grounding.**
+      ✅ **Done (T-A + T-B).** The Portfolio tab now takes a required résumé/portfolio + an **optional
+      cover letter** (both LLM-tidied, carried on `SavedProfile`, back-compatible with single-document
+      saves). Generation injects a `PortfolioGrounding` — résumé real text as factual grounding, cover
+      letter as a voice/tone exemplar with a "never import facts from it" guardrail — via a grown
+      `generateApplication(…grounding:)` seam (a forwarding default keeps stubs untouched); nil
+      grounding falls back to the profile-only prompt unchanged.
       Let the Portfolio tab accept **two** documents — a résumé/portfolio (the existing
       import, now the primary slot) and an **optional cover letter** — and reference both
       when generating a job's tailored materials. The résumé/portfolio stays the *factual*

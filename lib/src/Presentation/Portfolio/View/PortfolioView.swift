@@ -13,6 +13,10 @@ struct PortfolioView: View {
     @Bindable var viewModel: PortfolioViewModel
     @State private var showResumeImporter = false
     @State private var showCoverLetterImporter = false
+    /// Whether each document's raw text editor is revealed. Hidden by default — the editors
+    /// are long, so they're collapsed behind a "Show text" toggle until the user wants them.
+    @State private var showResumeText = false
+    @State private var showCoverLetterText = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -24,6 +28,7 @@ struct PortfolioView: View {
                 title: "Résumé / portfolio",
                 fileName: viewModel.sourceFileName,
                 text: $viewModel.portfolioText,
+                isExpanded: $showResumeText,
                 minHeight: 180
             ) { showResumeImporter = true }
             .fileImporter(
@@ -40,6 +45,7 @@ struct PortfolioView: View {
                 title: "Cover letter (optional)",
                 fileName: viewModel.coverLetterFileName,
                 text: $viewModel.coverLetterText,
+                isExpanded: $showCoverLetterText,
                 minHeight: 120
             ) { showCoverLetterImporter = true }
             .fileImporter(
@@ -70,6 +76,9 @@ struct PortfolioView: View {
 
             if let profile = viewModel.profile {
                 ProfileSummary(profile: profile, isDefault: viewModel.isSelectedProfileDefault)
+                if viewModel.supportsSummaryRegeneration {
+                    regenerateSummaryControl
+                }
                 if hasSourceDocuments {
                     sourceDocumentsSection
                 }
@@ -87,11 +96,13 @@ struct PortfolioView: View {
         .task { await viewModel.reloadProfiles() }
     }
 
-    /// A labelled import-or-paste slot for one document (résumé or cover letter).
+    /// A labelled import-or-paste slot for one document (résumé or cover letter). The raw
+    /// text editor is **hidden by default** and revealed with the "Show text" toggle.
     private func documentSlot(
         title: String,
         fileName: String?,
         text: Binding<String>,
+        isExpanded: Binding<Bool>,
         minHeight: CGFloat,
         onImport: @escaping () -> Void
     ) -> some View {
@@ -102,17 +113,45 @@ struct PortfolioView: View {
                     Text("· \(fileName)").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) { isExpanded.wrappedValue.toggle() }
+                } label: {
+                    Label(isExpanded.wrappedValue ? "Hide text" : "Show text",
+                          systemImage: isExpanded.wrappedValue ? "chevron.up" : "chevron.down")
+                        .font(.callout)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+
                 Button(action: onImport) {
                     Label("Import…", systemImage: "doc.badge.plus")
                 }
                 .disabled(viewModel.isBusy)
             }
-            TextEditor(text: text)
-                .font(.body.monospaced())
-                .frame(minHeight: minHeight)
-                .padding(8)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
+
+            if isExpanded.wrappedValue {
+                TextEditor(text: text)
+                    .font(.body.monospaced())
+                    .frame(minHeight: minHeight)
+                    .padding(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
+            } else {
+                // A compact hint of what the (hidden) slot holds, so the editor isn't needed
+                // just to tell whether content is present.
+                Text(collapsedSummary(for: text.wrappedValue))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
+    }
+
+    /// A one-line summary shown when a document's editor is collapsed.
+    private func collapsedSummary(for text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "No text yet — Import a file, or tap Show text to paste."
+        }
+        return "\(trimmed.count) characters — tap Show text to view or edit."
     }
 
     /// Whether either document has readable text to show under the profile.
@@ -152,6 +191,34 @@ struct PortfolioView: View {
             .frame(maxHeight: 220)
         } label: {
             Label(label, systemImage: "doc.text").font(.headline)
+        }
+    }
+
+    /// A prompt field + Submit button to regenerate the profile's summary/description.
+    /// The field grows **downward** as you type (fixed width, wraps to new lines) rather
+    /// than scrolling sideways, then scrolls internally past its max height.
+    private var regenerateSummaryControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Regenerate description").font(.subheadline.weight(.semibold))
+            HStack(alignment: .bottom, spacing: 8) {
+                TextField(
+                    "How should the description change? (e.g. more concise, emphasise leadership)",
+                    text: $viewModel.summaryPrompt,
+                    axis: .vertical
+                )
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(1...6)
+                .onSubmit { Task { await viewModel.regenerateSummary() } }
+
+                Button("Submit") { Task { await viewModel.regenerateSummary() } }
+                    .disabled(!viewModel.canRegenerateSummary)
+
+                if viewModel.isRefiningSummary {
+                    ProgressView().controlSize(.small)
+                }
+            }
+            Text("Rewrites only the summary, grounded in your real portfolio. Save/Update to keep it.")
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 

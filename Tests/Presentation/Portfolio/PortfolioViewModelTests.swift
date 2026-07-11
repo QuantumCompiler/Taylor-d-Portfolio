@@ -42,6 +42,7 @@ struct PortfolioViewModelTests {
             buildProfile: BuildProfileUseCase(provider: provider),
             importPortfolio: ImportPortfolioUseCase(extractor: PresentationStubExtractor(text: importText)),
             tidyDocument: TidyDocumentUseCase(provider: provider),
+            refineSummary: RefineSummaryUseCase(provider: provider),
             saveProfile: SaveProfileUseCase(repository: repo, makeID: { "id-1" }, now: { Date(timeIntervalSince1970: 1) }),
             loadProfiles: LoadProfilesUseCase(repository: repo),
             deleteProfile: DeleteProfileUseCase(repository: repo),
@@ -328,5 +329,46 @@ struct PortfolioViewModelTests {
         #expect(vm.coverLetterFileName == "note.txt")
         #expect(vm.coverLetterSourceText == "my letter")
         #expect(vm.coverLetterReadableText == "TIDY:\nmy letter")
+    }
+
+    // MARK: Regenerate the profile summary
+
+    @Test func regenerateSummaryRewritesOnlyTheSummary() async {
+        let vm = makePersistingVM()
+        vm.portfolioText = "raw resume"
+        await vm.build()
+        let before = vm.profile!
+        vm.summaryPrompt = "more concise"
+
+        await vm.regenerateSummary()
+
+        #expect(vm.profile?.summary == "REFINED:more concise")   // summary replaced
+        #expect(vm.profile?.seniority == before.seniority)        // other fields untouched
+        #expect(vm.profile?.coreSkills == before.coreSkills)
+        #expect(vm.summaryPrompt.isEmpty)                          // input cleared after submit
+        #expect(vm.errorMessage == nil)
+        #expect(vm.isRefiningSummary == false)
+    }
+
+    @Test func regenerateSummaryNeedsAProfileAndAWiredEngine() async {
+        let unwired = makeVM()               // no refineSummary use case
+        #expect(unwired.supportsSummaryRegeneration == false)
+        #expect(unwired.canRegenerateSummary == false)
+
+        let vm = makePersistingVM()
+        #expect(vm.supportsSummaryRegeneration)
+        #expect(vm.canRegenerateSummary == false)   // no profile yet
+        vm.portfolioText = "resume"
+        await vm.build()
+        #expect(vm.canRegenerateSummary)            // profile built → enabled
+    }
+
+    @Test func regenerateSummaryWithAnEmptyPromptStillRegenerates() async {
+        let vm = makePersistingVM()
+        vm.portfolioText = "resume"
+        await vm.build()
+        vm.summaryPrompt = ""                       // empty prompt allowed → fresh rewrite
+        await vm.regenerateSummary()
+        #expect(vm.profile?.summary == "REFINED:")  // stub echoes the (empty) instruction
     }
 }

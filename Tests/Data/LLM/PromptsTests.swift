@@ -136,4 +136,80 @@ struct PromptsTests {
     @Test func generateInstructionsForbidFabrication() {
         #expect(Prompts.generateInstructions.lowercased().contains("never"))
     }
+
+    // MARK: T-B — two-document grounding
+
+    private var job: JobListing {
+        JobListing(id: "a", title: "iOS Engineer", company: "Acme", location: "Remote", description: "d")
+    }
+
+    @Test func nilGroundingLeavesThePromptUnchanged() {
+        let base = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief)
+        let withNil = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief, grounding: nil)
+        #expect(base == withNil)   // back-compat: profile-only generation is byte-for-byte the same
+    }
+
+    @Test func resumeGroundingIsInjectedAsFactualGrounding() {
+        let grounding = PortfolioGrounding(resumeText: "REAL RESUME with QuantumKit at Globex")
+        let prompt = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief, grounding: grounding)
+        #expect(prompt.contains("REAL RESUME with QuantumKit at Globex"))
+        #expect(prompt.lowercased().contains("résumé"))
+        #expect(prompt.contains("factual grounding"))
+    }
+
+    @Test func coverLetterIsAVoiceExemplarWithANoFabricationGuardrail() {
+        let grounding = PortfolioGrounding(resumeText: "resume", coverLetterText: "Dear team, my authentic voice.")
+        let prompt = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief, grounding: grounding)
+        #expect(prompt.contains("Dear team, my authentic voice."))
+        #expect(prompt.lowercased().contains("voice"))
+        // The guardrail: match the voice, but never import facts from the letter.
+        #expect(prompt.lowercased().contains("do not import"))
+    }
+
+    @Test func absentCoverLetterOmitsTheVoiceSectionCleanly() {
+        let resumeOnly = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            grounding: PortfolioGrounding(resumeText: "resume", coverLetterText: nil)
+        )
+        #expect(resumeOnly.contains("factual grounding"))
+        #expect(!resumeOnly.lowercased().contains("style example"))   // no cover-letter block
+    }
+
+    // MARK: Refine summary
+
+    @Test func refineSummaryPromptCarriesInstructionProfileAndPortfolio() {
+        let prompt = Prompts.refineSummary(
+            profile: sampleProfile, portfolio: "REAL PORTFOLIO with Globex", instruction: "emphasise leadership"
+        )
+        #expect(prompt.contains("emphasise leadership"))    // the user instruction
+        #expect(prompt.contains("Senior"))                  // profile facts
+        #expect(prompt.contains("REAL PORTFOLIO with Globex"))
+        #expect(prompt.lowercased().contains("only the rewritten summary"))
+        #expect(Prompts.refineSummaryInstructions.lowercased().contains("never invent"))
+    }
+
+    @Test func refineSummaryWithEmptyInstructionAsksForAFreshSummary() {
+        let prompt = Prompts.refineSummary(profile: sampleProfile, portfolio: "", instruction: "   ")
+        #expect(prompt.lowercased().contains("fresh"))
+        #expect(!prompt.contains("Portfolio (the candidate's real experience"))   // empty portfolio omitted
+    }
+
+    @Test func refineSummaryBoundsALongPortfolio() {
+        let long = String(repeating: "P", count: Prompts.maxPortfolioCharacters + 500)
+        let prompt = Prompts.refineSummary(profile: sampleProfile, portfolio: long, instruction: "x")
+        #expect(!prompt.contains(long))
+        #expect(prompt.contains("…"))
+    }
+
+    @Test func groundingDocumentsAreBounded() {
+        let longResume = String(repeating: "R", count: Prompts.maxPortfolioCharacters + 500)
+        let longLetter = String(repeating: "L", count: Prompts.maxCoverLetterCharacters + 500)
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            grounding: PortfolioGrounding(resumeText: longResume, coverLetterText: longLetter)
+        )
+        #expect(!prompt.contains(longResume))   // truncated, not injected whole
+        #expect(!prompt.contains(longLetter))
+        #expect(prompt.contains("…"))
+    }
 }
