@@ -6,13 +6,13 @@ and how it was built. For the product spec see `SPEC.md`; for the high-level pla
 `ROADMAP.md`; for the remaining work see `TODO.md`. See `CLAUDE.md` → "Working process" for how
 these docs fit together.
 
-Grouped by release: **v1 — foundation**, **v2 — reliability**, **v3 — output & polish**, then
+Grouped by release: **v0.1.0 — foundation**, **v0.2.0 — reliability**, **v0.3.0 — output & polish**, then
 **ad-hoc / quality-of-life** enhancements. (A former Milestone L — "prefer AFM 3 Core Advanced
 on-device" — was dropped: on-device tier selection has no developer API; see `CLAUDE.md` → Stack.)
 
 ---
 
-# v1 — foundation
+# v0.1.0 — foundation
 
 ## Milestone A — Project scaffold & app shell  ✅ done
 
@@ -136,7 +136,7 @@ engine choice and Adzuna keys apply without a relaunch. Runtime caveats for a wo
 Apple Intelligence on (on-device engine), Adzuna keys in Settings (search), and **App
 Sandbox off** to use the Claude CLI engine (see CLAUDE.md → Build).
 
-## Milestone J — End-to-end vertical slice  ✅ done  ← closes v1
+## Milestone J — End-to-end vertical slice  ✅ done  ← closes v0.1.0
 
 - [x] Portfolio → profile → search → ranked results → generate resume/cover letter,
       wired end to end and proven by an integration test (`EndToEndTests`) driving the
@@ -152,7 +152,7 @@ logic itself is unit-tested (`LLMRouterTests`).
 
 ## Feature: Portfolio document import  ✅ done
 
-Added on top of the v1 core (from the ROADMAP ideas list).
+Added on top of the v0.1.0 core (from the ROADMAP ideas list).
 
 - [x] `DocumentTextExtractor` port + `PlatformDocumentTextExtractor` — PDFKit for PDFs,
       `NSAttributedString` for Word/RTF/ODT, direct read for text (Infrastructure/Documents)
@@ -166,7 +166,7 @@ Portfolio-**URL** import (fetch + extract) is still open (ROADMAP ideas).
 
 ---
 
-# v2 — reliability
+# v0.2.0 — reliability
 
 Turning "misconfigured / weak output" into problems that fail fast and clearly.
 All milestones below (K, M, N, O, P) are complete. (A former Milestone L — "prefer
@@ -217,7 +217,7 @@ setting (it's a search preference, not a secret).
       updated `SettingsStoreTests` + `SettingsViewModelTests` (credential fields gone,
       configured-status added); `SearchViewModelTests` unconfigured-build cases. Full
       suite green on macOS.
-- [x] **Docs in the same change.** SPEC (build-time creds note in v1 scope), CLAUDE.md
+- [x] **Docs in the same change.** SPEC (build-time creds note in v0.1.0 scope), CLAUDE.md
       (Build setup + Settings/Data map + layer map now lists `Infrastructure/Config`), and
       the gitignore + `Secrets.example.xcconfig`.
 
@@ -299,7 +299,7 @@ The AGENT.md file itself is Taylor's ground-truth reference for tone and the tai
 Goal: once a profile is loaded, let the user run **several role titles in one search**
 (iOS Developer, iOS Engineer, Software Developer, Software Engineer, …) and **autocomplete**
 the input fields, seeded from the loaded profile. More relevant recall, less typing.
-This is a search-quality/UX item — could sit in fast-follow instead of v2 if you'd rather;
+This is a search-quality/UX item — could sit in fast-follow instead of v0.2.0 if you'd rather;
 kept here since it directly touches the reliability of getting good results.
 
 ### N-A — Multiple title searches, merged and ranked once  ✅ done
@@ -497,7 +497,7 @@ intact: this records what the user did, it doesn't act on job sites.
 
 ---
 
-# v3 — output & polish
+# v0.3.0 — output & polish
 
 ## 🔧 Hotfix — job-posting URL fetch is broken  ✅ done  (Search flow: `SearchViewModel` / `SearchView` / `FetchPostingUseCase` / `LinkJobPostingSource` / RootView / `HTTPClient`)
 
@@ -549,7 +549,7 @@ candidate #3 was ruled out. What actually broke it:
       (an ISO-Latin-1 body that isn't valid UTF-8 still extracts). Full suite green on macOS.
 - [x] **Docs.** ROADMAP hotfix ticked; this item records the root cause + fix.
 
-Note: this is a defect in v2's Milestone M-A, pulled to the front of v3 because it blocks a
+Note: this is a defect in v0.2.0's Milestone M-A, pulled to the front of v0.3.0 because it blocks a
 shipped feature. It touches only the Search/fetch flow plus a backward-compatible `HTTPClient`
 port addition — no new seam, no layer-rule change.
 
@@ -581,7 +581,7 @@ Q-B is the core value, Q-C is the heaviest single piece — all three share one 
       presents `.fileExporter` via a small `ExportFileDocument` (Presentation/Components). Shown
       only when `canExport` (a kit + a wired exporter); filename derives from the job
       (company · role, sanitised). Wired through `Composition` (always-on `MarkdownDocumentExporter`).
-      (Attached to the Application sheet only, per the v3 order — V removes generation from Results.)
+      (Attached to the Application sheet only, per the v0.3.0 order — V removes generation from Results.)
 - [x] **Tests.** `MarkdownDocumentExporterTests` (markdown verbatim; plain-text strips; pdf/docx
       throw; format metadata) + `MarkdownPlainTextTests`; `ExportApplicationUseCaseTests`
       (assembles headings, omits gapNote, empty-section omission, format routing end-to-end);

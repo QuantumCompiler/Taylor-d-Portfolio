@@ -9,9 +9,9 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** v1 (A–J + document import), v2 (K, M, N, O, P), and nearly all of v3 are
+> **Current focus.** v0.1.0 (A–J + document import), v0.2.0 (K, M, N, O, P), and nearly all of v0.3.0 are
 > **complete** — see `MILESTONES.md` for the full record (Hotfix, Q, R, S-D/S-E, T, U, V, W, plus
-> the ad-hoc QoL work). **What's left in v3:** the broad **polish pass** — **S-A** (in-app markdown
+> the ad-hoc QoL work). **What's left in v0.3.0:** the broad **polish pass** — **S-A** (in-app markdown
 > rendering), **S-B** (empty / loading / error states), **S-C** (results / saved-jobs / Tracker
 > cohesion) — and the **stretch, X** (export templates + one-page gate). **Next: S-A.**
 >
@@ -20,7 +20,7 @@ doing.
 > correctly in Preview / Word; the new **filter bar**, **swipe card**, and **custom tab bar** look
 > and feel right.
 >
-> Larger backlog beyond v3 (see `ROADMAP.md`): native `LanguageModel` provider seam; on-device
+> Larger backlog beyond v0.3.0 (see `ROADMAP.md`): native `LanguageModel` provider seam; on-device
 > embedding RAG; optional MCP tools.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
@@ -28,7 +28,7 @@ down only).
 
 ---
 
-# v3 — output & polish (remaining)
+# v0.3.0 — output & polish (remaining)
 
 ## Milestone S — Polish pass  ⬜ not started  (mostly Presentation; small Data/use-case touches)
 
@@ -64,7 +64,7 @@ Goal: make the six-tab app feel finished. Three independent parts — ship in an
 
 > **Note:** S-D (scrollable screens) and S-E (saved-profile tile gestures) already shipped — see `MILESTONES.md`.
 
-## Milestone X — Export templates + one-page gate  ⬜ stretch (v3 stretch / v4 seed)
+## Milestone X — Export templates + one-page gate  ⬜ stretch (v0.3.0 stretch / v0.4.0 seed)
 
 Goal (only if Q-B lands with room to spare): 1–2 selectable résumé templates and AGENT.md's
 **one-page length gate**. Depends on the Q-B renderer choice — the HTML-template path makes both
@@ -79,4 +79,4 @@ realistic; the AttributedString path makes them harder (revisit if that was chos
 - [ ] **Tests.** Template selection routes to the right layout; the length check flags an
       over-long kit.
 
-Note: parked as a stretch — promote into v3 proper only if Q completes early; otherwise it seeds v4.
+Note: parked as a stretch — promote into v0.3.0 proper only if Q completes early; otherwise it seeds v0.4.0.

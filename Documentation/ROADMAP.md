@@ -7,7 +7,7 @@ running list; `TODO.md` holds the granular checklist of **remaining** work, and
 them here too so this stays an accurate progress board. (See `CLAUDE.md` → "Working
 process" for how these four docs fit together.)
 
-## v1 — foundation (complete)
+## v0.1.0 — foundation (complete)
 
 - [x] Project scaffold: SwiftUI macOS app, folder layout per `CLAUDE.md`
       (four-layer `lib/src`, feature-based Presentation, landing screen, template removed)
@@ -24,7 +24,7 @@ process" for how these four docs fit together.)
       end to end (wiring proven by `EndToEndTests` + launch smoke; live-engine run is a
       manual device step)
 
-## v2 — reliability (complete)
+## v0.2.0 — reliability (complete)
 
 The theme is turning "misconfigured / weak output" into problems that surface early
 and clearly, rather than as silent runtime failures. See `TODO.md` for the granular
@@ -157,7 +157,7 @@ breakdown.
       manual date edit is an optional later touch. Builds on O (persistence); replaces the
       "applied-to tracker" that was parked in the SwiftData fast-follow.
 
-## v3 — output & polish (current target)
+## v0.3.0 — output & polish (current target)
 
 The theme: get the generated materials cleanly *out* of the app (Export), finish the
 persistence fast-follow (saved/re-runnable searches), and polish the app that produces
@@ -166,7 +166,7 @@ Milestones Q (Export), R (Saved searches), S (Polish), T (two-document portfolio
 U (expanded search parameters), V (results ↔ tracker interaction), W (results filtering);
 X (templates + one-page gate) is a stretch. **v0.3.0 scope is closed.** The milestone
 letters are a catalogue, **not** the build order — see **"Recommended implementation order
-(v3)"** in `TODO.md` for the phased sequence (fixes → Export → grounding/search → results
+(v0.3.0)"** in `TODO.md` for the phased sequence (fixes → Export → grounding/search → results
 experience → cohesive polish → stretch). `TODO.md` has the granular breakdown.
 
 - [x] **🔧 Hotfix — job-posting URL fetch is broken (do first).** ✅ **Done.** The Search screen's
@@ -253,7 +253,7 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       facts, metrics, employers, and dates are **never imported from it** (the "never
       fabricate" guardrail holds; facts come from the résumé/profile). Both documents are
       LLM-tidied (`TidyDocumentUseCase`) and carried on `SavedProfile`; generation injects
-      their bounded text — the concrete v1 grounding approach in SPEC ("inject the bounded
+      their bounded text — the concrete v0.1.0 grounding approach in SPEC ("inject the bounded
       portfolio directly"), later upgradable to embedding retrieval over the same documents.
       Cover letter is **optional** and back-compatible with existing single-document profiles.
       Seam: `SavedProfile` (second-document fields), Portfolio input (second importer/paste
@@ -338,13 +338,17 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       selectable résumé templates and AGENT.md's one-page length gate (warn / offer a
       tightened variant when the résumé overflows a page — surfaced, never silently
       truncating). Depends on the Q PDF-renderer choice (the HTML-template path makes both
-      realistic). Promote into v3 proper only if Q completes early; otherwise it seeds v4.
+      realistic). Promote into v0.3.0 proper only if Q completes early; otherwise it seeds v0.4.0.
 
 ## Fast follow (next up)
 
-- Export and saved/re-runnable searches moved **up into v3** (see above); the profile-cache
+- Export and saved/re-runnable searches moved **up into v0.3.0** (see above); the profile-cache
   half of the old "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`.
-  When v3 completes, pull the next item up from Backlog.
+  When v0.3.0 completes, pull the next item up from Backlog.
+
+> **Numbering the next version.** When `v0.3.0` is done and a new version (`v0.4.0`) is planned,
+> its milestones **restart at Milestone A** (not continuing from X) — each version letters its own
+> milestones A, B, C…. See `CLAUDE.md` → "Working process" → Versioning.
 
 ## Backlog (to be specced from chat)
 
@@ -400,7 +404,7 @@ _Loose parking lot — not committed._
   "Portfolio document import"); portfolio-URL import (fetch + extract) still open
 - Anthropic Messages API provider (cleaner than `claude -p` if the app is ever
   distributed)
-- Backend proxy for Adzuna (see v2 note) — required if the app is ever distributed
+- Backend proxy for Adzuna (see v0.2.0 note) — required if the app is ever distributed
 - Multimodal portfolio input — read a screenshot/image of a resume on-device (needs a
   multimodal on-device model), avoiding a separate OCR step
 - Interview prep / mock-interview feature

@@ -3,8 +3,9 @@
 Project context for Claude Code. Read this before making changes. See `SPEC.md`
 for what we're building, `ROADMAP.md` for the high-level plan, `TODO.md` for the
 granular checklist of **remaining** work, and `MILESTONES.md` for the record of
-**completed** milestones. **Starting a fresh session? Read `TODO.md` first — its
-"Current focus" line tells you exactly where to pick up.**
+**completed** milestones. **Starting a fresh session? First ask the user what the current
+version is** (form `v0.x.0`, e.g. `v0.3.0`) so commits/labels track correctly, **then read
+`TODO.md`** — its "Current focus" line tells you exactly where to pick up.
 
 ## What this is
 
@@ -301,7 +302,7 @@ for you.
 Four docs, from broadest to most granular:
 
 - **`SPEC.md`** — what we're building and why (stable; the north star).
-- **`ROADMAP.md`** — the high-level plan: v1 target, fast-follow, backlog, ideas
+- **`ROADMAP.md`** — the high-level plan: v0.1.0 target, fast-follow, backlog, ideas
   (a progress board — items are ticked as they land, but the detail lives elsewhere).
 - **`TODO.md`** — the granular checklist of **work that still needs doing**, with a
   "Current focus" line marking the next task. It should *only* contain remaining work.
@@ -325,12 +326,25 @@ The loop, so any session can pick up where the last left off:
 
 Keep these updates in the same commit/change as the code they describe.
 
-**Commits are milestone-based and made by the user (Taylor), not the agent.** Taylor
-commits manually with the message format **`vx.x.x : Milestone X Completed`**. So when a
-unit of work finishes, **always state which milestone / sub-part / hotfix it was** (e.g.
-"Milestone S-D", "Milestone Q-A", "URL-fetch Hotfix") — that label is what goes in the
-commit message. Do this even for partial completions (name the milestone and say it's
-partial). Don't run `git commit` unless explicitly asked.
+**Versioning.** Releases are numbered **`v0.x.0`** (`v0.1.0` foundation, `v0.2.0` reliability,
+`v0.3.0` output & polish, `v0.4.0` next). The **current version isn't hard-coded in these docs**
+— at the **start of every session, ask the user what version is in progress** and use that
+number for commit-label suggestions. (The `## v0.x.0 —` headers in `ROADMAP.md` / `MILESTONES.md`
+name the release *themes*, not the live working version.)
+
+**Milestone letters restart at A each version.** `v0.1.0`–`v0.3.0` ran A–X *continuously*, but
+from **`v0.4.0` onward every new version begins its milestones again at Milestone A** (A, B, C…).
+So a milestone ID is only unique *within* its version — always pair it with the version when it
+could be ambiguous (e.g. "v0.4.0 Milestone A"), and note that `MILESTONES.md` groups completed
+milestones under `## v0.x.0 —` headers precisely to keep the reused letters unambiguous.
+
+**Commits are milestone-based and made by the user (Taylor), not the agent.** Taylor commits
+manually with the message format **`v0.x.0 : Milestone X Completed`** (using the version you
+confirmed at session start). So when a unit of work finishes, **always state which milestone /
+sub-part / hotfix it was** (e.g. "Milestone S-A", "Milestone Q-A", "URL-fetch Hotfix") — that
+label is what goes in the commit message. Do this even for partial completions (name the milestone
+and say it's partial). Ad-hoc user-requested tweaks have no milestone letter — say so and suggest a
+`v0.x.0 : <short description>` message instead. Don't run `git commit` unless explicitly asked.
 
 ## How to work in this repo
 
