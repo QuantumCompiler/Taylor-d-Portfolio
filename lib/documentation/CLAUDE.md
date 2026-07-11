@@ -1,7 +1,9 @@
 # CLAUDE.md
 
-Project context for Claude Code. Read this before making changes. See `SPEC.md`
-for what we're building, `ROADMAP.md` for the high-level plan, `TODO.md` for the
+Project context for Claude Code. Read this before making changes. The root
+[`README.md`](../../README.md) is the public-facing overview (what the app is + a per-version
+summary); this file and the rest of `lib/documentation/` are the contributor-facing detail. See
+`SPEC.md` for what we're building, `ROADMAP.md` for the high-level plan, `TODO.md` for the
 granular checklist of **remaining** work, and `MILESTONES.md` for the record of
 **completed** milestones. **Starting a fresh session? First ask the user what the current
 version is** (form `v0.x.0`, e.g. `v0.3.0`) so commits/labels track correctly, **then read
@@ -27,7 +29,9 @@ auto-submission — the user applies themselves.
   Sonnet 5/4.6, Haiku 4.5; default `claude-opus-4-8` — is passed via the CLI's
   `--model` flag.
 - **Job source:** Adzuna REST API (free tier) to start.
-- **Persistence:** none yet; SwiftData planned (see ROADMAP).
+- **Persistence:** SwiftData-backed `PersistentRecordStore` (blobs by `kind`+`id`) for saved
+  jobs / applications / statuses / profiles / searches, plus `UserDefaults` (`KeyValueStore`) for
+  settings and small preferences. `@Model` stays in Infrastructure.
 
 Requires an Apple-Intelligence-capable Mac with Apple Intelligence turned on for
 the on-device model. `claude -p` requires Claude Code installed and authenticated.
@@ -102,6 +106,11 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
   prompt field + Submit, and the user Saves/Updates to persist it.
   Long-pressing a saved profile marks it the **default** (persisted via `DefaultProfileStore`,
   a single-id KeyValueStore pointer); the Portfolio VM auto-loads it once on launch.
+  The `UserDefaults`-backed stores (`SettingsStore`, `DefaultProfileStore`, `RoleTitleStore`,
+  `LocationStore`, `SalaryPresetStore`) key their entries under the `com.veritum.taylordportfolio.*`
+  namespace. These were renamed from a legacy `com.vivint.*` prefix when the bundle id was corrected;
+  a one-time `LegacyKeyMigration` (`Data/Persistence`, run in `Composition.init`) copies old values
+  forward so preferences survive the rename.
   A `SavedProfile` also pairs the **source document** it was built on: `sourceFileName`,
   the raw `sourceText`, and a `readableText` — the raw import reflowed into clean plain
   text by `TidyDocumentUseCase` (`LLMProvider.tidyDocument`, routed through the `.profile`
@@ -220,6 +229,7 @@ lib/src/
     Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
     Search/       SuggestionProvider, RoleTitleStore
     Persistence/  SavedJobsRepository, SavedApplicationsRepository, SavedStatusRepository, SavedProfilesRepository, SavedSearchesRepository   (domain ↔ PersistentRecordStore blobs)
+                  DefaultProfileStore, LegacyKeyMigration (one-time com.vivint→com.veritum UserDefaults key rename)
     Retrieval/    Retriever            (roadmap)
     Settings/     AppSettings (per-task engine map), SettingsStore
   Infrastructure/
@@ -262,14 +272,18 @@ Because the two synchronized roots are `lib/src` and `lib/tests` (siblings), the
 picks up test files even though both sit under `lib/`. Add a new source or test file by simply
 creating it in the right folder; there's nothing to wire in `project.pbxproj`.
 
-Two more config folders live under `lib/` (as explicit file references, **not** synchronized groups,
-so they're not compiled into any target):
+More folders live under `lib/`. The two config folders are explicit file references (**not**
+synchronized groups, so they're not compiled into any target); `documentation/` isn't in the Xcode
+project at all:
 
 - **`lib/xcode/Info.plist`** — the app's base Info.plist (custom build-time keys only;
   `GENERATE_INFOPLIST_FILE` still merges Xcode's generated keys on top). Wired via the app target's
   `INFOPLIST_FILE = lib/xcode/Info.plist` build setting.
 - **`lib/secrets/`** — `Secrets.xcconfig` (the app target's **base configuration**, gitignored) and
   its committed template `Secrets.example.xcconfig`. See "Build & run" for the credential flow.
+- **`lib/documentation/`** — the contributor docs (`SPEC.md`, `ROADMAP.md`, `TODO.md`,
+  `MILESTONES.md`, and this `CLAUDE.md`), relocated here from a former root-level `Documentation/`.
+  The root `README.md` is the only doc that stays at the repo root.
 
 Build & test from the CLI:
 
@@ -333,10 +347,18 @@ xcodebuild test -project "Taylor'd Portfolio.xcodeproj" -scheme "Taylor'd Portfo
   (`AdzunaAppID` / `AdzunaAppKey` via `$(…)` substitution) → `BundleAppConfig` at runtime.
   A build without them still runs, but Search is disabled with a clear "unavailable in this
   build" banner (fail-fast). Only the Adzuna **country** is a user setting.
+- **Bundle identifier** is `com.veritum.Taylor-d-Portfolio` (tests: `…PortfolioTests`). It was
+  corrected from a legacy `com.vivint.*`; see `LegacyKeyMigration` for the matching `UserDefaults`
+  key migration.
 
 ## Working process (docs as source of truth)
 
-Four docs, from broadest to most granular:
+The root **`README.md`** is the public overview — what the app is, its stack, and a
+**high-level summary of each `v0.x.0` release**. It's the front door; keep it current when a
+version ships (add/refresh that version's one-paragraph summary), but keep the granular detail
+in the four docs below, not in the README.
+
+Four contributor docs, from broadest to most granular:
 
 - **`SPEC.md`** — what we're building and why (stable; the north star).
 - **`ROADMAP.md`** — the high-level plan: v0.1.0 target, fast-follow, backlog, ideas

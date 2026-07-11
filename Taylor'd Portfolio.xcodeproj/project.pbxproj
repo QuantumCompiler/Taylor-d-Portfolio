@@ -34,6 +34,11 @@
 			path = tests;
 			sourceTree = "<group>";
 		};
+		34FE587E3002FF96002F1C1D /* documentation */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = documentation;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,9 +67,19 @@
 			);
 			sourceTree = "<group>";
 		};
+		34159C2E2FFC888A00B3B6DE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				34159C2D2FFC888A00B3B6DE /* Taylor'd Portfolio.app */,
+				34159C3F2FFC888B00B3B6DE /* Taylor'd PortfolioTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		34159C7000000000000000A1 /* lib */ = {
 			isa = PBXGroup;
 			children = (
+				34FE587E3002FF96002F1C1D /* documentation */,
 				34159C2F2FFC888A00B3B6DE /* src */,
 				34159C422FFC888B00B3B6DE /* tests */,
 				34159C7000000000000000A2 /* secrets */,
@@ -89,15 +104,6 @@
 			path = xcode;
 			sourceTree = "<group>";
 		};
-		34159C2E2FFC888A00B3B6DE /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				34159C2D2FFC888A00B3B6DE /* Taylor'd Portfolio.app */,
-				34159C3F2FFC888B00B3B6DE /* Taylor'd PortfolioTests.xctest */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -115,6 +121,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				34159C2F2FFC888A00B3B6DE /* src */,
+				34FE587E3002FF96002F1C1D /* documentation */,
 			);
 			name = "Taylor'd Portfolio";
 			packageProductDependencies = (

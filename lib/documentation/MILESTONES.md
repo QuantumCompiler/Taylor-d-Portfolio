@@ -1150,3 +1150,30 @@ Small, user-requested improvements made outside the numbered milestones:
   horizontally-dominant precise-scroll gestures (vertical scrolling passes through to the inner
   `ScrollView`). Left = dismiss, right = save; the mouse click-drag `DragGesture` stays as a fallback,
   and both paths share one `endSwipe(translation:)` + the existing `SwipeOutcome.resolve` threshold.
+
+## Project structure & tooling  ✅ done
+
+Repo/project housekeeping done alongside v0.3.0 (no milestone letter; see `CLAUDE.md` →
+"Suggested file layout" / "Xcode project structure" for the living description):
+
+- **Tests relocated under `lib/`.** The former top-level `Tests/` moved to **`lib/tests/`** (mirroring
+  the `lib/src/` layer folders). The Xcode **file-system-synchronized groups** were repointed so the app
+  target syncs `lib/src` and the test target syncs `lib/tests` — siblings, so the app never compiles
+  test files.
+- **Config folders under `lib/`.** `Info.plist` → **`lib/xcode/Info.plist`** (wired via the app target's
+  `INFOPLIST_FILE`), and the Adzuna secrets → **`lib/secrets/`** (`Secrets.xcconfig` — the gitignored
+  base configuration — plus its committed `Secrets.example.xcconfig` template). Verified the credential
+  flow still injects the Adzuna keys into the built app.
+- **Docs folder under `lib/`.** The root-level `Documentation/` moved to **`lib/documentation/`**
+  (`SPEC.md`, `ROADMAP.md`, `TODO.md`, `MILESTONES.md`, `CLAUDE.md`); the root `README.md` stays at the
+  repo root and its links were repointed. Docs aren't part of the Xcode project, so no `.pbxproj` change.
+- **Nested `lib` navigator group.** Added a real `lib` parent group in `project.pbxproj` so Xcode's
+  navigator shows **lib ▸ src / tests / secrets / xcode** instead of four flat `lib/…`-pathed entries
+  (cosmetic; target membership is unchanged, referenced by id).
+- **Bundle identifier corrected `com.vivint.*` → `com.veritum.*`.** Both targets' bundle ids (and the
+  redundant per-SDK overrides, collapsed to one line) are now `com.veritum.…`. The `UserDefaults`
+  preference keys shared that prefix, so they were renamed to `com.veritum.taylordportfolio.*`, and a
+  one-time **`LegacyKeyMigration`** (`Data/Persistence`, run once in `Composition.init`, guarded by a
+  done flag) copies any values still under the old `com.vivint.*` keys to the new ones and clears the
+  old keys — so existing local preferences (settings, saved locations / salary presets / role titles,
+  default profile) carry over with no data loss. Covered by `LegacyKeyMigrationTests`.
