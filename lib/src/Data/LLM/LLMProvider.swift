@@ -29,12 +29,23 @@ protocol LLMProvider: Sendable {
     /// facts, repaired layout). Has a throwing default, so only real engines implement it.
     func tidyDocument(rawText: String) async throws -> String
 
+    /// Rewrites the profile's summary following `instruction`, grounded in the profile and
+    /// portfolio. Returns the new summary text. Has a throwing default, so only real engines
+    /// implement it.
+    func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) async throws -> String
+
     /// Stage 1 of generation: distils a posting into a structured ``TargetBrief``.
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief
 
     /// Stage 2 of generation: tailors application materials for one job against the
     /// stage-1 ``TargetBrief``.
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit
+
+    /// Stage 2 with optional two-document ``PortfolioGrounding`` (Milestone T): the real
+    /// résumé text as factual grounding, plus a cover-letter voice exemplar. Has a default
+    /// that **ignores grounding** and forwards to the base method, so stubs and engines that
+    /// don't support it need no change; real engines override it.
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit
 }
 
 extension LLMProvider {
@@ -48,6 +59,17 @@ extension LLMProvider {
     /// Default: document tidying isn't supported. Real engines override this.
     func tidyDocument(rawText: String) async throws -> String {
         throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: summary refinement isn't supported. Real engines override this.
+    func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) async throws -> String {
+        throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: ignore grounding and fall back to profile-only generation. Real engines
+    /// (Foundation Models, Claude) and the router override this to inject the documents.
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
+        try await generateApplication(for: job, profile: profile, brief: brief)
     }
 }
 

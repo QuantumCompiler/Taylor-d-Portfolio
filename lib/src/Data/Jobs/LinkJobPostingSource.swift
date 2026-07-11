@@ -23,15 +23,25 @@ nonisolated struct LinkJobPostingSource: JobPostingSource {
         self.minReadableCharacters = minReadableCharacters
     }
 
+    /// Browser-like request headers. Many job boards reject or serve a stripped shell to
+    /// non-browser clients (the default URLSession `User-Agent`), so present as a browser
+    /// to raise the odds of getting the real posting HTML rather than a 403 / consent page.
+    static let browserHeaders: [String: String] = [
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+            + "(KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    ]
+
     func fetchPosting(from url: URL) async throws -> JobListing {
         let data: Data
         do {
-            data = try await http.get(url)
+            data = try await http.get(url, headers: Self.browserHeaders)
         } catch {
             // Any fetch failure (non-2xx, paywall, network, blocked host) is unreadable.
             throw JobPostingSourceError.unreadable
         }
-        guard let html = String(data: data, encoding: .utf8) else {
+        guard let html = Self.decode(data) else {
             throw JobPostingSourceError.unreadable
         }
         let text = HTMLStripper.plainText(html)
@@ -48,6 +58,16 @@ nonisolated struct LinkJobPostingSource: JobPostingSource {
             throw JobPostingSourceError.unreadable
         }
         return try await extract(text: plain, sourceURL: sourceURL)
+    }
+
+    // MARK: Decoding
+
+    /// Decodes fetched page bytes to a string, tolerating non-UTF-8 pages. Tries UTF-8
+    /// first, then falls back to ISO Latin-1 (which maps every byte, so it never fails) —
+    /// so a mis-declared or latin-encoded board isn't wrongly treated as unreadable.
+    static func decode(_ data: Data) -> String? {
+        if let utf8 = String(data: data, encoding: .utf8) { return utf8 }
+        return String(data: data, encoding: .isoLatin1)
     }
 
     // MARK: Shared extraction

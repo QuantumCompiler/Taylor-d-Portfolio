@@ -43,6 +43,7 @@ struct SettingsView: View {
             Section {
                 Button("Save") { viewModel.save() }
                     .buttonStyle(.borderedProminent)
+                    .clickableCursor()
             }
         }
         .formStyle(.grouped)
@@ -63,6 +64,7 @@ struct SettingsView: View {
                     Text(choice.displayName).tag(choice)
                 }
             }
+            .clickableCursor()
 
             // Only relevant when Claude can be used (Claude, or Auto's fallback).
             if config.choice != .onDevice {
@@ -71,6 +73,7 @@ struct SettingsView: View {
                         Text(model.displayName).tag(model.id)
                     }
                 }
+                .clickableCursor()
             }
         }
         .padding(.vertical, 4)

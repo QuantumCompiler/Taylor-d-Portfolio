@@ -1,0 +1,412 @@
+# CLAUDE.md
+
+Project context for Claude Code. Read this before making changes. The root
+[`README.md`](../../README.md) is the public-facing overview (what the app is + a per-version
+summary); this file and the rest of `lib/documentation/` are the contributor-facing detail. See
+`SPEC.md` for what we're building, `ROADMAP.md` for the high-level plan, `TODO.md` for the
+granular checklist of **remaining** work, and `MILESTONES.md` for the record of
+**completed** milestones. **Starting a fresh session? First ask the user what the current
+version is** (form `v0.x.0`, e.g. `v0.3.0`) so commits/labels track correctly, **then read
+`TODO.md`** — its "Current focus" line tells you exactly where to pick up.
+
+## What this is
+
+Taylor'd Portfolio: a native macOS app that searches jobs, ranks them against the user's
+portfolio, and generates a tailored resume + cover letter for a chosen job. No
+auto-submission — the user applies themselves.
+
+## Stack & environment
+
+- **UI:** SwiftUI, macOS 26 (Tahoe) target, Xcode 26.
+- **Primary LLM:** Apple Foundation Models (`import FoundationModels`), on-device.
+  The on-device model tier is **OS/hardware-driven, not app-selectable** — the SDK has no
+  API to choose or query a model tier (only `SystemLanguageModel.default` + `availability`),
+  so `FoundationModelsClient`'s job is availability + graceful degradation, never model
+  selection. (Don't try to build a tier picker — there's nothing to call.)
+- **Secondary LLM:** Claude Code headless — `claude -p "<prompt>" --output-format json`.
+  The engine **and** Claude model are chosen **per task** in Settings (each `LLMTask`
+  gets a `TaskEngineConfig`); the `ClaudeModel` catalog — Fable 5, Opus 4.8/4.7,
+  Sonnet 5/4.6, Haiku 4.5; default `claude-opus-4-8` — is passed via the CLI's
+  `--model` flag.
+- **Job source:** Adzuna REST API (free tier) to start.
+- **Persistence:** SwiftData-backed `PersistentRecordStore` (blobs by `kind`+`id`) for saved
+  jobs / applications / statuses / profiles / searches, plus `UserDefaults` (`KeyValueStore`) for
+  settings and small preferences. `@Model` stays in Infrastructure.
+
+Requires an Apple-Intelligence-capable Mac with Apple Intelligence turned on for
+the on-device model. `claude -p` requires Claude Code installed and authenticated.
+
+## Architecture
+
+Four-layer clean architecture with an MVVM presentation layer.
+
+### Layers and the dependency rule
+
+A pyramid — Presentation is the tip, Infrastructure the base:
+
+```
+  Presentation    SwiftUI Views + ViewModels (MVVM)
+  Business        Use cases, domain rules (JobRanker)
+  Data            Models, gateways/repositories, prompts
+  Infrastructure  Raw plumbing: FM, Process, HTTP, embeddings, stores
+  ───────────────────────────────────────────────────────────────
+  dependencies point DOWN only
+```
+
+**The rule:** a layer may import its own layer and any layer *below* it, and must
+never import a layer above it. ("Below" means any lower layer, not only the
+adjacent one — e.g. Presentation may read domain models that live in Data.)
+
+**How dependency inversion stays legal under this rule:** a protocol is declared
+in the *lower* layer that owns the capability, and higher layers depend on that
+protocol. Every arrow points down; nothing below ever imports something above.
+So `TextGenerating` (the raw generation port) is declared in Infrastructure and
+implemented there; Data's `LLMProvider` (domain-shaped) is declared in Data and
+Business depends on it. No implementation reaches upward to conform to a protocol
+above it.
+
+### What lives in each layer
+
+**Presentation** — SwiftUI Views (dumb, declarative) and one `@Observable`,
+`@MainActor` ViewModel per screen (`PortfolioViewModel`, `SearchViewModel`,
+`ResultsViewModel`, `ApplicationViewModel`, `SettingsViewModel`). ViewModels hold
+view state and call Business use cases; they hold no business rules and do no data
+access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces the single
+`AppModel` from early sketches — split it into per-screen ViewModels.
+
+**Business** — use cases that orchestrate the pipeline (`BuildProfileUseCase`,
+`SearchAndRankUseCase`, `GenerateApplicationUseCase`) and pure domain logic like
+`JobRanker`. No SwiftUI, no `Process`, no `URLSession`. Depends only on Data.
+
+**Data** — domain models plus the gateways that turn raw plumbing into domain shapes:
+- Models: `CandidateProfile`, `JobListing`, `JobMatch`, `ApplicationKit`,
+  `JobQuery`, `RankedJob`.
+- LLM gateway: `LLMProvider` (protocol) + `FoundationModelsProvider` +
+  `ClaudeCodeProvider` + `LLMRouter` + `Prompts`.
+- Job gateway: `JobSource` (protocol) + `AdzunaJobSource`.
+- Single-posting gateway: `JobPostingSource` (protocol) + `LinkJobPostingSource`
+  (fetch a URL via `HTTPClient` → `HTMLStripper` → LLM `extractPosting` → `JobListing`;
+  fails loudly with `.unreadable` on blocked/empty pages, plus a paste-text path).
+- Persistence: `SavedJobsRepository` + `SavedApplicationsRepository` +
+  `SavedStatusRepository` + `SavedProfilesRepository` + `SavedSearchesRepository`
+  (the last persists named `SavedSearch`es — a `JobSearchRequest` + id/name — re-run via
+  `SaveSearchUseCase` / `LoadSavedSearchesUseCase` / `DeleteSavedSearchUseCase`, Milestone R)
+  (Data/Persistence) map domain
+  `RankedJob` / `ApplicationKit` / `ApplicationStatus` / `SavedProfile` ↔ the
+  Infrastructure record store's blobs (upsert by id — `JobListing.id`, or `SavedProfile.id`
+  for profiles; each under its own `kind`), so pulled listings + matches, generated
+  materials, application statuses, and **named profiles** survive relaunch. `@Model` never
+  leaves Infrastructure. A built `CandidateProfile` is saved as a named `SavedProfile`
+  (Save/Update on the Portfolio tab) and re-selected at build or search time via
+  `SaveProfileUseCase` / `LoadProfilesUseCase` / `DeleteProfileUseCase` — no regeneration.
+  The profile's **summary/description can be regenerated** from a user prompt without
+  rebuilding the whole profile: `RefineSummaryUseCase` → `LLMProvider.refineSummary(profile:
+  portfolio:instruction:)` (a plain-text task routed through `.profile`, grounded in the
+  profile + portfolio, never fabricating) rewrites only `summary`; the Portfolio tab exposes a
+  prompt field + Submit, and the user Saves/Updates to persist it.
+  Long-pressing a saved profile marks it the **default** (persisted via `DefaultProfileStore`,
+  a single-id KeyValueStore pointer); the Portfolio VM auto-loads it once on launch.
+  The `UserDefaults`-backed stores (`SettingsStore`, `DefaultProfileStore`, `RoleTitleStore`,
+  `LocationStore`, `SalaryPresetStore`) key their entries under the `com.veritum.taylordportfolio.*`
+  namespace. These were renamed from a legacy `com.vivint.*` prefix when the bundle id was corrected;
+  a one-time `LegacyKeyMigration` (`Data/Persistence`, run in `Composition.init`) copies old values
+  forward so preferences survive the rename.
+  A `SavedProfile` also pairs the **source document** it was built on: `sourceFileName`,
+  the raw `sourceText`, and a `readableText` — the raw import reflowed into clean plain
+  text by `TidyDocumentUseCase` (`LLMProvider.tidyDocument`, routed through the `.profile`
+  task so it uses the same engine that built the profile). Viewable with the profile on
+  the Portfolio tab. It optionally pairs a **second document, a cover letter**
+  (`coverLetterFileName` / `coverLetterText` / `coverLetterReadableText`) — imported/pasted
+  in its own Portfolio slot and tidied the same way, but **never distilled into the profile**
+  (the profile stays résumé-only; the cover letter is a voice/tone exemplar for generation —
+  ROADMAP Milestone T). `SavedProfile` decodes legacy blobs (source- and cover-letter fields
+  default to empty) so older single-document saves still load.
+- Search suggestions: `SuggestionProvider` (Data/Search) — profile-seeded starting
+  titles + static locations + salary presets; pure, on-device. Common role titles are
+  **user-curated and persisted** via `RoleTitleStore` (Data/Search, on `KeyValueStore`),
+  not a static vocabulary. Custom **locations** and **salary floors** the user types are
+  likewise saveable and persisted via `LocationStore` / `SalaryPresetStore` (Data/Search),
+  merged into the suggestions (Milestone U-B/U-C).
+- Retrieval gateway: `Retriever` (protocol) + impl (roadmap).
+- `AppSettings` (`engines: [LLMTask: TaskEngineConfig]` + `adzunaCountry`) +
+  `SettingsStore`; `LLMTask` (profile / ranking / extraction / application),
+  `TaskEngineConfig` (per-task `LLMChoice` + Claude model), `ClaudeModel` (the
+  selectable-model catalog). The engine is chosen **per task**, not globally — each
+  task defaults to Claude on `claude-opus-4-8` (on-device is no longer automatic, but
+  stays selectable via `.onDevice` / `.auto`). Adzuna credentials are **not** here —
+  they're baked in at build time via `AppConfig`.
+Depends only on Infrastructure ports.
+
+**Infrastructure** — lowest-level, domain-agnostic plumbing behind small protocols
+declared here: `TextGenerating` + `FoundationModelsClient` (wraps
+`LanguageModelSession`, `@Generable`, availability) + `ClaudeProcessClient` (runs
+`claude -p`, unwraps `result`, strips fences); `HTTPClient` (URLSession wrapper);
+`EmbeddingClient` (`NLContextualEmbedding`, roadmap); `KeyValueStore` (UserDefaults
+/ keychain); `PersistentRecordStore` + `SwiftDataRecordStore` (a list-oriented blob
+store backed by SwiftData; the `@Model` `StoredRecord` lives here and never leaks up —
+callers see only `Data` blobs by `(kind, id)`); `AppConfig` + `BundleAppConfig`
+(build-time secrets read from the bundle Info.plist — the Adzuna keys, injected from a
+gitignored `lib/secrets/Secrets.xcconfig`).
+
+### The three seams, now placed in layers
+
+- **LLM seam** — `LLMProvider` (Data), task-oriented (not generic `generate<T>`)
+  because the engines structure output differently: `FoundationModelsProvider`
+  uses constrained decoding against `@Generable` types; `ClaudeCodeProvider` asks
+  for JSON and decodes. `LLMRouter` maps each `LLMProvider` method to an `LLMTask`
+  and picks that task's engine from `AppSettings` (`.auto` = on-device first, fall
+  back to Claude; `.claude`/`.onDevice` force one), building the Claude client with
+  the task's chosen model. Shared prompts in `Prompts`; structured
+  types are both `Generable` and `Codable`. **Generation is two-stage** (AGENT.md
+  discipline): `buildTargetBrief(for:)` distils the posting into a `TargetBrief`,
+  then `generateApplication(for:profile:brief:grounding:)` tailors against it. Both are
+  `LLMProvider` methods; `GenerateApplicationUseCase` orchestrates the two calls. The optional
+  `grounding: PortfolioGrounding?` injects the candidate's **real** résumé text (factual
+  grounding) + an **optional cover-letter voice exemplar** (Milestone T); that requirement has a
+  forwarding default (ignores grounding) so stubs/engines needn't change, and it's threaded from
+  `PortfolioViewModel.grounding` → Results/Tracker → `JobDetailView` → `ApplicationSheet`, nil
+  falling back to profile-only. Availability via
+  `SystemLanguageModel.default.availability` → `.available` /
+  `.unavailable(.deviceNotEligible | .appleIntelligenceNotEnabled | .modelNotReady)`.
+- **Job seam** — `JobSource` (Data). Implement it (Adzuna, JSearch, USAJOBS…),
+  return `[JobListing]`, don't leak API-specific types past the protocol.
+- **Ranking funnel** — `JobRanker` (Business): `prefilter(...)` (cheap shortlist;
+  upgrade to embedding similarity) then batched `rank(...)` → `[RankedJob]`.
+- **Results view filter** — `ResultsFilter` (Presentation/Results): a pure, session-only
+  `apply(to:isTracked:)` over the loaded `[RankedJob]` (minScore / keywords / location /
+  company / salaryMin / tracked-status), non-destructive — it only hides rows, never
+  re-runs the search or touches persistence (Milestone W). Distinct from U-E's search-time
+  min-rank filter, which trims the ranked set before it's stored.
+- **Multi-title fan-out** — `SearchAndRankUseCase` (Business) expands a
+  `JobSearchRequest` (many titles, shared location/salary) into one `JobQuery` per
+  title, runs them with bounded concurrency (Adzuna rate-limit guard), merges and
+  de-dupes by `JobListing.id`, then ranks the combined set **once**. A single title's
+  failure is a soft note (`Output.failedTitles`); it only throws if *all* fail.
+  `JobQuery` stays the single-`what` unit the seam understands. With an optional
+  **desired-result-count** goal it pages toward the target (round-robin pages, 50/page,
+  a page cap; a shortfall is `Output.resultShortfall`, never an error), and an optional
+  **minimum-rank** score filter trims after ranking (`Output.noneMetMinimum` when it empties
+  a non-empty set) — Milestone U-D/U-E.
+
+### Composition root
+
+`Taylor_d_PortfolioApp` (Presentation) is the one place allowed to reference every layer, to
+assemble it: build Infrastructure clients → wrap them in Data gateways → inject
+those into Business use cases → inject use cases into ViewModels → inject
+ViewModels via `.environment`. All wiring lives here; nothing else news-up a
+lower layer.
+
+## Suggested file layout
+
+All app source lives under **`lib/src/`**, one top-level folder per layer; the test target
+mirrors that structure under **`lib/tests/`** (see "Where tests live" below).
+
+```
+lib/src/
+  Presentation/
+    App/            Taylor_d_PortfolioApp (composition root); RootView opens on the Portfolio tab
+    Portfolio/      one folder per screen; each screen holds two subfolders:
+      View/           the SwiftUI view(s)                  — PortfolioView
+      ViewModel/      the @MainActor @Observable ViewModel — PortfolioViewModel
+    Search/, Results/, Application/, Tracker/, Settings/  (same View/ + ViewModel/ shape;
+                  e.g. Results/View holds ResultsView + RankedRow + JobDetailView + StatusBadge,
+                  Tracker/View holds TrackerView, Application/View the sheet)
+    Components/     shared view helpers — ScrollableScreen (scroll wrapper), ExportFileDocument
+  Business/
+    UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
+                  GenerateApplicationUseCase, FetchPostingUseCase, ExportApplicationUseCase,
+                  SaveResultsUseCase, LoadSavedJobsUseCase, DeleteSavedJobUseCase,
+                  SaveApplicationUseCase, LoadApplicationUseCase,
+                  MarkStatusUseCase, LoadStatusUseCase, LoadTrackedJobsUseCase,
+                  SaveSearchUseCase, LoadSavedSearchesUseCase, DeleteSavedSearchUseCase, RefineSummaryUseCase
+    Ranking/      JobRanker
+  Data/
+    Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,
+                  ApplicationKit, ApplicationStatus, JobQuery, JobSearchRequest, PositionType,
+                  RankedJob, TrackedJob, SavedProfile, SavedSearch, PortfolioGrounding
+    LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
+                  LLMRouter, LLMChoice, LLMTask, TaskEngineConfig, ClaudeModel, Prompts
+    Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
+    Search/       SuggestionProvider, RoleTitleStore
+    Persistence/  SavedJobsRepository, SavedApplicationsRepository, SavedStatusRepository, SavedProfilesRepository, SavedSearchesRepository   (domain ↔ PersistentRecordStore blobs)
+                  DefaultProfileStore, LegacyKeyMigration (one-time com.vivint→com.veritum UserDefaults key rename)
+    Retrieval/    Retriever            (roadmap)
+    Settings/     AppSettings (per-task engine map), SettingsStore
+  Infrastructure/
+    LLM/          TextGenerating, FoundationModelsClient, ClaudeProcessClient
+    Net/          HTTPClient
+    Documents/    DocumentTextExtractor, PlatformDocumentTextExtractor
+    Config/       AppConfig, BundleAppConfig   (build-time secrets ← lib/xcode/Info.plist ← lib/secrets/Secrets.xcconfig)
+    Export/       ExportFormat, DocumentExporter (domain-agnostic: Markdown → Data), RoutingDocumentExporter
+                  → MarkdownDocumentExporter (md/txt) + PDFDocumentExporter (Core Text, MarkdownAttributedRenderer)
+                  + DocxDocumentExporter (OOXMLDocument + ZipArchiveWriter — hand-rolled minimal .docx)
+    Text/         HTMLStripper, MarkdownPlainText, MarkdownBlockParser, MarkdownInline
+                  (HTML/Markdown → text/blocks/runs; shared by Data + Presentation + Export)
+    Embedding/    EmbeddingClient      (roadmap)
+    Store/        KeyValueStore, UserDefaultsStore,
+                  PersistentRecordStore, SwiftDataRecordStore (+ StoredRecord @Model)
+```
+
+Enforce the dependency rule at review time. Optional but recommended later: make
+each layer its own SwiftPM target so the compiler enforces "no upward imports"
+for you.
+
+### Where tests live
+
+All tests live under **`lib/tests/`** (moved there from a former top-level `Tests/`),
+mirroring the source layer folders: `lib/tests/Business/`, `lib/tests/Data/`,
+`lib/tests/Infrastructure/`, `lib/tests/Presentation/`, plus `lib/tests/Integration/`
+(e.g. `EndToEndTests`). A new test file dropped anywhere under `lib/tests/` is picked up
+automatically — no project edit needed (see the Xcode note next).
+
+### Xcode project structure
+
+The project (`Taylor'd Portfolio.xcodeproj`) uses **file-system-synchronized groups**, so the
+folders on disk *are* the target membership — there's no manual "add file to target" step:
+
+- The **app target** (`Taylor'd Portfolio`) synchronizes **`lib/src`** — every file under it is
+  compiled into the app.
+- The **test target** (`Taylor'd PortfolioTests`) synchronizes **`lib/tests`**.
+
+Because the two synchronized roots are `lib/src` and `lib/tests` (siblings), the app target never
+picks up test files even though both sit under `lib/`. Add a new source or test file by simply
+creating it in the right folder; there's nothing to wire in `project.pbxproj`.
+
+More folders live under `lib/`. The two config folders are explicit file references (**not**
+synchronized groups, so they're not compiled into any target); `documentation/` isn't in the Xcode
+project at all:
+
+- **`lib/xcode/Info.plist`** — the app's base Info.plist (custom build-time keys only;
+  `GENERATE_INFOPLIST_FILE` still merges Xcode's generated keys on top). Wired via the app target's
+  `INFOPLIST_FILE = lib/xcode/Info.plist` build setting.
+- **`lib/secrets/`** — `Secrets.xcconfig` (the app target's **base configuration**, gitignored) and
+  its committed template `Secrets.example.xcconfig`. See "Build & run" for the credential flow.
+- **`lib/documentation/`** — the contributor docs (`SPEC.md`, `ROADMAP.md`, `TODO.md`,
+  `MILESTONES.md`, and this `CLAUDE.md`), relocated here from a former root-level `Documentation/`.
+  The root `README.md` is the only doc that stays at the repo root.
+
+Build & test from the CLI:
+
+```
+xcodebuild test -project "Taylor'd Portfolio.xcodeproj" -scheme "Taylor'd Portfolio" -destination 'platform=macOS'
+```
+
+## Key types
+
+- `CandidateProfile` (`@Generable`, `Codable`): seniority, yearsExperience,
+  coreSkills, domains, targetTitles, summary.
+- `JobListing` (`Codable`): id, title, company, location, description, url, salary.
+- `JobMatch` (`@Generable`, `Codable`): jobId, score (0–100), reason,
+  matchedSkills, missingSkills.
+- `TargetBrief` (`@Generable`, `Codable`): company, roleTitle, mustHaveKeywords,
+  niceToHaveKeywords, techStack, domain, missionValues — the stage-1 distillation
+  of a posting that stage-2 generation tailors against.
+- `ApplicationKit` (`@Generable`, `Codable`): resumeMarkdown, coverLetter, gapNote.
+- `ApplicationStatus` (`Codable`): `stage` (`ApplicationStage`) + auto-stamped dated
+  milestones; `advanced(to:on:)` is pure. `TrackedJob` pairs a `RankedJob` with its status.
+
+## Conventions
+
+- Keep provider prompts in the shared `Prompts` enum — never let the two engines
+  drift apart.
+- Any structured output type must conform to both `Generable` and `Codable`.
+- Bound inputs sent to the on-device model (limited context) — truncate long
+  portfolios/descriptions.
+- New capabilities go behind a protocol if there's any chance of a second
+  implementation (LLM engines, job sources, exporters).
+- Respect the layer dependency rule: never import upward. A protocol lives in the
+  layer that owns the capability; higher layers depend on it.
+- Views stay dumb. All view state and user intent live in a `@MainActor`
+  `@Observable` ViewModel, which calls Business use cases only — no `URLSession`,
+  `Process`, or `LanguageModelSession` in the Presentation layer.
+- Wire dependencies only in the composition root (`Taylor_d_PortfolioApp`).
+- ViewModels are `@MainActor`; do async work in use cases off the main actor and
+  assign results back on the main actor.
+
+## Hard rules for generated content
+
+- Resumes and cover letters must be grounded strictly in the user's portfolio.
+  **Never** invent employers, job titles, dates, degrees, or credentials.
+- Reordering and rephrasing real experience is fine; fabrication is not.
+
+## Build & run
+
+- **App Sandbox is OFF** for the app target (`ENABLE_APP_SANDBOX = NO`). This is
+  deliberate: the `claude -p` provider launches an external binary, which a sandboxed
+  app can't do (it fails with "Operation not permitted"). Unsandboxed, both the Claude
+  CLI and Adzuna HTTP work, and Foundation Models still works. Trade-off: no Mac App
+  Store distribution — fine for a personal/dev tool. (`ENABLE_OUTGOING_NETWORK_CONNECTIONS
+  = YES` is kept for when/if the sandbox is re-enabled, but is moot while unsandboxed.)
+- The `claude -p` provider needs the `claude` CLI installed and on a resolvable path.
+  GUI apps inherit a minimal `PATH`, so `ClaudeProcessClient` widens it
+  (`searchPATH`) to include `~/.local/bin`, Homebrew, and npm-global before launching.
+- **Adzuna credentials are build-time secrets, not settings.** Copy
+  `lib/secrets/Secrets.example.xcconfig` → `lib/secrets/Secrets.xcconfig` (same folder;
+  gitignored) and fill in `ADZUNA_APP_ID` / `ADZUNA_APP_KEY`. They flow
+  `lib/secrets/Secrets.xcconfig` (the app target's base configuration) → `lib/xcode/Info.plist`
+  (`AdzunaAppID` / `AdzunaAppKey` via `$(…)` substitution) → `BundleAppConfig` at runtime.
+  A build without them still runs, but Search is disabled with a clear "unavailable in this
+  build" banner (fail-fast). Only the Adzuna **country** is a user setting.
+- **Bundle identifier** is `com.veritum.Taylor-d-Portfolio` (tests: `…PortfolioTests`). It was
+  corrected from a legacy `com.vivint.*`; see `LegacyKeyMigration` for the matching `UserDefaults`
+  key migration.
+
+## Working process (docs as source of truth)
+
+The root **`README.md`** is the public overview — what the app is, its stack, and a
+**high-level summary of each `v0.x.0` release**. It's the front door; keep it current when a
+version ships (add/refresh that version's one-paragraph summary), but keep the granular detail
+in the four docs below, not in the README.
+
+Four contributor docs, from broadest to most granular:
+
+- **`SPEC.md`** — what we're building and why (stable; the north star).
+- **`ROADMAP.md`** — the high-level plan: v0.1.0 target, fast-follow, backlog, ideas
+  (a progress board — items are ticked as they land, but the detail lives elsewhere).
+- **`TODO.md`** — the granular checklist of **work that still needs doing**, with a
+  "Current focus" line marking the next task. It should *only* contain remaining work.
+- **`MILESTONES.md`** — the record of **completed** milestones (the detailed write-ups,
+  moved here out of `TODO.md`). History and reference: what shipped and how.
+
+The loop, so any session can pick up where the last left off:
+
+1. **On a fresh session,** read `CLAUDE.md` → `TODO.md` (start at "Current focus").
+   `SPEC.md` / `ROADMAP.md` give the why and the wider plan; `MILESTONES.md` shows what's
+   already done when you need the history.
+2. **Do the next unchecked `TODO.md` item** (respecting the layer dependency rule),
+   in small focused changes.
+3. **When a milestone (or self-contained sub-part) is done,** *move its write-up out of
+   `TODO.md` into `MILESTONES.md`* (marked ✅), tick the matching line in `ROADMAP.md`, and
+   advance the "Current focus" pointer. `TODO.md` shrinks as work completes — it never
+   accumulates checked-off items.
+4. **When you discover new sub-tasks,** add them as checkboxes under the right `TODO.md`
+   milestone. When a whole feature is discussed/specced in chat, write it into `SPEC.md` /
+   `ROADMAP.md` in the same change so the docs stay the truth.
+
+Keep these updates in the same commit/change as the code they describe.
+
+**Versioning.** Releases are numbered **`v0.x.0`** (`v0.1.0` foundation, `v0.2.0` reliability,
+`v0.3.0` output & polish, `v0.4.0` next). The **current version isn't hard-coded in these docs**
+— at the **start of every session, ask the user what version is in progress** and use that
+number for commit-label suggestions. (The `## v0.x.0 —` headers in `ROADMAP.md` / `MILESTONES.md`
+name the release *themes*, not the live working version.)
+
+**Milestone letters restart at A each version.** `v0.1.0`–`v0.3.0` ran A–X *continuously*, but
+from **`v0.4.0` onward every new version begins its milestones again at Milestone A** (A, B, C…).
+So a milestone ID is only unique *within* its version — always pair it with the version when it
+could be ambiguous (e.g. "v0.4.0 Milestone A"), and note that `MILESTONES.md` groups completed
+milestones under `## v0.x.0 —` headers precisely to keep the reused letters unambiguous.
+
+**Commits are milestone-based and made by the user (Taylor), not the agent.** Taylor commits
+manually with the message format **`v0.x.0 : Milestone X Completed`** (using the version you
+confirmed at session start). So when a unit of work finishes, **always state which milestone /
+sub-part / hotfix it was** (e.g. "Milestone S-A", "Milestone Q-A", "URL-fetch Hotfix") — that
+label is what goes in the commit message. Do this even for partial completions (name the milestone
+and say it's partial). Ad-hoc user-requested tweaks have no milestone letter — say so and suggest a
+`v0.x.0 : <short description>` message instead. Don't run `git commit` unless explicitly asked.
+
+## How to work in this repo
+
+- Prefer small, focused changes that respect the seams and the layer dependency
+  rule above.
+- Don't add auto-submission / job-site automation — it's an explicit non-goal.

@@ -33,4 +33,15 @@ nonisolated struct SavedApplicationsRepository: Sendable {
         guard let data = try await store.record(ofKind: Self.kind, id: jobID) else { return nil }
         return try? JSONDecoder().decode(ApplicationKit.self, from: data)
     }
+
+    /// The ids of every job that has a generated kit ("already generated") — feeds the
+    /// cross-screen history story (Milestone S-C).
+    func savedJobIDs() async throws -> Set<String> {
+        Set(try await store.entries(ofKind: Self.kind).map(\.id))
+    }
+
+    /// Removes the saved kit for `jobID` if present (Milestone V-A).
+    func delete(jobID: String) async throws {
+        try await store.delete(kind: Self.kind, id: jobID)
+    }
 }

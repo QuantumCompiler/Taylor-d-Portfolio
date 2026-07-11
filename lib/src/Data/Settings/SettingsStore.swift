@@ -12,7 +12,7 @@ import Foundation
 /// `load()` returns `.default` when nothing is stored or the stored blob can't be
 /// decoded, so the app always has usable settings.
 nonisolated struct SettingsStore {
-    private static let key = "com.vivint.taylordportfolio.appSettings"
+    private static let key = "com.veritum.taylordportfolio.appSettings"
 
     let store: any KeyValueStore
 

@@ -15,20 +15,25 @@ struct TrackerView: View {
     let applicationViewModel: ApplicationViewModel
     var markStatus: MarkStatusUseCase? = nil
     var loadStatus: LoadStatusUseCase? = nil
+    /// The candidate's real documents for grounded generation (Milestone T).
+    var grounding: PortfolioGrounding? = nil
 
     var body: some View {
         Group {
-            if viewModel.isEmpty {
+            if viewModel.isLoading {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.isEmpty {
                 ContentUnavailableView(
                     "No tracked applications",
                     systemImage: "briefcase",
-                    description: Text("Mark a job as applied from its detail view to track it here.")
+                    description: Text("Save a job from the Results tab (the bookmark icon, or swipe a result right) to track it here, then generate its résumé & cover letter.")
                 )
             } else {
                 List(viewModel.trackedJobs) { tracked in
-                    RankedRow(ranked: tracked.job, status: tracked.status)
+                    RankedRow(ranked: tracked.job, history: viewModel.history(for: tracked.job))
                         .contentShape(Rectangle())
                         .onTapGesture { viewModel.select(tracked.job) }
+                        .clickableCursor()
                 }
             }
         }
@@ -37,7 +42,7 @@ struct TrackerView: View {
         .sheet(item: $viewModel.selectedJob) { ranked in
             JobDetailView(
                 ranked: ranked, profile: profile, applicationViewModel: applicationViewModel,
-                markStatus: markStatus, loadStatus: loadStatus
+                markStatus: markStatus, loadStatus: loadStatus, grounding: grounding
             )
         }
         // Re-load after the detail sheet (where status can change) closes.

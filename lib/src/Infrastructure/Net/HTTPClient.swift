@@ -12,6 +12,17 @@ import Foundation
 protocol HTTPClient: Sendable {
     /// Performs a GET for `url`, returning the response body. Throws on a non-2xx status.
     func get(_ url: URL) async throws -> Data
+
+    /// Performs a GET for `url` with request `headers` (e.g. a browser-like `User-Agent`
+    /// so job boards that reject non-browser clients still answer). Defaults to ignoring
+    /// the headers and calling ``get(_:)``, so existing stubs need no change.
+    func get(_ url: URL, headers: [String: String]) async throws -> Data
+}
+
+extension HTTPClient {
+    func get(_ url: URL, headers: [String: String]) async throws -> Data {
+        try await get(url)
+    }
 }
 
 /// Errors raised by an `HTTPClient`.

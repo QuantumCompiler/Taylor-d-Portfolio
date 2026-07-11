@@ -37,13 +37,28 @@ final class PortfolioViewModel {
     /// The LLM-tidied, readable form of the source document, shown with the profile.
     private(set) var readableText: String = ""
 
+    /// The **optional** cover letter's editable text (import/paste). A voice/tone exemplar
+    /// for generation only — the profile is never distilled from it (ROADMAP Milestone T).
+    var coverLetterText: String = ""
+    /// The imported cover letter's file name (nil if pasted or absent).
+    private(set) var coverLetterFileName: String?
+    /// The raw cover-letter text the current profile was built alongside.
+    private(set) var coverLetterSourceText: String = ""
+    /// The LLM-tidied, readable form of the cover letter, shown with the profile.
+    private(set) var coverLetterReadableText: String = ""
+
     /// Whether the default profile has been auto-applied yet (so it's applied once, on
     /// first load, and never clobbers a later manual selection).
     private var hasAppliedDefault = false
 
+    /// The instruction the user types to steer a summary regeneration (e.g. "more concise").
+    var summaryPrompt: String = ""
+    private(set) var isRefiningSummary = false
+
     private let buildProfile: BuildProfileUseCase
     private let importPortfolio: ImportPortfolioUseCase
     private let tidyDocument: TidyDocumentUseCase?
+    private let refineSummary: RefineSummaryUseCase?
     private let saveProfile: SaveProfileUseCase?
     private let loadProfiles: LoadProfilesUseCase?
     private let deleteProfile: DeleteProfileUseCase?
@@ -53,6 +68,7 @@ final class PortfolioViewModel {
         buildProfile: BuildProfileUseCase,
         importPortfolio: ImportPortfolioUseCase,
         tidyDocument: TidyDocumentUseCase? = nil,
+        refineSummary: RefineSummaryUseCase? = nil,
         saveProfile: SaveProfileUseCase? = nil,
         loadProfiles: LoadProfilesUseCase? = nil,
         deleteProfile: DeleteProfileUseCase? = nil,
@@ -61,6 +77,7 @@ final class PortfolioViewModel {
         self.buildProfile = buildProfile
         self.importPortfolio = importPortfolio
         self.tidyDocument = tidyDocument
+        self.refineSummary = refineSummary
         self.saveProfile = saveProfile
         self.loadProfiles = loadProfiles
         self.deleteProfile = deleteProfile
@@ -69,6 +86,19 @@ final class PortfolioViewModel {
     }
 
     var isBusy: Bool { isBuilding || isImporting }
+
+    /// The real document text for grounded generation (Milestone T): the résumé's readable
+    /// text as factual grounding + the optional cover letter as a voice exemplar. `nil` when
+    /// there's no active profile or no stored résumé text (legacy profile) — generation then
+    /// falls back to profile-only, unchanged.
+    var grounding: PortfolioGrounding? {
+        guard profile != nil else { return nil }
+        let resume = readableText.isEmpty ? sourceText : readableText
+        guard !resume.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        let rawLetter = coverLetterReadableText.isEmpty ? coverLetterSourceText : coverLetterReadableText
+        let letter = rawLetter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : rawLetter
+        return PortfolioGrounding(resumeText: resume, coverLetterText: letter)
+    }
 
     var canBuild: Bool {
         !portfolioText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy
@@ -95,6 +125,21 @@ final class PortfolioViewModel {
             errorMessage = Self.message(for: error)
         } catch {
             errorMessage = "Couldn't read that document. Try a PDF, Word, RTF, or text file."
+        }
+    }
+
+    /// Reads a picked document into the **optional** cover-letter slot. Never gates Build.
+    func importCoverLetter(from url: URL) async {
+        isImporting = true
+        errorMessage = nil
+        defer { isImporting = false }
+        do {
+            coverLetterText = try await importPortfolio(fileURL: url)
+            coverLetterFileName = url.lastPathComponent
+        } catch let error as DocumentExtractionError {
+            errorMessage = Self.message(for: error)
+        } catch {
+            errorMessage = "Couldn't read that cover letter. Try a PDF, Word, RTF, or text file."
         }
     }
 
@@ -129,8 +174,55 @@ final class PortfolioViewModel {
             } else {
                 readableText = text
             }
+            // Cover letter (optional): captured + tidied the same way, but NEVER distilled
+            // into the profile — it's a voice/tone exemplar for generation only (Milestone T).
+            let letter = coverLetterText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if letter.isEmpty {
+                coverLetterSourceText = ""
+                coverLetterReadableText = ""
+                coverLetterFileName = nil
+            } else {
+                coverLetterSourceText = letter
+                if let tidyDocument {
+                    coverLetterReadableText = (try? await tidyDocument(rawText: letter)) ?? letter
+                } else {
+                    coverLetterReadableText = letter
+                }
+            }
         } catch {
             errorMessage = "Couldn't build your profile. Check that an engine is available in Settings, then try again."
+        }
+    }
+
+    // MARK: Regenerate the profile summary (description)
+
+    /// Whether the regenerate-summary control should be offered in this build.
+    var supportsSummaryRegeneration: Bool { refineSummary != nil }
+
+    /// Whether a regenerate can run right now (wired, a profile is loaded, not busy).
+    var canRegenerateSummary: Bool {
+        refineSummary != nil && profile != nil && !isRefiningSummary && !isBusy
+    }
+
+    /// Regenerates the current profile's `summary` from `summaryPrompt`, grounded in the
+    /// profile and portfolio text. Leaves every other profile field untouched.
+    func regenerateSummary() async {
+        guard let refineSummary, var current = profile, canRegenerateSummary else { return }
+        isRefiningSummary = true
+        errorMessage = nil
+        defer { isRefiningSummary = false }
+        do {
+            let portfolio = readableText.isEmpty ? sourceText : readableText
+            let newSummary = try await refineSummary(
+                profile: current, portfolio: portfolio, instruction: summaryPrompt
+            )
+            let trimmed = newSummary.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            current.summary = trimmed
+            profile = current
+            summaryPrompt = ""
+        } catch {
+            errorMessage = "Couldn't regenerate the description. Check that an engine is available in Settings, then try again."
         }
     }
 
@@ -181,6 +273,9 @@ final class PortfolioViewModel {
             let saved = try await saveProfile(
                 profile, name: name,
                 sourceFileName: sourceFileName, sourceText: sourceText, readableText: readableText,
+                coverLetterFileName: coverLetterFileName,
+                coverLetterText: coverLetterSourceText,
+                coverLetterReadableText: coverLetterReadableText,
                 existing: existing
             )
             selectedProfileID = saved.id
@@ -199,6 +294,9 @@ final class PortfolioViewModel {
         sourceFileName = saved.sourceFileName
         sourceText = saved.sourceText
         readableText = saved.readableText
+        coverLetterFileName = saved.coverLetterFileName
+        coverLetterSourceText = saved.coverLetterText
+        coverLetterReadableText = saved.coverLetterReadableText
         errorMessage = nil
     }
 
@@ -220,6 +318,10 @@ final class PortfolioViewModel {
         sourceFileName = nil
         sourceText = ""
         readableText = ""
+        coverLetterText = ""
+        coverLetterFileName = nil
+        coverLetterSourceText = ""
+        coverLetterReadableText = ""
         errorMessage = nil
     }
 

@@ -20,11 +20,28 @@ nonisolated struct JobSearchRequest: Codable, Equatable, Sendable {
     var location: String?
     /// Optional lower bound on annual salary, shared across all title searches.
     var salaryMin: Double?
+    /// Optional employment-type filter, shared across all title searches (U-A).
+    var positionType: PositionType?
+    /// Optional best-effort target for how many listings to gather (U-D). Never a hard
+    /// requirement — the search returns what it can and notes any shortfall.
+    var desiredResultCount: Int?
+    /// Optional minimum match score (0–100) to keep after ranking (U-E). Nil ⇒ no filter.
+    var minimumScore: Int?
 
-    init(titles: [String], location: String? = nil, salaryMin: Double? = nil) {
+    init(
+        titles: [String],
+        location: String? = nil,
+        salaryMin: Double? = nil,
+        positionType: PositionType? = nil,
+        desiredResultCount: Int? = nil,
+        minimumScore: Int? = nil
+    ) {
         self.titles = titles
         self.location = location
         self.salaryMin = salaryMin
+        self.positionType = positionType
+        self.desiredResultCount = desiredResultCount
+        self.minimumScore = minimumScore
     }
 
     /// Titles trimmed, emptied-dropped, and de-duplicated case-insensitively while
@@ -42,12 +59,16 @@ nonisolated struct JobSearchRequest: Codable, Equatable, Sendable {
     }
 
     /// The single-title `JobQuery` for one cleaned title, sharing this request's
-    /// location and salary floor.
-    func query(forTitle title: String) -> JobQuery {
+    /// location, salary floor, and position type. `page` / `resultsPerPage` let the use
+    /// case page toward a desired-result-count goal (U-D); they default to a single page.
+    func query(forTitle title: String, page: Int = 1, resultsPerPage: Int = 25) -> JobQuery {
         JobQuery(
             keywords: title,
             location: (location?.isEmpty ?? true) ? nil : location,
-            salaryMin: salaryMin
+            salaryMin: salaryMin,
+            positionType: positionType,
+            page: page,
+            resultsPerPage: resultsPerPage
         )
     }
 }

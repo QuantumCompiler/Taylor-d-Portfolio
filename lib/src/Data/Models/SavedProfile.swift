@@ -26,6 +26,16 @@ nonisolated struct SavedProfile: Identifiable, Codable, Equatable, Sendable {
     var sourceText: String
     /// The LLM-tidied, readable form of `sourceText`.
     var readableText: String
+
+    /// The imported cover letter's file name (nil when pasted or absent). The cover letter
+    /// is **optional** and a **voice / tone exemplar** for generation only — the profile is
+    /// never distilled from it (see ROADMAP Milestone T).
+    var coverLetterFileName: String?
+    /// The raw cover-letter text, if the user supplied one (empty when absent).
+    var coverLetterText: String
+    /// The LLM-tidied, readable form of `coverLetterText`.
+    var coverLetterReadableText: String
+
     var createdAt: Date
 
     init(
@@ -35,6 +45,9 @@ nonisolated struct SavedProfile: Identifiable, Codable, Equatable, Sendable {
         sourceFileName: String? = nil,
         sourceText: String = "",
         readableText: String = "",
+        coverLetterFileName: String? = nil,
+        coverLetterText: String = "",
+        coverLetterReadableText: String = "",
         createdAt: Date
     ) {
         self.id = id
@@ -43,15 +56,21 @@ nonisolated struct SavedProfile: Identifiable, Codable, Equatable, Sendable {
         self.sourceFileName = sourceFileName
         self.sourceText = sourceText
         self.readableText = readableText
+        self.coverLetterFileName = coverLetterFileName
+        self.coverLetterText = coverLetterText
+        self.coverLetterReadableText = coverLetterReadableText
         self.createdAt = createdAt
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, profile, sourceFileName, sourceText, readableText, createdAt
+        case id, name, profile, sourceFileName, sourceText, readableText
+        case coverLetterFileName, coverLetterText, coverLetterReadableText
+        case createdAt
     }
 
     /// Custom decode so the document fields default when absent — a profile saved before
-    /// they existed still loads instead of being silently dropped.
+    /// they existed (single-document, or pre-cover-letter) still loads instead of being
+    /// silently dropped.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
@@ -60,6 +79,9 @@ nonisolated struct SavedProfile: Identifiable, Codable, Equatable, Sendable {
         sourceFileName = try container.decodeIfPresent(String.self, forKey: .sourceFileName)
         sourceText = try container.decodeIfPresent(String.self, forKey: .sourceText) ?? ""
         readableText = try container.decodeIfPresent(String.self, forKey: .readableText) ?? ""
+        coverLetterFileName = try container.decodeIfPresent(String.self, forKey: .coverLetterFileName)
+        coverLetterText = try container.decodeIfPresent(String.self, forKey: .coverLetterText) ?? ""
+        coverLetterReadableText = try container.decodeIfPresent(String.self, forKey: .coverLetterReadableText) ?? ""
         createdAt = try container.decode(Date.self, forKey: .createdAt)
     }
 }

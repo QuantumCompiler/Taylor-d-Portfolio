@@ -23,6 +23,9 @@ struct Composition {
 
     init(appConfig: any AppConfig = BundleAppConfig()) {
         self.appConfig = appConfig
+        // One-time: carry preferences over from the old com.vivint.* keys to the corrected
+        // com.veritum.* namespace before any store reads them (bundle-id rename).
+        LegacyKeyMigration.run(on: UserDefaultsStore())
         settingsStore = SettingsStore(store: UserDefaultsStore())
         httpClient = URLSessionHTTPClient()
         onDeviceClient = FoundationModelsClient()
@@ -71,6 +74,16 @@ struct Composition {
         guard let savedJobsRepository, let savedStatusRepository else { return nil }
         return LoadTrackedJobsUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository)
     }
+    /// The cross-screen history join (seen / generated / tracked) — Milestone S-C.
+    private var loadJobHistory: LoadJobHistoryUseCase? {
+        guard let savedJobsRepository, let savedStatusRepository, let savedApplicationsRepository else { return nil }
+        return LoadJobHistoryUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository, applications: savedApplicationsRepository)
+    }
+    /// Fully-forget a saved job (job + status + kit) — Milestone V-A.
+    private var deleteSavedJob: DeleteSavedJobUseCase? {
+        guard let savedJobsRepository, let savedStatusRepository, let savedApplicationsRepository else { return nil }
+        return DeleteSavedJobUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository, applications: savedApplicationsRepository)
+    }
 
     // MARK: Gateways (read settings live, so Settings edits take effect immediately)
 
@@ -91,10 +104,12 @@ struct Composition {
     private var buildProfile: BuildProfileUseCase { .init(provider: llmProvider) }
     private var importPortfolio: ImportPortfolioUseCase { .init(extractor: documentExtractor) }
     private var tidyDocument: TidyDocumentUseCase { .init(provider: llmProvider) }
+    private var refineSummary: RefineSummaryUseCase { .init(provider: llmProvider) }
     private var searchAndRank: SearchAndRankUseCase {
         .init(jobSource: jobSource, ranker: JobRanker(provider: llmProvider))
     }
     private var generateApplication: GenerateApplicationUseCase { .init(provider: llmProvider) }
+    private var exportApplication: ExportApplicationUseCase { .init(exporter: RoutingDocumentExporter()) }
     private var fetchPosting: FetchPostingUseCase {
         .init(postingSource: jobPostingSource, ranker: JobRanker(provider: llmProvider))
     }
@@ -103,6 +118,18 @@ struct Composition {
     }
     private var loadSavedJobs: LoadSavedJobsUseCase? {
         savedJobsRepository.map(LoadSavedJobsUseCase.init(repository:))
+    }
+    private var savedSearchesRepository: SavedSearchesRepository? {
+        recordStore.map(SavedSearchesRepository.init(store:))
+    }
+    private var saveSearch: SaveSearchUseCase? {
+        savedSearchesRepository.map { SaveSearchUseCase(repository: $0) }
+    }
+    private var loadSavedSearches: LoadSavedSearchesUseCase? {
+        savedSearchesRepository.map(LoadSavedSearchesUseCase.init(repository:))
+    }
+    private var deleteSavedSearch: DeleteSavedSearchUseCase? {
+        savedSearchesRepository.map(DeleteSavedSearchUseCase.init(repository:))
     }
     private var saveProfile: SaveProfileUseCase? {
         savedProfilesRepository.map { SaveProfileUseCase(repository: $0) }
@@ -121,6 +148,7 @@ struct Composition {
             buildProfile: buildProfile,
             importPortfolio: importPortfolio,
             tidyDocument: tidyDocument,
+            refineSummary: refineSummary,
             saveProfile: saveProfile,
             loadProfiles: loadProfiles,
             deleteProfile: deleteProfile,
@@ -132,17 +160,30 @@ struct Composition {
             searchAndRank: searchAndRank,
             suggestions: SuggestionProvider(),
             roleTitleStore: RoleTitleStore(store: UserDefaultsStore()),
+            locationStore: LocationStore(store: UserDefaultsStore()),
+            salaryPresetStore: SalaryPresetStore(store: UserDefaultsStore()),
             fetchPosting: fetchPosting,
             saveResults: saveResults,
             loadProfiles: loadProfiles,
+            loadSavedJobs: loadSavedJobs,
+            saveSearch: saveSearch,
+            loadSavedSearches: loadSavedSearches,
+            deleteSavedSearch: deleteSavedSearch,
             adzunaConfigured: isAdzunaConfigured
         )
     }
     func makeResultsViewModel() -> ResultsViewModel {
-        .init(loadSavedJobs: loadSavedJobs, loadTrackedJobs: loadTrackedJobs)
+        .init(
+            loadSavedJobs: loadSavedJobs,
+            loadTrackedJobs: loadTrackedJobs,
+            loadJobHistory: loadJobHistory,
+            markStatus: markStatus,
+            saveResults: saveResults,
+            deleteSavedJob: deleteSavedJob
+        )
     }
     func makeTrackerViewModel() -> TrackerViewModel {
-        .init(loadTrackedJobs: loadTrackedJobs)
+        .init(loadTrackedJobs: loadTrackedJobs, loadJobHistory: loadJobHistory)
     }
     func makeSettingsViewModel() -> SettingsViewModel {
         .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured)
@@ -151,7 +192,8 @@ struct Composition {
         .init(
             generateApplication: generateApplication,
             saveApplication: savedApplicationsRepository.map(SaveApplicationUseCase.init(repository:)),
-            loadApplication: savedApplicationsRepository.map(LoadApplicationUseCase.init(repository:))
+            loadApplication: savedApplicationsRepository.map(LoadApplicationUseCase.init(repository:)),
+            exportApplication: exportApplication
         )
     }
 }
@@ -193,11 +235,17 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     func tidyDocument(rawText: String) async throws -> String {
         try await router().tidyDocument(rawText: rawText)
     }
+    func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) async throws -> String {
+        try await router().refineSummary(profile: profile, portfolio: portfolio, instruction: instruction)
+    }
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await router().buildTargetBrief(for: job)
     }
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
         try await router().generateApplication(for: job, profile: profile, brief: brief)
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
+        try await router().generateApplication(for: job, profile: profile, brief: brief, grounding: grounding)
     }
 }
 

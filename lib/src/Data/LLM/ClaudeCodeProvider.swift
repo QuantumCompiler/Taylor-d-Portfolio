@@ -51,6 +51,14 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         )
     }
 
+    /// Plain-text task: rewrite the summary and return it directly (no JSON envelope).
+    func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) async throws -> String {
+        try await generator.generate(
+            prompt: Prompts.refineSummary(profile: profile, portfolio: portfolio, instruction: instruction),
+            instructions: Prompts.refineSummaryInstructions
+        )
+    }
+
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await generateJSON(
             prompt: Prompts.buildTargetBrief(job: job),
@@ -60,8 +68,12 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
     }
 
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        try await generateApplication(for: job, profile: profile, brief: brief, grounding: nil)
+    }
+
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
         try await generateJSON(
-            prompt: Prompts.generateApplication(job: job, profile: profile, brief: brief),
+            prompt: Prompts.generateApplication(job: job, profile: profile, brief: brief, grounding: grounding),
             instructions: Prompts.generateInstructions,
             as: ApplicationKit.self
         )

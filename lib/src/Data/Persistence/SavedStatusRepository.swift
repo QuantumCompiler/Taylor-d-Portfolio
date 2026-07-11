@@ -41,4 +41,9 @@ nonisolated struct SavedStatusRepository: Sendable {
             }
         )
     }
+
+    /// Removes the tracked status for `jobID` if present (Milestone V-A).
+    func delete(jobID: String) async throws {
+        try await store.delete(kind: Self.kind, id: jobID)
+    }
 }

@@ -19,14 +19,49 @@ struct JobDetailView: View {
     let applicationViewModel: ApplicationViewModel
     var markStatus: MarkStatusUseCase? = nil
     var loadStatus: LoadStatusUseCase? = nil
+    /// The candidate's real documents for grounded generation (Milestone T).
+    var grounding: PortfolioGrounding? = nil
+    /// Whether generation is offered here (Milestone V-D): **Tracker** context passes `true`
+    /// (Generate button); **Results** context passes `false` (read + Save to Tracker only).
+    var canGenerate: Bool = true
+    /// Save-to-Tracker action, provided in the Results context (enables the footer button +
+    /// the right-swipe). `nil` in the Tracker context.
+    var onSaveToTracker: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var showingApplication = false
     @State private var status: ApplicationStatus?
+    @State private var dragOffset: CGFloat = 0
 
     private var listing: JobListing { ranked.listing }
+    /// Only the Results context (where a save action is supplied) is swipeable.
+    private var isSwipeable: Bool { onSaveToTracker != nil }
+    private static let swipeThreshold: CGFloat = 120
 
     var body: some View {
+        card
+            .offset(x: isSwipeable ? dragOffset : 0)
+            .overlay(alignment: dragOffset >= 0 ? .leading : .trailing) { swipeHint }
+            .gesture(swipeGesture, isEnabled: isSwipeable)
+            .trackpadSwipe(
+                isEnabled: isSwipeable,
+                onChanged: { dragOffset = $0 },
+                onEnded: { endSwipe(translation: $0) }
+            )
+            .padding(24)
+            .frame(minWidth: 540, minHeight: 500)
+            .task {
+                guard let loadStatus else { return }
+                status = (try? await loadStatus(forJobID: ranked.id)) ?? nil
+            }
+            .sheet(isPresented: $showingApplication) {
+                if let profile {
+                    ApplicationSheet(viewModel: applicationViewModel, job: listing, profile: profile, grounding: grounding)
+                }
+            }
+    }
+
+    private var card: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
             Divider()
@@ -43,16 +78,35 @@ struct JobDetailView: View {
             Divider()
             footer
         }
-        .padding(24)
-        .frame(minWidth: 540, minHeight: 500)
-        .task {
-            guard let loadStatus else { return }
-            status = (try? await loadStatus(forJobID: ranked.id)) ?? nil
+    }
+
+    // MARK: Swipe (Results context, Milestone V-C)
+
+    /// Mouse click-drag fallback (trackpad users get the no-click `.trackpadSwipe`).
+    private var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 20)
+            .onChanged { dragOffset = $0.translation.width }
+            .onEnded { endSwipe(translation: $0.translation.width) }
+    }
+
+    /// Resolves a finished swipe (from either input) into save / dismiss / spring-back.
+    private func endSwipe(translation: CGFloat) {
+        switch SwipeOutcome.resolve(translation: translation, threshold: Self.swipeThreshold) {
+        case .save: onSaveToTracker?(); dismiss()
+        case .dismiss: dismiss()
+        case .none: withAnimation(.spring(duration: 0.25)) { dragOffset = 0 }
         }
-        .sheet(isPresented: $showingApplication) {
-            if let profile {
-                ApplicationSheet(viewModel: applicationViewModel, job: listing, profile: profile)
-            }
+    }
+
+    /// A subtle hint that grows as the card is dragged: right ⇒ Save, left ⇒ Dismiss.
+    @ViewBuilder private var swipeHint: some View {
+        if isSwipeable, abs(dragOffset) > 20 {
+            let saving = dragOffset > 0
+            Label(saving ? "Save" : "Dismiss", systemImage: saving ? "bookmark.fill" : "xmark")
+                .font(.headline)
+                .foregroundStyle(saving ? Color.green : Color.secondary)
+                .padding()
+                .opacity(min(1, abs(dragOffset) / Self.swipeThreshold))
         }
     }
 
@@ -70,6 +124,7 @@ struct JobDetailView: View {
                 if status == nil {
                     Button("Mark as applied") { mark(.applied) }
                         .buttonStyle(.borderedProminent).controlSize(.small)
+                        .clickableCursor()
                 }
                 Menu("Set status") {
                     ForEach(ApplicationStage.settable, id: \.self) { stage in
@@ -77,6 +132,7 @@ struct JobDetailView: View {
                     }
                 }
                 .fixedSize()
+                .clickableCursor()
             }
         }
     }
@@ -157,11 +213,23 @@ struct JobDetailView: View {
                 Link(destination: url) {
                     Label("View original posting", systemImage: "arrow.up.right.square")
                 }
+                .clickableCursor()
             }
             Spacer()
-            Button("Generate résumé & cover letter") { showingApplication = true }
+            if canGenerate {
+                // Tracker context: generate tailored materials (Milestone V-D).
+                Button("Generate résumé & cover letter") { showingApplication = true }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(profile == nil)
+                    .clickableCursor()
+            } else if let onSaveToTracker {
+                // Results context: no generation — read the posting and choose to save.
+                Button { onSaveToTracker(); dismiss() } label: {
+                    Label("Save to Tracker", systemImage: "bookmark")
+                }
                 .buttonStyle(.borderedProminent)
-                .disabled(profile == nil)
+                .clickableCursor()
+            }
         }
     }
 

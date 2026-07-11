@@ -48,6 +48,13 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         )
     }
 
+    func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) async throws -> String {
+        try await client.generate(
+            prompt: Prompts.refineSummary(profile: profile, portfolio: portfolio, instruction: instruction),
+            instructions: Prompts.refineSummaryInstructions
+        )
+    }
+
     func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
         try await client.respond(
             to: Prompts.buildTargetBrief(job: job),
@@ -57,8 +64,12 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
     }
 
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        try await generateApplication(for: job, profile: profile, brief: brief, grounding: nil)
+    }
+
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
         try await client.respond(
-            to: Prompts.generateApplication(job: job, profile: profile, brief: brief),
+            to: Prompts.generateApplication(job: job, profile: profile, brief: brief, grounding: grounding),
             generating: ApplicationKit.self,
             instructions: Prompts.generateInstructions
         )

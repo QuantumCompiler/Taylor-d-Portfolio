@@ -20,6 +20,8 @@ nonisolated enum Prompts {
     static let maxDescriptionCharacters = 2_000
     /// Cap on the (stripped) web-page text fed to posting extraction.
     static let maxPageCharacters = 12_000
+    /// Cap on the cover-letter voice exemplar injected into generation grounding.
+    static let maxCoverLetterCharacters = 3_000
 
     // MARK: Build profile
 
@@ -65,6 +67,48 @@ nonisolated enum Prompts {
 
         Raw document text:
         \(truncate(rawText, to: maxPortfolioCharacters))
+        """
+    }
+
+    // MARK: Refine profile summary
+
+    static let refineSummaryInstructions =
+        "You rewrite a candidate's professional summary. You use only true facts from the profile " +
+        "and portfolio provided — never invent employers, titles, dates, metrics, or skills. You " +
+        "output only the rewritten summary text, with no preamble, labels, or quotes."
+
+    /// Rewrites the profile's `summary` following the user's `instruction`, staying grounded
+    /// in the real profile facts (and portfolio text when available). Returns only the new
+    /// summary text. An empty `instruction` just asks for a fresh, well-written summary.
+    static func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) -> String {
+        let guidance = instruction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "Write a fresh, compelling two-to-three sentence summary."
+            : instruction
+        let portfolioSection = portfolio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? ""
+            : """
+
+
+            Portfolio (the candidate's real experience — use only facts present here or in the profile):
+            \(truncate(portfolio, to: maxPortfolioCharacters))
+            """
+        return """
+        Rewrite the candidate's professional summary following this instruction:
+        "\(guidance)"
+
+        Current profile:
+        - seniority: \(profile.seniority)
+        - yearsExperience: \(profile.yearsExperience)
+        - coreSkills: \(profile.coreSkills.joined(separator: ", "))
+        - domains: \(profile.domains.joined(separator: ", "))
+        - targetTitles: \(profile.targetTitles.joined(separator: ", "))
+        - current summary: \(profile.summary)
+        \(portfolioSection)
+
+        Rules:
+        - Ground every claim in the facts above — never invent employers, titles, dates, metrics, or skills.
+        - Keep it to a concise two-to-three sentences unless the instruction asks otherwise.
+        - Output ONLY the rewritten summary text — no labels, no quotes, no commentary.
         """
     }
 
@@ -168,9 +212,15 @@ nonisolated enum Prompts {
     /// Ports the résumé-agent discipline (AGENT.md §5): map each brief signal to a true
     /// profile fact, foreground the best-fit overlap, flag gaps, and structure the cover
     /// letter as *About Me / Why <company> / Why Me*.
-    static func generateApplication(job: JobListing, profile: CandidateProfile, brief: TargetBrief) -> String {
+    static func generateApplication(
+        job: JobListing,
+        profile: CandidateProfile,
+        brief: TargetBrief,
+        grounding: PortfolioGrounding? = nil
+    ) -> String {
         """
-        Tailor application materials for this role, grounded ONLY in the candidate profile below.
+        Tailor application materials for this role, grounded ONLY in the candidate profile\
+        \(grounding?.resumeText.isEmpty == false ? " and résumé" : "") below.
 
         Target brief (what the role wants):
         - company: \(brief.company)
@@ -188,7 +238,7 @@ nonisolated enum Prompts {
         - domains: \(profile.domains.joined(separator: ", "))
         - targetTitles: \(profile.targetTitles.joined(separator: ", "))
         - summary: \(profile.summary)
-
+        \(groundingSection(grounding))
         Method:
         1. Map each brief signal to the closest TRUE fact in the profile. Where the profile has
            no matching fact, treat it as a GAP — never fabricate one.
@@ -209,6 +259,41 @@ nonisolated enum Prompts {
         - gapNote: an honest, short note listing the notable must-have requirements the candidate
           does NOT clearly meet (the gaps from step 1). Never disguise a gap as a strength.
         """
+    }
+
+    // MARK: Grounding (Milestone T)
+
+    /// The optional two-document grounding block injected into generation. The résumé is
+    /// additional **factual** grounding (reorder/rephrase only); the cover letter is a
+    /// **voice/tone exemplar** whose facts are never imported. Empty when there's nothing
+    /// to inject, so profile-only generation is byte-for-byte unchanged.
+    static func groundingSection(_ grounding: PortfolioGrounding?) -> String {
+        guard let grounding else { return "" }
+        var section = ""
+
+        let resume = grounding.resumeText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !resume.isEmpty {
+            section += """
+
+
+            Candidate résumé — the candidate's REAL experience, as written. Use it as factual grounding:
+            you may reorder and rephrase it, but never add any fact absent from it or the profile above.
+            \(truncate(resume, to: maxPortfolioCharacters))
+            """
+        }
+
+        if let letter = grounding.coverLetterText?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !letter.isEmpty {
+            section += """
+
+
+            Cover-letter style example (the candidate's own writing — MATCH its voice, tone, and
+            structure when you write the cover letter, but do NOT import any facts, claims, metrics,
+            employers, or dates from it; every fact comes only from the profile and résumé above):
+            \(truncate(letter, to: maxCoverLetterCharacters))
+            """
+        }
+        return section
     }
 
     // MARK: Shared helpers
