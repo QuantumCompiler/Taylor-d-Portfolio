@@ -12,7 +12,7 @@ import Foundation
 /// rather than an `isDefault` flag on each profile — that keeps "exactly one default"
 /// true by construction. `load()` returns `nil` when nothing is stored or it can't decode.
 nonisolated struct DefaultProfileStore {
-    private static let key = "com.vivint.taylordportfolio.defaultProfileID"
+    private static let key = "com.veritum.taylordportfolio.defaultProfileID"
 
     let store: any KeyValueStore
 

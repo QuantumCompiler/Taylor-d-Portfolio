@@ -15,7 +15,7 @@ import Foundation
 /// `AppSettings`, since it's a growing vocabulary rather than a discrete preference.
 /// `load()` returns an empty list when nothing is stored or the blob can't decode.
 nonisolated struct RoleTitleStore {
-    private static let key = "com.vivint.taylordportfolio.commonRoleTitles"
+    private static let key = "com.veritum.taylordportfolio.commonRoleTitles"
 
     let store: any KeyValueStore
 

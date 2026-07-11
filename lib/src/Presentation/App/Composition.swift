@@ -23,6 +23,9 @@ struct Composition {
 
     init(appConfig: any AppConfig = BundleAppConfig()) {
         self.appConfig = appConfig
+        // One-time: carry preferences over from the old com.vivint.* keys to the corrected
+        // com.veritum.* namespace before any store reads them (bundle-id rename).
+        LegacyKeyMigration.run(on: UserDefaultsStore())
         settingsStore = SettingsStore(store: UserDefaultsStore())
         httpClient = URLSessionHTTPClient()
         onDeviceClient = FoundationModelsClient()

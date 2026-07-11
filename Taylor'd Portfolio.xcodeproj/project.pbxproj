@@ -19,19 +19,19 @@
 /* Begin PBXFileReference section */
 		34159C2D2FFC888A00B3B6DE /* Taylor'd Portfolio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Taylor'd Portfolio.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		34159C3F2FFC888B00B3B6DE /* Taylor'd PortfolioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Taylor'd PortfolioTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		34159C602FFC888C00B3B6DE /* lib/secrets/Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = lib/secrets/Secrets.xcconfig; sourceTree = "<group>"; };
-		34159C622FFC888C00B3B6DE /* lib/xcode/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = lib/xcode/Info.plist; sourceTree = "<group>"; };
+		34159C602FFC888C00B3B6DE /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		34159C622FFC888C00B3B6DE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		34159C2F2FFC888A00B3B6DE /* lib/src */ = {
+		34159C2F2FFC888A00B3B6DE /* src */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = lib/src;
+			path = src;
 			sourceTree = "<group>";
 		};
-		34159C422FFC888B00B3B6DE /* lib/tests */ = {
+		34159C422FFC888B00B3B6DE /* tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = lib/tests;
+			path = tests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -57,12 +57,36 @@
 		34159C242FFC888A00B3B6DE = {
 			isa = PBXGroup;
 			children = (
-				34159C2F2FFC888A00B3B6DE /* lib/src */,
-				34159C422FFC888B00B3B6DE /* lib/tests */,
-				34159C622FFC888C00B3B6DE /* lib/xcode/Info.plist */,
-				34159C602FFC888C00B3B6DE /* lib/secrets/Secrets.xcconfig */,
+				34159C7000000000000000A1 /* lib */,
 				34159C2E2FFC888A00B3B6DE /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		34159C7000000000000000A1 /* lib */ = {
+			isa = PBXGroup;
+			children = (
+				34159C2F2FFC888A00B3B6DE /* src */,
+				34159C422FFC888B00B3B6DE /* tests */,
+				34159C7000000000000000A2 /* secrets */,
+				34159C7000000000000000A3 /* xcode */,
+			);
+			path = lib;
+			sourceTree = "<group>";
+		};
+		34159C7000000000000000A2 /* secrets */ = {
+			isa = PBXGroup;
+			children = (
+				34159C602FFC888C00B3B6DE /* Secrets.xcconfig */,
+			);
+			path = secrets;
+			sourceTree = "<group>";
+		};
+		34159C7000000000000000A3 /* xcode */ = {
+			isa = PBXGroup;
+			children = (
+				34159C622FFC888C00B3B6DE /* Info.plist */,
+			);
+			path = xcode;
 			sourceTree = "<group>";
 		};
 		34159C2E2FFC888A00B3B6DE /* Products */ = {
@@ -90,7 +114,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				34159C2F2FFC888A00B3B6DE /* lib/src */,
+				34159C2F2FFC888A00B3B6DE /* src */,
 			);
 			name = "Taylor'd Portfolio";
 			packageProductDependencies = (
@@ -113,7 +137,7 @@
 				34159C412FFC888B00B3B6DE /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				34159C422FFC888B00B3B6DE /* lib/tests */,
+				34159C422FFC888B00B3B6DE /* tests */,
 			);
 			name = "Taylor'd PortfolioTests";
 			packageProductDependencies = (
@@ -322,10 +346,11 @@
 		};
 		34159C542FFC888B00B3B6DE /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 34159C602FFC888C00B3B6DE /* lib/secrets/Secrets.xcconfig */;
+			baseConfigurationReference = 34159C602FFC888C00B3B6DE /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B6PZ9ECLLJ;
@@ -351,9 +376,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.vivint.Taylor-d-Portfolio";
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "com.veritum.Taylor-d-Portfolio";
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "com.veritum.Taylor-d-Portfolio";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.veritum.Taylor-d-Portfolio";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -371,10 +394,11 @@
 		};
 		34159C552FFC888B00B3B6DE /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 34159C602FFC888C00B3B6DE /* lib/secrets/Secrets.xcconfig */;
+			baseConfigurationReference = 34159C602FFC888C00B3B6DE /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B6PZ9ECLLJ;
@@ -400,9 +424,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.vivint.Taylor-d-Portfolio";
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "com.veritum.Taylor-d-Portfolio";
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "com.veritum.Taylor-d-Portfolio";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.veritum.Taylor-d-Portfolio";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -429,7 +451,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.vivint.Taylor-d-PortfolioTests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.veritum.Taylor-d-PortfolioTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -455,7 +477,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.vivint.Taylor-d-PortfolioTests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.veritum.Taylor-d-PortfolioTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;

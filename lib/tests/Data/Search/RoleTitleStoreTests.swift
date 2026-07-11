@@ -41,7 +41,7 @@ struct RoleTitleStoreTests {
         let backing = InMemoryStore()
         let store = RoleTitleStore(store: backing)
         store.save(["x"])
-        let key = "com.vivint.taylordportfolio.commonRoleTitles"
+        let key = "com.veritum.taylordportfolio.commonRoleTitles"
         backing.setData(Data("not json".utf8), forKey: key)
         #expect(store.load().isEmpty)
     }

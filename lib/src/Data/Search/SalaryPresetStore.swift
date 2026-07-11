@@ -11,7 +11,7 @@ import Foundation
 /// they type and save on the Search screen survives across launches and joins the built-in
 /// preset brackets. Mirrors ``RoleTitleStore``; `load()` returns `[]` when absent or corrupt.
 nonisolated struct SalaryPresetStore {
-    private static let key = "com.vivint.taylordportfolio.savedSalaryPresets"
+    private static let key = "com.veritum.taylordportfolio.savedSalaryPresets"
 
     let store: any KeyValueStore
 

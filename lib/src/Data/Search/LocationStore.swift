@@ -11,7 +11,7 @@ import Foundation
 /// they type and save on the Search screen survives across launches and joins the preset
 /// suggestions. Mirrors ``RoleTitleStore``; `load()` returns `[]` when absent or corrupt.
 nonisolated struct LocationStore {
-    private static let key = "com.vivint.taylordportfolio.savedLocations"
+    private static let key = "com.veritum.taylordportfolio.savedLocations"
 
     let store: any KeyValueStore
 

@@ -26,7 +26,7 @@ struct LocationStoreTests {
     @Test func emptyAndCorruptLoadToEmpty() {
         let backing = InMemoryStore()
         #expect(LocationStore(store: backing).load().isEmpty)
-        backing.setData(Data("nope".utf8), forKey: "com.vivint.taylordportfolio.savedLocations")
+        backing.setData(Data("nope".utf8), forKey: "com.veritum.taylordportfolio.savedLocations")
         #expect(LocationStore(store: backing).load().isEmpty)
     }
 }
@@ -42,7 +42,7 @@ struct SalaryPresetStoreTests {
     @Test func emptyAndCorruptLoadToEmpty() {
         let backing = InMemoryStore()
         #expect(SalaryPresetStore(store: backing).load().isEmpty)
-        backing.setData(Data("nope".utf8), forKey: "com.vivint.taylordportfolio.savedSalaryPresets")
+        backing.setData(Data("nope".utf8), forKey: "com.veritum.taylordportfolio.savedSalaryPresets")
         #expect(SalaryPresetStore(store: backing).load().isEmpty)
     }
 }
