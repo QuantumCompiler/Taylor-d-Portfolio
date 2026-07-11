@@ -283,7 +283,10 @@ project at all:
   its committed template `Secrets.example.xcconfig`. See "Build & run" for the credential flow.
 - **`lib/documentation/`** — the contributor docs (`SPEC.md`, `ROADMAP.md`, `TODO.md`,
   `MILESTONES.md`, and this `CLAUDE.md`), relocated here from a former root-level `Documentation/`.
-  The root `README.md` is the only doc that stays at the repo root.
+  The root `README.md` is the only doc that stays at the repo root. A `design/` subfolder holds
+  per-release design references (currently the v0.4.0 navigation-shell UI spec
+  `UI-Navigation-Redesign-v0.4.0.md` + its self-contained interactive mockup
+  `Refined-UI-mockup-v0.4.0.html`).
 
 Build & test from the CLI:
 

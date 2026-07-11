@@ -157,7 +157,7 @@ breakdown.
       manual date edit is an optional later touch. Builds on O (persistence); replaces the
       "applied-to tracker" that was parked in the SwiftData fast-follow.
 
-## v0.3.0 — output & polish (current target)
+## v0.3.0 — output & polish (complete)
 
 The theme: get the generated materials cleanly *out* of the app (Export), finish the
 persistence fast-follow (saved/re-runnable searches), and polish the app that produces
@@ -346,15 +346,44 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       `ExportApplicationUseCase.resumePageCount` → an **advisory** banner on the Application sheet
       when the résumé overflows a page (suggests Compact / tightening — **never** truncates).
 
+## v0.4.0 — navigation & shell (current target)
+
+The theme: give the app room to grow. As of v0.3.0 several areas have real internal
+depth, and the single top tab strip can't scale. Move primary navigation to a **left
+sidebar** (top-level areas only) and demote per-area sub-screens to a **segmented inner
+nav** at the top of the content pane. Native-macOS throughout; content, view models, and
+use cases are preserved and only re-homed. **Presentation-layer only** — no
+Business/Data/Infrastructure changes. `TODO.md` has the granular breakdown.
+
+- [ ] **Milestone A — Navigation shell.** Replace `RootView`'s custom tab bar with a
+      sidebar-driven shell (`NavigationSplitView`): sidebar rows = the five areas
+      (existing SF Symbols + Results/Tracker count badges, accent-fill selection); a
+      per-area segmented inner-nav picks the sub-view; `Area / Sub-view` title header.
+      No changes below Presentation. Seam: `RootView` + a small nav-state holder.
+      On-device: n/a (UI only).
+- [ ] **Milestone B — Sub-view routing per area.** Wire each area's sub-views behind the
+      inner nav (Portfolio: Profile / Saved Profiles / Source Documents; Search: New
+      Search / Saved Searches / From a Link; Results: Ranked; Tracker: All / Applied /
+      Interviewing / Offers; Settings: Engines / Adzuna / About). Existing screen views
+      are reused verbatim; only their host changes. Tracker stage filters reuse the
+      existing status data.
+- [ ] **Milestone C — Polish + About.** Sidebar collapse/restore, keyboard navigation,
+      pointer-cursor + swipe polish carried over, and a small **About** sub-view
+      (identity / version / one-liner).
+
+**Design references (this branch):**
+- UI spec: [`design/UI-Navigation-Redesign-v0.4.0.md`](design/UI-Navigation-Redesign-v0.4.0.md)
+- Interactive mockup: [`design/Refined-UI-mockup-v0.4.0.html`](design/Refined-UI-mockup-v0.4.0.html)
+
 ## Fast follow (next up)
 
-- Export and saved/re-runnable searches moved **up into v0.3.0** (see above); the profile-cache
-  half of the old "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`.
-  When v0.3.0 completes, pull the next item up from Backlog.
+- Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
+  "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** is the
+  navigation & shell rework (above). When it completes, pull the next feature item up from Backlog.
 
-> **Numbering the next version.** When `v0.3.0` is done and a new version (`v0.4.0`) is planned,
-> its milestones **restart at Milestone A** (not continuing from X) — each version letters its own
-> milestones A, B, C…. See `CLAUDE.md` → "Working process" → Versioning.
+> **Numbering the versions.** Each version letters its own milestones **A, B, C…** from scratch —
+> v0.4.0 restarts at Milestone A (it does **not** continue from v0.3.0's X). See `CLAUDE.md` →
+> "Working process" → Versioning.
 
 ## Backlog (to be specced from chat)
 

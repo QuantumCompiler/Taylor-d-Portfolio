@@ -72,7 +72,9 @@ Made the output first-class and the app feel finished:
   project housekeeping (tests under `lib/tests/`, config under `lib/`, corrected
   `com.veritum` bundle identifier). *(Hotfix + Milestones Q–X.)*
 
-**Next:** v0.4.0 (theme TBD; its milestones restart numbering at Milestone A).
+**Next:** v0.4.0 — **navigation & shell** (in progress): a Presentation-only rework moving primary
+navigation to a left **sidebar** with a **segmented inner nav** per area, so the app can grow past a
+single tab strip. Its milestones restart numbering at Milestone A.
 
 ## Build & run
 

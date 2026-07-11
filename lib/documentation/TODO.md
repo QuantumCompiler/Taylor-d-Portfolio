@@ -9,18 +9,19 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.3.0 is complete.** v0.1.0 (A–J + document import), v0.2.0 (K, M, N, O, P),
-> and all of v0.3.0 (Hotfix, Q, R, **S** (A–E), T, U, V, W, **X**, plus the ad-hoc QoL work incl. the
-> trackpad-swipe result card) have shipped — see `MILESTONES.md` for the full record. **Nothing
-> remains in v0.3.0.** **Next: kick off v0.4.0 — its milestones restart at Milestone A** (see the
-> versioning note in `CLAUDE.md`); pull the next theme from the backlog below / `ROADMAP.md`.
+> **Current focus.** **v0.4.0 — Milestone A (Navigation shell).** v0.1.0–v0.3.0 are all complete
+> (see `MILESTONES.md`); v0.4.0 is the **navigation & shell** rework — a **Presentation-only**
+> re-home of the existing screens behind a left sidebar + segmented inner nav (full spec:
+> [`design/UI-Navigation-Redesign-v0.4.0.md`](design/UI-Navigation-Redesign-v0.4.0.md); interactive
+> mockup: [`design/Refined-UI-mockup-v0.4.0.html`](design/Refined-UI-mockup-v0.4.0.html)). Start at
+> Milestone A below.
 >
-> **⚠️ Awaiting device checks** (verify on a real run, unrelated to the code below): the Search
+> **⚠️ Awaiting device checks** (carried over from v0.3.0, verify on a real run): the Search
 > **Fetch** button is reachable/clickable after the scroll fix; exported **PDF/DOCX** files open
-> correctly in Preview / Word; the new **filter bar**, **swipe card**, and **custom tab bar** look
-> and feel right.
+> correctly in Preview / Word; the **filter bar** and **swipe card** look and feel right. (The
+> v0.3.0 **custom tab bar** is being replaced by the v0.4.0 sidebar shell — no longer worth a check.)
 >
-> Larger backlog beyond v0.3.0 (see `ROADMAP.md`): native `LanguageModel` provider seam; on-device
+> Larger backlog beyond v0.4.0 (see `ROADMAP.md`): native `LanguageModel` provider seam; on-device
 > embedding RAG; optional MCP tools.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
@@ -28,8 +29,74 @@ down only).
 
 ---
 
-# v0.4.0 — (theme TBD)
+# v0.4.0 — navigation & shell
 
-**Milestones restart at Milestone A** for v0.4.0 (see the versioning note in `CLAUDE.md`). Nothing is
-scheduled yet — pick the next theme from `ROADMAP.md`'s backlog (native `LanguageModel` provider seam,
-on-device embedding RAG, optional MCP tools) and break it into Milestone A, B, C… here before starting.
+**Milestones restart at Milestone A** for v0.4.0 (see the versioning note in `CLAUDE.md`). The theme:
+the app has outgrown its single top tab strip, so primary navigation moves to a **left sidebar** (the
+five top-level areas) and each area's sub-screens become a **segmented inner nav** at the top of the
+content pane (`NavigationSplitView`, native macOS throughout).
+
+**Scope is Presentation-only.** No Business/Data/Infrastructure changes — every screen's content, view
+models, and use cases are **preserved and only re-homed** under the new shell. Sheets (Job Detail,
+Application) stay modal and unchanged; generation still lives in the Tracker; export/templates/one-page
+gate are untouched. Full spec + interactive mockup:
+[`design/UI-Navigation-Redesign-v0.4.0.md`](design/UI-Navigation-Redesign-v0.4.0.md) /
+[`design/Refined-UI-mockup-v0.4.0.html`](design/Refined-UI-mockup-v0.4.0.html).
+
+## Milestone A — Navigation shell
+
+Replace `RootView`'s custom full-width tab bar (`VStack { tabBar; Divider; selectedTab }`) with a
+sidebar-driven shell. Seam: `RootView` + a small nav-state holder; nothing below Presentation changes.
+
+- [ ] **Sidebar (primary nav).** A `NavigationSplitView` sidebar with one row per area — Portfolio,
+      Search, Results, Tracker, Settings — each with its existing SF Symbol (`person.text.rectangle`,
+      `magnifyingglass`, `list.number`, `briefcase`, `gearshape`). **Top-level areas only, no nested
+      rows** (explicit decision — the sidebar stays a clean area switcher). Standard accent-fill
+      selection; traffic lights sit in the sidebar header.
+- [ ] **Count badges.** Results row shows the loaded-result count; Tracker row shows the tracked-job
+      count (reuse the existing view-model state — no new data).
+- [ ] **Inner segmented nav.** A per-area segmented control (`Picker(.segmented)` is the native
+      default) at the top of the content pane; selecting an area shows its **first** sub-view. Areas
+      with a single view today still get a one-segment control so the pattern is consistent.
+- [ ] **Content header.** An `Area / Sub-view` breadcrumb-style title above the segmented control.
+- [ ] **Carry over polish.** Keep the pointer-cursor (`clickableCursor`) and the result-card swipe /
+      trackpad-swipe behaviour intact under the new host.
+- [ ] **Tests.** Nav-state holder unit tests (area selection resets to the first sub-view; badge
+      counts reflect the VM state). View wiring/feel is a manual (device) check.
+
+## Milestone B — Sub-view routing per area
+
+Wire each area's sub-views behind the inner nav. Existing screen views are **reused verbatim**; only
+their host changes. The agreed starting structure (see the spec's §3 table):
+
+- [ ] **Portfolio → Profile / Saved Profiles / Source Documents.** Split the current Portfolio screen:
+      **Profile** (two document slots + Build Profile + summary + Regenerate description + name +
+      Save/Update), **Saved Profiles** (the saved-profile library — tap to load, long-press default,
+      delete), **Source Documents** (the LLM-tidied résumé + cover-letter readable text, the current
+      disclosures).
+- [ ] **Search → New Search / Saved Searches / From a Link.** **New Search** (profile picker, role-title
+      chips + common titles, optional filters, Search + Save Search), **Saved Searches** (list with Run /
+      Delete), **From a Link** (URL fetch + paste-text fallback).
+- [ ] **Results → Ranked.** The existing filter bar + ranked rows (score + history badges, per-row
+      Save-to-Tracker + Delete, row → detail) as the single **Ranked** sub-view (one segment).
+- [ ] **Tracker → All / Applied / Interviewing / Offers.** Stage filters over the tracked list (reuse
+      the existing `ApplicationStatus` data — no new model); rows carry history badges; row → detail
+      with Generate + Export unchanged.
+- [ ] **Settings → Engines / Adzuna / About.** **Engines** (per-task engine + Claude-model pickers),
+      **Adzuna** (country code + credentials status), **About** (stub here; filled in Milestone C).
+- [ ] **Tests.** Per-area sub-view routing (each area exposes the right segments; the correct view
+      hosts each segment). Reuse existing per-screen VM tests unchanged.
+
+## Milestone C — Polish + About
+
+- [ ] **Sidebar collapse/restore.** The `NavigationSplitView` collapsible-sidebar behaviour, native.
+- [ ] **Keyboard navigation.** Move between areas / sub-views from the keyboard.
+- [ ] **Pointer-cursor + swipe polish.** Final pass that the carried-over cursor and swipe affordances
+      feel right in the shell.
+- [ ] **About sub-view.** A small Settings **About** view — app identity, version, one-liner.
+- [ ] **Docs.** Once the shell ships, update `CLAUDE.md`'s Presentation description (RootView shell +
+      the per-area sub-view structure) and the root `README.md` (add the v0.4.0 summary), then move
+      this milestone's write-up into `MILESTONES.md`.
+- [ ] **Nuke the design scaffolding.** When v0.4.0 is done, **delete the
+      [`design/`](design/) subdirectory** (the UI spec + HTML mockup were build-time references only)
+      and remove the now-dangling `design/…` links from `ROADMAP.md`, `TODO.md`, and `CLAUDE.md`.
