@@ -9,11 +9,11 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** v0.1.0 (A–J + document import), v0.2.0 (K, M, N, O, P), and nearly all of v0.3.0 are
-> **complete** — see `MILESTONES.md` for the full record (Hotfix, Q, R, S-D/S-E, T, U, V, W, plus
-> the ad-hoc QoL work, plus **S-A** in-app markdown rendering). **What's left in v0.3.0:** the rest
-> of the polish pass — **S-B** (empty / loading / error states) and **S-C** (results / saved-jobs /
-> Tracker cohesion) — and the **stretch, X** (export templates + one-page gate). **Next: S-B.**
+> **Current focus.** v0.1.0 (A–J + document import), v0.2.0 (K, M, N, O, P), and all of v0.3.0's
+> **planned** milestones are **complete** — see `MILESTONES.md` for the full record (Hotfix, Q, R,
+> **S** (all of A–E), T, U, V, W, plus the ad-hoc QoL work). **What's left in v0.3.0:** only the
+> **stretch, X** (export templates + one-page gate) — parked; promote it into v0.3.0 or let it seed
+> v0.4.0. **Next: decide on X (stretch) or cut v0.3.0.**
 >
 > **⚠️ Awaiting device checks** (verify on a real run, unrelated to the code below): the Search
 > **Fetch** button is reachable/clickable after the scroll fix; exported **PDF/DOCX** files open
@@ -30,30 +30,10 @@ down only).
 
 # v0.3.0 — output & polish (remaining)
 
-## Milestone S — Polish pass  🔨 in progress (S-A done; S-B, S-C remain)  (mostly Presentation; small Data/use-case touches)
+## Milestone S — Polish pass  ✅ complete (A–E — see `MILESTONES.md`)
 
-Goal: make the six-tab app feel finished. Independent parts — ship in any order.
-(**S-A** in-app markdown rendering, **S-D** scrollable screens, **S-E** saved-profile tile
-gestures already shipped — see `MILESTONES.md`.)
-
-### S-B — Empty / loading / error states  ⬜
-
-- [ ] **Consistent states across all six tabs** — no profile (Portfolio/Search gated), no
-      results, no saved/tracked jobs, and clear fetch/generation **failure** messaging (reuse
-      the existing warning/unavailable copy patterns). No silent blank screens.
-- [ ] **Loading affordances** for the async steps (build profile, search, fetch posting,
-      generate, export) — a consistent spinner / disabled-state convention.
-- [ ] **Tests.** VM state flags (`isLoading`, empty vs populated, error message) per screen.
-
-### S-C — Results / saved-jobs / Tracker cohesion  ⬜
-
-- [ ] **One history story.** Make "already seen" (saved listing), "already generated" (saved
-      `ApplicationKit`), and "applied" (`ApplicationStatus`) legible together — badges on
-      `RankedRow` and a coherent path between Results, saved jobs, and the Tracker.
-- [ ] **Reconcile loads.** Results/Tracker read the same persisted sources without clobbering a
-      fresh search (extends O/P load behaviour).
-- [ ] **Tests.** Badge/state assembly (seen / generated / applied) on a `RankedJob`; no-clobber
-      on a fresh search.
+Made the six-tab app feel finished: S-A in-app markdown rendering, S-B empty/loading/error states,
+S-C results/saved-jobs/Tracker cohesion, S-D scrollable screens, S-E saved-profile tile gestures.
 
 ## Milestone X — Export templates + one-page gate  ⬜ stretch (v0.3.0 stretch / v0.4.0 seed)
 

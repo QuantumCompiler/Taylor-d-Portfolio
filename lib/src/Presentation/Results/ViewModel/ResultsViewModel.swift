@@ -17,12 +17,18 @@ import Observation
 final class ResultsViewModel {
     var results: [RankedJob]
     var selectedJob: RankedJob?
-    private(set) var statusesByID: [String: ApplicationStatus] = [:]
+    /// The cross-screen history per job id — seen / generated / tracked (Milestone S-C).
+    /// Drives the row badges and the "already tracked" state.
+    private(set) var historyByID: [String: JobHistory] = [:]
+    /// True while the initial persisted-results load is in flight — the view shows a
+    /// spinner instead of flashing the "No results yet" empty state (Milestone S-B).
+    private(set) var isLoading = false
     /// The live, non-destructive view filter over `results` (Milestone W).
     var filter = ResultsFilter()
 
     private let loadSavedJobs: LoadSavedJobsUseCase?
     private let loadTrackedJobs: LoadTrackedJobsUseCase?
+    private let loadJobHistory: LoadJobHistoryUseCase?
     private let markStatus: MarkStatusUseCase?
     private let saveResults: SaveResultsUseCase?
     private let deleteSavedJob: DeleteSavedJobUseCase?
@@ -31,6 +37,7 @@ final class ResultsViewModel {
         results: [RankedJob] = [],
         loadSavedJobs: LoadSavedJobsUseCase? = nil,
         loadTrackedJobs: LoadTrackedJobsUseCase? = nil,
+        loadJobHistory: LoadJobHistoryUseCase? = nil,
         markStatus: MarkStatusUseCase? = nil,
         saveResults: SaveResultsUseCase? = nil,
         deleteSavedJob: DeleteSavedJobUseCase? = nil
@@ -38,6 +45,7 @@ final class ResultsViewModel {
         self.results = results
         self.loadSavedJobs = loadSavedJobs
         self.loadTrackedJobs = loadTrackedJobs
+        self.loadJobHistory = loadJobHistory
         self.markStatus = markStatus
         self.saveResults = saveResults
         self.deleteSavedJob = deleteSavedJob
@@ -49,7 +57,7 @@ final class ResultsViewModel {
 
     /// The results after applying the live `filter` (what the list shows).
     var filteredResults: [RankedJob] {
-        filter.apply(to: results, isTracked: { [statusesByID] in statusesByID[$0.id] != nil })
+        filter.apply(to: results, isTracked: { [historyByID] in historyByID[$0.id]?.status != nil })
     }
     var visibleCount: Int { filteredResults.count }
     var totalCount: Int { results.count }
@@ -79,13 +87,17 @@ final class ResultsViewModel {
     }
 
     /// The tracked status for a result row, if any (drives its badge).
-    func status(for job: RankedJob) -> ApplicationStatus? { statusesByID[job.id] }
+    func status(for job: RankedJob) -> ApplicationStatus? { historyByID[job.id]?.status }
+
+    /// The full cross-screen history for a row (seen / generated / tracked) — drives the
+    /// row's badge story (Milestone S-C).
+    func history(for job: RankedJob) -> JobHistory { historyByID[job.id] ?? JobHistory() }
 
     /// Whether the per-row save/delete actions are wired in this build.
     var supportsRowActions: Bool { markStatus != nil && deleteSavedJob != nil }
 
     /// Whether `job` is already tracked (its save icon reflects the tracked state).
-    func isTracked(_ job: RankedJob) -> Bool { statusesByID[job.id] != nil }
+    func isTracked(_ job: RankedJob) -> Bool { historyByID[job.id]?.status != nil }
 
     // MARK: Row actions (Milestone V)
 
@@ -97,29 +109,38 @@ final class ResultsViewModel {
         if isTracked(job) { return }                       // don't downgrade a later stage
         try? await saveResults?([job])                     // ensure the listing is persisted
         _ = try? await markStatus(jobID: job.id, stage: .saved)
-        await refreshStatuses()
+        await refreshHistory()
     }
 
     /// Fully forgets `job` (Milestone V-A): removes it from the list and, by decision, from
     /// the saved-jobs store along with its status and any generated materials.
     func delete(_ job: RankedJob) async {
         results.removeAll { $0.id == job.id }
-        statusesByID[job.id] = nil
+        historyByID[job.id] = nil
         try? await deleteSavedJob?(jobID: job.id)
     }
 
-    /// Loads previously-saved results when the list is empty, and (always) refreshes
-    /// the status badges.
+    /// Loads previously-saved results when the list is empty, and (always) refreshes the
+    /// history badges — a fresh search's results are never clobbered (Milestone S-C).
     func loadSavedIfNeeded() async {
-        if let loadSavedJobs, results.isEmpty, let saved = try? await loadSavedJobs(), !saved.isEmpty {
-            results = saved
+        if let loadSavedJobs, results.isEmpty {
+            isLoading = true
+            if let saved = try? await loadSavedJobs(), !saved.isEmpty { results = saved }
+            isLoading = false
         }
-        await refreshStatuses()
+        await refreshHistory()
     }
 
-    /// Reloads the status-by-id map (e.g. after the detail sheet closes).
-    func refreshStatuses() async {
-        guard let loadTrackedJobs, let tracked = try? await loadTrackedJobs() else { return }
-        statusesByID = Dictionary(tracked.map { ($0.id, $0.status) }, uniquingKeysWith: { first, _ in first })
+    /// Reloads the per-job history map (e.g. after the detail sheet closes). Prefers the
+    /// full three-source join; falls back to statuses only when history isn't wired.
+    func refreshHistory() async {
+        if let loadJobHistory, let history = try? await loadJobHistory() {
+            historyByID = history
+        } else if let loadTrackedJobs, let tracked = try? await loadTrackedJobs() {
+            historyByID = Dictionary(
+                tracked.map { ($0.id, JobHistory(isSaved: true, status: $0.status)) },
+                uniquingKeysWith: { first, _ in first }
+            )
+        }
     }
 }

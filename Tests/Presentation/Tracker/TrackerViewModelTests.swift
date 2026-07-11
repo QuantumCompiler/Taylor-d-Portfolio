@@ -55,4 +55,59 @@ struct TrackerViewModelTests {
         vm.select(ranked("a"))
         #expect(vm.selectedJob?.id == "a")
     }
+
+    // MARK: Loading state (Milestone S-B)
+
+    @Test func isLoadingIsFalseInitiallyAndResetsAfterLoad() async throws {
+        let vm = try await makeVM { jobs, statuses in
+            try await jobs.save([self.ranked("a")])
+            try await statuses.save(ApplicationStatus(stage: .applied), forJobID: "a")
+        }
+        #expect(vm.isLoading == false)          // no spinner before the load runs
+        await vm.load()
+        #expect(vm.isLoading == false)          // and it isn't left stuck on
+        #expect(vm.isEmpty == false)
+    }
+
+    @Test func isLoadingStaysFalseWhenUnwired() async {
+        let vm = TrackerViewModel()             // no loadTrackedJobs
+        await vm.load()
+        #expect(vm.isLoading == false)
+    }
+
+    // MARK: History story (Milestone S-C)
+
+    @Test func historyIncludesGeneratedFacetWhenWired() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        try await jobs.save([ranked("a")])
+        try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 10)), forJobID: "a")
+        try await apps.save(ApplicationKit(resumeMarkdown: "R", coverLetter: "", gapNote: ""), forJobID: "a")
+        let vm = TrackerViewModel(
+            loadTrackedJobs: LoadTrackedJobsUseCase(jobs: jobs, statuses: statuses),
+            loadJobHistory: LoadJobHistoryUseCase(jobs: jobs, statuses: statuses, applications: apps)
+        )
+
+        await vm.load()
+
+        let history = vm.history(for: ranked("a"))
+        #expect(history.status?.stage == .applied)
+        #expect(history.isGenerated)
+        #expect(history.facets.contains(.generated))
+    }
+
+    @Test func historyFallsBackToTrackedStatusWhenUnwired() async throws {
+        // Without loadJobHistory, the row still shows its status (a tracked job is saved).
+        let vm = try await makeVM { jobs, statuses in
+            try await jobs.save([self.ranked("a")])
+            try await statuses.save(ApplicationStatus(stage: .interviewing, interviewDate: Date(timeIntervalSince1970: 20)), forJobID: "a")
+        }
+        await vm.load()
+        let history = vm.history(for: ranked("a"))
+        #expect(history.isSaved)
+        #expect(history.status?.stage == .interviewing)
+        #expect(history.isGenerated == false)
+    }
 }

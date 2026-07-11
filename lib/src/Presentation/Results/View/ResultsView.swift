@@ -22,7 +22,9 @@ struct ResultsView: View {
 
     var body: some View {
         Group {
-            if viewModel.isEmpty {
+            if viewModel.isLoading {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.isEmpty {
                 ContentUnavailableView(
                     "No results yet",
                     systemImage: "list.bullet.rectangle",
@@ -42,7 +44,7 @@ struct ResultsView: View {
                     } else {
                         List(viewModel.filteredResults) { ranked in
                             HStack(spacing: 8) {
-                                RankedRow(ranked: ranked, status: viewModel.status(for: ranked))
+                                RankedRow(ranked: ranked, history: viewModel.history(for: ranked))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .contentShape(Rectangle())
                                     .onTapGesture { viewModel.select(ranked) }
@@ -68,7 +70,7 @@ struct ResultsView: View {
         }
         // Refresh badges after the detail sheet (where status can change) closes.
         .onChange(of: viewModel.selectedJob) { _, newValue in
-            if newValue == nil { Task { await viewModel.refreshStatuses() } }
+            if newValue == nil { Task { await viewModel.refreshHistory() } }
         }
     }
 

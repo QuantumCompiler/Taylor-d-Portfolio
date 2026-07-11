@@ -7,11 +7,12 @@
 
 import SwiftUI
 
-/// A single ranked job: score badge + title/company + the model's reason, and a
-/// status pill when the job is being tracked.
+/// A single ranked job: score badge + title/company + the model's reason, plus the
+/// cross-screen history badges (seen / generated / tracked-status) when there are any.
 struct RankedRow: View {
     let ranked: RankedJob
-    var status: ApplicationStatus? = nil
+    /// The job's history across Results, saved jobs, and the Tracker (Milestone S-C).
+    var history: JobHistory = JobHistory()
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -19,8 +20,8 @@ struct RankedRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(ranked.listing.title).font(.headline)
-                    if let status {
-                        StatusBadge(status: status)
+                    ForEach(Array(history.facets.enumerated()), id: \.offset) { _, facet in
+                        facetBadge(facet)
                     }
                 }
                 Text("\(ranked.listing.company) · \(ranked.listing.location)")
@@ -30,6 +31,14 @@ struct RankedRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private func facetBadge(_ facet: JobHistory.Facet) -> some View {
+        switch facet {
+        case .status(let status): StatusBadge(status: status)
+        case .seen: FacetBadge(text: "Seen", systemImage: "eye", tint: .secondary)
+        case .generated: FacetBadge(text: "Generated", systemImage: "doc.text", tint: .teal)
+        }
     }
 }
 

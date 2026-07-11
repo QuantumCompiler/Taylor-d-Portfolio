@@ -667,11 +667,55 @@ old fast-follow — caching the built profile across launches — already shippe
 - [x] **Docs.** SPEC (saved searches persist — already noted); CLAUDE.md (`SavedSearchesRepository`
       + the three use cases + `SavedSearch`); ROADMAP tick.
 
-## Milestone S — Polish pass (completed sub-parts)  ✅ (S-A, S-D, S-E)
+## Milestone S — Polish pass  ✅ (S-A, S-B, S-C, S-D, S-E)
 
-S-D and S-E shipped early as small bug-fixes; S-A (markdown rendering) followed. The rest of the
-broad polish — S-B (empty/loading/error states) and S-C (results/saved/Tracker cohesion) — remains
-in `TODO.md`.
+S-D and S-E shipped early as small bug-fixes; S-A (markdown rendering), S-B (empty/loading/error
+states), and S-C (results/saved-jobs/Tracker cohesion) followed. **Milestone S is complete.**
+
+### S-C — Results / saved-jobs / Tracker cohesion  ✅ done
+
+- [x] **One history story.** A single pure value type, `JobHistory` (`Data/Models`), assembles the
+      three cross-screen facts about a job — `isSaved` ("already seen" — its listing is persisted),
+      `isGenerated` (an `ApplicationKit` exists), and `status` (its `ApplicationStatus` when tracked) —
+      and exposes a tested `facets` policy that decides which badges to show without redundancy: the
+      status badge subsumes "Seen" (a tracked job is obviously saved), and "Generated" is always its
+      own trailing badge. `RankedRow` now renders these facets (new `FacetBadge` chip alongside the
+      existing `StatusBadge`), so Results **and** the Tracker tell the same story — a row can read
+      "Seen", or "Applied · Jun 12 + Generated", etc.
+- [x] **Reconcile loads (no clobber).** New `LoadJobHistoryUseCase` (`Business/UseCases`) joins the
+      saved-jobs, status, and application-kit stores by job id (the read-side twin of
+      `DeleteSavedJobUseCase`). `ResultsViewModel` swapped its `statusesByID` for a `historyByID` map,
+      fed by `refreshHistory()` (renamed from `refreshStatuses`; prefers the three-source join, falls
+      back to statuses-only when history isn't wired). `loadSavedIfNeeded` still only loads persisted
+      results **when the list is empty**, so a fresh search is never overwritten — but it now always
+      refreshes history, so badges are correct whichever way the list was populated. `TrackerViewModel`
+      gained the same optional `loadJobHistory` seam + a `history(for:)` (falls back to the tracked
+      job's own status) so Tracker rows also show the "Generated" badge. Wired in `Composition`.
+      `SavedApplicationsRepository.savedJobIDs()` added to list generated ids.
+- [x] **Tests.** `JobHistoryTests` (facet assembly: none / seen / status-subsumes-seen /
+      status+generated / generated-alone); `LoadJobHistoryUseCaseTests` (three-source join, plus ids
+      present in only one source via the id union); `ResultsViewModelTests`
+      (`historyBadgesReflectSeenGeneratedApplied`, `loadKeepsFreshSearchResultsButStillPopulatesHistory`
+      — the no-clobber + coherent-load case); `TrackerViewModelTests` (`historyIncludesGeneratedFacet…`,
+      `historyFallsBackToTrackedStatusWhenUnwired`). Existing `refreshStatuses` call sites renamed. Suite
+      green.
+
+### S-B — Empty / loading / error states  ✅ done
+
+- [x] **Consistent states across all six tabs.** Audited each screen: Search already has the
+      unavailable banner (unconfigured build) + no-profile hint + error/warning messaging + button
+      spinners; Portfolio has build/import/refine spinners + error text; the Application sheet has a
+      "Generating…" spinner + a "Couldn't generate" `ContentUnavailableView`; Results/Tracker have
+      empty states. **The gap was a loading state on Results + Tracker** — their on-appear persisted
+      load briefly flashed the empty state before data appeared.
+- [x] **Loading affordances.** Added `isLoading` to `ResultsViewModel` (`loadSavedIfNeeded`) and
+      `TrackerViewModel` (`load`); the views now show a centered `ProgressView` **before** the empty
+      state, so there's no flash of "No results yet" / "No tracked applications" while the SwiftData
+      read is in flight. (Search/Portfolio/Application already followed this spinner + disabled-state
+      convention.)
+- [x] **Tests.** `ResultsViewModelTests` / `TrackerViewModelTests`: `isLoading` is false initially,
+      resets to false after the load (never stuck), stays false when unwired or when results are
+      already populated (the load is skipped). Suite green.
 
 ### S-A — In-app markdown rendering  ✅ done
 

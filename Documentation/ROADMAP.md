@@ -222,22 +222,23 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       across launches — already shipped via named `SavedProfile`s, so it's **done**.
       On-device: yes — local SwiftData store; the re-run itself hits Adzuna as any search does.
 
-- [ ] **Polish pass.** Make the six-tab app feel finished. Five parts: (1) ✅ **in-app
-      markdown rendering (done)** — a `MarkdownText` view renders the generated résumé/cover
+- [x] **Polish pass.** ✅ **Done (S-A…S-E).** Made the six-tab app feel finished. Five parts: (1) ✅
+      **in-app markdown rendering** — a `MarkdownText` view renders the generated résumé/cover
       letter as styled, selectable text (headings/bullets/bold-italic, reusing the exporter
-      parsers) with per-document copy buttons, on the Application sheet; (2) consistent **empty /
-      loading / error states**
-      across all tabs (no profile, no results, fetch/generation failure); (3) **results /
-      saved-jobs / Tracker cohesion** so "already seen / already generated / applied" reads
-      as one history; (4) ✅ **scrollable screens / small-window layout (done)** — the
-      Portfolio + Search tabs now scroll via a shared `View.scrollableScreen()` wrapper (the
-      trailing `Spacer()` dropped), so lower controls (incl. Search's Fetch button) stay
-      reachable at any window size; Results/Tracker/Settings/Application already scroll
-      natively; (5) ✅ **saved-profile tile gestures (done)** — long-press *anywhere* on a
+      parsers) with per-document copy buttons, on the Application sheet; (2) ✅ **empty / loading /
+      error states** — audited all tabs and added the missing `isLoading` spinner to Results
+      + Tracker so their persisted-data load no longer flashes the empty state; other tabs already
+      had error/unavailable/loading affordances; (3) ✅ **results / saved-jobs / Tracker cohesion**
+      — a pure `JobHistory` type + `LoadJobHistoryUseCase` join "already seen / already generated /
+      applied" into one story, rendered as `RankedRow` badges across Results **and** Tracker, with
+      loads reconciled so a fresh search is never clobbered; (4) ✅ **scrollable screens /
+      small-window layout** — the Portfolio + Search tabs now scroll via a shared
+      `View.scrollableScreen()` wrapper (the trailing `Spacer()` dropped), so lower controls (incl.
+      Search's Fetch button) stay reachable at any window size; Results/Tracker/Settings/Application
+      already scroll natively; (5) ✅ **saved-profile tile gestures** — long-press *anywhere* on a
       saved-profile tile sets it as default and tap *anywhere* loads it (the dial is now just
-      an indicator); the trash button stays independent. Parts 1–3 remain (Phase 5). Seam: mostly
-      Presentation (Views + VMs), with small Data/use-case touches for the history joins.
-      On-device: yes.
+      an indicator); the trash button stays independent. Seam: mostly Presentation (Views + VMs),
+      with small Data/use-case touches for the history joins. On-device: yes.
 
 - [x] **Two-document portfolio (résumé/portfolio + cover letter) as generation grounding.**
       ✅ **Done (T-A + T-B).** The Portfolio tab now takes a required résumé/portfolio + an **optional

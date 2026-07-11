@@ -71,6 +71,11 @@ struct Composition {
         guard let savedJobsRepository, let savedStatusRepository else { return nil }
         return LoadTrackedJobsUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository)
     }
+    /// The cross-screen history join (seen / generated / tracked) — Milestone S-C.
+    private var loadJobHistory: LoadJobHistoryUseCase? {
+        guard let savedJobsRepository, let savedStatusRepository, let savedApplicationsRepository else { return nil }
+        return LoadJobHistoryUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository, applications: savedApplicationsRepository)
+    }
     /// Fully-forget a saved job (job + status + kit) — Milestone V-A.
     private var deleteSavedJob: DeleteSavedJobUseCase? {
         guard let savedJobsRepository, let savedStatusRepository, let savedApplicationsRepository else { return nil }
@@ -168,13 +173,14 @@ struct Composition {
         .init(
             loadSavedJobs: loadSavedJobs,
             loadTrackedJobs: loadTrackedJobs,
+            loadJobHistory: loadJobHistory,
             markStatus: markStatus,
             saveResults: saveResults,
             deleteSavedJob: deleteSavedJob
         )
     }
     func makeTrackerViewModel() -> TrackerViewModel {
-        .init(loadTrackedJobs: loadTrackedJobs)
+        .init(loadTrackedJobs: loadTrackedJobs, loadJobHistory: loadJobHistory)
     }
     func makeSettingsViewModel() -> SettingsViewModel {
         .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured)

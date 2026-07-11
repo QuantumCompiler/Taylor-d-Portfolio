@@ -43,6 +43,11 @@ struct JobDetailView: View {
             .offset(x: isSwipeable ? dragOffset : 0)
             .overlay(alignment: dragOffset >= 0 ? .leading : .trailing) { swipeHint }
             .gesture(swipeGesture, isEnabled: isSwipeable)
+            .trackpadSwipe(
+                isEnabled: isSwipeable,
+                onChanged: { dragOffset = $0 },
+                onEnded: { endSwipe(translation: $0) }
+            )
             .padding(24)
             .frame(minWidth: 540, minHeight: 500)
             .task {
@@ -77,16 +82,20 @@ struct JobDetailView: View {
 
     // MARK: Swipe (Results context, Milestone V-C)
 
+    /// Mouse click-drag fallback (trackpad users get the no-click `.trackpadSwipe`).
     private var swipeGesture: some Gesture {
         DragGesture(minimumDistance: 20)
             .onChanged { dragOffset = $0.translation.width }
-            .onEnded { value in
-                switch SwipeOutcome.resolve(translation: value.translation.width, threshold: Self.swipeThreshold) {
-                case .save: onSaveToTracker?(); dismiss()
-                case .dismiss: dismiss()
-                case .none: withAnimation(.spring(duration: 0.25)) { dragOffset = 0 }
-                }
-            }
+            .onEnded { endSwipe(translation: $0.translation.width) }
+    }
+
+    /// Resolves a finished swipe (from either input) into save / dismiss / spring-back.
+    private func endSwipe(translation: CGFloat) {
+        switch SwipeOutcome.resolve(translation: translation, threshold: Self.swipeThreshold) {
+        case .save: onSaveToTracker?(); dismiss()
+        case .dismiss: dismiss()
+        case .none: withAnimation(.spring(duration: 0.25)) { dragOffset = 0 }
+        }
     }
 
     /// A subtle hint that grows as the card is dragged: right ⇒ Save, left ⇒ Dismiss.

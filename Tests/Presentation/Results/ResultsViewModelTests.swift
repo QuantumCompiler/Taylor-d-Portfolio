@@ -29,6 +29,7 @@ struct ResultsViewModelTests {
         let vm = ResultsViewModel(
             results: results,
             loadTrackedJobs: LoadTrackedJobsUseCase(jobs: jobs, statuses: statuses),
+            loadJobHistory: LoadJobHistoryUseCase(jobs: jobs, statuses: statuses, applications: apps),
             markStatus: MarkStatusUseCase(repository: statuses, now: { Date(timeIntervalSince1970: 0) }),
             saveResults: SaveResultsUseCase(repository: jobs),
             deleteSavedJob: DeleteSavedJobUseCase(jobs: jobs, statuses: statuses, applications: apps)
@@ -85,7 +86,7 @@ struct ResultsViewModelTests {
         let (vm, jobs, statuses, _) = makeRowActionVM(results: [ranked("a")])
         try await jobs.save([ranked("a")])                                         // already a saved/tracked job…
         try await statuses.save(ApplicationStatus(stage: .applied), forJobID: "a")  // …further along than .saved
-        await vm.refreshStatuses()
+        await vm.refreshHistory()
         #expect(vm.isTracked(ranked("a")))
 
         await vm.saveToTracker(ranked("a"))
@@ -152,11 +153,76 @@ struct ResultsViewModelTests {
         #expect(vm.locationOptions == ["Lehi, UT", "Remote"])
     }
 
+    // MARK: Loading state (Milestone S-B)
+
+    @Test func isLoadingResetsAfterLoadAndPopulates() async throws {
+        let repo = SavedJobsRepository(store: InMemoryRecordStore())
+        try await repo.save([ranked("a", score: 60)])
+        let vm = ResultsViewModel(loadSavedJobs: LoadSavedJobsUseCase(repository: repo))
+        #expect(vm.isLoading == false)          // nothing loading before appear
+        await vm.loadSavedIfNeeded()
+        #expect(vm.isLoading == false)          // and not left stuck on
+        #expect(vm.results.map(\.id) == ["a"])
+    }
+
+    @Test func isLoadingStaysFalseWhenUnwiredOrAlreadyPopulated() async {
+        #expect(ResultsViewModel().isLoading == false)
+        // Results already present (from a search) → skips the load, no spinner.
+        let vm = ResultsViewModel(results: [ranked("fresh", score: 50)],
+                                  loadSavedJobs: nil)
+        await vm.loadSavedIfNeeded()
+        #expect(vm.isLoading == false)
+    }
+
+    // MARK: History story (Milestone S-C)
+
+    @Test func historyBadgesReflectSeenGeneratedApplied() async throws {
+        let (vm, jobs, statuses, apps) = makeRowActionVM(
+            results: [ranked("seen"), ranked("applied"), ranked("generated"), ranked("fresh")]
+        )
+        // "seen": saved listing, no status, no kit.
+        try await jobs.save([ranked("seen")])
+        // "applied": saved + tracked at .applied.
+        try await jobs.save([ranked("applied")])
+        try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 10)), forJobID: "applied")
+        // "generated": saved + tracked at .saved + a generated kit.
+        try await jobs.save([ranked("generated")])
+        try await statuses.save(ApplicationStatus(stage: .saved), forJobID: "generated")
+        try await apps.save(ApplicationKit(resumeMarkdown: "R", coverLetter: "C", gapNote: ""), forJobID: "generated")
+
+        await vm.loadSavedIfNeeded()
+
+        #expect(vm.history(for: ranked("seen")).facets == [.seen])
+        #expect(vm.history(for: ranked("applied")).facets.first.map { $0 == .status(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 10))) } == true)
+        #expect(vm.history(for: ranked("applied")).facets.contains(.generated) == false)
+        let generated = vm.history(for: ranked("generated"))
+        #expect(generated.isGenerated)
+        #expect(generated.facets.contains(.generated))
+        #expect(generated.status?.stage == .saved)
+        #expect(vm.history(for: ranked("fresh")).facets.isEmpty)   // brand-new: no badges
+    }
+
+    @Test func loadKeepsFreshSearchResultsButStillPopulatesHistory() async throws {
+        // A fresh search already put results in place; one of them was saved+generated before.
+        let (vm, jobs, statuses, apps) = makeRowActionVM(results: [ranked("fresh"), ranked("known")])
+        try await jobs.save([ranked("known")])
+        try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 5)), forJobID: "known")
+        try await apps.save(ApplicationKit(resumeMarkdown: "R", coverLetter: "", gapNote: ""), forJobID: "known")
+
+        await vm.loadSavedIfNeeded()
+
+        #expect(vm.results.map(\.id) == ["fresh", "known"])        // fresh search not clobbered
+        #expect(vm.history(for: ranked("fresh")).hasHistory == false)
+        let known = vm.history(for: ranked("known"))
+        #expect(known.status?.stage == .applied)
+        #expect(known.isGenerated)
+    }
+
     @Test func trackedFacetUsesTheStatusMap() async throws {
         let (vm, jobs, statuses, _) = makeRowActionVM(results: [ranked("a"), ranked("b")])
         try await jobs.save([ranked("a")])
         try await statuses.save(ApplicationStatus(stage: .saved), forJobID: "a")
-        await vm.refreshStatuses()
+        await vm.refreshHistory()
 
         vm.filter.trackedStatus = .tracked
         #expect(vm.filteredResults.map(\.id) == ["a"])

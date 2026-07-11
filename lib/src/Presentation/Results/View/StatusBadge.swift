@@ -38,6 +38,25 @@ struct StatusBadge: View {
     }
 }
 
+/// A small icon + label capsule for the cross-screen history facets ("Seen",
+/// "Generated"), styled to sit alongside ``StatusBadge`` (Milestone S-C).
+struct FacetBadge: View {
+    let text: String
+    var systemImage: String? = nil
+    var tint: Color = .secondary
+
+    var body: some View {
+        HStack(spacing: 3) {
+            if let systemImage { Image(systemName: systemImage) }
+            Text(text)
+        }
+        .font(.caption2).bold()
+        .padding(.horizontal, 7).padding(.vertical, 2)
+        .background(tint.opacity(0.15), in: Capsule())
+        .foregroundStyle(tint)
+    }
+}
+
 #if DEBUG
 #Preview {
     VStack(alignment: .leading, spacing: 6) {
@@ -45,6 +64,10 @@ struct StatusBadge: View {
         StatusBadge(status: ApplicationStatus(stage: .interviewing, interviewDate: .now))
         StatusBadge(status: ApplicationStatus(stage: .offer, offerDate: .now))
         StatusBadge(status: ApplicationStatus(stage: .rejected, closedDate: .now))
+        HStack {
+            FacetBadge(text: "Seen", systemImage: "eye")
+            FacetBadge(text: "Generated", systemImage: "doc.text", tint: .teal)
+        }
     }
     .padding()
 }

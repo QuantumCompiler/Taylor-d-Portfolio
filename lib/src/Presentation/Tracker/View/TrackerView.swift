@@ -20,7 +20,9 @@ struct TrackerView: View {
 
     var body: some View {
         Group {
-            if viewModel.isEmpty {
+            if viewModel.isLoading {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.isEmpty {
                 ContentUnavailableView(
                     "No tracked applications",
                     systemImage: "briefcase",
@@ -28,7 +30,7 @@ struct TrackerView: View {
                 )
             } else {
                 List(viewModel.trackedJobs) { tracked in
-                    RankedRow(ranked: tracked.job, status: tracked.status)
+                    RankedRow(ranked: tracked.job, history: viewModel.history(for: tracked.job))
                         .contentShape(Rectangle())
                         .onTapGesture { viewModel.select(tracked.job) }
                         .clickableCursor()
