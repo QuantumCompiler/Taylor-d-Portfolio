@@ -164,7 +164,8 @@ persistence fast-follow (saved/re-runnable searches), and polish the app that pr
 them. A priority **hotfix** (the job-posting URL fetch is broken) comes first, then
 Milestones Q (Export), R (Saved searches), S (Polish), T (two-document portfolio),
 U (expanded search parameters), V (results ↔ tracker interaction), W (results filtering);
-X (templates + one-page gate) is a stretch. **v0.3.0 scope is closed.** The milestone
+X (templates + one-page gate) was promoted from stretch into v0.3.0 proper and shipped.
+**v0.3.0 scope is closed.** The milestone
 letters are a catalogue, **not** the build order — see **"Recommended implementation order
 (v0.3.0)"** in `TODO.md` for the phased sequence (fixes → Export → grounding/search → results
 experience → cohesive polish → stretch). `TODO.md` has the granular breakdown.
@@ -337,11 +338,13 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       in the current results) + an empty-filtered state. On-device: yes — pure, local, no network,
       no persistence (session-only; a saved-filter option is a later idea).
 
-- [ ] *(stretch)* **Export templates + one-page gate.** Once PDF export lands: 1–2
-      selectable résumé templates and AGENT.md's one-page length gate (warn / offer a
-      tightened variant when the résumé overflows a page — surfaced, never silently
-      truncating). Depends on the Q PDF-renderer choice (the HTML-template path makes both
-      realistic). Promote into v0.3.0 proper only if Q completes early; otherwise it seeds v0.4.0.
+- [x] **Export templates + one-page gate.** ✅ **Done (Milestone X — promoted from stretch).**
+      Three selectable résumé templates (Classic / Compact / Modern) as `ExportTemplate` →
+      `TemplateStyle` (typography/layout) threaded through the Core Text PDF renderer via a
+      `template:` parameter on the `DocumentExporter` port (text formats ignore it — no new port).
+      The one-page gate reuses the same pagination: `DocumentExporter.pageCount(...)` →
+      `ExportApplicationUseCase.resumePageCount` → an **advisory** banner on the Application sheet
+      when the résumé overflows a page (suggests Compact / tightening — **never** truncates).
 
 ## Fast follow (next up)
 

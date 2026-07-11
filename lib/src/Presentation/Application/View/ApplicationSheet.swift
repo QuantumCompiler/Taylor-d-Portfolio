@@ -52,6 +52,12 @@ struct ApplicationSheet: View {
                         Button("Word (.docx)") { startExport(.docx) }
                         Button("Markdown (.md)") { startExport(.markdown) }
                         Button("Plain Text (.txt)") { startExport(.plainText) }
+                        Divider()
+                        Picker("PDF template", selection: $viewModel.exportTemplate) {
+                            ForEach(ExportTemplate.allCases) { template in
+                                Text(template.displayName).tag(template)
+                            }
+                        }
                     } label: {
                         Label("Export", systemImage: "square.and.arrow.up")
                     }
@@ -68,18 +74,43 @@ struct ApplicationSheet: View {
                     .keyboardShortcut(.defaultAction)
                     .clickableCursor()
             }
+            lengthGateBanner
             Divider()
             content
         }
         .padding(24)
         .frame(minWidth: 520, minHeight: 440)
         .task { await viewModel.open(for: job, profile: profile, grounding: grounding) }
+        // The one-page gate is template-dependent — remeasure when the user switches template.
+        .onChange(of: viewModel.exportTemplate) { _, _ in viewModel.refreshLengthGate() }
         .fileExporter(
             isPresented: $isExporting,
             document: exportDocument,
             contentType: exportContentType,
             defaultFilename: exportFilename
         ) { _ in }
+    }
+
+    /// A surfaced one-page warning (Milestone X): the résumé runs long in the chosen
+    /// template. Advisory only — we never truncate; we suggest tightening or the Compact
+    /// template.
+    @ViewBuilder private var lengthGateBanner: some View {
+        if viewModel.resumeExceedsOnePage {
+            let pages = viewModel.resumePageCount
+            Label {
+                Text("Résumé is \(pages) pages in the \(viewModel.exportTemplate.displayName) template — "
+                     + (viewModel.exportTemplate == .compact
+                        ? "tighten the content to fit one page."
+                        : "try the Compact template or tighten the content to fit one page."))
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+            }
+            .font(.caption)
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+        }
     }
 
     /// Renders the kit to `format` and presents the save panel.

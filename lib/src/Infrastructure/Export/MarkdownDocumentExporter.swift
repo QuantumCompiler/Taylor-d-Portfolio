@@ -12,7 +12,8 @@ import Foundation
 /// later milestones (Q-B / Q-C) — until then they throw ``ExportError/unsupportedFormat(_:)``
 /// so a caller never silently gets empty bytes.
 nonisolated struct MarkdownDocumentExporter: DocumentExporter {
-    nonisolated func export(markdown: String, as format: ExportFormat) throws -> Data {
+    /// Text formats are content-only — the `template` (styling) is intentionally ignored.
+    nonisolated func export(markdown: String, as format: ExportFormat, template: ExportTemplate) throws -> Data {
         switch format {
         case .markdown:
             return Data(markdown.utf8)

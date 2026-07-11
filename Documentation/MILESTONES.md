@@ -1097,6 +1097,36 @@ Note: W is **view-only** over loaded results — no new persistence, no re-searc
 on V (row actions over the filtered list) and complements U without overlap: **U decides what gets
 searched/ranked; W decides what's shown of the results.**
 
+## Milestone X — Export templates + one-page gate  ✅ done (promoted from stretch into v0.3.0)  (`Infrastructure/Export`, `Business/UseCases`, Application UI)
+
+Q-B chose the Core Text / `NSAttributedString` renderer (not HTML), so templates are typography/layout
+variations threaded through that renderer, and the one-page gate reuses the same Core Text pagination.
+
+- [x] **Template selection.** New `ExportTemplate` (Infrastructure) — **Classic** (the original look, the
+      default so existing exports are unchanged), **Compact** (smaller type + tighter margins/spacing to
+      fit more), **Modern** (system-serif body + navy accent headings) — each resolving to a pure
+      `TemplateStyle` (body/heading sizes, margin, spacing, serif flag, heading colour; `RGBColor` keeps
+      it AppKit-free and testable). `MarkdownAttributedRenderer` now renders against a `TemplateStyle`
+      (serif face via `NSFontDescriptor.withDesign(.serif)`, accent heading colour, black body). The
+      **seam is a `template:` parameter on the `DocumentExporter` port** (no new port); a protocol
+      extension keeps the old `export(markdown:as:)` call site working with `.classic`. Text formats
+      (Markdown / plain / DOCX) ignore the template; `RoutingDocumentExporter` forwards it to the PDF
+      exporter. The Export menu on the Application sheet gained a **PDF template** picker.
+- [x] **One-page gate.** `PDFDocumentExporter` factored its pagination into a shared `pageRanges(...)`
+      used by both `render(...)` and a new `pageCount(markdown:template:)`; the port declares
+      `pageCount` (default 1 for non-paginated formats), `RoutingDocumentExporter` routes it to the PDF
+      exporter (measurement is a print concern). `ExportApplicationUseCase.resumePageCount` measures the
+      **résumé alone** (the one-page discipline is a résumé rule; 0 when there's no résumé).
+      `ApplicationViewModel` holds `exportTemplate` + `resumePageCount` (recomputed on load/generate and
+      on template change via `refreshLengthGate()`); the sheet shows an **advisory orange banner** when
+      the résumé overflows a page, suggesting Compact / tightening — it **never truncates content**.
+- [x] **Tests.** `ExportTemplateTests` (distinct styles; Compact denser than Classic; Modern serif +
+      accent; heading-size clamp); `PDFDocumentExporterTests` (pageCount matches the rendered PDF; empty
+      ⇒ 1 page; Compact ≤ Classic pages; template changes the bytes); `ExportApplicationUseCaseTests`
+      (template forwarded + defaults to Classic; résumé-only measurement; 0 when no résumé);
+      `ApplicationViewModelTests` (gate flags a long résumé, stays quiet for one page, remeasures on
+      template switch, export uses the selected template). Suite green.
+
 ## Ad-hoc / quality-of-life enhancements  ✅ done
 
 Small, user-requested improvements made outside the numbered milestones:
@@ -1114,3 +1144,9 @@ Small, user-requested improvements made outside the numbered milestones:
 - **Custom top tab bar.** Replaced the native macOS `TabView` strip with a custom button bar in
   `RootView` so the tabs are real controls that show the pointing-hand cursor — same icons/labels,
   a selected-tab highlight, content switched on the `MainTab` enum.
+- **Trackpad swipe on the result card.** The swipeable job-detail card (Milestone V-C) now also
+  responds to a **two-finger trackpad swipe** with no click, via a reusable `View.trackpadSwipe(...)`
+  (`Presentation/Components`) that installs a local scroll-wheel monitor and consumes only
+  horizontally-dominant precise-scroll gestures (vertical scrolling passes through to the inner
+  `ScrollView`). Left = dismiss, right = save; the mouse click-drag `DragGesture` stays as a fallback,
+  and both paths share one `endSwipe(translation:)` + the existing `SwipeOutcome.resolve` threshold.

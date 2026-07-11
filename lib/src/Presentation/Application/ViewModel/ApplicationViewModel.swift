@@ -21,6 +21,11 @@ final class ApplicationViewModel {
     private(set) var isSaved = false
     /// The job the current materials are for — used to name exported files.
     private(set) var job: JobListing?
+    /// The résumé template used for PDF export + the one-page gate (Milestone X).
+    var exportTemplate: ExportTemplate = .classic
+    /// How many pages the résumé occupies in `exportTemplate`'s layout — 0 when there's no
+    /// kit/exporter. Recomputed by `refreshLengthGate()` when the kit or template changes.
+    private(set) var resumePageCount = 0
 
     private let generateApplication: GenerateApplicationUseCase
     private let saveApplication: SaveApplicationUseCase?
@@ -44,10 +49,24 @@ final class ApplicationViewModel {
     /// Whether there's a generated kit and an exporter wired to save/copy it.
     var canExport: Bool { kit != nil && exportApplication != nil }
 
-    /// The exported bytes for `format`, or `nil` if unavailable / the format is unsupported.
+    /// The exported bytes for `format` (styled with the chosen template for PDF), or `nil`
+    /// if unavailable / the format is unsupported.
     func exportData(_ format: ExportFormat) -> Data? {
         guard let kit, let exportApplication else { return nil }
-        return try? exportApplication(kit, as: format)
+        return try? exportApplication(kit, as: format, template: exportTemplate)
+    }
+
+    // MARK: One-page gate (Milestone X)
+
+    /// True when the résumé overflows one page in the chosen template — a surfaced warning,
+    /// never a reason to truncate content.
+    var resumeExceedsOnePage: Bool { resumePageCount > 1 }
+
+    /// Recomputes `resumePageCount` for the current kit + template. Cheap (short résumés);
+    /// call after the kit loads/generates and whenever the template changes.
+    func refreshLengthGate() {
+        guard let kit, let exportApplication else { resumePageCount = 0; return }
+        resumePageCount = (try? exportApplication.resumePageCount(kit, template: exportTemplate)) ?? 0
     }
 
     /// The exported document as text (for copy-to-clipboard). Defaults to Markdown.
@@ -76,6 +95,7 @@ final class ApplicationViewModel {
             isSaved = true
             errorMessage = nil
             isGenerating = false
+            refreshLengthGate()
             return
         }
         await generate(for: job, profile: profile, grounding: grounding)
@@ -92,6 +112,7 @@ final class ApplicationViewModel {
         do {
             let produced = try await generateApplication(job: job, profile: profile, grounding: grounding)
             kit = produced
+            refreshLengthGate()
             // Best-effort persist — a storage failure shouldn't lose the generated output.
             try? await saveApplication?(produced, forJobID: job.id)
         } catch {

@@ -15,14 +15,20 @@ nonisolated struct RoutingDocumentExporter: DocumentExporter {
     var pdf: any DocumentExporter = PDFDocumentExporter()
     var docx: any DocumentExporter = DocxDocumentExporter()
 
-    nonisolated func export(markdown: String, as format: ExportFormat) throws -> Data {
+    nonisolated func export(markdown: String, as format: ExportFormat, template: ExportTemplate) throws -> Data {
         switch format {
         case .markdown, .plainText:
-            return try text.export(markdown: markdown, as: format)
+            return try text.export(markdown: markdown, as: format, template: template)
         case .pdf:
-            return try pdf.export(markdown: markdown, as: format)
+            return try pdf.export(markdown: markdown, as: format, template: template)
         case .docx:
-            return try docx.export(markdown: markdown, as: format)
+            return try docx.export(markdown: markdown, as: format, template: template)
         }
+    }
+
+    /// The one-page gate is a print/PDF concern, so measurement always routes to the PDF
+    /// exporter regardless of the format the user ultimately exports (Milestone X).
+    nonisolated func pageCount(markdown: String, template: ExportTemplate) throws -> Int {
+        try pdf.pageCount(markdown: markdown, template: template)
     }
 }

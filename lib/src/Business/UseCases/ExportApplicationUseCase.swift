@@ -18,8 +18,18 @@ nonisolated struct ExportApplicationUseCase: Sendable {
         self.exporter = exporter
     }
 
-    func callAsFunction(_ kit: ApplicationKit, as format: ExportFormat) throws -> Data {
-        try exporter.export(markdown: Self.assembleMarkdown(from: kit), as: format)
+    func callAsFunction(_ kit: ApplicationKit, as format: ExportFormat, template: ExportTemplate = .classic) throws -> Data {
+        try exporter.export(markdown: Self.assembleMarkdown(from: kit), as: format, template: template)
+    }
+
+    /// How many pages the **résumé alone** occupies in `template`'s print layout — the
+    /// measurement behind the one-page gate (Milestone X). Returns 0 when there's no résumé
+    /// (nothing to gate). The cover letter is deliberately excluded: the one-page discipline
+    /// is a résumé rule.
+    func resumePageCount(_ kit: ApplicationKit, template: ExportTemplate = .classic) throws -> Int {
+        let resume = kit.resumeMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !resume.isEmpty else { return 0 }
+        return try exporter.pageCount(markdown: resume, template: template)
     }
 
     /// Combines the résumé and cover letter under clear headings. Empty sections are

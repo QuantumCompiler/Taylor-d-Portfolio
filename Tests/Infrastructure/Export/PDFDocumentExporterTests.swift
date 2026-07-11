@@ -44,6 +44,66 @@ struct PDFDocumentExporterTests {
             _ = try exporter.export(markdown: "x", as: .docx)
         }
     }
+
+    // MARK: Templates + one-page gate (Milestone X)
+
+    @Test func pageCountMatchesTheRenderedPDF() throws {
+        let long = (1...400).map { "Line \($0): experience, projects, and impact." }.joined(separator: "\n\n")
+        let counted = try exporter.pageCount(markdown: long, template: .classic)
+        let rendered = try #require(PDFDocument(data: try exporter.export(markdown: long, as: .pdf, template: .classic)))
+        #expect(counted == rendered.pageCount)   // the gate agrees with the real output
+        #expect(counted >= 2)
+    }
+
+    @Test func emptyDocumentIsOnePage() throws {
+        #expect(try exporter.pageCount(markdown: "", template: .classic) == 1)
+    }
+
+    @Test func compactTemplateFitsAtLeastAsMuchAsClassic() throws {
+        // A borderline-length résumé should never take *more* pages in Compact than Classic.
+        let resume = (1...60).map { "- Accomplishment number \($0) with measurable, quantified impact." }
+            .joined(separator: "\n")
+        let classicPages = try exporter.pageCount(markdown: resume, template: .classic)
+        let compactPages = try exporter.pageCount(markdown: resume, template: .compact)
+        #expect(compactPages <= classicPages)
+    }
+
+    @Test func templateChangesTheRenderedBytes() throws {
+        let sample = "# Name\n\nSenior Engineer with a track record of shipping."
+        let classic = try exporter.export(markdown: sample, as: .pdf, template: .classic)
+        let modern = try exporter.export(markdown: sample, as: .pdf, template: .modern)
+        #expect(classic != modern)   // serif + accent headings produce different output
+    }
+}
+
+@Suite("ExportTemplate")
+struct ExportTemplateTests {
+    @Test func allTemplatesHaveDistinctResolvedStyles() {
+        let styles = ExportTemplate.allCases.map(\.style)
+        #expect(Set(ExportTemplate.allCases.map(\.displayName)).count == ExportTemplate.allCases.count)
+        #expect(styles[0] != styles[1])
+        #expect(styles[1] != styles[2])
+    }
+
+    @Test func compactUsesSmallerTypeAndTighterMarginsThanClassic() {
+        let classic = ExportTemplate.classic.style
+        let compact = ExportTemplate.compact.style
+        #expect(compact.bodySize < classic.bodySize)
+        #expect(compact.margin < classic.margin)
+    }
+
+    @Test func modernUsesSerifAndAnAccentHeadingColour() {
+        let modern = ExportTemplate.modern.style
+        #expect(modern.usesSerif)
+        #expect(modern.headingColor != .black)
+    }
+
+    @Test func headingSizeClampsDeepLevelsToH3() {
+        let style = ExportTemplate.classic.style
+        #expect(style.headingSize(forLevel: 1) == style.h1Size)
+        #expect(style.headingSize(forLevel: 2) == style.h2Size)
+        #expect(style.headingSize(forLevel: 5) == style.h3Size)   // deeper levels clamp to h3
+    }
 }
 
 @Suite("RoutingDocumentExporter")

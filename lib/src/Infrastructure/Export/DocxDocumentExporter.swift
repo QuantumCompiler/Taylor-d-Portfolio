@@ -12,7 +12,8 @@ import Foundation
 /// document needs, maps the Markdown to `word/document.xml` (``OOXMLDocument``), and packages
 /// them with ``ZipArchiveWriter``. Only `.docx` is handled; other formats throw.
 nonisolated struct DocxDocumentExporter: DocumentExporter {
-    nonisolated func export(markdown: String, as format: ExportFormat) throws -> Data {
+    /// DOCX carries its own Word styling — the PDF `template` is intentionally ignored.
+    nonisolated func export(markdown: String, as format: ExportFormat, template: ExportTemplate) throws -> Data {
         guard format == .docx else { throw ExportError.unsupportedFormat(format) }
         let entries: [ZipArchiveWriter.Entry] = [
             .init(path: "[Content_Types].xml", data: Data(Self.contentTypes.utf8)),

@@ -6,6 +6,7 @@
 //
 
 import Testing
+import Foundation
 @testable import Taylor_d_Portfolio
 
 /// An `LLMProvider` that records how many times generation ran, so tests can assert a
@@ -184,5 +185,63 @@ struct ApplicationViewModelTests {
 
     @Test func filenameBaseFallsBackWhenNoJob() {
         #expect(exportVM().exportFilenameBase == "Application")
+    }
+
+    // MARK: Milestone X — templates + one-page gate
+
+    /// A `DocumentExporter` whose page count is scripted per template, so the gate is testable
+    /// without real Core Text pagination. Also records the template it was asked to export with.
+    private final class ScriptedExporter: DocumentExporter, @unchecked Sendable {
+        var pagesByTemplate: [ExportTemplate: Int]
+        private(set) var lastExportTemplate: ExportTemplate?
+        init(pagesByTemplate: [ExportTemplate: Int]) { self.pagesByTemplate = pagesByTemplate }
+        func export(markdown: String, as format: ExportFormat, template: ExportTemplate) throws -> Data {
+            lastExportTemplate = template
+            return Data(markdown.utf8)
+        }
+        func pageCount(markdown: String, template: ExportTemplate) throws -> Int {
+            pagesByTemplate[template] ?? 1
+        }
+    }
+
+    private func gateVM(_ exporter: ScriptedExporter) -> ApplicationViewModel {
+        ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: PresentationStubProvider(kitResume: "# Resume\nSwift dev")),
+            exportApplication: ExportApplicationUseCase(exporter: exporter)
+        )
+    }
+
+    @Test func onePageGateFlagsALongResume() async {
+        let vm = gateVM(ScriptedExporter(pagesByTemplate: [.classic: 2]))
+        await vm.generate(for: job, profile: profile)
+        #expect(vm.resumePageCount == 2)
+        #expect(vm.resumeExceedsOnePage)
+    }
+
+    @Test func onePageGateStaysQuietForAOnePageResume() async {
+        let vm = gateVM(ScriptedExporter(pagesByTemplate: [.classic: 1]))
+        await vm.generate(for: job, profile: profile)
+        #expect(vm.resumePageCount == 1)
+        #expect(vm.resumeExceedsOnePage == false)
+    }
+
+    @Test func switchingTemplateRemeasuresTheGate() async {
+        let vm = gateVM(ScriptedExporter(pagesByTemplate: [.classic: 2, .compact: 1]))
+        await vm.generate(for: job, profile: profile)
+        #expect(vm.resumeExceedsOnePage)          // 2 pages in Classic
+
+        vm.exportTemplate = .compact
+        vm.refreshLengthGate()
+        #expect(vm.resumePageCount == 1)          // Compact fits it
+        #expect(vm.resumeExceedsOnePage == false)
+    }
+
+    @Test func exportUsesTheSelectedTemplate() async {
+        let exporter = ScriptedExporter(pagesByTemplate: [:])
+        let vm = gateVM(exporter)
+        await vm.generate(for: job, profile: profile)
+        vm.exportTemplate = .modern
+        _ = vm.exportData(.pdf)
+        #expect(exporter.lastExportTemplate == .modern)
     }
 }

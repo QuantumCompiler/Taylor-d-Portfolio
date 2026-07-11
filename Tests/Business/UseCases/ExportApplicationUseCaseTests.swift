@@ -9,14 +9,25 @@ import Testing
 import Foundation
 @testable import Taylor_d_Portfolio
 
-/// Records the Markdown + format it was asked to export, for assembly assertions.
+/// Records the Markdown + format + template it was asked to export, for assembly assertions.
 private final class RecordingExporter: DocumentExporter, @unchecked Sendable {
     private(set) var lastMarkdown: String?
     private(set) var lastFormat: ExportFormat?
-    func export(markdown: String, as format: ExportFormat) throws -> Data {
+    private(set) var lastTemplate: ExportTemplate?
+    private(set) var lastPageCountMarkdown: String?
+    var pageCountToReturn = 1
+
+    func export(markdown: String, as format: ExportFormat, template: ExportTemplate) throws -> Data {
         lastMarkdown = markdown
         lastFormat = format
+        lastTemplate = template
         return Data(markdown.utf8)
+    }
+
+    func pageCount(markdown: String, template: ExportTemplate) throws -> Int {
+        lastPageCountMarkdown = markdown
+        lastTemplate = template
+        return pageCountToReturn
     }
 }
 
@@ -55,5 +66,44 @@ struct ExportApplicationUseCaseTests {
         #expect(!text.contains("#"))                 // plain-text path ran
         #expect(text.contains("Résumé"))
         #expect(throws: ExportError.unsupportedFormat(.pdf)) { _ = try useCase(kit, as: .pdf) }
+    }
+
+    // MARK: Template + one-page gate (Milestone X)
+
+    @Test func forwardsTheChosenTemplateToTheExporter() throws {
+        let exporter = RecordingExporter()
+        let useCase = ExportApplicationUseCase(exporter: exporter)
+        _ = try useCase(kit, as: .pdf, template: .modern)
+        #expect(exporter.lastTemplate == .modern)
+    }
+
+    @Test func defaultsToTheClassicTemplate() throws {
+        let exporter = RecordingExporter()
+        let useCase = ExportApplicationUseCase(exporter: exporter)
+        _ = try useCase(kit, as: .pdf)
+        #expect(exporter.lastTemplate == .classic)
+    }
+
+    @Test func resumePageCountMeasuresResumeOnlyWithTemplate() throws {
+        let exporter = RecordingExporter()
+        exporter.pageCountToReturn = 2
+        let useCase = ExportApplicationUseCase(exporter: exporter)
+
+        let pages = try useCase.resumePageCount(kit, template: .compact)
+
+        #expect(pages == 2)
+        #expect(exporter.lastTemplate == .compact)
+        // Only the résumé is measured — the cover letter is excluded from the gate.
+        let measured = try #require(exporter.lastPageCountMarkdown)
+        #expect(measured.contains("Senior iOS Engineer"))
+        #expect(!measured.contains("I build apps."))
+    }
+
+    @Test func resumePageCountIsZeroWhenThereIsNoResume() throws {
+        let exporter = RecordingExporter()
+        let useCase = ExportApplicationUseCase(exporter: exporter)
+        let coverOnly = ApplicationKit(resumeMarkdown: "  ", coverLetter: "Hello.", gapNote: "")
+        #expect(try useCase.resumePageCount(coverOnly) == 0)
+        #expect(exporter.lastPageCountMarkdown == nil)   // never called the exporter
     }
 }
