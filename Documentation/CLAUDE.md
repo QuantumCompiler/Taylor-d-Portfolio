@@ -137,7 +137,7 @@ declared here: `TextGenerating` + `FoundationModelsClient` (wraps
 store backed by SwiftData; the `@Model` `StoredRecord` lives here and never leaks up —
 callers see only `Data` blobs by `(kind, id)`); `AppConfig` + `BundleAppConfig`
 (build-time secrets read from the bundle Info.plist — the Adzuna keys, injected from a
-gitignored `Secrets.xcconfig`).
+gitignored `lib/secrets/Secrets.xcconfig`).
 
 ### The three seams, now placed in layers
 
@@ -189,10 +189,11 @@ lower layer.
 
 ## Suggested file layout
 
-One top-level folder per layer:
+All app source lives under **`lib/src/`**, one top-level folder per layer; the test target
+mirrors that structure under **`lib/tests/`** (see "Where tests live" below).
 
 ```
-Taylor'd Portfolio/
+lib/src/
   Presentation/
     App/            Taylor_d_PortfolioApp (composition root); RootView opens on the Portfolio tab
     Portfolio/      one folder per screen; each screen holds two subfolders:
@@ -225,7 +226,7 @@ Taylor'd Portfolio/
     LLM/          TextGenerating, FoundationModelsClient, ClaudeProcessClient
     Net/          HTTPClient
     Documents/    DocumentTextExtractor, PlatformDocumentTextExtractor
-    Config/       AppConfig, BundleAppConfig   (build-time secrets ← Info.plist ← Secrets.xcconfig)
+    Config/       AppConfig, BundleAppConfig   (build-time secrets ← lib/xcode/Info.plist ← lib/secrets/Secrets.xcconfig)
     Export/       ExportFormat, DocumentExporter (domain-agnostic: Markdown → Data), RoutingDocumentExporter
                   → MarkdownDocumentExporter (md/txt) + PDFDocumentExporter (Core Text, MarkdownAttributedRenderer)
                   + DocxDocumentExporter (OOXMLDocument + ZipArchiveWriter — hand-rolled minimal .docx)
@@ -239,6 +240,42 @@ Taylor'd Portfolio/
 Enforce the dependency rule at review time. Optional but recommended later: make
 each layer its own SwiftPM target so the compiler enforces "no upward imports"
 for you.
+
+### Where tests live
+
+All tests live under **`lib/tests/`** (moved there from a former top-level `Tests/`),
+mirroring the source layer folders: `lib/tests/Business/`, `lib/tests/Data/`,
+`lib/tests/Infrastructure/`, `lib/tests/Presentation/`, plus `lib/tests/Integration/`
+(e.g. `EndToEndTests`). A new test file dropped anywhere under `lib/tests/` is picked up
+automatically — no project edit needed (see the Xcode note next).
+
+### Xcode project structure
+
+The project (`Taylor'd Portfolio.xcodeproj`) uses **file-system-synchronized groups**, so the
+folders on disk *are* the target membership — there's no manual "add file to target" step:
+
+- The **app target** (`Taylor'd Portfolio`) synchronizes **`lib/src`** — every file under it is
+  compiled into the app.
+- The **test target** (`Taylor'd PortfolioTests`) synchronizes **`lib/tests`**.
+
+Because the two synchronized roots are `lib/src` and `lib/tests` (siblings), the app target never
+picks up test files even though both sit under `lib/`. Add a new source or test file by simply
+creating it in the right folder; there's nothing to wire in `project.pbxproj`.
+
+Two more config folders live under `lib/` (as explicit file references, **not** synchronized groups,
+so they're not compiled into any target):
+
+- **`lib/xcode/Info.plist`** — the app's base Info.plist (custom build-time keys only;
+  `GENERATE_INFOPLIST_FILE` still merges Xcode's generated keys on top). Wired via the app target's
+  `INFOPLIST_FILE = lib/xcode/Info.plist` build setting.
+- **`lib/secrets/`** — `Secrets.xcconfig` (the app target's **base configuration**, gitignored) and
+  its committed template `Secrets.example.xcconfig`. See "Build & run" for the credential flow.
+
+Build & test from the CLI:
+
+```
+xcodebuild test -project "Taylor'd Portfolio.xcodeproj" -scheme "Taylor'd Portfolio" -destination 'platform=macOS'
+```
 
 ## Key types
 
@@ -290,12 +327,12 @@ for you.
   GUI apps inherit a minimal `PATH`, so `ClaudeProcessClient` widens it
   (`searchPATH`) to include `~/.local/bin`, Homebrew, and npm-global before launching.
 - **Adzuna credentials are build-time secrets, not settings.** Copy
-  `Secrets.example.xcconfig` → `Secrets.xcconfig` (repo root; gitignored) and fill in
-  `ADZUNA_APP_ID` / `ADZUNA_APP_KEY`. They flow `Secrets.xcconfig` → the app target's
-  base configuration → `Info.plist` (`AdzunaAppID` / `AdzunaAppKey` via `$(…)`
-  substitution) → `BundleAppConfig` at runtime. A build without them still runs, but
-  Search is disabled with a clear "unavailable in this build" banner (fail-fast).
-  Only the Adzuna **country** is a user setting.
+  `lib/secrets/Secrets.example.xcconfig` → `lib/secrets/Secrets.xcconfig` (same folder;
+  gitignored) and fill in `ADZUNA_APP_ID` / `ADZUNA_APP_KEY`. They flow
+  `lib/secrets/Secrets.xcconfig` (the app target's base configuration) → `lib/xcode/Info.plist`
+  (`AdzunaAppID` / `AdzunaAppKey` via `$(…)` substitution) → `BundleAppConfig` at runtime.
+  A build without them still runs, but Search is disabled with a clear "unavailable in this
+  build" banner (fail-fast). Only the Adzuna **country** is a user setting.
 
 ## Working process (docs as source of truth)
 

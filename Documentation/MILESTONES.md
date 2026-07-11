@@ -24,7 +24,7 @@ on-device" — was dropped: on-device tier selection has no developer API; see `
 - [x] Rebrand product name to "Taylor'd Portfolio"
 - [x] Feature-based Presentation convention (`<Screen>/View` + `<Screen>/ViewModel`)
 
-## Milestone B — Domain models  ✅ done  (`lib/src/Data/Models`, tests in `Tests/Data/Models`)
+## Milestone B — Domain models  ✅ done  (`lib/src/Data/Models`, tests in `lib/tests/Data/Models`)
 
 - [x] `CandidateProfile` (`@Generable`, `Codable`): seniority, yearsExperience,
       coreSkills, domains, targetTitles, summary
@@ -113,7 +113,7 @@ Notes: use cases are `callAsFunction` structs so ViewModels invoke them like
 - [x] `Application` — generates resume + cover letter on appear (`ApplicationSheet` + VM)
 - [x] `Settings` — LLM choice + Adzuna keys, saved via `SettingsStore`
 - [x] `LandingViewModel` — `getStarted()` invokes an injected action (route wired in I)
-- [x] Tests: one `@MainActor @Suite` per ViewModel (`Tests/Presentation/<Screen>`)
+- [x] Tests: one `@MainActor @Suite` per ViewModel (`lib/tests/Presentation/<Screen>`)
 
 Notes: ViewModels are `@MainActor @Observable`; Views take them via `@Bindable`.
 Cross-screen inputs (`profile`, results, selected job) are settable properties that the

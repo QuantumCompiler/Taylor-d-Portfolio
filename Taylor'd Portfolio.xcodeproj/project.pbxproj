@@ -19,19 +19,19 @@
 /* Begin PBXFileReference section */
 		34159C2D2FFC888A00B3B6DE /* Taylor'd Portfolio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Taylor'd Portfolio.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		34159C3F2FFC888B00B3B6DE /* Taylor'd PortfolioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Taylor'd PortfolioTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		34159C602FFC888C00B3B6DE /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
-		34159C622FFC888C00B3B6DE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		34159C602FFC888C00B3B6DE /* lib/secrets/Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = lib/secrets/Secrets.xcconfig; sourceTree = "<group>"; };
+		34159C622FFC888C00B3B6DE /* lib/xcode/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = lib/xcode/Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		34159C2F2FFC888A00B3B6DE /* lib */ = {
+		34159C2F2FFC888A00B3B6DE /* lib/src */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = lib;
+			path = lib/src;
 			sourceTree = "<group>";
 		};
-		34159C422FFC888B00B3B6DE /* Tests */ = {
+		34159C422FFC888B00B3B6DE /* lib/tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Tests;
+			path = lib/tests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -57,10 +57,10 @@
 		34159C242FFC888A00B3B6DE = {
 			isa = PBXGroup;
 			children = (
-				34159C2F2FFC888A00B3B6DE /* lib */,
-				34159C422FFC888B00B3B6DE /* Tests */,
-				34159C622FFC888C00B3B6DE /* Info.plist */,
-				34159C602FFC888C00B3B6DE /* Secrets.xcconfig */,
+				34159C2F2FFC888A00B3B6DE /* lib/src */,
+				34159C422FFC888B00B3B6DE /* lib/tests */,
+				34159C622FFC888C00B3B6DE /* lib/xcode/Info.plist */,
+				34159C602FFC888C00B3B6DE /* lib/secrets/Secrets.xcconfig */,
 				34159C2E2FFC888A00B3B6DE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,7 +90,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				34159C2F2FFC888A00B3B6DE /* lib */,
+				34159C2F2FFC888A00B3B6DE /* lib/src */,
 			);
 			name = "Taylor'd Portfolio";
 			packageProductDependencies = (
@@ -113,7 +113,7 @@
 				34159C412FFC888B00B3B6DE /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				34159C422FFC888B00B3B6DE /* Tests */,
+				34159C422FFC888B00B3B6DE /* lib/tests */,
 			);
 			name = "Taylor'd PortfolioTests";
 			packageProductDependencies = (
@@ -322,7 +322,7 @@
 		};
 		34159C542FFC888B00B3B6DE /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 34159C602FFC888C00B3B6DE /* Secrets.xcconfig */;
+			baseConfigurationReference = 34159C602FFC888C00B3B6DE /* lib/secrets/Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -335,7 +335,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_FILE = lib/xcode/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -352,6 +352,8 @@
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.vivint.Taylor-d-Portfolio";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "com.veritum.Taylor-d-Portfolio";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "com.veritum.Taylor-d-Portfolio";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -369,7 +371,7 @@
 		};
 		34159C552FFC888B00B3B6DE /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 34159C602FFC888C00B3B6DE /* Secrets.xcconfig */;
+			baseConfigurationReference = 34159C602FFC888C00B3B6DE /* lib/secrets/Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -382,7 +384,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_FILE = lib/xcode/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -399,6 +401,8 @@
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.vivint.Taylor-d-Portfolio";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "com.veritum.Taylor-d-Portfolio";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "com.veritum.Taylor-d-Portfolio";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
