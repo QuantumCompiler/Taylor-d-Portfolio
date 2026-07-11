@@ -37,21 +37,100 @@ enum MainArea: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// The sub-views shown in the area's inner segmented nav.
-    ///
-    /// **v0.4.0 Milestone A ships one segment per area** — the existing whole screen —
-    /// so the segmented control is present (consistent pattern) but a no-op switcher.
-    /// **Milestone B** expands these lists (e.g. Portfolio → Profile / Saved Profiles /
-    /// Source Documents) and splits the screen content behind them.
+    /// The labels shown in the area's inner segmented nav, in order. Derived from the
+    /// per-area section enums below so the nav taxonomy has a single source of truth —
+    /// the labels here and the routing in `RootView` can never drift apart. Results is
+    /// a single "Ranked" view, so it has one segment.
     var subViews: [String] {
         switch self {
-        case .portfolio: ["Portfolio"]
-        case .search: ["Search"]
-        case .results: ["Results"]
-        case .tracker: ["Tracker"]
-        case .settings: ["Settings"]
+        case .portfolio: PortfolioSection.allCases.map(\.title)
+        case .search: SearchSection.allCases.map(\.title)
+        case .results: ["Ranked"]
+        case .tracker: TrackerSection.allCases.map(\.title)
+        case .settings: SettingsSection.allCases.map(\.title)
         }
     }
+}
+
+// MARK: - Per-area sub-views (v0.4.0 Milestone B)
+//
+// Each area's inner segmented nav is a small `Int`-backed enum: `rawValue` is the segment
+// index (so `ShellNavigation.selectedSubView` maps straight to a case) and `title` is the
+// segment label. `init(index:)` clamps an out-of-range index to the first case, so the shell
+// always resolves to a valid sub-view.
+
+/// Portfolio sub-views: build a profile, browse saved profiles, read the tidied source docs.
+enum PortfolioSection: Int, CaseIterable {
+    case profile, savedProfiles, sourceDocuments
+
+    var title: String {
+        switch self {
+        case .profile: "Profile"
+        case .savedProfiles: "Saved Profiles"
+        case .sourceDocuments: "Source Documents"
+        }
+    }
+
+    init(index: Int) { self = PortfolioSection(rawValue: index) ?? .profile }
+}
+
+/// Search sub-views: a new keyword search, the saved-search library, or a single posting URL.
+enum SearchSection: Int, CaseIterable {
+    case newSearch, savedSearches, fromLink
+
+    var title: String {
+        switch self {
+        case .newSearch: "New Search"
+        case .savedSearches: "Saved Searches"
+        case .fromLink: "From a Link"
+        }
+    }
+
+    init(index: Int) { self = SearchSection(rawValue: index) ?? .newSearch }
+}
+
+/// Tracker sub-views: the tracked list, filtered by application stage (`All` shows everything).
+enum TrackerSection: Int, CaseIterable {
+    case all, applied, interviewing, offers
+
+    var title: String {
+        switch self {
+        case .all: "All"
+        case .applied: "Applied"
+        case .interviewing: "Interviewing"
+        case .offers: "Offers"
+        }
+    }
+
+    init(index: Int) { self = TrackerSection(rawValue: index) ?? .all }
+
+    /// Whether a tracked job at `stage` belongs in this section. `All` shows everything;
+    /// `Offers` groups a received offer with an accepted one. Other terminal outcomes
+    /// (rejected / declined / withdrawn) and not-yet-applied `saved` jobs show only under
+    /// `All`. Pure, so it's unit-tested.
+    func includes(_ stage: ApplicationStage) -> Bool {
+        switch self {
+        case .all: true
+        case .applied: stage == .applied
+        case .interviewing: stage == .interviewing
+        case .offers: stage == .offer || stage == .accepted
+        }
+    }
+}
+
+/// Settings sub-views: per-task engines, the Adzuna country/credentials, and About.
+enum SettingsSection: Int, CaseIterable {
+    case engines, adzuna, about
+
+    var title: String {
+        switch self {
+        case .engines: "Engines"
+        case .adzuna: "Adzuna"
+        case .about: "About"
+        }
+    }
+
+    init(index: Int) { self = SettingsSection(rawValue: index) ?? .engines }
 }
 
 /// Holds the shell's navigation state: which area is selected in the sidebar and which

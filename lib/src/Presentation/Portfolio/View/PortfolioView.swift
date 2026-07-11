@@ -11,6 +11,9 @@ import UniformTypeIdentifiers
 /// Import-or-paste-your-portfolio screen: text in, a structured profile out.
 struct PortfolioView: View {
     @Bindable var viewModel: PortfolioViewModel
+    /// Which inner-nav sub-view to show (v0.4.0 Milestone B). Defaults to the profile
+    /// builder so `#Preview`s and any direct callers keep their prior behaviour.
+    var section: PortfolioSection = .profile
     @State private var showResumeImporter = false
     @State private var showCoverLetterImporter = false
     /// Whether each document's raw text editor is revealed. Hidden by default — the editors
@@ -20,81 +23,111 @@ struct PortfolioView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Portfolio").font(.largeTitle.bold())
-            Text("Import or paste your résumé / portfolio (required) — we distil a structured profile from it. You can also add an optional cover letter, used only as a voice and tone example when generating.")
-                .foregroundStyle(.secondary)
-
-            documentSlot(
-                title: "Résumé / portfolio",
-                fileName: viewModel.sourceFileName,
-                text: $viewModel.portfolioText,
-                isExpanded: $showResumeText,
-                minHeight: 180
-            ) { showResumeImporter = true }
-            .fileImporter(
-                isPresented: $showResumeImporter,
-                allowedContentTypes: Self.allowedTypes,
-                allowsMultipleSelection: false
-            ) { result in
-                if case .success(let urls) = result, let url = urls.first {
-                    Task { await viewModel.importDocument(from: url) }
-                }
-            }
-
-            documentSlot(
-                title: "Cover letter (optional)",
-                fileName: viewModel.coverLetterFileName,
-                text: $viewModel.coverLetterText,
-                isExpanded: $showCoverLetterText,
-                minHeight: 120
-            ) { showCoverLetterImporter = true }
-            .fileImporter(
-                isPresented: $showCoverLetterImporter,
-                allowedContentTypes: Self.allowedTypes,
-                allowsMultipleSelection: false
-            ) { result in
-                if case .success(let urls) = result, let url = urls.first {
-                    Task { await viewModel.importCoverLetter(from: url) }
-                }
-            }
-
-            HStack(spacing: 12) {
-                Button("Build Profile") {
-                    Task { await viewModel.build() }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!viewModel.canBuild)
-                .clickableCursor()
-
-                if viewModel.isBusy {
-                    ProgressView().controlSize(.small)
-                }
-
-                if let error = viewModel.errorMessage {
-                    Text(error).font(.callout).foregroundStyle(.red)
-                }
-            }
-
-            if let profile = viewModel.profile {
-                ProfileSummary(profile: profile, isDefault: viewModel.isSelectedProfileDefault)
-                if viewModel.supportsSummaryRegeneration {
-                    regenerateSummaryControl
-                }
-                if hasSourceDocuments {
-                    sourceDocumentsSection
-                }
-                if viewModel.supportsSavedProfiles {
-                    saveRow
-                }
-            }
-
-            if viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty {
-                savedProfilesSection
+            switch section {
+            case .profile: profileTab
+            case .savedProfiles: savedProfilesTab
+            case .sourceDocuments: sourceDocumentsTab
             }
         }
         .padding(24)
         .scrollableScreen()
         .task { await viewModel.reloadProfiles() }
+    }
+
+    // MARK: Profile — build a structured profile from the documents
+
+    @ViewBuilder private var profileTab: some View {
+        Text("Import or paste your résumé / portfolio (required) — we distil a structured profile from it. You can also add an optional cover letter, used only as a voice and tone example when generating.")
+            .foregroundStyle(.secondary)
+
+        documentSlot(
+            title: "Résumé / portfolio",
+            fileName: viewModel.sourceFileName,
+            text: $viewModel.portfolioText,
+            isExpanded: $showResumeText,
+            minHeight: 180
+        ) { showResumeImporter = true }
+        .fileImporter(
+            isPresented: $showResumeImporter,
+            allowedContentTypes: Self.allowedTypes,
+            allowsMultipleSelection: false
+        ) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                Task { await viewModel.importDocument(from: url) }
+            }
+        }
+
+        documentSlot(
+            title: "Cover letter (optional)",
+            fileName: viewModel.coverLetterFileName,
+            text: $viewModel.coverLetterText,
+            isExpanded: $showCoverLetterText,
+            minHeight: 120
+        ) { showCoverLetterImporter = true }
+        .fileImporter(
+            isPresented: $showCoverLetterImporter,
+            allowedContentTypes: Self.allowedTypes,
+            allowsMultipleSelection: false
+        ) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                Task { await viewModel.importCoverLetter(from: url) }
+            }
+        }
+
+        HStack(spacing: 12) {
+            Button("Build Profile") {
+                Task { await viewModel.build() }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!viewModel.canBuild)
+            .clickableCursor()
+
+            if viewModel.isBusy {
+                ProgressView().controlSize(.small)
+            }
+
+            if let error = viewModel.errorMessage {
+                Text(error).font(.callout).foregroundStyle(.red)
+            }
+        }
+
+        if let profile = viewModel.profile {
+            ProfileSummary(profile: profile, isDefault: viewModel.isSelectedProfileDefault)
+            if viewModel.supportsSummaryRegeneration {
+                regenerateSummaryControl
+            }
+            if viewModel.supportsSavedProfiles {
+                saveRow
+            }
+        }
+    }
+
+    // MARK: Saved Profiles — the persisted profile library
+
+    @ViewBuilder private var savedProfilesTab: some View {
+        if viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty {
+            savedProfilesSection
+        } else {
+            InlineEmptyState(
+                title: "No saved profiles",
+                systemImage: "person.crop.square",
+                message: "Build a profile on the Profile tab and Save it — your saved profiles appear here to load, set as default, or delete."
+            )
+        }
+    }
+
+    // MARK: Source Documents — the LLM-tidied readable text the profile was built on
+
+    @ViewBuilder private var sourceDocumentsTab: some View {
+        if hasSourceDocuments {
+            sourceDocumentsSection
+        } else {
+            InlineEmptyState(
+                title: "No source documents",
+                systemImage: "doc.text",
+                message: "Build a profile from a résumé (and an optional cover letter) on the Profile tab to see its tidied, readable text here."
+            )
+        }
     }
 
     /// A labelled import-or-paste slot for one document (résumé or cover letter). The raw

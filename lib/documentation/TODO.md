@@ -9,17 +9,18 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.0 — Milestone B (Sub-view routing per area).** Milestone A (the
-> navigation shell) is **done** — see `MILESTONES.md`. v0.1.0–v0.3.0 are all complete. v0.4.0 is the
-> **navigation & shell** rework — a **Presentation-only** re-home of the existing screens behind a
-> left sidebar + segmented inner nav (full spec:
+> **Current focus.** **v0.4.0 — Milestone C (Polish + About).** Milestones A (navigation shell) and B
+> (sub-view routing per area) are **done** — see `MILESTONES.md`. v0.1.0–v0.3.0 are all complete.
+> v0.4.0 is the **navigation & shell** rework — a **Presentation-only** re-home of the existing screens
+> behind a left sidebar + segmented inner nav (full spec:
 > [`design/UI-Navigation-Redesign-v0.4.0.md`](design/UI-Navigation-Redesign-v0.4.0.md); interactive
 > mockup: [`design/Refined-UI-mockup-v0.4.0.html`](design/Refined-UI-mockup-v0.4.0.html)). Start at
-> Milestone B below.
+> Milestone C below.
 >
-> **⚠️ Awaiting device checks** (verify on a real run): the new **sidebar shell** — sidebar rows +
-> accent selection, Results/Tracker count badges, the segmented inner nav, and the `Area / Sub-view`
-> header — looks/feels right; the Search **Fetch** button is reachable after the scroll fix; exported
+> **⚠️ Awaiting device checks** (verify on a real run): the **sidebar shell + inner nav** — sidebar
+> rows + accent selection, Results/Tracker count badges, each area's segmented sub-views (Portfolio /
+> Search / Tracker stage filters / Settings), the `Area / Sub-view` header, and the split empty states —
+> look/feel right; the Search **Fetch** button (now under *From a Link*) is reachable; exported
 > **PDF/DOCX** files open correctly in Preview / Word; the **filter bar** and **swipe card** feel right.
 >
 > Larger backlog beyond v0.4.0 (see `ROADMAP.md`): native `LanguageModel` provider seam; on-device
@@ -44,39 +45,18 @@ gate are untouched. Full spec + interactive mockup:
 [`design/UI-Navigation-Redesign-v0.4.0.md`](design/UI-Navigation-Redesign-v0.4.0.md) /
 [`design/Refined-UI-mockup-v0.4.0.html`](design/Refined-UI-mockup-v0.4.0.html).
 
-## Milestone B — Sub-view routing per area
-
-Wire each area's sub-views behind the inner nav. Existing screen views are **reused verbatim**; only
-their host changes. The agreed starting structure (see the spec's §3 table):
-
-- [ ] **Portfolio → Profile / Saved Profiles / Source Documents.** Split the current Portfolio screen:
-      **Profile** (two document slots + Build Profile + summary + Regenerate description + name +
-      Save/Update), **Saved Profiles** (the saved-profile library — tap to load, long-press default,
-      delete), **Source Documents** (the LLM-tidied résumé + cover-letter readable text, the current
-      disclosures).
-- [ ] **Search → New Search / Saved Searches / From a Link.** **New Search** (profile picker, role-title
-      chips + common titles, optional filters, Search + Save Search), **Saved Searches** (list with Run /
-      Delete), **From a Link** (URL fetch + paste-text fallback).
-- [ ] **Results → Ranked.** The existing filter bar + ranked rows (score + history badges, per-row
-      Save-to-Tracker + Delete, row → detail) as the single **Ranked** sub-view (one segment).
-- [ ] **Tracker → All / Applied / Interviewing / Offers.** Stage filters over the tracked list (reuse
-      the existing `ApplicationStatus` data — no new model); rows carry history badges; row → detail
-      with Generate + Export unchanged.
-- [ ] **Settings → Engines / Adzuna / About.** **Engines** (per-task engine + Claude-model pickers),
-      **Adzuna** (country code + credentials status), **About** (stub here; filled in Milestone C).
-- [ ] **Tests.** Per-area sub-view routing (each area exposes the right segments; the correct view
-      hosts each segment). Reuse existing per-screen VM tests unchanged.
-
 ## Milestone C — Polish + About
 
-- [ ] **Sidebar collapse/restore.** The `NavigationSplitView` collapsible-sidebar behaviour, native.
+- [ ] **Sidebar collapse/restore.** Confirm/refine the `NavigationSplitView` collapsible-sidebar
+      behaviour (it comes free with the shell — verify the toggle + restored state feel right).
 - [ ] **Keyboard navigation.** Move between areas / sub-views from the keyboard.
 - [ ] **Pointer-cursor + swipe polish.** Final pass that the carried-over cursor and swipe affordances
       feel right in the shell.
-- [ ] **About sub-view.** A small Settings **About** view — app identity, version, one-liner.
-- [ ] **Docs.** Update `CLAUDE.md`'s Presentation section with the per-area sub-view structure
-      (the shell itself is already documented from Milestone A) and the root `README.md` (add the
-      shipped v0.4.0 summary), then move this milestone's write-up into `MILESTONES.md`.
+- [ ] **About sub-view polish.** Milestone B added a functional Settings **About** stub (app name,
+      version, one-liner). Polish it here — layout, an app icon/identity treatment, and any links.
+- [ ] **Docs.** Refresh `CLAUDE.md`'s Presentation prose if needed (the App-layer entry already
+      covers the shell + section taxonomy) and the root `README.md` (add the shipped v0.4.0 summary),
+      then move this milestone's write-up into `MILESTONES.md`.
 - [ ] **Nuke the design scaffolding.** When v0.4.0 is done, **delete the
       [`design/`](design/) subdirectory** (the UI spec + HTML mockup were build-time references only)
       and remove the now-dangling `design/…` links from `ROADMAP.md`, `TODO.md`, and `CLAUDE.md`.

@@ -31,6 +31,12 @@ final class TrackerViewModel {
 
     var isEmpty: Bool { trackedJobs.isEmpty }
 
+    /// The tracked jobs that fall under `section`'s stage filter (`All` returns every
+    /// tracked job). Drives the Tracker inner-nav sub-views (v0.4.0 Milestone B).
+    func jobs(in section: TrackerSection) -> [TrackedJob] {
+        trackedJobs.filter { section.includes($0.status.stage) }
+    }
+
     func select(_ job: RankedJob) { selectedJob = job }
 
     /// The row's badge story. Prefers the joined history map; falls back to the tracked

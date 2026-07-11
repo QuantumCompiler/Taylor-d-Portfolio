@@ -1238,3 +1238,51 @@ Note: A is the shell only — mechanism, not the per-area split. Milestone B exp
 `subViews` and routes the real sub-screens behind the inner nav; Milestone C adds collapse/keyboard
 polish + the About view. Nothing below Presentation changed, so ranking/generation/persistence/export
 are all untouched.
+
+## Milestone B — Sub-view routing per area  ✅ done  (`Presentation/App` section enums + the five screens)
+
+Goal: give each area's inner segmented nav real sub-views, splitting the existing screens behind them.
+Presentation-only — the view models and use cases are untouched; the screens' internal sections were
+re-homed, not rewritten.
+
+- [x] **Type-safe section taxonomy.** New per-area `Int`-backed enums in `ShellNavigation.swift` —
+      `PortfolioSection` (Profile / Saved Profiles / Source Documents), `SearchSection` (New Search /
+      Saved Searches / From a Link), `TrackerSection` (All / Applied / Interviewing / Offers),
+      `SettingsSection` (Engines / Adzuna / About). `rawValue` == segment index; `title` == segment
+      label; `init(index:)` clamps out-of-range to the first case. `MainArea.subViews` now **derives**
+      its labels from these enums (Results stays a single `["Ranked"]`), so the segmented labels and
+      `RootView`'s routing share one source of truth. `RootView.selectedContent` maps
+      `nav.selectedSubView` → the section enum and passes it to each screen.
+- [x] **Each screen takes a `section:` param.** `PortfolioView`, `SearchView`, `TrackerView`, and
+      `SettingsView` gained a defaulted `section:` parameter and render only that sub-view; `ResultsView`
+      is unchanged (single Ranked). Defaults keep every `#Preview` and direct caller working. The old
+      in-content `Text("Portfolio"/"Search").largeTitle` headers and the `.navigationTitle` on
+      Results/Tracker/Settings were removed — the shell's breadcrumb header + `RootView`'s
+      `.navigationTitle(nav.breadcrumbTitle)` now own the title.
+- [x] **Portfolio split.** **Profile** = the two document slots + Build + summary + Regenerate + Save;
+      **Saved Profiles** = the saved-profile library; **Source Documents** = the tidied readable
+      disclosures. The saved-profiles/source-docs pieces moved out of the Profile scroll into their own
+      sub-views, each with an empty state when there's nothing yet.
+- [x] **Search split.** **New Search** = profile picker + title chips/common titles + optional filters +
+      Search/Save Search + result/warning notes; **Saved Searches** = the saved-search list (Run /
+      Delete); **From a Link** = the URL fetch + paste-text fallback. Empty states for no-saved-searches
+      and link-unavailable.
+- [x] **Tracker stage filters.** A pure `TrackerSection.includes(_ stage:)` policy (All = everything;
+      Applied/Interviewing = exact stage; Offers = offer **or** accepted; saved/rejected/declined/
+      withdrawn show only under All) + `TrackerViewModel.jobs(in:)` filter the tracked list per
+      sub-view. Reuses the existing `ApplicationStatus` data — no new model. A stage-specific empty
+      state distinguishes "nothing at this stage" from "no tracked jobs at all".
+- [x] **Settings split + About stub.** Engines and Adzuna panes (each with the shared Save control) +
+      a functional **About** stub (app name, bundle version, one-liner) — Milestone C polishes it.
+- [x] **Shared empty state.** New `Presentation/Components/InlineEmptyState` (left-aligned, for the
+      scrolling Portfolio/Search sub-views, where the centered `ContentUnavailableView` doesn't sit
+      right). List-based screens keep `ContentUnavailableView`.
+- [x] **Tests.** `SectionRoutingTests` (`MainArea.subViews` == the section labels in order; label/index
+      alignment; `init(index:)` clamping; the full `TrackerSection.includes` stage policy);
+      `TrackerViewModelTests.jobsInSectionFilterByStage` (the VM filter); updated `ShellNavigationTests`
+      breadcrumb tests (bare area name for single-sub-view Results; `Area / Sub-view` for multi-sub-view
+      areas). Full suite green on macOS; the per-area layouts + empty states are a manual (device) check.
+
+Note: B routes and splits; it changes no behaviour below Presentation. Milestone C adds the sidebar
+collapse/keyboard polish and the About view's final treatment, then the README v0.4.0 summary + this
+milestone's move are the closing docs step.

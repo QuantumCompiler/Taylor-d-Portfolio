@@ -362,12 +362,13 @@ Business/Data/Infrastructure changes. `TODO.md` has the granular breakdown.
       A testable `ShellNavigation` holder owns area/sub-view state (reset-to-first on area
       change). No changes below Presentation. Seam: `RootView` + `ShellNavigation`.
       On-device: n/a (UI only).
-- [ ] **Milestone B — Sub-view routing per area.** Wire each area's sub-views behind the
-      inner nav (Portfolio: Profile / Saved Profiles / Source Documents; Search: New
+- [x] **Milestone B — Sub-view routing per area.** ✅ **Done.** Wired each area's sub-views
+      behind the inner nav (Portfolio: Profile / Saved Profiles / Source Documents; Search: New
       Search / Saved Searches / From a Link; Results: Ranked; Tracker: All / Applied /
-      Interviewing / Offers; Settings: Engines / Adzuna / About). Existing screen views
-      are reused verbatim; only their host changes. Tracker stage filters reuse the
-      existing status data.
+      Interviewing / Offers; Settings: Engines / Adzuna / About). A type-safe section enum per
+      area (labels derive `MainArea.subViews`); each screen takes a `section:` param and renders
+      the matching piece with empty states. Tracker stage filters reuse the existing status data
+      via a pure `TrackerSection.includes(_:)` policy + `TrackerViewModel.jobs(in:)`.
 - [ ] **Milestone C — Polish + About.** Sidebar collapse/restore, keyboard navigation,
       pointer-cursor + swipe polish carried over, and a small **About** sub-view
       (identity / version / one-liner).

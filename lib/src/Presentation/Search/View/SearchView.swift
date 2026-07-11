@@ -11,83 +11,113 @@ import SwiftUI
 /// then a merged multi-title ranking run.
 struct SearchView: View {
     @Bindable var viewModel: SearchViewModel
+    /// Which inner-nav sub-view to show (v0.4.0 Milestone B). Defaults to the new-search
+    /// form so `#Preview`s and any direct callers keep their prior behaviour.
+    var section: SearchSection = .newSearch
     /// Expands the "paste the posting text" fallback — opened automatically when a
     /// link fetch fails so the user is pointed straight at the recovery path.
     @State private var showPasteFallback = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Search").font(.largeTitle.bold())
-
-            if viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty {
-                profilePicker
-            }
-
-            titlesSection
-
-            filtersSection
-
-            if let unavailable = viewModel.unavailableMessage {
-                Label(unavailable, systemImage: "exclamationmark.triangle.fill")
-                    .font(.callout).foregroundStyle(.orange)
-            }
-
-            if !viewModel.hasProfile {
-                Label("Build your profile on the Portfolio tab to enable search.", systemImage: "info.circle")
-                    .font(.callout).foregroundStyle(.secondary)
-            }
-
-            HStack(spacing: 12) {
-                Button(action: { Task { await viewModel.search() } }) {
-                    if viewModel.isSearching {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Text("Search")
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!viewModel.canSearch)
-                .clickableCursor()
-
-                if viewModel.supportsSavedSearches {
-                    Button {
-                        Task { await viewModel.saveCurrentSearch() }
-                    } label: {
-                        Label("Save Search", systemImage: "bookmark")
-                    }
-                    .disabled(!viewModel.canSaveSearch)
-                    .clickableCursor()
-                }
-
-                if let error = viewModel.errorMessage {
-                    Text(error).font(.callout).foregroundStyle(.red)
-                }
-            }
-
-            if let warning = viewModel.warningMessage {
-                Label(warning, systemImage: "exclamationmark.circle")
-                    .font(.callout).foregroundStyle(.orange)
-            }
-
-            if !viewModel.results.isEmpty {
-                Label("\(viewModel.results.count) ranked results — see the Results tab.",
-                      systemImage: "checkmark.circle")
-                    .font(.callout).foregroundStyle(.green)
-            }
-
-            if viewModel.supportsSavedSearches && !viewModel.savedSearches.isEmpty {
-                savedSearchesSection
-            }
-
-            if viewModel.canUseLink {
-                Divider()
-                linkSection
+            switch section {
+            case .newSearch: newSearchTab
+            case .savedSearches: savedSearchesTab
+            case .fromLink: fromLinkTab
             }
         }
         .padding(24)
         .scrollableScreen()
         .task { await viewModel.reloadProfiles() }
         .task { await viewModel.reloadSavedSearches() }
+    }
+
+    // MARK: New Search — compose and run a keyword search
+
+    @ViewBuilder private var newSearchTab: some View {
+        if viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty {
+            profilePicker
+        }
+
+        titlesSection
+
+        filtersSection
+
+        if let unavailable = viewModel.unavailableMessage {
+            Label(unavailable, systemImage: "exclamationmark.triangle.fill")
+                .font(.callout).foregroundStyle(.orange)
+        }
+
+        if !viewModel.hasProfile {
+            Label("Build your profile on the Portfolio tab to enable search.", systemImage: "info.circle")
+                .font(.callout).foregroundStyle(.secondary)
+        }
+
+        HStack(spacing: 12) {
+            Button(action: { Task { await viewModel.search() } }) {
+                if viewModel.isSearching {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Text("Search")
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!viewModel.canSearch)
+            .clickableCursor()
+
+            if viewModel.supportsSavedSearches {
+                Button {
+                    Task { await viewModel.saveCurrentSearch() }
+                } label: {
+                    Label("Save Search", systemImage: "bookmark")
+                }
+                .disabled(!viewModel.canSaveSearch)
+                .clickableCursor()
+            }
+
+            if let error = viewModel.errorMessage {
+                Text(error).font(.callout).foregroundStyle(.red)
+            }
+        }
+
+        if let warning = viewModel.warningMessage {
+            Label(warning, systemImage: "exclamationmark.circle")
+                .font(.callout).foregroundStyle(.orange)
+        }
+
+        if !viewModel.results.isEmpty {
+            Label("\(viewModel.results.count) ranked results — see the Results area.",
+                  systemImage: "checkmark.circle")
+                .font(.callout).foregroundStyle(.green)
+        }
+    }
+
+    // MARK: Saved Searches — run or delete a saved search
+
+    @ViewBuilder private var savedSearchesTab: some View {
+        if viewModel.supportsSavedSearches && !viewModel.savedSearches.isEmpty {
+            savedSearchesSection
+        } else {
+            InlineEmptyState(
+                title: "No saved searches",
+                systemImage: "bookmark",
+                message: "Compose a search on New Search and tap Save Search — your saved searches appear here to run or delete."
+            )
+        }
+    }
+
+    // MARK: From a Link — generate from a specific posting URL
+
+    @ViewBuilder private var fromLinkTab: some View {
+        if viewModel.canUseLink {
+            linkSection
+        } else {
+            InlineEmptyState(
+                title: "Link fetch unavailable",
+                systemImage: "link",
+                message: "Generating from a specific posting URL isn't available in this build."
+            )
+        }
     }
 
     // MARK: Saved searches (Milestone R)

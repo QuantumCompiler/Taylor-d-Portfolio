@@ -109,6 +109,7 @@ struct RootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .navigationTitle(nav.breadcrumbTitle)
     }
 
     /// The `Area / Sub-view` title above the segmented inner nav.
@@ -146,9 +147,9 @@ struct RootView: View {
     @ViewBuilder private var selectedContent: some View {
         switch nav.selectedArea {
         case .portfolio:
-            PortfolioView(viewModel: portfolio)
+            PortfolioView(viewModel: portfolio, section: PortfolioSection(index: nav.selectedSubView))
         case .search:
-            SearchView(viewModel: search)
+            SearchView(viewModel: search, section: SearchSection(index: nav.selectedSubView))
         case .results:
             ResultsView(
                 viewModel: results, profile: portfolio.profile, applicationViewModel: application,
@@ -156,11 +157,12 @@ struct RootView: View {
             )
         case .tracker:
             TrackerView(
-                viewModel: tracker, profile: portfolio.profile, applicationViewModel: application,
+                viewModel: tracker, section: TrackerSection(index: nav.selectedSubView),
+                profile: portfolio.profile, applicationViewModel: application,
                 markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding
             )
         case .settings:
-            SettingsView(viewModel: settings)
+            SettingsView(viewModel: settings, section: SettingsSection(index: nav.selectedSubView))
         }
     }
 }

@@ -206,14 +206,17 @@ lib/src/
   Presentation/
     App/            Taylor_d_PortfolioApp (composition root); RootView (the NavigationSplitView
                   sidebar shell, opening on the Portfolio area) + ShellNavigation (the sidebar/
-                  inner-nav state holder) — v0.4.0 Milestone A
+                  inner-nav state holder + the per-area section enums — PortfolioSection /
+                  SearchSection / TrackerSection / SettingsSection — that both label the segmented
+                  inner nav and route each screen's `section:` param) — v0.4.0 Milestones A–B
     Portfolio/      one folder per screen; each screen holds two subfolders:
       View/           the SwiftUI view(s)                  — PortfolioView
       ViewModel/      the @MainActor @Observable ViewModel — PortfolioViewModel
     Search/, Results/, Application/, Tracker/, Settings/  (same View/ + ViewModel/ shape;
                   e.g. Results/View holds ResultsView + RankedRow + JobDetailView + StatusBadge,
                   Tracker/View holds TrackerView, Application/View the sheet)
-    Components/     shared view helpers — ScrollableScreen (scroll wrapper), ExportFileDocument
+    Components/     shared view helpers — ScrollableScreen (scroll wrapper), ExportFileDocument,
+                  InlineEmptyState (left-aligned empty state for scrolling screens)
   Business/
     UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
                   GenerateApplicationUseCase, FetchPostingUseCase, ExportApplicationUseCase,
