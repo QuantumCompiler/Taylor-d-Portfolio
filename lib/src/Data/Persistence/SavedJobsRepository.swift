@@ -45,4 +45,9 @@ nonisolated struct SavedJobsRepository: Sendable {
     func contains(jobID: String) async throws -> Bool {
         try await store.record(ofKind: Self.kind, id: jobID) != nil
     }
+
+    /// Removes the saved ranked job for `jobID` if present (Milestone V-A).
+    func delete(jobID: String) async throws {
+        try await store.delete(kind: Self.kind, id: jobID)
+    }
 }

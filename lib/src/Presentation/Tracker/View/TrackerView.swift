@@ -24,7 +24,7 @@ struct TrackerView: View {
                 ContentUnavailableView(
                     "No tracked applications",
                     systemImage: "briefcase",
-                    description: Text("Mark a job as applied from its detail view to track it here.")
+                    description: Text("Save a job from the Results tab (the bookmark icon, or swipe a result right) to track it here, then generate its résumé & cover letter.")
                 )
             } else {
                 List(viewModel.trackedJobs) { tracked in

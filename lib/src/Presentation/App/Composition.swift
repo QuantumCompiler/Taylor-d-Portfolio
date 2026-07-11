@@ -71,6 +71,11 @@ struct Composition {
         guard let savedJobsRepository, let savedStatusRepository else { return nil }
         return LoadTrackedJobsUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository)
     }
+    /// Fully-forget a saved job (job + status + kit) — Milestone V-A.
+    private var deleteSavedJob: DeleteSavedJobUseCase? {
+        guard let savedJobsRepository, let savedStatusRepository, let savedApplicationsRepository else { return nil }
+        return DeleteSavedJobUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository, applications: savedApplicationsRepository)
+    }
 
     // MARK: Gateways (read settings live, so Settings edits take effect immediately)
 
@@ -160,7 +165,13 @@ struct Composition {
         )
     }
     func makeResultsViewModel() -> ResultsViewModel {
-        .init(loadSavedJobs: loadSavedJobs, loadTrackedJobs: loadTrackedJobs)
+        .init(
+            loadSavedJobs: loadSavedJobs,
+            loadTrackedJobs: loadTrackedJobs,
+            markStatus: markStatus,
+            saveResults: saveResults,
+            deleteSavedJob: deleteSavedJob
+        )
     }
     func makeTrackerViewModel() -> TrackerViewModel {
         .init(loadTrackedJobs: loadTrackedJobs)

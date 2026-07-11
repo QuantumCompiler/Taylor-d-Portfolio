@@ -198,9 +198,10 @@ Taylor'd Portfolio/
   Business/
     UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
                   GenerateApplicationUseCase, FetchPostingUseCase, ExportApplicationUseCase,
-                  SaveResultsUseCase, LoadSavedJobsUseCase,
+                  SaveResultsUseCase, LoadSavedJobsUseCase, DeleteSavedJobUseCase,
                   SaveApplicationUseCase, LoadApplicationUseCase,
-                  MarkStatusUseCase, LoadStatusUseCase, LoadTrackedJobsUseCase
+                  MarkStatusUseCase, LoadStatusUseCase, LoadTrackedJobsUseCase,
+                  SaveSearchUseCase, LoadSavedSearchesUseCase, DeleteSavedSearchUseCase, RefineSummaryUseCase
     Ranking/      JobRanker
   Data/
     Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,

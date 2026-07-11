@@ -287,7 +287,12 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       Search UI. On-device: suggestions + persistence are local; the search itself hits Adzuna
       (mind free-tier rate limits when paging toward a large goal — cap the pages).
 
-- [ ] **Results ↔ Tracker interaction overhaul.** Change how the user acts on a ranked
+- [x] **Results ↔ Tracker interaction overhaul.** ✅ **Done (V-A…V-E).** Per-row Save-to-Tracker
+      (bookmark, marks `.saved`) + Delete (trash → `DeleteSavedJobUseCase` clears job/status/kit)
+      icons; a swipeable result card (right = save, left = dismiss, via a pure unit-tested
+      `SwipeOutcome`); and **generation moved to the Tracker** — `JobDetailView.canGenerate` is
+      `false` in Results (Save-to-Tracker footer, no Generate) and `true` in the Tracker (unchanged).
+      Change how the user acts on a ranked
       result, and move generation out of the Results path:
       - **Per-row actions.** Each result tile gets a **Save to Tracker** icon and, to its
         right, a **Delete** (trash) icon.

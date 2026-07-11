@@ -20,15 +20,24 @@ final class ResultsViewModel {
 
     private let loadSavedJobs: LoadSavedJobsUseCase?
     private let loadTrackedJobs: LoadTrackedJobsUseCase?
+    private let markStatus: MarkStatusUseCase?
+    private let saveResults: SaveResultsUseCase?
+    private let deleteSavedJob: DeleteSavedJobUseCase?
 
     init(
         results: [RankedJob] = [],
         loadSavedJobs: LoadSavedJobsUseCase? = nil,
-        loadTrackedJobs: LoadTrackedJobsUseCase? = nil
+        loadTrackedJobs: LoadTrackedJobsUseCase? = nil,
+        markStatus: MarkStatusUseCase? = nil,
+        saveResults: SaveResultsUseCase? = nil,
+        deleteSavedJob: DeleteSavedJobUseCase? = nil
     ) {
         self.results = results
         self.loadSavedJobs = loadSavedJobs
         self.loadTrackedJobs = loadTrackedJobs
+        self.markStatus = markStatus
+        self.saveResults = saveResults
+        self.deleteSavedJob = deleteSavedJob
     }
 
     var isEmpty: Bool { results.isEmpty }
@@ -39,6 +48,33 @@ final class ResultsViewModel {
 
     /// The tracked status for a result row, if any (drives its badge).
     func status(for job: RankedJob) -> ApplicationStatus? { statusesByID[job.id] }
+
+    /// Whether the per-row save/delete actions are wired in this build.
+    var supportsRowActions: Bool { markStatus != nil && deleteSavedJob != nil }
+
+    /// Whether `job` is already tracked (its save icon reflects the tracked state).
+    func isTracked(_ job: RankedJob) -> Bool { statusesByID[job.id] != nil }
+
+    // MARK: Row actions (Milestone V)
+
+    /// Saves `job` to the Tracker by marking it `.saved` (Milestone V-B). Persists the
+    /// listing first so the tracker join has it, then refreshes the badge. Idempotent — an
+    /// already-tracked job keeps its current (possibly later) stage; it never downgrades.
+    func saveToTracker(_ job: RankedJob) async {
+        guard let markStatus else { return }
+        if isTracked(job) { return }                       // don't downgrade a later stage
+        try? await saveResults?([job])                     // ensure the listing is persisted
+        _ = try? await markStatus(jobID: job.id, stage: .saved)
+        await refreshStatuses()
+    }
+
+    /// Fully forgets `job` (Milestone V-A): removes it from the list and, by decision, from
+    /// the saved-jobs store along with its status and any generated materials.
+    func delete(_ job: RankedJob) async {
+        results.removeAll { $0.id == job.id }
+        statusesByID[job.id] = nil
+        try? await deleteSavedJob?(jobID: job.id)
+    }
 
     /// Loads previously-saved results when the list is empty, and (always) refreshes
     /// the status badges.

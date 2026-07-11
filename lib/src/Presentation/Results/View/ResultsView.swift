@@ -28,9 +28,15 @@ struct ResultsView: View {
                 )
             } else {
                 List(viewModel.results) { ranked in
-                    RankedRow(ranked: ranked, status: viewModel.status(for: ranked))
-                        .contentShape(Rectangle())
-                        .onTapGesture { viewModel.select(ranked) }
+                    HStack(spacing: 8) {
+                        RankedRow(ranked: ranked, status: viewModel.status(for: ranked))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                            .onTapGesture { viewModel.select(ranked) }
+                        if viewModel.supportsRowActions {
+                            rowActions(ranked)
+                        }
+                    }
                 }
             }
         }
@@ -39,12 +45,31 @@ struct ResultsView: View {
         .sheet(item: $viewModel.selectedJob) { ranked in
             JobDetailView(
                 ranked: ranked, profile: profile, applicationViewModel: applicationViewModel,
-                markStatus: markStatus, loadStatus: loadStatus, grounding: grounding
+                markStatus: markStatus, loadStatus: loadStatus, grounding: grounding,
+                canGenerate: false,                              // generation lives in the Tracker (V-D)
+                onSaveToTracker: { Task { await viewModel.saveToTracker(ranked) } }
             )
         }
         // Refresh badges after the detail sheet (where status can change) closes.
         .onChange(of: viewModel.selectedJob) { _, newValue in
             if newValue == nil { Task { await viewModel.refreshStatuses() } }
+        }
+    }
+
+    /// Per-row Save-to-Tracker + Delete icons (Milestone V-A/V-B); each intercepts its own tap.
+    private func rowActions(_ ranked: RankedJob) -> some View {
+        HStack(spacing: 10) {
+            Button { Task { await viewModel.saveToTracker(ranked) } } label: {
+                Image(systemName: viewModel.isTracked(ranked) ? "bookmark.fill" : "bookmark")
+            }
+            .buttonStyle(.plain).foregroundStyle(.tint)
+            .help(viewModel.isTracked(ranked) ? "Saved to Tracker" : "Save to Tracker")
+
+            Button(role: .destructive) { Task { await viewModel.delete(ranked) } } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.plain).foregroundStyle(.secondary)
+            .help("Delete — removes it and any saved status/materials")
         }
     }
 }

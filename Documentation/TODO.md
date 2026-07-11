@@ -26,9 +26,9 @@ milestone.
 > reachable/clickable; if it's *greyed-out* rather than off-screen, the profile isn't reaching the
 > Search VM — a wiring check to do next. **Phase 2: Q — Export is COMPLETE** (Q-A copy +
 > Markdown/plain-text, Q-B PDF via native Core Text, Q-C DOCX via a hand-rolled OOXML/ZIP writer).
-> **Phase 3 COMPLETE:** T — Two-document portfolio, **U — Expanded search parameters**, and **R —
-> Saved / re-runnable searches** are all done. **Next: Phase 4 — V (Results ↔ Tracker interaction
-> overhaul, V-A…V-E) → W (Results filtering)**, then Phase 5 polish (S-A/B/C). Then
+> **Phases 3 + V done:** T, U, R, and **V — Results ↔ Tracker interaction overhaul (V-A…V-E)** are
+> complete. **Next: W — Results filtering** (a live, non-destructive view filter over the loaded
+> `[RankedJob]`), then Phase 5 polish (S-A/B/C), then stretch X. Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -1017,7 +1017,7 @@ the default search. U-D (paging toward a goal) is the one that adds real API loa
 respect Adzuna's free-tier rate limits. U composes with Milestone R (a saved search can carry these
 new optional fields once `JobSearchRequest` grows) and with Milestone N's existing title fan-out.
 
-## Milestone V — Results ↔ Tracker interaction overhaul  ⬜ not started  (`Data/Persistence`, `Business/UseCases`, Results/Tracker Presentation, `JobDetailView`)
+## Milestone V — Results ↔ Tracker interaction overhaul  ✅ done (V-A…V-E)  (`Data/Persistence`, `Business/UseCases`, Results/Tracker Presentation, `JobDetailView`)
 
 Goal: change how the user acts on a ranked result. Add per-row **Save to Tracker** + **Delete**
 icons; make the opened result a **swipeable card** (right = save, left = dismiss); and **move
@@ -1026,66 +1026,78 @@ whether to save. "Save to Tracker" = mark the job `saved` (`MarkStatusUseCase`, 
 it appears in the Tracker; "Delete" = fully forget it (per decision). Generation from the Tracker
 (brief → tailor, persisted `ApplicationKit`) is unchanged.
 
-### V-A — Delete a result (row trash icon + persistence)  ⬜
+**✅ Done (all of V).** `delete(jobID:)` added to the jobs/status/applications repositories;
+`DeleteSavedJobUseCase` clears all three (no orphans). `ResultsViewModel` gained `saveToTracker`
+(persist listing + `MarkStatusUseCase(.saved)`, idempotent — never downgrades a later stage) and
+`delete` (drop from list + forget everywhere). Results rows carry a **bookmark** (Save, filled when
+tracked) + **trash** (Delete) icon; opening a result presents a **swipeable card** — a pure
+`SwipeOutcome.resolve(translation:threshold:)` (unit-tested) drives right = save + dismiss, left =
+dismiss, small = snap back, with a drag offset + hint. `JobDetailView` gained a `canGenerate` flag:
+**Results** passes `false` + an `onSaveToTracker` closure (footer shows **Save to Tracker**, no
+Generate, and the swipe is enabled); **Tracker** keeps `canGenerate = true` (Generate unchanged).
+Tracker empty-state copy updated. `Composition` wires `deleteSavedJob` + `markStatus`/`saveResults`
+into the Results VM. Suite green; the swipe *feel* + row layout are a manual (device) check.
 
-- [ ] **Repository + use case.** `SavedJobsRepository.delete(jobID:)` (on the store's existing
+### V-A — Delete a result (row trash icon + persistence)  ✅ done
+
+- [x] **Repository + use case.** `SavedJobsRepository.delete(jobID:)` (on the store's existing
       delete); a `DeleteSavedJobUseCase` (Business) that — per the "remove from both" decision —
       also clears the job's **status** (`SavedStatusRepository.delete(jobID:)`, add if absent) and
       its saved **`ApplicationKit`** (`SavedApplicationsRepository.delete(jobID:)`), so nothing is
       orphaned.
-- [ ] **Trash icon on the Results row.** A trailing trash button on each result tile (right-most).
+- [x] **Trash icon on the Results row.** A trailing trash button on each result tile (right-most).
       Keep `RankedRow` reusable — add the actions in the Results row composition (or via optional
       `onDelete`/`onSave` closures), **not** baked into `RankedRow` (the Tracker reuses it and must
       not get a Results trash).
-- [ ] **`ResultsViewModel.delete(_:)`.** Remove from `results` and call `DeleteSavedJobUseCase`;
+- [x] **`ResultsViewModel.delete(_:)`.** Remove from `results` and call `DeleteSavedJobUseCase`;
       refresh badges. Consider a lightweight confirm (destructive + persistent).
-- [ ] **Tests.** `SavedJobsRepository` delete; `DeleteSavedJobUseCase` clears job + status + kit;
+- [x] **Tests.** `SavedJobsRepository` delete; `DeleteSavedJobUseCase` clears job + status + kit;
       `ResultsViewModel.delete` drops the row and persists; deleting a tracked job also removes it
       from the tracker (via `LoadTrackedJobsUseCase` no longer returning it).
 
-### V-B — Save a result to the Tracker (row save icon)  ⬜
+### V-B — Save a result to the Tracker (row save icon)  ✅ done
 
-- [ ] **Save icon left of the trash icon.** Tapping marks the job `saved` via
+- [x] **Save icon left of the trash icon.** Tapping marks the job `saved` via
       `MarkStatusUseCase(jobID:, stage: .saved)` (ensuring the listing is persisted first so the
       tracker join has it), then the row shows a "Saved" `StatusBadge`.
-- [ ] **`ResultsViewModel.saveToTracker(_:)`.** Marks `.saved`, upserts the listing if needed,
+- [x] **`ResultsViewModel.saveToTracker(_:)`.** Marks `.saved`, upserts the listing if needed,
       refreshes `statusesByID`. Idempotent — an already-tracked job shows its current badge and the
       icon reflects the tracked state (no downgrade of a later stage).
-- [ ] **Tests.** Save marks `.saved` + persists the listing + badge appears; already-tracked job is
+- [x] **Tests.** Save marks `.saved` + persists the listing + badge appears; already-tracked job is
       reflected and not downgraded.
 
-### V-C — Swipeable result card (right = save, left = dismiss)  ⬜
+### V-C — Swipeable result card (right = save, left = dismiss)  ✅ done
 
-- [ ] **Draggable detail card.** In the Results context, the opened `JobDetailView` becomes a card
+- [x] **Draggable detail card.** In the Results context, the opened `JobDetailView` becomes a card
       the user drags horizontally (macOS trackpad/mouse `DragGesture`): drag **right** past a
       threshold → save to Tracker (`.saved`) then dismiss; drag **left** past threshold → dismiss
       without saving/deleting; small drags snap back, with a card offset + a subtle save/dismiss hint.
-- [ ] **Pure outcome helper.** Extract `swipeOutcome(forTranslation:threshold:) -> {save|dismiss|none}`
+- [x] **Pure outcome helper.** Extract `swipeOutcome(forTranslation:threshold:) -> {save|dismiss|none}`
       so the decision logic is unit-testable; the gesture wiring + animation are a manual-feel check.
-- [ ] **Tests.** `swipeOutcome` thresholds (right→save, left→dismiss, small→none). Note the gesture
+- [x] **Tests.** `swipeOutcome` thresholds (right→save, left→dismiss, small→none). Note the gesture
       feel is manual.
 
-### V-D — Move generation to the Tracker only  ⬜
+### V-D — Move generation to the Tracker only  ✅ done
 
-- [ ] **Generation-context flag on `JobDetailView`.** Add e.g. `canGenerate: Bool` (or a
+- [x] **Generation-context flag on `JobDetailView`.** Add e.g. `canGenerate: Bool` (or a
       `context: .results | .tracker`). **Results** passes `false`; **Tracker** passes `true`.
-- [ ] **Results context.** No "Generate résumé & cover letter" button and no `ApplicationSheet`
+- [x] **Results context.** No "Generate résumé & cover letter" button and no `ApplicationSheet`
       path; the footer instead offers **Save to Tracker** (mark `.saved`). The user reads the JD +
       saves; generation is unreachable from Results.
-- [ ] **Tracker context.** Generate button + the `ApplicationSheet` save/load `ApplicationKit`
+- [x] **Tracker context.** Generate button + the `ApplicationSheet` save/load `ApplicationKit`
       flow (Milestone O-C) unchanged.
-- [ ] **Tests.** `JobDetailView` in Results context exposes Save and no Generate; in Tracker context
+- [x] **Tests.** `JobDetailView` in Results context exposes Save and no Generate; in Tracker context
       exposes Generate; routing holds.
 
-### V-E — Wiring, empty states, copy  ⬜
+### V-E — Wiring, empty states, copy  ✅ done
 
-- [ ] **Composition.** Wire `DeleteSavedJobUseCase`; thread `markStatus` to the Results **rows**
+- [x] **Composition.** Wire `DeleteSavedJobUseCase`; thread `markStatus` to the Results **rows**
       (not just the detail) for the save icon; pass the generation-context flag from Results vs Tracker.
-- [ ] **Copy.** Update the Tracker `ContentUnavailableView` ("Save a result from the Results tab to
+- [x] **Copy.** Update the Tracker `ContentUnavailableView` ("Save a result from the Results tab to
       track it here.") and any Results help text. Composes with Milestone S (empty/error states).
-- [ ] **Tests / previews.** Composition smoke; Results row with save+trash preview; Tracker
+- [x] **Tests / previews.** Composition smoke; Results row with save+trash preview; Tracker
       empty-state copy.
-- [ ] **Docs.** SPEC (save-from-results → generate-from-tracker; delete — done in this planning
+- [x] **Docs.** SPEC (save-from-results → generate-from-tracker; delete — done in this planning
       pass); CLAUDE.md (`DeleteSavedJobUseCase`, `SavedJobsRepository.delete`, the Results row
       actions, the `JobDetailView` generation-context flag, "save to tracker = mark `.saved`", and
       the updated Tracker entry path).
