@@ -82,7 +82,10 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
   (fetch a URL via `HTTPClient` → `HTMLStripper` → LLM `extractPosting` → `JobListing`;
   fails loudly with `.unreadable` on blocked/empty pages, plus a paste-text path).
 - Persistence: `SavedJobsRepository` + `SavedApplicationsRepository` +
-  `SavedStatusRepository` + `SavedProfilesRepository` (Data/Persistence) map domain
+  `SavedStatusRepository` + `SavedProfilesRepository` + `SavedSearchesRepository`
+  (the last persists named `SavedSearch`es — a `JobSearchRequest` + id/name — re-run via
+  `SaveSearchUseCase` / `LoadSavedSearchesUseCase` / `DeleteSavedSearchUseCase`, Milestone R)
+  (Data/Persistence) map domain
   `RankedJob` / `ApplicationKit` / `ApplicationStatus` / `SavedProfile` ↔ the
   Infrastructure record store's blobs (upsert by id — `JobListing.id`, or `SavedProfile.id`
   for profiles; each under its own `kind`), so pulled listings + matches, generated
@@ -202,12 +205,12 @@ Taylor'd Portfolio/
   Data/
     Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,
                   ApplicationKit, ApplicationStatus, JobQuery, JobSearchRequest, PositionType,
-                  RankedJob, TrackedJob, SavedProfile, PortfolioGrounding
+                  RankedJob, TrackedJob, SavedProfile, SavedSearch, PortfolioGrounding
     LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
                   LLMRouter, LLMChoice, LLMTask, TaskEngineConfig, ClaudeModel, Prompts
     Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
     Search/       SuggestionProvider, RoleTitleStore
-    Persistence/  SavedJobsRepository, SavedApplicationsRepository, SavedStatusRepository, SavedProfilesRepository   (domain ↔ PersistentRecordStore blobs)
+    Persistence/  SavedJobsRepository, SavedApplicationsRepository, SavedStatusRepository, SavedProfilesRepository, SavedSearchesRepository   (domain ↔ PersistentRecordStore blobs)
     Retrieval/    Retriever            (roadmap)
     Settings/     AppSettings (per-task engine map), SettingsStore
   Infrastructure/

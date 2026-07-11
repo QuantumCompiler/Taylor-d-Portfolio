@@ -80,6 +80,9 @@ final class SearchViewModel {
     /// Whether this build has baked Adzuna credentials. When `false`, search can't run.
     let adzunaConfigured: Bool
 
+    /// The user's saved, re-runnable searches, newest first (Milestone R).
+    private(set) var savedSearches: [SavedSearch] = []
+
     private let searchAndRank: SearchAndRankUseCase
     private let suggestions: SuggestionProvider
     private let roleTitleStore: RoleTitleStore
@@ -88,6 +91,10 @@ final class SearchViewModel {
     private let fetchPosting: FetchPostingUseCase?
     private let saveResults: SaveResultsUseCase?
     private let loadProfiles: LoadProfilesUseCase?
+    private let loadSavedJobs: LoadSavedJobsUseCase?
+    private let saveSearch: SaveSearchUseCase?
+    private let loadSavedSearches: LoadSavedSearchesUseCase?
+    private let deleteSavedSearch: DeleteSavedSearchUseCase?
 
     init(
         searchAndRank: SearchAndRankUseCase,
@@ -98,6 +105,10 @@ final class SearchViewModel {
         fetchPosting: FetchPostingUseCase? = nil,
         saveResults: SaveResultsUseCase? = nil,
         loadProfiles: LoadProfilesUseCase? = nil,
+        loadSavedJobs: LoadSavedJobsUseCase? = nil,
+        saveSearch: SaveSearchUseCase? = nil,
+        loadSavedSearches: LoadSavedSearchesUseCase? = nil,
+        deleteSavedSearch: DeleteSavedSearchUseCase? = nil,
         adzunaConfigured: Bool = true
     ) {
         self.searchAndRank = searchAndRank
@@ -108,10 +119,65 @@ final class SearchViewModel {
         self.fetchPosting = fetchPosting
         self.saveResults = saveResults
         self.loadProfiles = loadProfiles
+        self.loadSavedJobs = loadSavedJobs
+        self.saveSearch = saveSearch
+        self.loadSavedSearches = loadSavedSearches
+        self.deleteSavedSearch = deleteSavedSearch
         self.adzunaConfigured = adzunaConfigured
         self.commonRoleTitles = roleTitleStore.load()
         self.savedLocations = locationStore?.load() ?? []
         self.savedSalaries = salaryPresetStore?.load() ?? []
+    }
+
+    // MARK: Saved / re-runnable searches (Milestone R)
+
+    /// Whether the saved-searches affordance is available in this build.
+    var supportsSavedSearches: Bool { saveSearch != nil }
+
+    /// Whether "Save this search" can run: wired, a profile is loaded, and ≥1 title set.
+    var canSaveSearch: Bool {
+        saveSearch != nil && hasProfile && !effectiveTitles.isEmpty && !isSearching
+    }
+
+    /// Loads the saved-search library (call on appear). No-op when unavailable.
+    func reloadSavedSearches() async {
+        guard let loadSavedSearches else { return }
+        savedSearches = (try? await loadSavedSearches()) ?? savedSearches
+    }
+
+    /// Saves the current form as a re-runnable search, then refreshes the list.
+    func saveCurrentSearch() async {
+        guard let saveSearch, canSaveSearch else { return }
+        try? await saveSearch(buildRequest())
+        await reloadSavedSearches()
+    }
+
+    /// Re-runs a saved search against the current profile: repopulates the form from the
+    /// saved request, then runs it (reporting how many results are new since last time).
+    func runSavedSearch(_ saved: SavedSearch) async {
+        applyRequest(saved.request)
+        guard adzunaConfigured else { errorMessage = unavailableMessage; return }
+        guard hasProfile else { errorMessage = "Build your profile on the Portfolio tab first."; return }
+        await performSearch(saved.request, isRerun: true)
+    }
+
+    /// Deletes a saved search, then refreshes the list.
+    func deleteSavedSearch(_ saved: SavedSearch) async {
+        guard let deleteSavedSearch else { return }
+        try? await deleteSavedSearch(id: saved.id)
+        await reloadSavedSearches()
+    }
+
+    /// Repopulates the editable form fields from a saved request (so the UI reflects a re-run).
+    private func applyRequest(_ request: JobSearchRequest) {
+        titles = request.titles
+        selectedCommonTitles = []
+        titleInput = ""
+        location = request.location ?? ""
+        salaryText = request.salaryMin.map { String(Int($0)) } ?? ""
+        positionType = request.positionType
+        desiredResultText = request.desiredResultCount.map(String.init) ?? ""
+        minimumScore = Double(request.minimumScore ?? 0)
     }
 
     // MARK: Expanded search parameters (Milestone U)
@@ -354,13 +420,17 @@ final class SearchViewModel {
             errorMessage = unavailableMessage
             return
         }
-        guard hasProfile, let profile else {
+        guard hasProfile else {
             errorMessage = "Build your profile on the Portfolio tab first."
             return
         }
         guard canSearch else { return }
+        await performSearch(buildRequest(), isRerun: false)
+    }
 
-        let request = JobSearchRequest(
+    /// Assembles the current form fields into a `JobSearchRequest`.
+    func buildRequest() -> JobSearchRequest {
+        JobSearchRequest(
             titles: effectiveTitles,
             location: location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : location,
             salaryMin: effectiveSalaryMin.map(Double.init),
@@ -368,18 +438,38 @@ final class SearchViewModel {
             desiredResultCount: desiredResultCount,
             minimumScore: effectiveMinimumScore
         )
+    }
+
+    /// Runs `request` through the search→rank pipeline, pushes the results, and surfaces
+    /// the soft notes. On a re-run (Milestone R) it also reports how many results are new
+    /// since the last search (deduped against the saved-jobs store).
+    private func performSearch(_ request: JobSearchRequest, isRerun: Bool) async {
+        guard let profile else { return }
         isSearching = true
         errorMessage = nil
         warningMessage = nil
         defer { isSearching = false }
+
+        let priorIDs: Set<String> = isRerun ? await savedJobIDs() : []
         do {
             let output = try await searchAndRank(request: request, profile: profile)
             results = output.rankedJobs
-            warningMessage = Self.note(for: output, minimumScore: effectiveMinimumScore)
+            var notes = [Self.note(for: output, minimumScore: request.minimumScore)].compactMap { $0 }
+            if isRerun, !results.isEmpty {
+                let newCount = results.filter { !priorIDs.contains($0.id) }.count
+                notes.append("\(newCount) new since your last search.")
+            }
+            warningMessage = notes.isEmpty ? nil : notes.joined(separator: " ")
             await persistResults()
         } catch {
             errorMessage = Self.message(for: error)
         }
+    }
+
+    /// The ids of already-saved (previously-seen) ranked jobs, for the re-run "new" note.
+    private func savedJobIDs() async -> Set<String> {
+        guard let loadSavedJobs, let jobs = try? await loadSavedJobs() else { return [] }
+        return Set(jobs.map(\.id))
     }
 
     /// Builds the combined soft-note line from a search outcome: failed titles (N-A),

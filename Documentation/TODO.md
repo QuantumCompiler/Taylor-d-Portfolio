@@ -26,9 +26,9 @@ milestone.
 > reachable/clickable; if it's *greyed-out* rather than off-screen, the profile isn't reaching the
 > Search VM — a wiring check to do next. **Phase 2: Q — Export is COMPLETE** (Q-A copy +
 > Markdown/plain-text, Q-B PDF via native Core Text, Q-C DOCX via a hand-rolled OOXML/ZIP writer).
-> **Phase 3 COMPLETE:** T — Two-document portfolio (T-A + T-B) and **U — Expanded search parameters
-> (U-A…U-F)** are done. **Next: R — Saved / re-runnable searches** (now that `JobSearchRequest` has
-> grown), then Phase 4 **V → W**. Then
+> **Phase 3 COMPLETE:** T — Two-document portfolio, **U — Expanded search parameters**, and **R —
+> Saved / re-runnable searches** are all done. **Next: Phase 4 — V (Results ↔ Tracker interaction
+> overhaul, V-A…V-E) → W (Results filtering)**, then Phase 5 polish (S-A/B/C). Then
 > seven milestones, plus a stretch: **Q — Export** (résumé/cover letter → Markdown, PDF, and
 > true DOCX — the flagged highest-value item), **R — Saved / re-runnable searches** (finishes
 > the persistence fast-follow; the profile-cache half already shipped via `SavedProfile`),
@@ -731,7 +731,7 @@ Q-B is the core value, Q-C is the heaviest single piece — all three share one 
 Note: all three formats sit behind the single `DocumentExporter` port + `ExportApplicationUseCase`,
 now composed by `RoutingDocumentExporter` — adding a format is a new sub-exporter + one `case`, no new seam.
 
-## Milestone R — Saved / re-runnable searches  ⬜ not started  (`Data/Persistence`, `Business/UseCases`, Search UI)
+## Milestone R — Saved / re-runnable searches  ✅ done  (`Data/Persistence`, `Business/UseCases`, Search UI)
 
 Goal: finish the persistence fast-follow — let the user **save a search** (titles + shared
 location + salary floor) and **re-run** it later against the current profile, deduping against
@@ -739,25 +739,28 @@ already-seen listings. Builds on Milestone O's `PersistentRecordStore`. (The oth
 old fast-follow — caching the built profile across launches — already shipped via named
 `SavedProfile`s, so it's **done**; don't re-spec it.)
 
-- [ ] **Persist `JobSearchRequest`.** New `SavedSearchesRepository` (Data/Persistence) on the
-      existing `PersistentRecordStore`, `kind` "savedSearch", keyed by a stable id derived from
-      the request (or a generated id + a display name). `JobSearchRequest` stays a clean
-      `Codable` domain type; `@Model` stays in Infrastructure. Upsert so re-saving the same
-      request doesn't duplicate.
-- [ ] **Save / load / delete use cases (Business).** `SaveSearchUseCase`,
-      `LoadSavedSearchesUseCase`, `DeleteSavedSearchUseCase`; **re-run reuses
-      `SearchAndRankUseCase`** (no new search logic).
-- [ ] **Dedupe against already-seen.** On re-run, flag or filter listings already in
-      `SavedJobsRepository` (reuse `contains(jobID:)`) so "new since last run" is visible.
-- [ ] **Search UI.** A "Saved searches" affordance on the Search screen: a **Save this search**
-      action (enabled once a profile + at least one title exist) and a list of saved searches,
-      each with **Run** (feeds the existing pipeline → Results tab) and **Delete**.
-      `SearchViewModel` holds the saved list; wired through `Composition`.
-- [ ] **Tests.** `SavedSearchesRepositoryTests` (round-trip, upsert collapses dupes, delete);
-      `SearchViewModel` save/list/run/delete; re-run dedupes against saved jobs.
-- [ ] **Docs.** SPEC (persistence note → saved searches now persist — done in this planning
-      pass); CLAUDE.md (`SavedSearchesRepository` in Data/Persistence + the three use cases);
-      ROADMAP v3 tick.
+- [x] **Persist `JobSearchRequest`.** New `SavedSearch` model (id + name + `JobSearchRequest` +
+      createdAt) persisted by `SavedSearchesRepository` (Data/Persistence) on the existing
+      `PersistentRecordStore`, `kind` "savedSearch", keyed by a generated id (upsert, newest-first).
+      `JobSearchRequest` stays a clean `Codable` domain type — the **full** grown request (incl. the
+      U-A/U-D/U-E fields) round-trips; `@Model` stays in Infrastructure.
+- [x] **Save / load / delete use cases (Business).** `SaveSearchUseCase` (auto-names from the
+      request via `SavedSearch.defaultName`), `LoadSavedSearchesUseCase`, `DeleteSavedSearchUseCase`;
+      **re-run reuses `SearchAndRankUseCase`** — `search()` was refactored into `buildRequest()` +
+      `performSearch(_:isRerun:)`, and re-run replays the saved request through the same path.
+- [x] **Dedupe against already-seen.** On a re-run, `performSearch(isRerun: true)` snapshots the
+      already-saved job ids (`LoadSavedJobsUseCase`) and reports **"N new since your last search."**
+      as a soft note alongside the existing U-D/U-E notes.
+- [x] **Search UI.** A "Saved searches" section on the Search screen: a **Save Search** button
+      (enabled once a profile + ≥1 title exist) and a list of saved searches, each with a one-line
+      parameter summary + **Run** (repopulates the form and runs → Results tab) and **Delete** (trash).
+      `SearchViewModel` holds the list; wired through `Composition`; reloads on appear.
+- [x] **Tests.** `SavedSearchesRepositoryTests` (round-trip newest-first incl. new fields, upsert
+      collapses dupes, delete, default name); `SearchViewModel` save/list/run/delete, `canSaveSearch`
+      gating, run repopulates + produces results, and re-run reports the "N new" dedupe note.
+      Suite green.
+- [x] **Docs.** SPEC (saved searches persist — already noted); CLAUDE.md (`SavedSearchesRepository`
+      + the three use cases + `SavedSearch`); ROADMAP tick.
 
 ## Milestone S — Polish pass  ⬜ not started  (mostly Presentation; small Data/use-case touches)
 

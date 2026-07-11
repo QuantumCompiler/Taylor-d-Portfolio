@@ -48,6 +48,15 @@ struct SearchView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(!viewModel.canSearch)
 
+                if viewModel.supportsSavedSearches {
+                    Button {
+                        Task { await viewModel.saveCurrentSearch() }
+                    } label: {
+                        Label("Save Search", systemImage: "bookmark")
+                    }
+                    .disabled(!viewModel.canSaveSearch)
+                }
+
                 if let error = viewModel.errorMessage {
                     Text(error).font(.callout).foregroundStyle(.red)
                 }
@@ -64,6 +73,10 @@ struct SearchView: View {
                     .font(.callout).foregroundStyle(.green)
             }
 
+            if viewModel.supportsSavedSearches && !viewModel.savedSearches.isEmpty {
+                savedSearchesSection
+            }
+
             if viewModel.canUseLink {
                 Divider()
                 linkSection
@@ -72,6 +85,43 @@ struct SearchView: View {
         .padding(24)
         .scrollableScreen()
         .task { await viewModel.reloadProfiles() }
+        .task { await viewModel.reloadSavedSearches() }
+    }
+
+    // MARK: Saved searches (Milestone R)
+
+    private var savedSearchesSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Saved searches").font(.headline)
+            ForEach(viewModel.savedSearches) { saved in
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(saved.name).font(.callout).lineLimit(1)
+                        Text(savedSearchSummary(saved)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    Spacer()
+                    Button("Run") { Task { await viewModel.runSavedSearch(saved) } }
+                        .disabled(!viewModel.hasProfile || viewModel.isSearching)
+                    Button(role: .destructive) {
+                        Task { await viewModel.deleteSavedSearch(saved) }
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    /// A one-line summary of a saved search's optional parameters.
+    private func savedSearchSummary(_ saved: SavedSearch) -> String {
+        var parts = [String]()
+        if let location = saved.request.location, !location.isEmpty { parts.append(location) }
+        if let type = saved.request.positionType { parts.append(type.label) }
+        if let salary = saved.request.salaryMin { parts.append("$\(Int(salary).formatted())+") }
+        if let score = saved.request.minimumScore { parts.append("rank ≥ \(score)") }
+        return parts.isEmpty ? "Any location · any filters" : parts.joined(separator: " · ")
     }
 
     // MARK: Profile selection

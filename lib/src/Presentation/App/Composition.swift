@@ -106,6 +106,18 @@ struct Composition {
     private var loadSavedJobs: LoadSavedJobsUseCase? {
         savedJobsRepository.map(LoadSavedJobsUseCase.init(repository:))
     }
+    private var savedSearchesRepository: SavedSearchesRepository? {
+        recordStore.map(SavedSearchesRepository.init(store:))
+    }
+    private var saveSearch: SaveSearchUseCase? {
+        savedSearchesRepository.map { SaveSearchUseCase(repository: $0) }
+    }
+    private var loadSavedSearches: LoadSavedSearchesUseCase? {
+        savedSearchesRepository.map(LoadSavedSearchesUseCase.init(repository:))
+    }
+    private var deleteSavedSearch: DeleteSavedSearchUseCase? {
+        savedSearchesRepository.map(DeleteSavedSearchUseCase.init(repository:))
+    }
     private var saveProfile: SaveProfileUseCase? {
         savedProfilesRepository.map { SaveProfileUseCase(repository: $0) }
     }
@@ -140,6 +152,10 @@ struct Composition {
             fetchPosting: fetchPosting,
             saveResults: saveResults,
             loadProfiles: loadProfiles,
+            loadSavedJobs: loadSavedJobs,
+            saveSearch: saveSearch,
+            loadSavedSearches: loadSavedSearches,
+            deleteSavedSearch: deleteSavedSearch,
             adzunaConfigured: isAdzunaConfigured
         )
     }

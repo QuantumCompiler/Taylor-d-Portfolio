@@ -204,7 +204,13 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       On-device: yes — pure local rendering, no network. Note: AGENT.md's LaTeX/PDF
       toolchain stays out of scope; this is native rendering only.
 
-- [ ] **Saved / re-runnable searches.** Finish the persistence fast-follow: persist each
+- [x] **Saved / re-runnable searches.** ✅ **Done.** `SavedSearch` (a named `JobSearchRequest`)
+      persists via `SavedSearchesRepository` on Milestone O's `PersistentRecordStore`; save/load/
+      delete use cases; a "Saved searches" section on the Search screen with Save + per-item Run
+      (repopulates the form and re-runs via `SearchAndRankUseCase`) / Delete. A re-run reports "N new
+      since your last search" by deduping against the saved-jobs store. The full grown
+      `JobSearchRequest` (U params included) round-trips.
+      Finish the persistence fast-follow: persist each
       `JobSearchRequest` (titles + shared location + salary floor), list saved searches,
       and **re-run** one later against the current profile through the existing search→rank
       pipeline, deduping against already-seen listings. New `SavedSearchesRepository`

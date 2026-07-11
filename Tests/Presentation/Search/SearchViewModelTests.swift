@@ -435,6 +435,113 @@ struct SearchViewModelTests {
         #expect(SearchViewModel.note(for: clean, minimumScore: nil) == nil)
     }
 
+    // MARK: Saved / re-runnable searches (Milestone R)
+
+    /// A VM wired with a saved-searches repo (+ optional saved-jobs for the dedupe note).
+    private func makeSavedSearchVM(
+        jobs: [JobListing] = [],
+        matches: [JobMatch] = [],
+        savedJobsRepo: SavedJobsRepository? = nil
+    ) -> (SearchViewModel, SavedSearchesRepository) {
+        let repo = SavedSearchesRepository(store: InMemoryRecordStore())
+        let useCase = SearchAndRankUseCase(
+            jobSource: PresentationStubJobSource(jobs: jobs),
+            ranker: JobRanker(provider: PresentationStubProvider(matches: matches), shortlistLimit: 50)
+        )
+        let vm = SearchViewModel(
+            searchAndRank: useCase,
+            roleTitleStore: RoleTitleStore(store: PresentationMemoryStore()),
+            saveResults: savedJobsRepo.map(SaveResultsUseCase.init(repository:)),
+            loadSavedJobs: savedJobsRepo.map(LoadSavedJobsUseCase.init(repository:)),
+            saveSearch: SaveSearchUseCase(repository: repo, makeID: { "s-1" }, now: { Date(timeIntervalSince1970: 1) }),
+            loadSavedSearches: LoadSavedSearchesUseCase(repository: repo),
+            deleteSavedSearch: DeleteSavedSearchUseCase(repository: repo)
+        )
+        return (vm, repo)
+    }
+
+    @Test func saveThenListSavedSearches() async {
+        let (vm, _) = makeSavedSearchVM()
+        vm.profile = profile
+        vm.titles = ["iOS Engineer"]
+        vm.location = "Remote"
+        vm.positionType = .contract
+        #expect(vm.canSaveSearch)
+
+        await vm.saveCurrentSearch()
+        #expect(vm.savedSearches.count == 1)
+        #expect(vm.savedSearches[0].request.titles == ["iOS Engineer"])
+        #expect(vm.savedSearches[0].request.positionType == .contract)
+    }
+
+    @Test func cannotSaveASearchWithoutProfileOrTitles() {
+        let (vm, _) = makeSavedSearchVM()
+        vm.titles = ["iOS"]
+        #expect(vm.canSaveSearch == false)          // no profile
+        vm.profile = profile
+        vm.titles = []
+        #expect(vm.canSaveSearch == false)          // no title
+        vm.titles = ["iOS"]
+        #expect(vm.canSaveSearch)
+    }
+
+    @Test func runningASavedSearchRepopulatesTheFormAndProducesResults() async {
+        let jobs = [JobListing(id: "a", title: "t", company: "c", location: "l", description: "d")]
+        let matches = [JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: [])]
+        let (vm, _) = makeSavedSearchVM(jobs: jobs, matches: matches)
+        vm.profile = profile
+
+        let request = JobSearchRequest(titles: ["Swift Dev"], location: "Lehi, UT", positionType: .permanent, minimumScore: 50)
+        let saved = SavedSearch(id: "x", name: "Saved", request: request, createdAt: Date(timeIntervalSince1970: 0))
+        await vm.runSavedSearch(saved)
+
+        #expect(vm.titles == ["Swift Dev"])         // form repopulated from the saved request
+        #expect(vm.location == "Lehi, UT")
+        #expect(vm.positionType == .permanent)
+        #expect(vm.results.map(\.id) == ["a"])       // and it actually ran
+    }
+
+    @Test func rerunReportsHowManyResultsAreNewSinceLastTime() async throws {
+        let jobs = [
+            JobListing(id: "a", title: "t", company: "c", location: "l", description: "d"),
+            JobListing(id: "b", title: "t", company: "c", location: "l", description: "d"),
+        ]
+        let matches = [
+            JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: []),
+            JobMatch(jobId: "b", score: 60, reason: "", matchedSkills: [], missingSkills: []),
+        ]
+        let savedJobsRepo = SavedJobsRepository(store: InMemoryRecordStore())
+        // "a" was already seen in a prior search.
+        try await savedJobsRepo.save([RankedJob(listing: jobs[0], match: matches[0])])
+
+        let (vm, _) = makeSavedSearchVM(jobs: jobs, matches: matches, savedJobsRepo: savedJobsRepo)
+        vm.profile = profile
+        let saved = SavedSearch(id: "x", name: "S",
+                                request: JobSearchRequest(titles: ["iOS"]), createdAt: Date(timeIntervalSince1970: 0))
+        await vm.runSavedSearch(saved)
+
+        // Two results, one already seen → "1 new".
+        #expect(vm.results.count == 2)
+        #expect(vm.warningMessage?.contains("1 new since your last search") == true)
+    }
+
+    @Test func deleteSavedSearchRemovesIt() async {
+        let (vm, _) = makeSavedSearchVM()
+        vm.profile = profile
+        vm.titles = ["iOS"]
+        await vm.saveCurrentSearch()
+        #expect(vm.savedSearches.count == 1)
+
+        await vm.deleteSavedSearch(vm.savedSearches[0])
+        #expect(vm.savedSearches.isEmpty)
+    }
+
+    @Test func savedSearchesUnavailableWithoutWiring() {
+        let vm = makeVM()                            // no saveSearch use case
+        #expect(vm.supportsSavedSearches == false)
+        #expect(vm.canSaveSearch == false)
+    }
+
     // MARK: Saved-profile selection
 
     /// A VM whose saved-profile library is prepopulated with `profiles`.
