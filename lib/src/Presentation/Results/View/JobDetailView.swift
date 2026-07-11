@@ -115,6 +115,7 @@ struct JobDetailView: View {
                 if status == nil {
                     Button("Mark as applied") { mark(.applied) }
                         .buttonStyle(.borderedProminent).controlSize(.small)
+                        .clickableCursor()
                 }
                 Menu("Set status") {
                     ForEach(ApplicationStage.settable, id: \.self) { stage in
@@ -122,6 +123,7 @@ struct JobDetailView: View {
                     }
                 }
                 .fixedSize()
+                .clickableCursor()
             }
         }
     }
@@ -202,6 +204,7 @@ struct JobDetailView: View {
                 Link(destination: url) {
                     Label("View original posting", systemImage: "arrow.up.right.square")
                 }
+                .clickableCursor()
             }
             Spacer()
             if canGenerate {
@@ -209,12 +212,14 @@ struct JobDetailView: View {
                 Button("Generate résumé & cover letter") { showingApplication = true }
                     .buttonStyle(.borderedProminent)
                     .disabled(profile == nil)
+                    .clickableCursor()
             } else if let onSaveToTracker {
                 // Results context: no generation — read the posting and choose to save.
                 Button { onSaveToTracker(); dismiss() } label: {
                     Label("Save to Tracker", systemImage: "bookmark")
                 }
                 .buttonStyle(.borderedProminent)
+                .clickableCursor()
             }
         }
     }

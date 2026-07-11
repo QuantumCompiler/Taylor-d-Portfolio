@@ -64,6 +64,7 @@ struct PortfolioView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!viewModel.canBuild)
+                .clickableCursor()
 
                 if viewModel.isBusy {
                     ProgressView().controlSize(.small)
@@ -122,11 +123,13 @@ struct PortfolioView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
+                .clickableCursor()
 
                 Button(action: onImport) {
                     Label("Import…", systemImage: "doc.badge.plus")
                 }
                 .disabled(viewModel.isBusy)
+                .clickableCursor()
             }
 
             if isExpanded.wrappedValue {
@@ -212,6 +215,7 @@ struct PortfolioView: View {
 
                 Button("Submit") { Task { await viewModel.regenerateSummary() } }
                     .disabled(!viewModel.canRegenerateSummary)
+                    .clickableCursor()
 
                 if viewModel.isRefiningSummary {
                     ProgressView().controlSize(.small)
@@ -232,6 +236,7 @@ struct PortfolioView: View {
                 Task { await viewModel.saveProfile() }
             }
             .disabled(!viewModel.canSaveProfile)
+            .clickableCursor()
         }
     }
 
@@ -285,11 +290,13 @@ struct PortfolioView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
+            .clickableCursor()
         }
         .padding(.vertical, 2)
         // Make the whole tile (including the Spacer and padding) the hit target.
         .contentShape(Rectangle())
         .onTapGesture { viewModel.toggleSelection(saved) }
+        .clickableCursor()
         // A simultaneous long-press so it coexists with the tap-to-select instead of
         // the two gestures cancelling each other out. The trash Button, being a control,
         // still handles its own taps and isn't triggered by this row gesture.

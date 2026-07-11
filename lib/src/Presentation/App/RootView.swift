@@ -8,8 +8,28 @@
 import SwiftUI
 
 /// The main tabs, once the user has entered the app.
-private enum MainTab: Hashable {
+private enum MainTab: Hashable, CaseIterable {
     case portfolio, search, results, tracker, settings
+
+    var title: String {
+        switch self {
+        case .portfolio: "Portfolio"
+        case .search: "Search"
+        case .results: "Results"
+        case .tracker: "Tracker"
+        case .settings: "Settings"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .portfolio: "person.text.rectangle"
+        case .search: "magnifyingglass"
+        case .results: "list.number"
+        case .tracker: "briefcase"
+        case .settings: "gearshape"
+        }
+    }
 }
 
 /// Hosts the main `TabView`, opening straight to the Portfolio tab. Owns every screen's
@@ -43,32 +63,10 @@ struct RootView: View {
     }
 
     private var mainTabs: some View {
-        TabView(selection: $tab) {
-            PortfolioView(viewModel: portfolio)
-                .tabItem { Label("Portfolio", systemImage: "person.text.rectangle") }
-                .tag(MainTab.portfolio)
-
-            SearchView(viewModel: search)
-                .tabItem { Label("Search", systemImage: "magnifyingglass") }
-                .tag(MainTab.search)
-
-            ResultsView(
-                viewModel: results, profile: portfolio.profile, applicationViewModel: application,
-                markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding
-            )
-                .tabItem { Label("Results", systemImage: "list.number") }
-                .tag(MainTab.results)
-
-            TrackerView(
-                viewModel: tracker, profile: portfolio.profile, applicationViewModel: application,
-                markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding
-            )
-                .tabItem { Label("Tracker", systemImage: "briefcase") }
-                .tag(MainTab.tracker)
-
-            SettingsView(viewModel: settings)
-                .tabItem { Label("Settings", systemImage: "gearshape") }
-                .tag(MainTab.settings)
+        VStack(spacing: 0) {
+            tabBar
+            Divider()
+            selectedTab
         }
         // Profile built or selected on Portfolio flows into Search…
         .onChange(of: portfolio.profile) { _, newProfile in
@@ -82,6 +80,53 @@ struct RootView: View {
         .onChange(of: search.results) { _, newResults in
             results.results = newResults
             if !newResults.isEmpty { tab = .results }
+        }
+    }
+
+    /// A custom top tab bar (replaces the native `TabView` strip) so clickable tabs can
+    /// show the pointing-hand cursor — the native strip is system-drawn and ignores it.
+    private var tabBar: some View {
+        HStack(spacing: 4) {
+            ForEach(MainTab.allCases, id: \.self) { item in
+                let selected = tab == item
+                Button {
+                    withAnimation(.easeInOut(duration: 0.12)) { tab = item }
+                } label: {
+                    Label(item.title, systemImage: item.systemImage)
+                        .font(.callout.weight(selected ? .semibold : .regular))
+                        .padding(.vertical, 6).padding(.horizontal, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(selected ? Color.accentColor.opacity(0.15) : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: 8))
+                        .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                        .contentShape(RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+                .clickableCursor()
+                .help(item.title)
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+    }
+
+    @ViewBuilder private var selectedTab: some View {
+        switch tab {
+        case .portfolio:
+            PortfolioView(viewModel: portfolio)
+        case .search:
+            SearchView(viewModel: search)
+        case .results:
+            ResultsView(
+                viewModel: results, profile: portfolio.profile, applicationViewModel: application,
+                markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding
+            )
+        case .tracker:
+            TrackerView(
+                viewModel: tracker, profile: portfolio.profile, applicationViewModel: application,
+                markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding
+            )
+        case .settings:
+            SettingsView(viewModel: settings)
         }
     }
 }

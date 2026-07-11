@@ -31,6 +31,7 @@ struct TrackerView: View {
                     RankedRow(ranked: tracked.job, status: tracked.status)
                         .contentShape(Rectangle())
                         .onTapGesture { viewModel.select(tracked.job) }
+                        .clickableCursor()
                 }
             }
         }

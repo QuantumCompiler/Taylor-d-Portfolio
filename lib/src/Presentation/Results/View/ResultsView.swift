@@ -37,7 +37,7 @@ struct ResultsView: View {
                         } description: {
                             Text("Clear or loosen your filters to see the ranked results.")
                         } actions: {
-                            Button("Clear filters") { viewModel.clearFilter() }
+                            Button("Clear filters") { viewModel.clearFilter() }.clickableCursor()
                         }
                     } else {
                         List(viewModel.filteredResults) { ranked in
@@ -46,6 +46,7 @@ struct ResultsView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .contentShape(Rectangle())
                                     .onTapGesture { viewModel.select(ranked) }
+                                    .clickableCursor()
                                 if viewModel.supportsRowActions {
                                     rowActions(ranked)
                                 }
@@ -84,7 +85,7 @@ struct ResultsView: View {
                             set: { viewModel.filter.minScore = $0 >= 1 ? Int($0) : nil }
                         ),
                         in: 0...100, step: 5
-                    ).frame(maxWidth: 200)
+                    ).frame(maxWidth: 200).clickableCursor()
                     Text(viewModel.filter.minScore.map { "\($0)+" } ?? "Any").monospacedDigit()
                 }
                 filterField("Keywords") {
@@ -107,7 +108,7 @@ struct ResultsView: View {
                         Text("Any").tag(ResultsFilter.TrackedFilter.any)
                         Text("Tracked").tag(ResultsFilter.TrackedFilter.tracked)
                         Text("Not tracked").tag(ResultsFilter.TrackedFilter.untracked)
-                    }.pickerStyle(.segmented).labelsHidden().fixedSize()
+                    }.pickerStyle(.segmented).labelsHidden().fixedSize().clickableCursor()
                 }
             }
             .padding(.top, 6)
@@ -118,7 +119,7 @@ struct ResultsView: View {
                 Text("Showing \(viewModel.visibleCount) of \(viewModel.totalCount)")
                     .font(.caption).foregroundStyle(.secondary)
                 if viewModel.filter.isActive {
-                    Button("Clear") { viewModel.clearFilter() }.font(.caption)
+                    Button("Clear") { viewModel.clearFilter() }.font(.caption).clickableCursor()
                 }
             }
         }
@@ -142,7 +143,7 @@ struct ResultsView: View {
             Text("Any").tag("")
             ForEach(options, id: \.self) { Text($0).tag($0) }
         }
-        .labelsHidden().fixedSize()
+        .labelsHidden().fixedSize().clickableCursor()
     }
 
     /// Per-row Save-to-Tracker + Delete icons (Milestone V-A/V-B); each intercepts its own tap.
@@ -153,12 +154,14 @@ struct ResultsView: View {
             }
             .buttonStyle(.plain).foregroundStyle(.tint)
             .help(viewModel.isTracked(ranked) ? "Saved to Tracker" : "Save to Tracker")
+            .clickableCursor()
 
             Button(role: .destructive) { Task { await viewModel.delete(ranked) } } label: {
                 Image(systemName: "trash")
             }
             .buttonStyle(.plain).foregroundStyle(.secondary)
             .help("Delete — removes it and any saved status/materials")
+            .clickableCursor()
         }
     }
 }

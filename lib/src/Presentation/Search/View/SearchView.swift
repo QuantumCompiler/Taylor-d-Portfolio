@@ -47,6 +47,7 @@ struct SearchView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!viewModel.canSearch)
+                .clickableCursor()
 
                 if viewModel.supportsSavedSearches {
                     Button {
@@ -55,6 +56,7 @@ struct SearchView: View {
                         Label("Save Search", systemImage: "bookmark")
                     }
                     .disabled(!viewModel.canSaveSearch)
+                    .clickableCursor()
                 }
 
                 if let error = viewModel.errorMessage {
@@ -102,12 +104,14 @@ struct SearchView: View {
                     Spacer()
                     Button("Run") { Task { await viewModel.runSavedSearch(saved) } }
                         .disabled(!viewModel.hasProfile || viewModel.isSearching)
+                        .clickableCursor()
                     Button(role: .destructive) {
                         Task { await viewModel.deleteSavedSearch(saved) }
                     } label: {
                         Image(systemName: "trash")
                     }
                     .buttonStyle(.plain).foregroundStyle(.secondary)
+                    .clickableCursor()
                 }
                 .padding(.vertical, 2)
             }
@@ -141,6 +145,7 @@ struct SearchView: View {
             .labelsHidden()
             .pickerStyle(.menu)
             .fixedSize()
+            .clickableCursor()
         }
     }
 
@@ -160,6 +165,7 @@ struct SearchView: View {
                     }
                 }
                 .disabled(!viewModel.canFetchLink)
+                .clickableCursor()
             }
 
             // Surface a fetch/paste failure prominently, right at the action.
@@ -179,6 +185,7 @@ struct SearchView: View {
                         Task { await viewModel.generateFromPastedText() }
                     }
                     .disabled(!viewModel.hasProfile || viewModel.isFetchingLink)
+                    .clickableCursor()
                 }
             }
         }
@@ -212,6 +219,7 @@ struct SearchView: View {
                     .onSubmit { viewModel.addTitle() }
                 Button("Add") { viewModel.addTitle() }
                     .disabled(viewModel.titleInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .clickableCursor()
             }
 
             if !viewModel.commonRoleTitles.isEmpty {
@@ -246,12 +254,14 @@ struct SearchView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
+            .clickableCursor()
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .background(.tint.opacity(0.15), in: Capsule())
         .onLongPressGesture { viewModel.saveAsCommonRoleTitle(title) }
         .help("Long-press to save to your common role titles")
+        .clickableCursor()
     }
 
     /// A common-role-title tile: tap the label to toggle whether it's included in the
@@ -265,6 +275,7 @@ struct SearchView: View {
                 .foregroundStyle(selected ? Color.white : Color.primary)
                 .contentShape(Rectangle())
                 .onTapGesture { viewModel.toggleCommonTitle(title) }
+                .clickableCursor()
             Button {
                 viewModel.removeCommonRoleTitle(title)
             } label: {
@@ -272,6 +283,7 @@ struct SearchView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(selected ? Color.white.opacity(0.8) : Color.secondary)
+            .clickableCursor()
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
@@ -290,6 +302,7 @@ struct SearchView: View {
                 }
             }
             .pickerStyle(.menu).fixedSize()
+            .clickableCursor()
 
             // Location — typeable + saveable (U-B)
             filterRow(label: "Location") {
@@ -298,6 +311,7 @@ struct SearchView: View {
                 presetMenu(viewModel.locationOptions.map { ($0, $0) }) { viewModel.location = $0 }
                 Button("Save") { viewModel.saveCurrentLocation() }
                     .disabled(viewModel.location.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .clickableCursor()
             }
             savedChips(viewModel.savedLocations, label: { $0 },
                        onTap: { viewModel.location = $0 }, onRemove: viewModel.removeSavedLocation)
@@ -311,6 +325,7 @@ struct SearchView: View {
                 }
                 Button("Save") { viewModel.saveCurrentSalary() }
                     .disabled(viewModel.effectiveSalaryMin == nil)
+                    .clickableCursor()
             }
             savedChips(viewModel.savedSalaries, label: { "$\($0.formatted())+" },
                        onTap: { viewModel.salaryText = String($0) }, onRemove: viewModel.removeSavedSalary)
@@ -325,6 +340,7 @@ struct SearchView: View {
             // Minimum rank filter (U-E)
             filterRow(label: "Minimum rank") {
                 Slider(value: $viewModel.minimumScore, in: 0...100, step: 5).frame(maxWidth: 220)
+                    .clickableCursor()
                 Text(viewModel.minimumScore >= 1 ? "\(Int(viewModel.minimumScore))+" : "Any")
                     .font(.callout).monospacedDigit().frame(width: 44, alignment: .leading)
             }
@@ -348,6 +364,7 @@ struct SearchView: View {
             }
         }
         .fixedSize()
+        .clickableCursor()
     }
 
     /// A horizontal row of saved-value chips: tap fills the field, the "x" removes it.
@@ -366,8 +383,10 @@ struct SearchView: View {
                                 Text(label(value)).font(.caption)
                                     .contentShape(Rectangle())
                                     .onTapGesture { onTap(value) }
+                                    .clickableCursor()
                                 Button { onRemove(value) } label: { Image(systemName: "xmark.circle.fill") }
                                     .buttonStyle(.plain).foregroundStyle(.secondary)
+                                    .clickableCursor()
                             }
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(.tint.opacity(0.15), in: Capsule())

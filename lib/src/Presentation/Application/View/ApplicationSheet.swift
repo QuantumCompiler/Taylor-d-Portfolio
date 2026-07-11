@@ -45,6 +45,7 @@ struct ApplicationSheet: View {
                         Label("Copy", systemImage: "doc.on.doc")
                     }
                     .help("Copy the résumé + cover letter (Markdown) to the clipboard")
+                    .clickableCursor()
 
                     Menu {
                         Button("PDF (.pdf)") { startExport(.pdf) }
@@ -56,13 +57,16 @@ struct ApplicationSheet: View {
                     }
                     .menuStyle(.borderlessButton)
                     .fixedSize()
+                    .clickableCursor()
                 }
                 if viewModel.kit != nil {
                     Button("Regenerate") { Task { await viewModel.generate(for: job, profile: profile, grounding: grounding) } }
                         .disabled(viewModel.isGenerating)
+                        .clickableCursor()
                 }
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.defaultAction)
+                    .clickableCursor()
             }
             Divider()
             content
