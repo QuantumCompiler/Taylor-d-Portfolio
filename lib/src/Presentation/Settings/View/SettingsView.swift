@@ -6,48 +6,101 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// Settings: assign an LLM engine (and Claude model) to each task, and choose the
 /// Adzuna country. Adzuna credentials are baked in at build time, so they're shown
 /// here only as a read-only status.
 struct SettingsView: View {
     @Bindable var viewModel: SettingsViewModel
+    /// Which settings sub-view to show (v0.4.0 Milestone B). Defaults to the engines
+    /// pane, so `#Preview`s and any direct callers keep their prior behaviour.
+    var section: SettingsSection = .engines
 
     var body: some View {
         Form {
-            Section {
-                ForEach(viewModel.tasks) { task in
-                    engineRow(for: task)
-                }
-            } header: {
-                Text("Engines")
-            } footer: {
-                Text("Each task runs on its own engine. Claude uses the selected model; "
-                    + "On-device uses Apple's Foundation model; Auto tries on-device first, "
-                    + "then Claude.")
-            }
-
-            Section("Adzuna") {
-                TextField("Country code", text: $viewModel.adzunaCountry)
-                LabeledContent("Credentials") {
-                    if viewModel.adzunaConfigured {
-                        Label("Configured", systemImage: "checkmark.seal.fill")
-                            .foregroundStyle(.green)
-                    } else {
-                        Label("Not configured in this build", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                    }
-                }
-            }
-
-            Section {
-                Button("Save") { viewModel.save() }
-                    .buttonStyle(.borderedProminent)
-                    .clickableCursor()
+            switch section {
+            case .engines:
+                enginesSection
+                saveSection
+            case .adzuna:
+                adzunaSection
+                saveSection
+            case .about:
+                aboutSection
             }
         }
         .formStyle(.grouped)
-        .navigationTitle("Settings")
+    }
+
+    // MARK: Engines — per-task engine + Claude model
+
+    private var enginesSection: some View {
+        Section {
+            ForEach(viewModel.tasks) { task in
+                engineRow(for: task)
+            }
+        } header: {
+            Text("Engines")
+        } footer: {
+            Text("Each task runs on its own engine. Claude uses the selected model; "
+                + "On-device uses Apple's Foundation model; Auto tries on-device first, "
+                + "then Claude.")
+        }
+    }
+
+    // MARK: Adzuna — country code + baked-in credentials status
+
+    private var adzunaSection: some View {
+        Section("Adzuna") {
+            TextField("Country code", text: $viewModel.adzunaCountry)
+            LabeledContent("Credentials") {
+                if viewModel.adzunaConfigured {
+                    Label("Configured", systemImage: "checkmark.seal.fill")
+                        .foregroundStyle(.green)
+                } else {
+                    Label("Not configured in this build", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
+    }
+
+    /// The shared Save control for the settings-editing panes (Engines / Adzuna).
+    private var saveSection: some View {
+        Section {
+            Button("Save") { viewModel.save() }
+                .buttonStyle(.borderedProminent)
+                .clickableCursor()
+        }
+    }
+
+    // MARK: About — app identity (Milestone C)
+
+    private var aboutSection: some View {
+        Section("About") {
+            HStack(spacing: 14) {
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable()
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Taylor'd Portfolio").font(.headline)
+                    Text("Version \(appVersion)").font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+
+            Text("Searches jobs, ranks them against your portfolio, and generates a tailored "
+                + "résumé & cover letter for a job you pick — human-in-the-loop, never auto-submitting.")
+                .font(.callout).foregroundStyle(.secondary)
+        }
+    }
+
+    /// The app's marketing version (`CFBundleShortVersionString`), read from the bundle.
+    /// This project versions by `v0.x.0` milestones, so the build number isn't shown.
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
     }
 
     /// One task's engine + (conditional) Claude-model controls.

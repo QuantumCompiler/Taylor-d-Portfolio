@@ -46,6 +46,26 @@ struct TrackerViewModelTests {
         #expect(vm.isEmpty == false)
     }
 
+    // MARK: Stage-filtered sub-views (v0.4.0 Milestone B)
+
+    @Test func jobsInSectionFilterByStage() async throws {
+        let vm = try await makeVM { jobs, statuses in
+            try await jobs.save([self.ranked("ap"), self.ranked("iv"), self.ranked("of"), self.ranked("rj")])
+            try await statuses.save(ApplicationStatus(stage: .applied), forJobID: "ap")
+            try await statuses.save(ApplicationStatus(stage: .interviewing), forJobID: "iv")
+            try await statuses.save(ApplicationStatus(stage: .offer), forJobID: "of")
+            try await statuses.save(ApplicationStatus(stage: .rejected), forJobID: "rj")
+        }
+        await vm.load()
+
+        #expect(Set(vm.jobs(in: .all).map(\.id)) == ["ap", "iv", "of", "rj"])
+        #expect(vm.jobs(in: .applied).map(\.id) == ["ap"])
+        #expect(vm.jobs(in: .interviewing).map(\.id) == ["iv"])
+        #expect(vm.jobs(in: .offers).map(\.id) == ["of"])
+        // A rejected job appears only under All — not in any pipeline-stage sub-view.
+        #expect(vm.jobs(in: .applied).contains { $0.id == "rj" } == false)
+    }
+
     @Test func selectSetsSelectedJob() async throws {
         let vm = try await makeVM { jobs, statuses in
             try await jobs.save([self.ranked("a")])

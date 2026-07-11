@@ -157,7 +157,7 @@ breakdown.
       manual date edit is an optional later touch. Builds on O (persistence); replaces the
       "applied-to tracker" that was parked in the SwiftData fast-follow.
 
-## v0.3.0 — output & polish (current target)
+## v0.3.0 — output & polish (complete)
 
 The theme: get the generated materials cleanly *out* of the app (Export), finish the
 persistence fast-follow (saved/re-runnable searches), and polish the app that produces
@@ -346,15 +346,45 @@ experience → cohesive polish → stretch). `TODO.md` has the granular breakdow
       `ExportApplicationUseCase.resumePageCount` → an **advisory** banner on the Application sheet
       when the résumé overflows a page (suggests Compact / tightening — **never** truncates).
 
+## v0.4.0 — navigation & shell (complete)
+
+The theme: give the app room to grow. As of v0.3.0 several areas have real internal
+depth, and the single top tab strip can't scale. Move primary navigation to a **left
+sidebar** (top-level areas only) and demote per-area sub-screens to a **segmented inner
+nav** at the top of the content pane. Native-macOS throughout; content, view models, and
+use cases are preserved and only re-homed. **Presentation-layer only** — no
+Business/Data/Infrastructure changes. `TODO.md` has the granular breakdown.
+
+- [x] **Milestone A — Navigation shell.** ✅ **Done.** Replaced `RootView`'s custom tab bar
+      with a sidebar-driven shell (`NavigationSplitView`): sidebar rows = the five areas
+      (existing SF Symbols + Results/Tracker count badges, accent-fill selection); a
+      per-area segmented inner-nav picks the sub-view; `Area / Sub-view` title header.
+      A testable `ShellNavigation` holder owns area/sub-view state (reset-to-first on area
+      change). No changes below Presentation. Seam: `RootView` + `ShellNavigation`.
+      On-device: n/a (UI only).
+- [x] **Milestone B — Sub-view routing per area.** ✅ **Done.** Wired each area's sub-views
+      behind the inner nav (Portfolio: Profile / Saved Profiles / Source Documents; Search: New
+      Search / Saved Searches / From a Link; Results: Ranked; Tracker: All / Applied /
+      Interviewing / Offers; Settings: Engines / Adzuna / About). A type-safe section enum per
+      area (labels derive `MainArea.subViews`); each screen takes a `section:` param and renders
+      the matching piece with empty states. Tracker stage filters reuse the existing status data
+      via a pure `TrackerSection.includes(_:)` policy + `TrackerViewModel.jobs(in:)`.
+- [x] **Milestone C — Polish + About.** ✅ **Done.** Keyboard navigation (⌘1–⌘5 to areas,
+      ⌘⇧[ / ⌘⇧] to step sub-views), native `NavigationSplitView` sidebar collapse/restore,
+      carried-over pointer-cursor + swipe polish, and a polished Settings **About** sub-view
+      (app icon + name + version + one-liner). Also corrected the app's `MARKETING_VERSION`
+      1.0 → **0.4.0** so About reports the real version.
+
 ## Fast follow (next up)
 
-- Export and saved/re-runnable searches moved **up into v0.3.0** (see above); the profile-cache
-  half of the old "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`.
-  When v0.3.0 completes, pull the next item up from Backlog.
+- Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
+  "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
+  & shell) has shipped. **v0.5.0** should pull the next feature item up from Backlog (native
+  `LanguageModel` provider seam, on-device embedding RAG, or optional MCP tools) and letter it A, B, C….
 
-> **Numbering the next version.** When `v0.3.0` is done and a new version (`v0.4.0`) is planned,
-> its milestones **restart at Milestone A** (not continuing from X) — each version letters its own
-> milestones A, B, C…. See `CLAUDE.md` → "Working process" → Versioning.
+> **Numbering the versions.** Each version letters its own milestones **A, B, C…** from scratch —
+> v0.4.0 restarts at Milestone A (it does **not** continue from v0.3.0's X). See `CLAUDE.md` →
+> "Working process" → Versioning.
 
 ## Backlog (to be specced from chat)
 

@@ -6,9 +6,10 @@ and how it was built. For the product spec see `SPEC.md`; for the high-level pla
 `ROADMAP.md`; for the remaining work see `TODO.md`. See `CLAUDE.md` → "Working process" for how
 these docs fit together.
 
-Grouped by release: **v0.1.0 — foundation**, **v0.2.0 — reliability**, **v0.3.0 — output & polish**, then
-**ad-hoc / quality-of-life** enhancements. (A former Milestone L — "prefer AFM 3 Core Advanced
-on-device" — was dropped: on-device tier selection has no developer API; see `CLAUDE.md` → Stack.)
+Grouped by release: **v0.1.0 — foundation**, **v0.2.0 — reliability**, **v0.3.0 — output & polish**,
+**v0.4.0 — navigation & shell**, then **ad-hoc / quality-of-life** enhancements. (A former Milestone L —
+"prefer AFM 3 Core Advanced on-device" — was dropped: on-device tier selection has no developer API;
+see `CLAUDE.md` → Stack.)
 
 ---
 
@@ -1177,3 +1178,146 @@ Repo/project housekeeping done alongside v0.3.0 (no milestone letter; see `CLAUD
   done flag) copies any values still under the old `com.vivint.*` keys to the new ones and clears the
   old keys — so existing local preferences (settings, saved locations / salary presets / role titles,
   default profile) carry over with no data loss. Covered by `LegacyKeyMigrationTests`.
+
+---
+
+# v0.4.0 — navigation & shell
+
+The theme: give the app room to grow. Primary navigation moves to a left **sidebar** (the five
+top-level areas) and each area's sub-screens become a **segmented inner nav** at the top of the
+content pane. **Presentation-only** — every screen's content, view models, and use cases are
+preserved and only re-homed. Milestones restart at **A** (per `CLAUDE.md` → Versioning). (The full UI
+spec + interactive mockup lived in a temporary `design/` scaffolding folder, removed when v0.4.0
+shipped — see Milestone C.)
+
+## Milestone A — Navigation shell  ✅ done  (`Presentation/App`: `RootView` + new `ShellNavigation`)
+
+Goal: replace `RootView`'s custom full-width tab bar (`VStack { tabBar; Divider; selectedTab }`) with
+a native sidebar shell, without touching anything below Presentation. The five screen views are reused
+verbatim — only their host changed.
+
+- [x] **Sidebar (primary nav).** `RootView` is now a `NavigationSplitView`; the sidebar is a
+      `List(selection:)` over `MainArea.allCases` — Portfolio, Search, Results, Tracker, Settings —
+      each a `Label` with its existing SF Symbol (`person.text.rectangle`, `magnifyingglass`,
+      `list.number`, `briefcase`, `gearshape`). **Top-level areas only, no nested rows** (deliberate:
+      the sidebar stays a clean area switcher). Standard accent-fill sidebar selection; the window
+      traffic lights sit in the sidebar header (default `NavigationSplitView` look). A fixed column
+      width (min 180 / ideal 210 / max 280) keeps it stable.
+- [x] **Count badges.** Native `.badge(_:)` on the Results row (loaded-result count,
+      `results.results.count`) and Tracker row (tracked-job count, `tracker.trackedJobs.count`) —
+      reusing existing VM state, no new data. A zero badge renders as nothing, so the other rows stay
+      clean and the counts appear only when there are items.
+- [x] **Inner segmented nav.** A per-area `Picker(.segmented)` at the top of the content pane, bound
+      to the nav holder's sub-view index. **Milestone A ships one segment per area** (the existing
+      whole screen) so the pattern is consistent and Milestone B slots sub-views in without a layout
+      change; `.fixedSize()` keeps it left-aligned at its natural width.
+- [x] **Content header.** An `Area / Sub-view` breadcrumb title above the segmented control
+      (`ShellNavigation.breadcrumbTitle`). With one sub-view per area it reads as the bare area name;
+      it becomes `Area / Sub-view` automatically once Milestone B gives an area multiple sub-views.
+- [x] **Nav-state holder.** New `ShellNavigation` (`@MainActor @Observable`) owns `selectedArea` +
+      `selectedSubView` and the `MainArea` enum (title / SF Symbol / `subViews`, promoted out of the
+      old `private enum MainTab`). `select(_:)` **resets the inner nav to the first sub-view** on an
+      area change (no-op when re-selecting the current area); `selectSubView(_:)` ignores negatives.
+      The `List` selection and the segmented `Picker` bind to it through small `Binding`s so every
+      change flows through those rules. Cross-screen wiring (profile → Search, saved-profiles reload,
+      results → jump to the Results area) is preserved; the results jump now calls `nav.select(.results)`.
+- [x] **Carried-over polish.** `clickableCursor()` stays on the sidebar rows + the segmented control;
+      the result-card swipe / trackpad-swipe behaviour is untouched (it lives inside the reused
+      screens). Sidebar collapse/restore comes free with `NavigationSplitView`; keyboard nav + an
+      About sub-view are Milestone C.
+- [x] **Tests.** `ShellNavigationTests` (`lib/tests/Presentation/App`): opens on Portfolio/first
+      sub-view; **area change resets the sub-view to the first** (and re-selecting the same area keeps
+      it); `selectSubView` ignores negatives; the breadcrumb is the bare area name while each area has
+      one sub-view; every area has a non-empty title / icon / sub-view list; the five areas are listed
+      in order. Full suite green on macOS; the shell's visual feel is a manual (device) check.
+- [x] **Docs.** CLAUDE.md file-layout entry updated (`RootView` = the `NavigationSplitView` shell +
+      `ShellNavigation`); ROADMAP Milestone A ticked; this write-up. (The per-area sub-view structure
+      and the CLAUDE.md Presentation-description refresh land with Milestone B/C.)
+
+Note: A is the shell only — mechanism, not the per-area split. Milestone B expands each `MainArea`'s
+`subViews` and routes the real sub-screens behind the inner nav; Milestone C adds collapse/keyboard
+polish + the About view. Nothing below Presentation changed, so ranking/generation/persistence/export
+are all untouched.
+
+## Milestone B — Sub-view routing per area  ✅ done  (`Presentation/App` section enums + the five screens)
+
+Goal: give each area's inner segmented nav real sub-views, splitting the existing screens behind them.
+Presentation-only — the view models and use cases are untouched; the screens' internal sections were
+re-homed, not rewritten.
+
+- [x] **Type-safe section taxonomy.** New per-area `Int`-backed enums in `ShellNavigation.swift` —
+      `PortfolioSection` (Profile / Saved Profiles / Source Documents), `SearchSection` (New Search /
+      Saved Searches / From a Link), `TrackerSection` (All / Applied / Interviewing / Offers),
+      `SettingsSection` (Engines / Adzuna / About). `rawValue` == segment index; `title` == segment
+      label; `init(index:)` clamps out-of-range to the first case. `MainArea.subViews` now **derives**
+      its labels from these enums (Results stays a single `["Ranked"]`), so the segmented labels and
+      `RootView`'s routing share one source of truth. `RootView.selectedContent` maps
+      `nav.selectedSubView` → the section enum and passes it to each screen.
+- [x] **Each screen takes a `section:` param.** `PortfolioView`, `SearchView`, `TrackerView`, and
+      `SettingsView` gained a defaulted `section:` parameter and render only that sub-view; `ResultsView`
+      is unchanged (single Ranked). Defaults keep every `#Preview` and direct caller working. The old
+      in-content `Text("Portfolio"/"Search").largeTitle` headers and the `.navigationTitle` on
+      Results/Tracker/Settings were removed — the shell's breadcrumb header + `RootView`'s
+      `.navigationTitle(nav.breadcrumbTitle)` now own the title.
+- [x] **Portfolio split.** **Profile** = the two document slots + Build + summary + Regenerate + Save;
+      **Saved Profiles** = the saved-profile library; **Source Documents** = the tidied readable
+      disclosures. The saved-profiles/source-docs pieces moved out of the Profile scroll into their own
+      sub-views, each with an empty state when there's nothing yet.
+- [x] **Search split.** **New Search** = profile picker + title chips/common titles + optional filters +
+      Search/Save Search + result/warning notes; **Saved Searches** = the saved-search list (Run /
+      Delete); **From a Link** = the URL fetch + paste-text fallback. Empty states for no-saved-searches
+      and link-unavailable.
+- [x] **Tracker stage filters.** A pure `TrackerSection.includes(_ stage:)` policy (All = everything;
+      Applied/Interviewing = exact stage; Offers = offer **or** accepted; saved/rejected/declined/
+      withdrawn show only under All) + `TrackerViewModel.jobs(in:)` filter the tracked list per
+      sub-view. Reuses the existing `ApplicationStatus` data — no new model. A stage-specific empty
+      state distinguishes "nothing at this stage" from "no tracked jobs at all".
+- [x] **Settings split + About stub.** Engines and Adzuna panes (each with the shared Save control) +
+      a functional **About** stub (app name, bundle version, one-liner) — Milestone C polishes it.
+- [x] **Shared empty state.** New `Presentation/Components/InlineEmptyState` (left-aligned, for the
+      scrolling Portfolio/Search sub-views, where the centered `ContentUnavailableView` doesn't sit
+      right). List-based screens keep `ContentUnavailableView`.
+- [x] **Tests.** `SectionRoutingTests` (`MainArea.subViews` == the section labels in order; label/index
+      alignment; `init(index:)` clamping; the full `TrackerSection.includes` stage policy);
+      `TrackerViewModelTests.jobsInSectionFilterByStage` (the VM filter); updated `ShellNavigationTests`
+      breadcrumb tests (bare area name for single-sub-view Results; `Area / Sub-view` for multi-sub-view
+      areas). Full suite green on macOS; the per-area layouts + empty states are a manual (device) check.
+
+Note: B routes and splits; it changes no behaviour below Presentation. Milestone C adds the sidebar
+collapse/keyboard polish and the About view's final treatment, then the README v0.4.0 summary + this
+milestone's move are the closing docs step.
+
+## Milestone C — Polish + About  ✅ done  ← closes v0.4.0  (`RootView`, `ShellNavigation`, `SettingsView`, project version)
+
+Goal: finish the shell — keyboard navigation, sidebar collapse/restore, the About view's real
+treatment — and correct the app version string. Presentation-only, plus a build-setting fix.
+
+- [x] **Keyboard navigation.** `RootView` renders invisible, zero-size shortcut buttons (opacity 0,
+      `accessibilityHidden`) that are active window-wide: **⌘1…⌘5** jump to each sidebar area and
+      **⌘⇧[ / ⌘⇧]** step through the current area's inner-nav sub-views. Backed by new
+      `ShellNavigation.nextSubView()` / `previousSubView()` (clamped; no-op for single-sub-view areas).
+      The sidebar list + segmented control remain natively keyboard-navigable when focused.
+- [x] **Sidebar collapse/restore.** Comes free with `NavigationSplitView` — the toolbar sidebar toggle
+      collapses/restores the sidebar; the fixed column width (Milestone A) keeps the restored state
+      stable. (No extra code; verified behaviour.)
+- [x] **Pointer-cursor + swipe polish.** `clickableCursor()` is on the sidebar rows and the segmented
+      inner nav; the result-card swipe / trackpad-swipe (Milestone V-C) is unchanged under the new
+      host. Final pass — nothing further needed.
+- [x] **About sub-view.** The Settings **About** pane now shows the app icon
+      (`NSApplication.shared.applicationIconImage`), name, **Version <marketing version>**, and the
+      one-liner — replacing the Milestone B stub.
+- [x] **Version-string fix.** The Xcode `MARKETING_VERSION` was left at the template `1.0` (so About
+      read "1.0"); corrected to **`0.4.0`** across the app + test target configs. This project versions
+      by `v0.x.0` milestones, so About shows only the marketing version (the build number isn't
+      meaningful here). Verified the built app's `CFBundleShortVersionString` is `0.4.0`.
+- [x] **Tests.** `ShellNavigationTests` gained `nextAndPreviousSubViewStepAndClamp` (step + clamp at
+      both ends) and `nextSubViewIsANoOpForSingleSubViewAreas`. Full suite green on macOS; keyboard
+      feel, the About layout, and sidebar collapse are manual (device) checks.
+- [x] **Docs + cleanup.** README v0.4.0 summary added; ROADMAP Milestone C ticked + v0.4.0 marked
+      complete; this write-up. The `design/` scaffolding (UI spec + mockup) was removed now that the
+      rework has shipped, and the `design/…` references were stripped from the docs.
+
+Note: C closes **v0.4.0 — navigation & shell**. The whole release was Presentation-only (plus the
+version build-setting): the sidebar shell (A), the per-area sub-view split (B), and this polish pass
+(C). Nothing below Presentation changed, so ranking / generation / persistence / export / grounding
+are exactly as they were in v0.3.0. The next version (v0.5.0) restarts milestones at A.
