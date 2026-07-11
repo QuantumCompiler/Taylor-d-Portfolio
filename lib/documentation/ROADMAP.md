@@ -355,11 +355,12 @@ nav** at the top of the content pane. Native-macOS throughout; content, view mod
 use cases are preserved and only re-homed. **Presentation-layer only** — no
 Business/Data/Infrastructure changes. `TODO.md` has the granular breakdown.
 
-- [ ] **Milestone A — Navigation shell.** Replace `RootView`'s custom tab bar with a
-      sidebar-driven shell (`NavigationSplitView`): sidebar rows = the five areas
+- [x] **Milestone A — Navigation shell.** ✅ **Done.** Replaced `RootView`'s custom tab bar
+      with a sidebar-driven shell (`NavigationSplitView`): sidebar rows = the five areas
       (existing SF Symbols + Results/Tracker count badges, accent-fill selection); a
       per-area segmented inner-nav picks the sub-view; `Area / Sub-view` title header.
-      No changes below Presentation. Seam: `RootView` + a small nav-state holder.
+      A testable `ShellNavigation` holder owns area/sub-view state (reset-to-first on area
+      change). No changes below Presentation. Seam: `RootView` + `ShellNavigation`.
       On-device: n/a (UI only).
 - [ ] **Milestone B — Sub-view routing per area.** Wire each area's sub-views behind the
       inner nav (Portfolio: Profile / Saved Profiles / Source Documents; Search: New

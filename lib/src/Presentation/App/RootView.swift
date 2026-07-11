@@ -7,34 +7,18 @@
 
 import SwiftUI
 
-/// The main tabs, once the user has entered the app.
-private enum MainTab: Hashable, CaseIterable {
-    case portfolio, search, results, tracker, settings
-
-    var title: String {
-        switch self {
-        case .portfolio: "Portfolio"
-        case .search: "Search"
-        case .results: "Results"
-        case .tracker: "Tracker"
-        case .settings: "Settings"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .portfolio: "person.text.rectangle"
-        case .search: "magnifyingglass"
-        case .results: "list.number"
-        case .tracker: "briefcase"
-        case .settings: "gearshape"
-        }
-    }
-}
-
-/// Hosts the main `TabView`, opening straight to the Portfolio tab. Owns every screen's
-/// ViewModel and connects the cross-screen state (profile → search, results → results tab).
+/// Hosts the sidebar-driven shell (v0.4.0 Milestone A), opening straight to the
+/// Portfolio area. Owns every screen's ViewModel and connects the cross-screen state
+/// (profile → search, results → results area).
+///
+/// The shell is a `NavigationSplitView`: the **sidebar** is the primary nav (the five
+/// top-level areas), and each area's content pane carries a **segmented inner nav** for
+/// its sub-views. Milestone A ships one sub-view per area (the existing screen); the
+/// per-area split lands in Milestone B. The five screen views are unchanged — only their
+/// host moved from the old custom tab bar to this shell.
 struct RootView: View {
+    @State private var nav = ShellNavigation()
+
     @State private var portfolio: PortfolioViewModel
     @State private var search: SearchViewModel
     @State private var results: ResultsViewModel
@@ -44,8 +28,6 @@ struct RootView: View {
 
     private let markStatus: MarkStatusUseCase?
     private let loadStatus: LoadStatusUseCase?
-
-    @State private var tab: MainTab = .portfolio
 
     init(composition: Composition) {
         _portfolio = State(initialValue: composition.makePortfolioViewModel())
@@ -59,14 +41,10 @@ struct RootView: View {
     }
 
     var body: some View {
-        mainTabs
-    }
-
-    private var mainTabs: some View {
-        VStack(spacing: 0) {
-            tabBar
-            Divider()
-            selectedTab
+        NavigationSplitView {
+            sidebar
+        } detail: {
+            contentPane
         }
         // Profile built or selected on Portfolio flows into Search…
         .onChange(of: portfolio.profile) { _, newProfile in
@@ -76,41 +54,97 @@ struct RootView: View {
         .onChange(of: portfolio.savedProfiles) { _, _ in
             Task { await search.reloadProfiles() }
         }
-        // …and search results flow into the Results tab (and jump there).
+        // …and search results flow into the Results area (and jump there).
         .onChange(of: search.results) { _, newResults in
             results.results = newResults
-            if !newResults.isEmpty { tab = .results }
+            if !newResults.isEmpty { nav.select(.results) }
         }
     }
 
-    /// A custom top tab bar (replaces the native `TabView` strip) so clickable tabs can
-    /// show the pointing-hand cursor — the native strip is system-drawn and ignores it.
-    private var tabBar: some View {
-        HStack(spacing: 4) {
-            ForEach(MainTab.allCases, id: \.self) { item in
-                let selected = tab == item
-                Button {
-                    withAnimation(.easeInOut(duration: 0.12)) { tab = item }
-                } label: {
-                    Label(item.title, systemImage: item.systemImage)
-                        .font(.callout.weight(selected ? .semibold : .regular))
-                        .padding(.vertical, 6).padding(.horizontal, 12)
-                        .frame(maxWidth: .infinity)
-                        .background(selected ? Color.accentColor.opacity(0.15) : Color.clear,
-                                    in: RoundedRectangle(cornerRadius: 8))
-                        .foregroundStyle(selected ? Color.accentColor : Color.secondary)
-                        .contentShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
-                .clickableCursor()
-                .help(item.title)
+    // MARK: Sidebar (primary nav)
+
+    /// The sidebar lists the top-level areas only. Selection uses the standard
+    /// accent-fill sidebar style; Results/Tracker carry native count badges. The window
+    /// traffic lights sit in the sidebar header (the default `NavigationSplitView` look).
+    private var sidebar: some View {
+        List(selection: areaSelection) {
+            ForEach(MainArea.allCases) { area in
+                Label(area.title, systemImage: area.systemImage)
+                    .badge(badgeCount(for: area))
+                    .tag(area)
+                    .clickableCursor()
+                    .help(area.title)
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .navigationTitle("Taylor'd Portfolio")
+        .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 280)
     }
 
-    @ViewBuilder private var selectedTab: some View {
-        switch tab {
+    /// Binds the `List`'s single selection to the nav holder, routing every change
+    /// through `select(_:)` so the inner nav resets to the first sub-view.
+    private var areaSelection: Binding<MainArea?> {
+        Binding(
+            get: { nav.selectedArea },
+            set: { if let area = $0 { nav.select(area) } }
+        )
+    }
+
+    /// Native sidebar badge counts. A zero badge renders as nothing, so unrelated areas
+    /// stay clean and Results/Tracker show a count only when they have items.
+    private func badgeCount(for area: MainArea) -> Int {
+        switch area {
+        case .results: results.results.count
+        case .tracker: tracker.trackedJobs.count
+        default: 0
+        }
+    }
+
+    // MARK: Content pane (inner nav + sub-view)
+
+    private var contentPane: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            contentHeader
+            Divider()
+            selectedContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// The `Area / Sub-view` title above the segmented inner nav.
+    private var contentHeader: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(nav.breadcrumbTitle)
+                .font(.headline)
+            innerNav
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    /// The inner segmented nav for the selected area's sub-views. Milestone A shows a
+    /// single segment per area; Milestone B populates it per the design spec.
+    private var innerNav: some View {
+        Picker("Sub-view", selection: subViewSelection) {
+            ForEach(Array(nav.selectedArea.subViews.enumerated()), id: \.offset) { index, name in
+                Text(name).tag(index)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+        .clickableCursor()
+    }
+
+    private var subViewSelection: Binding<Int> {
+        Binding(
+            get: { nav.selectedSubView },
+            set: { nav.selectSubView($0) }
+        )
+    }
+
+    @ViewBuilder private var selectedContent: some View {
+        switch nav.selectedArea {
         case .portfolio:
             PortfolioView(viewModel: portfolio)
         case .search:

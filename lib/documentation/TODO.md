@@ -9,17 +9,18 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.0 — Milestone A (Navigation shell).** v0.1.0–v0.3.0 are all complete
-> (see `MILESTONES.md`); v0.4.0 is the **navigation & shell** rework — a **Presentation-only**
-> re-home of the existing screens behind a left sidebar + segmented inner nav (full spec:
+> **Current focus.** **v0.4.0 — Milestone B (Sub-view routing per area).** Milestone A (the
+> navigation shell) is **done** — see `MILESTONES.md`. v0.1.0–v0.3.0 are all complete. v0.4.0 is the
+> **navigation & shell** rework — a **Presentation-only** re-home of the existing screens behind a
+> left sidebar + segmented inner nav (full spec:
 > [`design/UI-Navigation-Redesign-v0.4.0.md`](design/UI-Navigation-Redesign-v0.4.0.md); interactive
 > mockup: [`design/Refined-UI-mockup-v0.4.0.html`](design/Refined-UI-mockup-v0.4.0.html)). Start at
-> Milestone A below.
+> Milestone B below.
 >
-> **⚠️ Awaiting device checks** (carried over from v0.3.0, verify on a real run): the Search
-> **Fetch** button is reachable/clickable after the scroll fix; exported **PDF/DOCX** files open
-> correctly in Preview / Word; the **filter bar** and **swipe card** look and feel right. (The
-> v0.3.0 **custom tab bar** is being replaced by the v0.4.0 sidebar shell — no longer worth a check.)
+> **⚠️ Awaiting device checks** (verify on a real run): the new **sidebar shell** — sidebar rows +
+> accent selection, Results/Tracker count badges, the segmented inner nav, and the `Area / Sub-view`
+> header — looks/feels right; the Search **Fetch** button is reachable after the scroll fix; exported
+> **PDF/DOCX** files open correctly in Preview / Word; the **filter bar** and **swipe card** feel right.
 >
 > Larger backlog beyond v0.4.0 (see `ROADMAP.md`): native `LanguageModel` provider seam; on-device
 > embedding RAG; optional MCP tools.
@@ -42,27 +43,6 @@ Application) stay modal and unchanged; generation still lives in the Tracker; ex
 gate are untouched. Full spec + interactive mockup:
 [`design/UI-Navigation-Redesign-v0.4.0.md`](design/UI-Navigation-Redesign-v0.4.0.md) /
 [`design/Refined-UI-mockup-v0.4.0.html`](design/Refined-UI-mockup-v0.4.0.html).
-
-## Milestone A — Navigation shell
-
-Replace `RootView`'s custom full-width tab bar (`VStack { tabBar; Divider; selectedTab }`) with a
-sidebar-driven shell. Seam: `RootView` + a small nav-state holder; nothing below Presentation changes.
-
-- [ ] **Sidebar (primary nav).** A `NavigationSplitView` sidebar with one row per area — Portfolio,
-      Search, Results, Tracker, Settings — each with its existing SF Symbol (`person.text.rectangle`,
-      `magnifyingglass`, `list.number`, `briefcase`, `gearshape`). **Top-level areas only, no nested
-      rows** (explicit decision — the sidebar stays a clean area switcher). Standard accent-fill
-      selection; traffic lights sit in the sidebar header.
-- [ ] **Count badges.** Results row shows the loaded-result count; Tracker row shows the tracked-job
-      count (reuse the existing view-model state — no new data).
-- [ ] **Inner segmented nav.** A per-area segmented control (`Picker(.segmented)` is the native
-      default) at the top of the content pane; selecting an area shows its **first** sub-view. Areas
-      with a single view today still get a one-segment control so the pattern is consistent.
-- [ ] **Content header.** An `Area / Sub-view` breadcrumb-style title above the segmented control.
-- [ ] **Carry over polish.** Keep the pointer-cursor (`clickableCursor`) and the result-card swipe /
-      trackpad-swipe behaviour intact under the new host.
-- [ ] **Tests.** Nav-state holder unit tests (area selection resets to the first sub-view; badge
-      counts reflect the VM state). View wiring/feel is a manual (device) check.
 
 ## Milestone B — Sub-view routing per area
 
@@ -94,9 +74,9 @@ their host changes. The agreed starting structure (see the spec's §3 table):
 - [ ] **Pointer-cursor + swipe polish.** Final pass that the carried-over cursor and swipe affordances
       feel right in the shell.
 - [ ] **About sub-view.** A small Settings **About** view — app identity, version, one-liner.
-- [ ] **Docs.** Once the shell ships, update `CLAUDE.md`'s Presentation description (RootView shell +
-      the per-area sub-view structure) and the root `README.md` (add the v0.4.0 summary), then move
-      this milestone's write-up into `MILESTONES.md`.
+- [ ] **Docs.** Update `CLAUDE.md`'s Presentation section with the per-area sub-view structure
+      (the shell itself is already documented from Milestone A) and the root `README.md` (add the
+      shipped v0.4.0 summary), then move this milestone's write-up into `MILESTONES.md`.
 - [ ] **Nuke the design scaffolding.** When v0.4.0 is done, **delete the
       [`design/`](design/) subdirectory** (the UI spec + HTML mockup were build-time references only)
       and remove the now-dangling `design/…` links from `ROADMAP.md`, `TODO.md`, and `CLAUDE.md`.

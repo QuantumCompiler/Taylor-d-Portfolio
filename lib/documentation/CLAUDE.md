@@ -204,7 +204,9 @@ mirrors that structure under **`lib/tests/`** (see "Where tests live" below).
 ```
 lib/src/
   Presentation/
-    App/            Taylor_d_PortfolioApp (composition root); RootView opens on the Portfolio tab
+    App/            Taylor_d_PortfolioApp (composition root); RootView (the NavigationSplitView
+                  sidebar shell, opening on the Portfolio area) + ShellNavigation (the sidebar/
+                  inner-nav state holder) — v0.4.0 Milestone A
     Portfolio/      one folder per screen; each screen holds two subfolders:
       View/           the SwiftUI view(s)                  — PortfolioView
       ViewModel/      the @MainActor @Observable ViewModel — PortfolioViewModel
