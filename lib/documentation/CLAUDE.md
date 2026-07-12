@@ -6,8 +6,10 @@ summary); this file and the rest of `lib/documentation/` are the contributor-fac
 `SPEC.md` for what we're building, `ROADMAP.md` for the high-level plan, `TODO.md` for the
 granular checklist of **remaining** work, and `MILESTONES.md` for the record of
 **completed** milestones. **Starting a fresh session? First ask the user what the current
-version is** (form `v0.x.0`, e.g. `v0.3.0`) so commits/labels track correctly, **then read
-`TODO.md`** — its "Current focus" line tells you exactly where to pick up.
+version is** (form `v0.x.0` / `v0.x.y`, e.g. `v0.3.0` or `v0.4.1`) so commits/labels track correctly,
+**then read `TODO.md`** — its "Current focus" line tells you exactly where to pick up. **If Taylor says
+he wants to _plan_ a release (rather than build), follow "Working process → Planning sessions" below** —
+it's a docs-and-design pass that writes no implementation code (only the project-version bump).
 
 ## What this is
 
@@ -216,7 +218,9 @@ lib/src/
                   e.g. Results/View holds ResultsView + RankedRow + JobDetailView + StatusBadge,
                   Tracker/View holds TrackerView, Application/View the sheet)
     Components/     shared view helpers — ScrollableScreen (scroll wrapper), ExportFileDocument,
-                  InlineEmptyState (left-aligned empty state for scrolling screens)
+                  InlineEmptyState (left-aligned empty state for scrolling screens),
+                  ExpandableRow (disclosure whose whole header row toggles, not just the caret),
+                  CursorStyle (clickableCursor pointer affordance)
   Business/
     UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
                   GenerateApplicationUseCase, FetchPostingUseCase, ExportApplicationUseCase,
@@ -391,11 +395,16 @@ The loop, so any session can pick up where the last left off:
 
 Keep these updates in the same commit/change as the code they describe.
 
-**Versioning.** Releases are numbered **`v0.x.0`** (`v0.1.0` foundation, `v0.2.0` reliability,
-`v0.3.0` output & polish, `v0.4.0` navigation & shell; `v0.5.0` next). The **current version isn't
-hard-coded in these docs** — at the **start of every session, ask the user what version is in
-progress** and use that number for commit-label suggestions. (The `## v0.x.0 —` headers in
-`ROADMAP.md` / `MILESTONES.md` name the release *themes*, not the live working version.)
+**Versioning.** Feature releases are numbered **`v0.x.0`** (`v0.1.0` foundation, `v0.2.0` reliability,
+`v0.3.0` output & polish, `v0.4.0` navigation & shell; `v0.5.0` next). **Patch / point releases** use
+**`v0.x.y`** with `y > 0` (first one: **`v0.4.1`**) for a batch of **bug fixes and small refinements**
+on top of a shipped `v0.x.0`, when the changes don't warrant a new feature theme. A patch release is a
+first-class release: it gets its own `## v0.x.y —` header in `ROADMAP.md` / `MILESTONES.md`, its own
+`MARKETING_VERSION` bump, and its milestones **restart at A** (committed `v0.x.y : Milestone X
+Completed`) — exactly like a `.0`, just themed as fixes rather than a feature. The **current version
+isn't hard-coded in these docs** — at the **start of every session, ask the user what version is in
+progress** and use that number for commit-label suggestions. (The `## v0.x.0 —` / `## v0.x.y —` headers
+in `ROADMAP.md` / `MILESTONES.md` name the release *themes*, not the live working version.)
 
 **Keep the project version in sync — update it when a new version starts.** The app's
 `MARKETING_VERSION` build setting (in `Taylor'd Portfolio.xcodeproj/project.pbxproj` — **4 copies**,
@@ -407,7 +416,8 @@ it at a stale or template value. (This was missed until `v0.4.0`, where it sat a
 `CURRENT_PROJECT_VERSION` isn't shown, so it needn't track the milestone.
 
 **Milestone letters restart at A each version.** `v0.1.0`–`v0.3.0` ran A–X *continuously*, but
-from **`v0.4.0` onward every new version begins its milestones again at Milestone A** (A, B, C…).
+from **`v0.4.0` onward every new version begins its milestones again at Milestone A** (A, B, C…) —
+**including patch releases** (`v0.4.1` restarts at A, independent of v0.4.0's A–C).
 So a milestone ID is only unique *within* its version — always pair it with the version when it
 could be ambiguous (e.g. "v0.4.0 Milestone A"), and note that `MILESTONES.md` groups completed
 milestones under `## v0.x.0 —` headers precisely to keep the reused letters unambiguous.
@@ -419,6 +429,54 @@ sub-part / hotfix it was** (e.g. "Milestone S-A", "Milestone Q-A", "URL-fetch Ho
 label is what goes in the commit message. Do this even for partial completions (name the milestone
 and say it's partial). Ad-hoc user-requested tweaks have no milestone letter — say so and suggest a
 `v0.x.0 : <short description>` message instead. Don't run `git commit` unless explicitly asked.
+
+### Planning sessions ("I'd like to start a planning session")
+
+When Taylor opens a session by asking to **plan** a release (or says something like "let's plan
+v0.x.y", "I want to plan the next version"), the job is to turn the features / fixes / bugs he
+describes into **properly structured milestones in the docs** — **no implementation code**. This is a
+docs-and-design pass, not a build pass. Run it like this:
+
+1. **Confirm the version & release type.** Ask/confirm the working version (per **Versioning** above).
+   Decide **feature release (`v0.x.0`)** vs. **patch release (`v0.x.y`)**: a batch of bug fixes / small
+   refinements on top of a shipped `.0` is a **patch** (e.g. v0.4.1); a new coherent theme is a new
+   `.0`. Milestones **restart at A** either way.
+2. **If this planning session opens a NEW version, set it up first:** add the release header
+   (`## v0.x.y — <theme> (in progress)`) to `ROADMAP.md` and a matching section to `TODO.md`, point
+   `TODO.md`'s **"Current focus"** at it, update the `README.md` **Next:** line, and — importantly —
+   **bump the project version** (see step 6). For an established in-progress version, just append the
+   new milestones.
+3. **For each item Taylor describes, read the real code first.** Before writing a milestone, open the
+   view / view-model / use-case / seam it touches so the write-up names **actual files, types, and the
+   correct seam** (e.g. "`ResultsViewModel.filteredResults`", "`ShellNavigation.breadcrumbTitle`,
+   `RootView.swift:119`"). Don't write a milestone from guesswork or from a screenshot alone — verify
+   in the source. Respect the **layer dependency rule**, and **call out when a milestone is not
+   Presentation-only** (most are; some, like a warnings sweep, touch Infrastructure too).
+4. **Write each item as a lettered milestone (A, B, C…).** Two places, in the same pass:
+   - **`TODO.md`** — a detailed write-up: what's wrong / wanted → the **seam + files** → concrete
+     sub-tasks as `- [ ]` checkboxes → a **Tests** note → an **On-device** note. Keep the **"Current
+     focus"** line and the A→X milestone queue current as you add each one.
+   - **`ROADMAP.md`** — a one-paragraph `- [ ]` bullet under the version header (summary + seam +
+     on-device), mirroring the TODO milestone.
+5. **Surface real decisions instead of silently making them.** When a change has a genuine UX/design
+   fork (e.g. "9 tracker tabs won't fit a segmented control" or "does an unsaved profile appear here"),
+   write it as an explicit **"(open call)"** sub-task with a **recommended default**, and leave it for
+   build time. Don't bury a judgement call inside a checkbox.
+6. **Keep the project version in sync — this is part of planning a new version.** When a planning
+   session starts a new `v0.x.y`, **update every `MARKETING_VERSION` (4 copies in `project.pbxproj` —
+   Debug/Release × app/test) to that number** so Settings → About reports it (see **"Keep the project
+   version in sync"** above). This is the **one build-setting change that belongs to starting a
+   version** — do it as part of kickoff, or, if Taylor wants a pure docs-only pass, record it as a
+   ticked-when-done **release-hygiene checkbox** in the version's `TODO.md` section so it isn't
+   forgotten. (The rest of a planning session writes **no** code.)
+7. **Name the label.** Each planned item is a milestone; when Taylor implements it later it commits as
+   `v0.x.y : Milestone X Completed`. Planning itself produces only doc edits — if he commits the
+   planning pass on its own, suggest `v0.x.y : Planning` (mirroring the existing "Planning" commits).
+
+The output of a good planning session: `TODO.md` + `ROADMAP.md` (and `README.md` / `SPEC.md` /
+`CLAUDE.md` where a new pattern or whole feature warrants it) fully describe the release's milestones,
+every seam is named from the real code, open decisions are flagged with recommendations, and the
+project version matches the new number — so implementation can start straight from the docs.
 
 ### Making a branch merge-ready (shipping a version)
 

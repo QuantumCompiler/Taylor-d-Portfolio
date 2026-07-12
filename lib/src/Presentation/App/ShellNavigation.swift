@@ -89,32 +89,35 @@ enum SearchSection: Int, CaseIterable {
     init(index: Int) { self = SearchSection(rawValue: index) ?? .newSearch }
 }
 
-/// Tracker sub-views: the tracked list, filtered by application stage (`All` shows everything).
+/// Tracker sub-views: `All` plus one tab per `ApplicationStage`, so every status is directly
+/// reachable (v0.4.1 Milestone D). The case order is the segment order.
 enum TrackerSection: Int, CaseIterable {
-    case all, applied, interviewing, offers
+    case all, saved, applied, interviewing, offer, accepted, declined, rejected, withdrawn
 
-    var title: String {
+    /// The exact stage this tab filters to — `nil` for `All`, which shows every tracked job.
+    var stage: ApplicationStage? {
         switch self {
-        case .all: "All"
-        case .applied: "Applied"
-        case .interviewing: "Interviewing"
-        case .offers: "Offers"
+        case .all: nil
+        case .saved: .saved
+        case .applied: .applied
+        case .interviewing: .interviewing
+        case .offer: .offer
+        case .accepted: .accepted
+        case .declined: .declined
+        case .rejected: .rejected
+        case .withdrawn: .withdrawn
         }
     }
 
+    /// Segment label: `All`, else the stage's own label (kept identical to the status badge).
+    var title: String { stage?.label ?? "All" }
+
     init(index: Int) { self = TrackerSection(rawValue: index) ?? .all }
 
-    /// Whether a tracked job at `stage` belongs in this section. `All` shows everything;
-    /// `Offers` groups a received offer with an accepted one. Other terminal outcomes
-    /// (rejected / declined / withdrawn) and not-yet-applied `saved` jobs show only under
-    /// `All`. Pure, so it's unit-tested.
+    /// Whether a tracked job at `stage` belongs in this section: `All` shows everything;
+    /// every other tab matches its **exact** stage. Pure, so it's unit-tested.
     func includes(_ stage: ApplicationStage) -> Bool {
-        switch self {
-        case .all: true
-        case .applied: stage == .applied
-        case .interviewing: stage == .interviewing
-        case .offers: stage == .offer || stage == .accepted
-        }
+        self.stage == nil || self.stage == stage
     }
 }
 
@@ -135,7 +138,7 @@ enum SettingsSection: Int, CaseIterable {
 
 /// Holds the shell's navigation state: which area is selected in the sidebar and which
 /// sub-view is selected in that area's inner segmented nav. Kept as a small, testable
-/// holder (rather than loose `@State` in `RootView`) so the reset/breadcrumb rules have
+/// holder (rather than loose `@State` in `RootView`) so the sub-view reset rules have
 /// a home and unit coverage.
 @MainActor
 @Observable
@@ -179,16 +182,5 @@ final class ShellNavigation {
     /// keyboard navigation (⌘⇧[).
     func previousSubView() {
         selectedSubView = max(selectedSubView - 1, 0)
-    }
-
-    /// The content-pane title: `Area / Sub-view` when the area has more than one
-    /// sub-view, otherwise just the area name (Milestone A, where each area is a
-    /// single view, reads as the bare area name).
-    var breadcrumbTitle: String {
-        let subs = selectedArea.subViews
-        guard subs.count > 1, subs.indices.contains(selectedSubView) else {
-            return selectedArea.title
-        }
-        return "\(selectedArea.title) / \(subs[selectedSubView])"
     }
 }

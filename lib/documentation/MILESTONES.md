@@ -7,7 +7,8 @@ and how it was built. For the product spec see `SPEC.md`; for the high-level pla
 these docs fit together.
 
 Grouped by release: **v0.1.0 — foundation**, **v0.2.0 — reliability**, **v0.3.0 — output & polish**,
-**v0.4.0 — navigation & shell**, then **ad-hoc / quality-of-life** enhancements. (A former Milestone L —
+**v0.4.0 — navigation & shell**, **v0.4.1 — fixes & refinements** (the first patch release), then
+**ad-hoc / quality-of-life** enhancements. (A former Milestone L —
 "prefer AFM 3 Core Advanced on-device" — was dropped: on-device tier selection has no developer API;
 see `CLAUDE.md` → Stack.)
 
@@ -1321,3 +1322,239 @@ Note: C closes **v0.4.0 — navigation & shell**. The whole release was Presenta
 version build-setting): the sidebar shell (A), the per-area sub-view split (B), and this polish pass
 (C). Nothing below Presentation changed, so ranking / generation / persistence / export / grounding
 are exactly as they were in v0.3.0. The next version (v0.5.0) restarts milestones at A.
+
+---
+
+# v0.4.1 — fixes & refinements
+
+This project's **first patch release** (`v0.x.y`): bug fixes and small refinements on top of the v0.4.0
+navigation shell, not a new feature theme. Milestones restart at **A** and commit as
+`v0.4.1 : Milestone X Completed` (see `CLAUDE.md` → Working process → Versioning). The project version
+was bumped to **0.4.1** across all four `MARKETING_VERSION` copies at kickoff.
+
+## Milestone A — Move the profile preview & its controls to Saved Profiles  ✅ done  (`Presentation/Portfolio`: `PortfolioView`)
+
+Goal: make the Portfolio → **Profile** sub-view purely "import & build", and move the built profile's
+preview and edit controls to the Portfolio → **Saved Profiles** sub-view. Presentation-only — the
+`PortfolioViewModel` API is unchanged; the subviews were re-homed, not rewritten (they already called
+existing VM methods).
+
+- [x] **Three blocks moved.** The `ProfileSummary(profile:isDefault:)` preview, the
+      `regenerateSummaryControl` (Regenerate description → `viewModel.regenerateSummary()`), and the
+      `saveRow` (Save / Update Profile → `viewModel.saveProfile()`) moved out of `profileTab` into
+      `savedProfilesTab` in `PortfolioView.swift`. Their definitions are unchanged and still gated on
+      `supportsSummaryRegeneration` / `supportsSavedProfiles`.
+- [x] **Profile sub-view = inputs only.** After the move, Profile is the résumé slot + optional
+      cover-letter slot + **Build Profile** (with its busy/error affordances) — nothing rendered from
+      `viewModel.profile`.
+- [x] **Saved Profiles sub-view.** Renders the current built/loaded profile's preview + regenerate +
+      save at the top (when `viewModel.profile != nil`), then the existing saved-profiles library below.
+- [x] **Empty-state gate widened.** `savedProfilesTab` now shows the preview/save block whenever a
+      current profile exists, the library section when it's non-empty, and the `InlineEmptyState`
+      (retitled "No profile yet") only when there's **neither** a current profile **nor** any saved
+      profiles. The empty-state copy was reworded for the new home (build on the Profile tab → preview /
+      refine / save here; saved profiles load / set default / delete).
+- [x] **Tests + build.** No VM API change, so the existing `PortfolioViewModelTests` (incl. the
+      `regenerateSummary…` cases) still pass; full suite green on macOS and the app builds clean. (The
+      pre-existing `ExportTemplate.style` main-actor warning is v0.4.1 Milestone H, unrelated.)
+
+Resolved the milestone's open UX call as recommended: a just-built, **unsaved** profile shows its
+preview/save block on Saved Profiles with **no** library empty-state note beneath it — the empty state
+appears only when the whole sub-view has nothing. Presentation-only; nothing below Presentation changed.
+
+## Milestone B — Remove the content-pane header text entirely (tabs only)  ✅ done  (`Presentation/App`: `RootView` + `ShellNavigation`)
+
+Goal: drop the `Area / Sub-view` header text everywhere — above the content **and** in the window title
+bar — so the segmented **tabs** are the only sub-view indicator and the **sidebar** is the only area
+indicator. Presentation-only.
+
+- [x] **In-content header text removed.** `RootView.contentHeader` no longer renders
+      `Text(nav.breadcrumbTitle)` — it's now just the segmented `innerNav` (with its padding).
+- [x] **Window title is the app name.** The content pane's `.navigationTitle(nav.breadcrumbTitle)` became
+      `.navigationTitle("Taylor'd Portfolio")`, so the title bar never shows the area/sub-view.
+- [x] **Results (single-sub-view areas) show no header and no tabs.** `contentPane` renders the header
+      band + `Divider` only when `nav.selectedArea.subViews.count > 1`; Results (1 sub-view) fills the
+      pane from the top with no empty band or stray divider. The selected sidebar row identifies it.
+- [x] **`breadcrumbTitle` retired.** Removed `ShellNavigation.breadcrumbTitle` (nothing displays it) and
+      the two `ShellNavigationTests` breadcrumb assertions; a stale doc-comment reference was cleaned up.
+- [x] **Tests + build.** Full suite green on macOS; app builds clean.
+
+Note: Presentation-only; nothing below Presentation changed. The content header now conditionally
+appears (multi-sub-view areas only), which is also what makes Results render as its own plain section.
+
+## Milestone C — Saved-to-Tracker jobs leave the Results list  ✅ done  (`Presentation/Results`: `ResultsViewModel` + `ResultsView`)
+
+Goal: once a job has any tracker status, drop it from the **Results** list so Results shows only the
+*un-triaged* ranked jobs; the job then lives in the **Tracker** (as "Saved" until advanced).
+Presentation only — no new persistence or domain type; it reads the Milestone O/P status data that
+already loads for the row badges.
+
+- [x] **Tracked jobs excluded from the list.** New `ResultsViewModel.untrackedResults` = `results`
+      minus any job with a persisted status (`isTracked`, from `historyByID`). `filteredResults`,
+      `totalCount`, `isFilteredEmpty`, and the location/company picker options all derive from this
+      un-tracked set; the underlying `results` array is untouched (delete/save still act on it).
+- [x] **Live removal on save.** `saveToTracker` already marks `.saved` and calls `refreshHistory()`,
+      which updates `historyByID` — so the saved row leaves `untrackedResults` immediately (row button,
+      swipe-right, or the detail sheet's Save all flow through it). No extra plumbing needed.
+- [x] **Distinct empty state.** New `allResultsTracked` (`results` non-empty but `untrackedResults`
+      empty) drives an "All results are in your Tracker" `ContentUnavailableView`, kept separate from
+      "No results yet" (nothing searched) and the filter-bar "No results match your filters".
+- [x] **Dead UI cleaned up.** Removed the filter bar's now-meaningless **Tracked** facet (all shown
+      rows are un-tracked). The Results status/"Saved" badge needed no code change — `RankedRow` renders
+      the `.status` facet only when `status != nil`, and no shown row has a status now; `RankedRow` stays
+      shared and unchanged so the **Tracker** keeps its status badges. `ResultsFilter.trackedStatus`/
+      `TrackedFilter` stay (default `.any`, still unit-tested) — only the control was removed.
+- [x] **Tests.** Replaced the obsolete `trackedFacetUsesTheStatusMap` test with Milestone C coverage in
+      `ResultsViewModelTests`: a tracked job is excluded (list + counts); saving a job removes it live;
+      `allResultsTracked` when every job is saved; the `ResultsFilter` still applies over the un-tracked
+      set. Full suite green on macOS; build clean.
+
+Note: Presentation-only. Reuses V's save/delete flow and the O/P status/history data; nothing below
+Presentation changed. Milestone D gives the Tracker a **Saved** tab so these moved-out jobs have a home.
+
+## Milestone D — Tracker: one tab per application status  ✅ done  (`Presentation/App`: `TrackerSection` + `RootView`)
+
+Goal: expand the Tracker's inner nav from **All / Applied / Interviewing / Offers** to **All + a tab
+per `ApplicationStage`**, so every status is directly reachable. Presentation only — reuses the existing
+`ApplicationStage` / `ApplicationStatus` data.
+
+- [x] **`TrackerSection` = All + 8 stages.** Rewrote the enum to `all, saved, applied, interviewing,
+      offer, accepted, declined, rejected, withdrawn` (`ShellNavigation.swift`). A new `stage:
+      ApplicationStage?` maps each case to its stage (`nil` for `All`); `title` derives from
+      `stage?.label ?? "All"` (kept identical to the status badge); `rawValue` is still the segment index
+      and `init(index:)` still clamps. `MainArea.subViews` for `.tracker` keeps deriving from
+      `TrackerSection.allCases`, so the segment labels update automatically.
+- [x] **Exact-stage filtering.** `includes(_:)` is now `stage == nil || stage == theStage` — All shows
+      everything, every other tab matches its exact stage. This **un-bundles** the old Offers tab
+      (which used to include `accepted`): Offer and Accepted are now separate tabs. `TrackerViewModel.
+      jobs(in:)` is unchanged — it just sees the new cases.
+- [x] **9-segment fit (the open call).** Resolved by wrapping the inner nav in a horizontal
+      `ScrollView(.horizontal, showsIndicators: false)` in `RootView.contentHeader`, so the Tracker's 9
+      tabs scroll rather than overflow the pane. Narrow areas (Portfolio/Search/Settings, 2–3 tabs) fit
+      without scrolling and look identical.
+- [x] **Per-tab empty states — no new code.** `TrackerView`'s per-stage empty state already derives its
+      copy from `section.title` ("No <stage> applications" / "Nothing at the <stage> stage yet…"), so
+      each new tab gets its own empty state automatically.
+- [x] **Tests.** `SectionRoutingTests`: updated the tracker `subViews` list + `init(index:)` clamp;
+      replaced the Offers-grouping test with `everyStageTabMatchesExactlyItsOwnStage`,
+      `offerAndAcceptedAreDistinctTabs`, and `everyStageHasItsOwnReachableTab`. `TrackerViewModelTests.
+      jobsInSectionFilterByStage` now seeds one job per stage and asserts each lands in exactly its own
+      tab (and all under All). Full suite green on macOS; build clean.
+
+Note: Presentation-only; the status model, persistence, and `TrackerViewModel` filter shape are
+unchanged. The inner-nav scroll wrapper is shared but only actually scrolls where the content exceeds
+the pane (today just the Tracker).
+
+## Milestone E — Center the Tracker empty-state icon & text in the sub-view  ✅ done  (`Presentation`: `TrackerView` + `ResultsView`)
+
+Goal: the Tracker's empty-state `ContentUnavailableView` hugged the top of the pane (just under the
+tabs) instead of centering. Cause: the sibling `ProgressView` branch had
+`.frame(maxWidth: .infinity, maxHeight: .infinity)` but the empty-state branches didn't, so they
+rendered at their natural top-leading position. Presentation-only.
+
+- [x] **Tracker empty states centered.** Added `.frame(maxWidth: .infinity, maxHeight: .infinity)` to
+      both `ContentUnavailableView` branches in `TrackerView` ("No tracked applications" and the per-stage
+      "No <stage> applications"), so the icon + title + description center vertically and horizontally.
+      Applies to every one of Milestone D's per-status tabs.
+- [x] **Consistency sweep — Results.** Centered the Results empty states the same way: "No results yet",
+      the "All results are in your Tracker" state (added in Milestone C), and the filter-empty "No results
+      match your filters" (centered below the filter bar).
+- [x] **Left-aligned empty states untouched.** The scrolling Portfolio/Search sub-views keep their
+      left-aligned `InlineEmptyState` (correct by design) — this milestone only affects the centered
+      `ContentUnavailableView` panes.
+- [x] **Build + tests.** Centering isn't unit-testable (a device/visual check), but the full suite stays
+      green and the app builds clean.
+
+Note: Presentation-only, pure layout — no ViewModel or lower-layer change. The exact centered
+appearance across window sizes is a manual (device) check.
+
+## Milestone F — Source Documents browsable by profile  ✅ done  (`Presentation/Portfolio`: `PortfolioView`)
+
+Goal: the Portfolio → **Source Documents** sub-view showed only the *currently-loaded* profile's tidied
+documents; make it **keyed by profile** so each saved profile's résumé + cover letter are discoverable
+individually. A view restructure over existing data — each `SavedProfile` already carries its own
+`sourceFileName` / `readableText` and `coverLetterFileName` / `coverLetterReadableText`, and
+`viewModel.savedProfiles` already loads them. Presentation only — no ViewModel/persistence change.
+
+- [x] **Per-profile disclosures.** `sourceDocumentsSection` now iterates `viewModel.savedProfiles`,
+      rendering each as a `profileDocuments(_:)` `DisclosureGroup` titled with the profile name
+      (`person.text.rectangle`). Expanding it reveals that profile's documents via the existing collapsed,
+      scrollable `documentDisclosure` — résumé (`readableText`, labelled with `sourceFileName`) and, if
+      present, the cover letter (`coverLetterReadableText` / `coverLetterFileName`). Net result is a
+      two-level **profile → documents** disclosure.
+- [x] **Per-profile empty note.** A saved profile with no tidied source text (older/empty saves) shows an
+      inline "No source documents saved for this profile." note when expanded.
+- [x] **Empty state + gate.** Replaced the `hasSourceDocuments` gate (which keyed off the loaded profile's
+      readable text) with `hasSavedProfiles` (`supportsSavedProfiles && !savedProfiles.isEmpty`); the
+      `InlineEmptyState` copy was reworded for the per-profile framing (build & save a profile → its docs
+      appear here, grouped by profile).
+- [x] **Open call resolved.** Source Documents lists **only saved profiles** (the recommended option) — an
+      unsaved, just-built profile appears here once saved, consistent with Milestone A putting the save
+      controls on Saved Profiles.
+- [x] **Whole header row clickable (`ExpandableRow`).** SwiftUI's `DisclosureGroup` only toggles on the
+      caret; both Portfolio disclosures now use a new shared **`Presentation/Components/ExpandableRow`**
+      whose entire header row is the tap target, with the pointing-hand cursor on the header (the expanded,
+      selectable text keeps its native I-beam). So clicking anywhere on a profile row expands its documents.
+      The same component now also backs the Search **"Paste the posting text"** fallback (via its
+      caller-controlled `isExpanded:` initializer, so the auto-expand-on-fetch-error still works). The
+      Results **filter bar** keeps `DisclosureGroup` on purpose — its header holds an interactive Clear
+      button, so a whole-row tap would conflict.
+- [x] **Tests + build.** No ViewModel API change (the view reads `SavedProfile` fields directly), so no new
+      unit tests were needed; full suite stays green and the app builds clean.
+
+Note: Presentation-only. Reuses the `SavedProfile` source/cover-letter fields and `documentDisclosure`;
+nothing below Presentation changed. `ExpandableRow` is a reusable component (self-managed or
+caller-controlled expansion) available for future disclosures.
+
+## Milestone G — Settings Save button: drop the surrounding section background  ✅ done  (`Presentation/Settings`: `SettingsView`)
+
+Goal: the Settings **Save** button sat inside a grouped-form `Section`, so `.formStyle(.grouped)` drew an
+inset background band around it. Make it just the button, no container. Presentation-only.
+
+- [x] **Bare Save button in the section footer.** The old `saveSection` (a form `Section`, which drew the
+      band) was replaced by a `saveButton` placed in each section's **`footer:`** — footers render outside
+      the grouped section's rounded fill, so the button has **no background band**, yet it's **attached to
+      the end of the section and scrolls with the content**. (Two earlier attempts were corrected: an
+      out-of-`Form` `VStack` was pinned to the view bottom and didn't scroll; a loose in-`Form` row with
+      `.listRowBackground(Color.clear)` still showed the band.) Engines keeps its explanatory footer text
+      with the button below it; Adzuna gained a footer holding just the button.
+- [x] **Both editing panes, About unaffected.** `saveButton` sits in the Engines and Adzuna footers; the
+      About pane has nothing to save and shows no button.
+- [x] **Behaviour preserved.** Same `viewModel.save()` action, `.borderedProminent` style, and
+      `clickableCursor()` — only the surrounding background is gone.
+- [x] **Build + tests.** Full suite green on macOS; app builds clean. The bare-button appearance is a
+      device/visual check.
+
+Note: Presentation-only; no ViewModel or lower-layer change.
+
+## Milestone H — Clear the concurrency & unused-result build warnings  ✅ done  (`Infrastructure/Export` + `SearchViewModel`)
+
+Goal: silence the batch of build warnings — a family of "main actor-isolated … can not be referenced
+from a nonisolated context" plus one unused-`try?`. Root cause of the family: the project **defaults
+type isolation to `MainActor`**, so several pure Export value types were MainActor-isolated while the
+nonisolated renderer / zip writer referenced them. Compile-time hygiene only — no behaviour change.
+
+- [x] **Export value types marked `nonisolated`.** `ExportTemplate`, `TemplateStyle`, and `RGBColor`
+      (all pure `Sendable` value types) are now `nonisolated`, clearing the `ExportTemplate.style`
+      default-argument warning and every nonisolated call site at once.
+- [x] **Nonisolated accessors/helpers.** `RGBColor.nsColor` (the AppKit bridge) and the private `Data`
+      little-endian `append(le16:)` / `append(le32:)` helpers are now `nonisolated` — the latter cleared a
+      large batch of warnings in `ZipArchiveWriter` that only a **clean** build surfaced (incremental
+      builds had masked them behind the first `style` warning).
+- [x] **Unused `try?` fixed.** `SearchViewModel.saveCurrentSearch()` now discards the save result
+      explicitly: `_ = try? await saveSearch(buildRequest())`.
+- [x] **Verified warning-free.** A full **clean** build reports **zero** code warnings across the whole
+      project; the full test suite passes on macOS. No runtime behaviour changed (annotations only).
+
+Note: touches Infrastructure/Export (the one non-Presentation milestone in v0.4.1) + Presentation/Search.
+Because the export renderer and zip writer were re-annotated, PDF/DOCX export is on the v0.4.1 device
+checks — behaviour is unchanged but worth a re-verify.
+
+---
+
+**v0.4.1 — fixes & refinements is complete** (Milestones A–H). It was mostly Presentation — profile/
+Saved-Profiles reorg (A), header removal (B), Results↔Tracker triage (C), a Tracker tab per status (D),
+centered empty states (E), per-profile Source Documents with whole-row-clickable `ExpandableRow`
+disclosures (F), and the Settings Save button (G) — plus a warnings-cleanup pass that also touched
+Infrastructure/Export (H). The project version was bumped to **0.4.1**. Next is **v0.5.0** (restarts at
+Milestone A).

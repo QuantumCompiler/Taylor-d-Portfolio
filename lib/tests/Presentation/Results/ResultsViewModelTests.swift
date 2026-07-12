@@ -218,15 +218,52 @@ struct ResultsViewModelTests {
         #expect(known.isGenerated)
     }
 
-    @Test func trackedFacetUsesTheStatusMap() async throws {
+    // MARK: Tracked jobs leave the Results list (v0.4.1 Milestone C)
+
+    @Test func trackedJobsAreExcludedFromResults() async throws {
         let (vm, jobs, statuses, _) = makeRowActionVM(results: [ranked("a"), ranked("b")])
         try await jobs.save([ranked("a")])
-        try await statuses.save(ApplicationStatus(stage: .saved), forJobID: "a")
+        try await statuses.save(ApplicationStatus(stage: .saved), forJobID: "a")   // a is in the Tracker
         await vm.refreshHistory()
 
-        vm.filter.trackedStatus = .tracked
-        #expect(vm.filteredResults.map(\.id) == ["a"])
-        vm.filter.trackedStatus = .untracked
+        // a (tracked) drops out; only the un-triaged b shows, and the count reflects it.
+        #expect(vm.untrackedResults.map(\.id) == ["b"])
         #expect(vm.filteredResults.map(\.id) == ["b"])
+        #expect(vm.totalCount == 1)
+        #expect(vm.results.map(\.id) == ["a", "b"])   // underlying list is untouched
+        #expect(vm.allResultsTracked == false)
+    }
+
+    @Test func savingAJobRemovesItFromResultsLive() async throws {
+        let (vm, _, _, _) = makeRowActionVM(results: [ranked("a"), ranked("b")])
+        #expect(vm.filteredResults.map(\.id) == ["a", "b"])
+
+        await vm.saveToTracker(ranked("a"))                // marks .saved + refreshes history
+
+        #expect(vm.filteredResults.map(\.id) == ["b"])     // gone from the list immediately
+    }
+
+    @Test func allResultsTrackedWhenEveryJobIsSaved() async throws {
+        let (vm, _, _, _) = makeRowActionVM(results: [ranked("a"), ranked("b")])
+        await vm.saveToTracker(ranked("a"))
+        await vm.saveToTracker(ranked("b"))
+
+        #expect(vm.untrackedResults.isEmpty)
+        #expect(vm.allResultsTracked)                      // distinct empty state
+        #expect(vm.isEmpty == false)                       // results are still loaded
+    }
+
+    @Test func filterStillAppliesToTheUntrackedSet() async throws {
+        let (vm, jobs, statuses, _) = makeRowActionVM(
+            results: [ranked("a", score: 80), ranked("b", score: 40), ranked("c", score: 60)]
+        )
+        try await jobs.save([ranked("a", score: 80)])
+        try await statuses.save(ApplicationStatus(stage: .saved), forJobID: "a")   // a tracked → excluded
+        await vm.refreshHistory()
+
+        vm.filter.minScore = 60
+        // From the un-tracked set {b:40, c:60}, min-rank 60 keeps only c.
+        #expect(vm.filteredResults.map(\.id) == ["c"])
+        #expect(vm.totalCount == 2)                        // un-tracked total, not 3
     }
 }

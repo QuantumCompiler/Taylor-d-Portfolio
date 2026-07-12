@@ -29,17 +29,21 @@ struct TrackerView: View {
             if viewModel.isLoading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.isEmpty {
+                // Stretch so the empty state centers in the pane (matches the ProgressView
+                // branch), rather than hugging the top under the tabs (v0.4.1 Milestone E).
                 ContentUnavailableView(
                     "No tracked applications",
                     systemImage: "briefcase",
                     description: Text("Save a job from the Results area (the bookmark icon, or swipe a result right) to track it here, then generate its résumé & cover letter.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if jobs.isEmpty {
                 ContentUnavailableView(
                     "No \(section.title.lowercased()) applications",
                     systemImage: "briefcase",
                     description: Text("Nothing at the \(section.title) stage yet — the All tab shows every tracked job.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(jobs) { tracked in
                     RankedRow(ranked: tracked.job, history: viewModel.history(for: tracked.job))

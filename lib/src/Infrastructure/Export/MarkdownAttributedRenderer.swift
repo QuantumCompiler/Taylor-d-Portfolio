@@ -125,7 +125,7 @@ nonisolated enum MarkdownAttributedRenderer {
 
 extension RGBColor {
     /// The AppKit colour for this device-independent value (sRGB, fully opaque).
-    var nsColor: NSColor {
+    nonisolated var nsColor: NSColor {
         NSColor(srgbRed: red, green: green, blue: blue, alpha: 1)
     }
 }

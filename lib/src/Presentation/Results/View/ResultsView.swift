@@ -25,11 +25,21 @@ struct ResultsView: View {
             if viewModel.isLoading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.isEmpty {
+                // Centered in the pane (matches the loading branch) — v0.4.1 Milestone E.
                 ContentUnavailableView(
                     "No results yet",
                     systemImage: "list.bullet.rectangle",
                     description: Text("Run a search to see jobs ranked against your profile.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.allResultsTracked {
+                // Loaded results, but every one has been saved to the Tracker (Milestone C).
+                ContentUnavailableView(
+                    "All results are in your Tracker",
+                    systemImage: "briefcase",
+                    description: Text("Every ranked job has been saved to the Tracker. Run a new search to see more.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VStack(spacing: 0) {
                     filterBar
@@ -41,6 +51,7 @@ struct ResultsView: View {
                         } actions: {
                             Button("Clear filters") { viewModel.clearFilter() }.clickableCursor()
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)   // center below the filter bar (v0.4.1 Milestone E)
                     } else {
                         List(viewModel.filteredResults) { ranked in
                             HStack(spacing: 8) {
@@ -104,13 +115,8 @@ struct ResultsView: View {
                         set: { viewModel.filter.salaryMin = Double($0.filter(\.isNumber)) }
                     )).textFieldStyle(.roundedBorder).frame(maxWidth: 140)
                 }
-                filterField("Tracked") {
-                    Picker("", selection: $viewModel.filter.trackedStatus) {
-                        Text("Any").tag(ResultsFilter.TrackedFilter.any)
-                        Text("Tracked").tag(ResultsFilter.TrackedFilter.tracked)
-                        Text("Not tracked").tag(ResultsFilter.TrackedFilter.untracked)
-                    }.pickerStyle(.segmented).labelsHidden().fixedSize().clickableCursor()
-                }
+                // (No "Tracked" filter — tracked jobs no longer appear in Results; they live
+                //  in the Tracker as of v0.4.1 Milestone C.)
             }
             .padding(.top, 6)
         } label: {

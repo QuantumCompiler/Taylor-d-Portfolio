@@ -18,7 +18,7 @@ struct SectionRoutingTests {
         #expect(MainArea.portfolio.subViews == ["Profile", "Saved Profiles", "Source Documents"])
         #expect(MainArea.search.subViews == ["New Search", "Saved Searches", "From a Link"])
         #expect(MainArea.results.subViews == ["Ranked"])
-        #expect(MainArea.tracker.subViews == ["All", "Applied", "Interviewing", "Offers"])
+        #expect(MainArea.tracker.subViews == ["All", "Saved", "Applied", "Interviewing", "Offer", "Accepted", "Declined", "Rejected", "Withdrawn"])
         #expect(MainArea.settings.subViews == ["Engines", "Adzuna", "About"])
     }
 
@@ -42,8 +42,9 @@ struct SectionRoutingTests {
         #expect(SearchSection(index: 1) == .savedSearches)
         #expect(SearchSection(index: 5) == .newSearch)
 
-        #expect(TrackerSection(index: 3) == .offers)
-        #expect(TrackerSection(index: 4) == .all)
+        #expect(TrackerSection(index: 3) == .interviewing)
+        #expect(TrackerSection(index: 8) == .withdrawn)    // last stage tab
+        #expect(TrackerSection(index: 9) == .all)          // out of range → first
 
         #expect(SettingsSection(index: 2) == .about)
         #expect(SettingsSection(index: 7) == .engines)
@@ -66,20 +67,30 @@ struct SectionRoutingTests {
         #expect(!TrackerSection.interviewing.includes(.applied))
     }
 
-    @Test func trackerOffersGroupsOfferAndAccepted() {
-        #expect(TrackerSection.offers.includes(.offer))
-        #expect(TrackerSection.offers.includes(.accepted))
-        #expect(!TrackerSection.offers.includes(.applied))
-        #expect(!TrackerSection.offers.includes(.rejected))
+    @Test func everyStageTabMatchesExactlyItsOwnStage() {
+        // Each non-All tab maps to exactly one stage and includes only that stage (v0.4.1 D:
+        // Offer and Accepted are now separate tabs, no longer bundled).
+        for section in TrackerSection.allCases where section != .all {
+            guard let stage = section.stage else { Issue.record("non-All section missing a stage"); continue }
+            #expect(section.includes(stage))
+            for other in ApplicationStage.allCases where other != stage {
+                #expect(!section.includes(other))
+            }
+        }
     }
 
-    @Test func trackerStageFiltersExcludeUnrelatedTerminalAndSavedStages() {
-        // saved / rejected / declined / withdrawn appear only under "All".
-        for stage in [ApplicationStage.saved, .rejected, .declined, .withdrawn] {
-            #expect(!TrackerSection.applied.includes(stage))
-            #expect(!TrackerSection.interviewing.includes(stage))
-            #expect(!TrackerSection.offers.includes(stage))
-            #expect(TrackerSection.all.includes(stage))
+    @Test func offerAndAcceptedAreDistinctTabs() {
+        #expect(TrackerSection.offer.includes(.offer))
+        #expect(!TrackerSection.offer.includes(.accepted))
+        #expect(TrackerSection.accepted.includes(.accepted))
+        #expect(!TrackerSection.accepted.includes(.offer))
+    }
+
+    @Test func everyStageHasItsOwnReachableTab() {
+        // Milestone D: every ApplicationStage is directly reachable via exactly one tab.
+        for stage in ApplicationStage.allCases {
+            let matches = TrackerSection.allCases.filter { $0 != .all && $0.includes(stage) }
+            #expect(matches.map(\.stage) == [stage])
         }
     }
 }

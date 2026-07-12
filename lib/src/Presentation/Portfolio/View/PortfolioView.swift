@@ -90,28 +90,33 @@ struct PortfolioView: View {
                 Text(error).font(.callout).foregroundStyle(.red)
             }
         }
-
-        if let profile = viewModel.profile {
-            ProfileSummary(profile: profile, isDefault: viewModel.isSelectedProfileDefault)
-            if viewModel.supportsSummaryRegeneration {
-                regenerateSummaryControl
-            }
-            if viewModel.supportsSavedProfiles {
-                saveRow
-            }
-        }
     }
 
-    // MARK: Saved Profiles — the persisted profile library
+    // MARK: Saved Profiles — the current profile's preview/edit controls + the persisted library
 
+    /// Hosts the built/loaded profile (preview + regenerate + save — moved here from the Profile
+    /// tab in v0.4.1 Milestone A) above the saved-profile library. Falls back to the empty state
+    /// only when there's **no** current profile **and** an empty library.
     @ViewBuilder private var savedProfilesTab: some View {
-        if viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty {
-            savedProfilesSection
+        let hasLibrary = viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty
+        if viewModel.profile != nil || hasLibrary {
+            if let profile = viewModel.profile {
+                ProfileSummary(profile: profile, isDefault: viewModel.isSelectedProfileDefault)
+                if viewModel.supportsSummaryRegeneration {
+                    regenerateSummaryControl
+                }
+                if viewModel.supportsSavedProfiles {
+                    saveRow
+                }
+            }
+            if hasLibrary {
+                savedProfilesSection
+            }
         } else {
             InlineEmptyState(
-                title: "No saved profiles",
+                title: "No profile yet",
                 systemImage: "person.crop.square",
-                message: "Build a profile on the Profile tab and Save it — your saved profiles appear here to load, set as default, or delete."
+                message: "Build a profile on the Profile tab — it appears here to preview, refine its description, and save. Saved profiles are listed here to load, set as default, or delete."
             )
         }
     }
@@ -119,13 +124,13 @@ struct PortfolioView: View {
     // MARK: Source Documents — the LLM-tidied readable text the profile was built on
 
     @ViewBuilder private var sourceDocumentsTab: some View {
-        if hasSourceDocuments {
+        if hasSavedProfiles {
             sourceDocumentsSection
         } else {
             InlineEmptyState(
                 title: "No source documents",
                 systemImage: "doc.text",
-                message: "Build a profile from a résumé (and an optional cover letter) on the Profile tab to see its tidied, readable text here."
+                message: "Build a profile on the Profile tab and save it — each saved profile's résumé and optional cover letter appear here, grouped by profile, in their tidied readable form."
             )
         }
     }
@@ -190,33 +195,55 @@ struct PortfolioView: View {
         return "\(trimmed.count) characters — tap Show text to view or edit."
     }
 
-    /// Whether either document has readable text to show under the profile.
-    private var hasSourceDocuments: Bool {
-        !viewModel.readableText.isEmpty || !viewModel.coverLetterReadableText.isEmpty
+    /// Whether there's at least one saved profile whose source documents we can browse.
+    private var hasSavedProfiles: Bool {
+        viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty
     }
 
-    /// Shows the documents this profile was built on, in their LLM-tidied readable form —
-    /// each collapsed by default since they can be long.
+    /// Source documents browsable **by profile** (v0.4.1 Milestone F): each saved profile is a
+    /// disclosure that expands to the résumé (and optional cover letter) it was built on, in
+    /// their LLM-tidied readable form.
     private var sourceDocumentsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !viewModel.readableText.isEmpty {
-                documentDisclosure(
-                    label: viewModel.sourceFileName.map { "Résumé — \($0)" } ?? "Résumé / portfolio",
-                    text: viewModel.readableText
-                )
-            }
-            if !viewModel.coverLetterReadableText.isEmpty {
-                documentDisclosure(
-                    label: viewModel.coverLetterFileName.map { "Cover letter — \($0)" } ?? "Cover letter",
-                    text: viewModel.coverLetterReadableText
-                )
+            ForEach(viewModel.savedProfiles) { saved in
+                profileDocuments(saved)
             }
         }
     }
 
-    /// One collapsed, scrollable readable-document disclosure.
+    /// One saved profile's documents, nested under a disclosure titled with the profile name.
+    /// The whole header row toggles (`ExpandableRow`), not just the caret.
+    private func profileDocuments(_ saved: SavedProfile) -> some View {
+        ExpandableRow {
+            Label(saved.name, systemImage: "person.text.rectangle").font(.headline)
+        } content: {
+            VStack(alignment: .leading, spacing: 8) {
+                if !saved.readableText.isEmpty {
+                    documentDisclosure(
+                        label: saved.sourceFileName.map { "Résumé — \($0)" } ?? "Résumé / portfolio",
+                        text: saved.readableText
+                    )
+                }
+                if !saved.coverLetterReadableText.isEmpty {
+                    documentDisclosure(
+                        label: saved.coverLetterFileName.map { "Cover letter — \($0)" } ?? "Cover letter",
+                        text: saved.coverLetterReadableText
+                    )
+                }
+                if saved.readableText.isEmpty && saved.coverLetterReadableText.isEmpty {
+                    Text("No source documents saved for this profile.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.leading, 8).padding(.top, 4)
+        }
+    }
+
+    /// One collapsed, scrollable readable-document disclosure. Whole header row toggles.
     private func documentDisclosure(label: String, text: String) -> some View {
-        DisclosureGroup {
+        ExpandableRow {
+            Label(label, systemImage: "doc.text").font(.headline)
+        } content: {
             ScrollView {
                 Text(text)
                     .font(.callout)
@@ -225,8 +252,6 @@ struct PortfolioView: View {
                     .padding(.top, 4)
             }
             .frame(maxHeight: 220)
-        } label: {
-            Label(label, systemImage: "doc.text").font(.headline)
         }
     }
 

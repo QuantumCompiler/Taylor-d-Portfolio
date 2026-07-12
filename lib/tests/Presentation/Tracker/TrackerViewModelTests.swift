@@ -49,21 +49,31 @@ struct TrackerViewModelTests {
     // MARK: Stage-filtered sub-views (v0.4.0 Milestone B)
 
     @Test func jobsInSectionFilterByStage() async throws {
+        // One job per stage; each lands in exactly its own tab, and every one under All
+        // (v0.4.1 Milestone D — a tab per status; Saved/Accepted/… now directly reachable).
         let vm = try await makeVM { jobs, statuses in
-            try await jobs.save([self.ranked("ap"), self.ranked("iv"), self.ranked("of"), self.ranked("rj")])
+            try await jobs.save([self.ranked("sv"), self.ranked("ap"), self.ranked("iv"), self.ranked("of"),
+                                 self.ranked("ac"), self.ranked("dc"), self.ranked("rj"), self.ranked("wd")])
+            try await statuses.save(ApplicationStatus(stage: .saved), forJobID: "sv")
             try await statuses.save(ApplicationStatus(stage: .applied), forJobID: "ap")
             try await statuses.save(ApplicationStatus(stage: .interviewing), forJobID: "iv")
             try await statuses.save(ApplicationStatus(stage: .offer), forJobID: "of")
+            try await statuses.save(ApplicationStatus(stage: .accepted), forJobID: "ac")
+            try await statuses.save(ApplicationStatus(stage: .declined), forJobID: "dc")
             try await statuses.save(ApplicationStatus(stage: .rejected), forJobID: "rj")
+            try await statuses.save(ApplicationStatus(stage: .withdrawn), forJobID: "wd")
         }
         await vm.load()
 
-        #expect(Set(vm.jobs(in: .all).map(\.id)) == ["ap", "iv", "of", "rj"])
+        #expect(Set(vm.jobs(in: .all).map(\.id)) == ["sv", "ap", "iv", "of", "ac", "dc", "rj", "wd"])
+        #expect(vm.jobs(in: .saved).map(\.id) == ["sv"])
         #expect(vm.jobs(in: .applied).map(\.id) == ["ap"])
         #expect(vm.jobs(in: .interviewing).map(\.id) == ["iv"])
-        #expect(vm.jobs(in: .offers).map(\.id) == ["of"])
-        // A rejected job appears only under All — not in any pipeline-stage sub-view.
-        #expect(vm.jobs(in: .applied).contains { $0.id == "rj" } == false)
+        #expect(vm.jobs(in: .offer).map(\.id) == ["of"])          // Offer only — not accepted
+        #expect(vm.jobs(in: .accepted).map(\.id) == ["ac"])       // Accepted is its own tab now
+        #expect(vm.jobs(in: .declined).map(\.id) == ["dc"])
+        #expect(vm.jobs(in: .rejected).map(\.id) == ["rj"])       // rejected now has its own tab
+        #expect(vm.jobs(in: .withdrawn).map(\.id) == ["wd"])
     }
 
     @Test func selectSetsSelectedJob() async throws {
