@@ -27,11 +27,18 @@ struct JobDetailView: View {
     /// Save-to-Tracker action, provided in the Results context (enables the footer button +
     /// the right-swipe). `nil` in the Tracker context.
     var onSaveToTracker: (() -> Void)? = nil
+    /// Loads a previously-generated kit so the Tracker footer can offer **View** alongside
+    /// Generate when materials already exist (v0.5.0 Milestone A).
+    var loadApplication: LoadApplicationUseCase? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var showingApplication = false
     @State private var status: ApplicationStatus?
     @State private var dragOffset: CGFloat = 0
+    /// Whether a generated kit is already saved for this job (drives the View vs Generate footer).
+    @State private var hasGeneratedMaterials = false
+    /// How the Application sheet should populate when next opened (view saved vs regenerate).
+    @State private var applicationStartMode: ApplicationStartMode = .viewOrGenerate
 
     private var listing: JobListing { ranked.listing }
     /// Only the Results context (where a save action is supplied) is swipeable.
@@ -50,15 +57,35 @@ struct JobDetailView: View {
             )
             .padding(24)
             .frame(minWidth: 540, minHeight: 500)
-            .task {
-                guard let loadStatus else { return }
-                status = (try? await loadStatus(forJobID: ranked.id)) ?? nil
+            .task { await loadDetailState() }
+            // Re-check for saved materials after the Application sheet closes, so the View
+            // button appears immediately after a first generation (v0.5.0 Milestone A).
+            .onChange(of: showingApplication) { _, isShowing in
+                if !isShowing { Task { await refreshHasMaterials() } }
             }
             .sheet(isPresented: $showingApplication) {
                 if let profile {
-                    ApplicationSheet(viewModel: applicationViewModel, job: listing, profile: profile, grounding: grounding)
+                    ApplicationSheet(
+                        viewModel: applicationViewModel, job: listing, profile: profile,
+                        grounding: grounding, startMode: applicationStartMode
+                    )
                 }
             }
+    }
+
+    // MARK: Detail state loading
+
+    private func loadDetailState() async {
+        if let loadStatus {
+            status = (try? await loadStatus(forJobID: ranked.id)) ?? nil
+        }
+        await refreshHasMaterials()
+    }
+
+    /// Refreshes whether a generated kit exists for this job (Tracker context only).
+    private func refreshHasMaterials() async {
+        guard let loadApplication else { hasGeneratedMaterials = false; return }
+        hasGeneratedMaterials = ((try? await loadApplication(forJobID: ranked.id)) ?? nil) != nil
     }
 
     private var card: some View {
@@ -216,21 +243,44 @@ struct JobDetailView: View {
                 .clickableCursor()
             }
             Spacer()
-            if canGenerate {
-                // Tracker context: generate tailored materials (Milestone V-D).
-                Button("Generate résumé & cover letter") { showingApplication = true }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(profile == nil)
-                    .clickableCursor()
-            } else if let onSaveToTracker {
+            switch JobDetailFooter.resolve(
+                canGenerate: canGenerate,
+                hasGeneratedMaterials: hasGeneratedMaterials,
+                canSaveToTracker: onSaveToTracker != nil
+            ) {
+            case .none:
+                EmptyView()
+            case .saveToTracker:
                 // Results context: no generation — read the posting and choose to save.
-                Button { onSaveToTracker(); dismiss() } label: {
+                Button { onSaveToTracker?(); dismiss() } label: {
                     Label("Save to Tracker", systemImage: "bookmark")
                 }
                 .buttonStyle(.borderedProminent)
                 .clickableCursor()
+            case .generate:
+                // Tracker context, nothing generated yet (Milestone V-D).
+                Button("Generate résumé & cover letter") { openApplication(.viewOrGenerate) }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(profile == nil)
+                    .clickableCursor()
+            case .viewAndRegenerate:
+                // Tracker context with saved materials (v0.5.0 Milestone A): view them (no
+                // LLM call) or force a fresh regeneration.
+                Button("Regenerate") { openApplication(.forceGenerate) }
+                    .disabled(profile == nil)
+                    .clickableCursor()
+                Button("View résumé & cover letter") { openApplication(.viewOrGenerate) }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(profile == nil)
+                    .clickableCursor()
             }
         }
+    }
+
+    /// Opens the Application sheet in the given mode.
+    private func openApplication(_ mode: ApplicationStartMode) {
+        applicationStartMode = mode
+        showingApplication = true
     }
 
     private func labeledSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -239,6 +289,26 @@ struct JobDetailView: View {
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Which action(s) the job-detail footer offers, resolved from the view's context.
+/// Pure so it can be unit-tested without the SwiftUI view (v0.5.0 Milestone A).
+enum JobDetailFooter: Equatable {
+    /// No primary action (e.g. Results context with no save action wired).
+    case none
+    /// Results context: save the posting to the Tracker.
+    case saveToTracker
+    /// Tracker context, nothing generated yet: a single Generate action.
+    case generate
+    /// Tracker context with saved materials: View (no LLM) + Regenerate.
+    case viewAndRegenerate
+
+    static func resolve(canGenerate: Bool, hasGeneratedMaterials: Bool, canSaveToTracker: Bool) -> JobDetailFooter {
+        if canGenerate {
+            return hasGeneratedMaterials ? .viewAndRegenerate : .generate
+        }
+        return canSaveToTracker ? .saveToTracker : .none
     }
 }
 

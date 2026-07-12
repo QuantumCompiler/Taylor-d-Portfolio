@@ -1558,3 +1558,42 @@ centered empty states (E), per-profile Source Documents with whole-row-clickable
 disclosures (F), and the Settings Save button (G) — plus a warnings-cleanup pass that also touched
 Infrastructure/Export (H). The project version was bumped to **0.4.1**. Next is **v0.5.0** (restarts at
 Milestone A).
+
+---
+
+# v0.5.0 — document generation fixes
+
+Theme: round out the tailored résumé + cover letter experience — the paths to view and regenerate the
+generated documents, and (later milestones) controls over how they're generated. Milestones restart at
+**A**; the project version is bumped to **0.5.0**.
+
+## Milestone A — View generated résumé & cover letter from the Tracker  ✅ done  (`Presentation`: `JobDetailView`, `TrackerView`, `RootView`, `Composition`, `ApplicationSheet` + `ApplicationViewModel`)
+
+Goal: after generating a job's materials from the Tracker, give the user a clear way back to them. The kit
+already persisted and reloaded without an LLM call (`ApplicationViewModel.open(for:)`), but the detail
+footer showed only a lone "Generate résumé & cover letter" button with no "already generated" signal — so
+the materials were effectively invisible.
+
+- [x] **Detect saved materials.** `JobDetailView` gained an optional
+      `loadApplication: LoadApplicationUseCase?`; its `.task` now loads both the status and a
+      `hasGeneratedMaterials` flag (`refreshHasMaterials()`), and re-checks after the Application sheet
+      closes (`.onChange(of: showingApplication)`), so the View button appears immediately after a first
+      generation. Follows the existing `loadStatus` direct-use-case pattern (the view has no ViewModel).
+- [x] **View + Regenerate footer.** A pure
+      `JobDetailFooter.resolve(canGenerate:hasGeneratedMaterials:canSaveToTracker:)` decides the footer:
+      Results context → Save-to-Tracker (unchanged); Tracker with no kit → **Generate**; Tracker with a
+      saved kit → **View résumé & cover letter** (primary) + **Regenerate**.
+- [x] **View vs regenerate routing.** New `ApplicationStartMode` (`.viewOrGenerate` / `.forceGenerate`)
+      passed into `ApplicationSheet`; its `.task` calls `open` (load saved, no LLM) or `generate` (fresh)
+      accordingly. **View** loads only; **Regenerate** forces fresh. *(Resolved the two planning open calls:
+      the second button is "Regenerate" and force-regenerates; the in-sheet Regenerate button coexists
+      harmlessly.)*
+- [x] **Wiring.** `LoadApplicationUseCase` exposed on `Composition` (`var loadApplication`, also reused by
+      `makeApplicationViewModel`), threaded `RootView` → `TrackerView` → `JobDetailView`. Results context
+      (`canGenerate == false`) is unaffected — no View/Generate there.
+- [x] **Tests.** `JobDetailFooterTests` covers the pure resolver (tracker with/without materials; Results
+      stays Save-only even if a kit exists; no-action fallback). Full suite green.
+
+On-device: yes — the existence check is a local `PersistentRecordStore` read; regeneration uses the current
+`.application` engine. Note (A × B): once Milestone B converts the Application sheet to a window, the View /
+Regenerate buttons should open that **window** instead of the sheet.

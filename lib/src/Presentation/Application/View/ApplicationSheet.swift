@@ -17,6 +17,9 @@ struct ApplicationSheet: View {
     /// The candidate's real documents for grounded generation (Milestone T); nil falls
     /// back to profile-only generation.
     var grounding: PortfolioGrounding? = nil
+    /// Whether to load saved materials or force a fresh regeneration on appear (v0.5.0
+    /// Milestone A). Defaults to view-or-generate — the prior behaviour.
+    var startMode: ApplicationStartMode = .viewOrGenerate
     @Environment(\.dismiss) private var dismiss
 
     // Export state for the save panel.
@@ -80,7 +83,12 @@ struct ApplicationSheet: View {
         }
         .padding(24)
         .frame(minWidth: 520, minHeight: 440)
-        .task { await viewModel.open(for: job, profile: profile, grounding: grounding) }
+        .task {
+            switch startMode {
+            case .viewOrGenerate: await viewModel.open(for: job, profile: profile, grounding: grounding)
+            case .forceGenerate: await viewModel.generate(for: job, profile: profile, grounding: grounding)
+            }
+        }
         // The one-page gate is template-dependent — remeasure when the user switches template.
         .onChange(of: viewModel.exportTemplate) { _, _ in viewModel.refreshLengthGate() }
         .fileExporter(

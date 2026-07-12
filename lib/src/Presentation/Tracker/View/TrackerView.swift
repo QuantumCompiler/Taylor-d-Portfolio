@@ -20,6 +20,9 @@ struct TrackerView: View {
     var loadStatus: LoadStatusUseCase? = nil
     /// The candidate's real documents for grounded generation (Milestone T).
     var grounding: PortfolioGrounding? = nil
+    /// Lets the detail view offer a "View" affordance when a generated kit already exists
+    /// (v0.5.0 Milestone A).
+    var loadApplication: LoadApplicationUseCase? = nil
 
     /// The tracked jobs shown for the selected stage filter.
     private var jobs: [TrackedJob] { viewModel.jobs(in: section) }
@@ -57,7 +60,8 @@ struct TrackerView: View {
         .sheet(item: $viewModel.selectedJob) { ranked in
             JobDetailView(
                 ranked: ranked, profile: profile, applicationViewModel: applicationViewModel,
-                markStatus: markStatus, loadStatus: loadStatus, grounding: grounding
+                markStatus: markStatus, loadStatus: loadStatus, grounding: grounding,
+                loadApplication: loadApplication
             )
         }
         // Re-load after the detail sheet (where status can change) closes.

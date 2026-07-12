@@ -8,6 +8,15 @@
 import Foundation
 import Observation
 
+/// How the Application view should populate when it appears (v0.5.0 Milestone A):
+/// load a previously-saved kit if present, or force a fresh regeneration.
+nonisolated enum ApplicationStartMode: Sendable {
+    /// Show saved materials if they exist (no LLM call); generate only when none exist.
+    case viewOrGenerate
+    /// Always regenerate fresh, replacing any saved materials.
+    case forceGenerate
+}
+
 /// Drives the Application sheet: generates a tailored resume + cover letter for a job,
 /// persisting the result and reloading it on reopen (Milestone O-C) so the user isn't
 /// charged a redundant generation.

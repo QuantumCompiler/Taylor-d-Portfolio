@@ -28,6 +28,7 @@ struct RootView: View {
 
     private let markStatus: MarkStatusUseCase?
     private let loadStatus: LoadStatusUseCase?
+    private let loadApplication: LoadApplicationUseCase?
 
     init(composition: Composition) {
         _portfolio = State(initialValue: composition.makePortfolioViewModel())
@@ -38,6 +39,7 @@ struct RootView: View {
         _application = State(initialValue: composition.makeApplicationViewModel())
         markStatus = composition.markStatus
         loadStatus = composition.loadStatus
+        loadApplication = composition.loadApplication
     }
 
     var body: some View {
@@ -190,7 +192,8 @@ struct RootView: View {
             TrackerView(
                 viewModel: tracker, section: TrackerSection(index: nav.selectedSubView),
                 profile: portfolio.profile, applicationViewModel: application,
-                markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding
+                markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding,
+                loadApplication: loadApplication
             )
         case .settings:
             SettingsView(viewModel: settings, section: SettingsSection(index: nav.selectedSubView))

@@ -12,12 +12,11 @@ doing.
 > **Current focus.** **v0.5.0 — document generation fixes — is in planning.** All of v0.1.0–v0.4.1 are
 > done (see `MILESTONES.md`). v0.5.0's theme is **fixing the document-generation experience** (the tailored
 > résumé + cover letter and the paths to view/regenerate them). Milestones restart at **A**; the project
-> version is bumped to **0.5.0**. **Start with Milestone A below.** More milestones are being added as Taylor
-> describes each generation-side gap in the planning session. Planned so far: **A** (view generated materials
-> from the Tracker), **B** (present job detail + its Application view as real windows, not sheets), **C**
-> (remove the redundant "Mark as applied" button), **D** (generation controls — fidelity scale, tailored
-> aspects, presets, and a desired rank-match target that fabricates to a target score; grounded-by-default
-> + opt-in disclosed embellishment).
+> version is bumped to **0.5.0**. **Milestone A is shipped** (see `MILESTONES.md`); **the next up is Milestone
+> B below.** Planned: **A** ✅ (view generated materials from the Tracker), **B** (present job detail + its
+> Application view as real windows, not sheets), **C** (remove the redundant "Mark as applied" button), **D**
+> (generation controls — fidelity scale, tailored aspects, presets, and a desired rank-match target that
+> fabricates to a target score; grounded-by-default + opt-in disclosed embellishment).
 >
 > **⚠️ Awaiting device checks (v0.4.1)** — verify on a real run (carried across the merge): **A** the
 > Portfolio Profile tab is inputs-only and the preview / regenerate / Save controls now sit on **Saved
@@ -49,76 +48,16 @@ saved job, and the paths to view and regenerate them.
 
 ---
 
-## Milestone A — View generated résumé & cover letter from the Tracker
+## Milestone A — View generated résumé & cover letter from the Tracker  ✅ done → `MILESTONES.md`
 
-**What's wrong.** After the user generates a job's tailored résumé + cover letter from the **Tracker**,
-there's no obvious way to get back to them. The materials *do* persist and reload without a fresh LLM
-call — `SavedApplicationsRepository` stores the `ApplicationKit` by `JobListing.id`, and
-`ApplicationViewModel.open(for:profile:)` loads it (badged "Saved") when the sheet reopens
-(`ApplicationViewModel.swift:91`). **But the UI hides this:** in the Tracker context `JobDetailView`'s
-footer shows a single **"Generate résumé & cover letter"** button (`JobDetailView.swift:219`) whether or
-not materials already exist, and the detail view carries **no "already generated" indicator** — so the
-user reads it as "generate anew" and can't tell their earlier documents are one tap away.
+Shipped: a **View résumé & cover letter** button + **Regenerate** in the Tracker detail footer when a
+generated kit exists, detected via `LoadApplicationUseCase` and routed by a new `ApplicationStartMode`
+(view = load-only, no LLM; regenerate = fresh). Pure `JobDetailFooter.resolve` decides the footer, covered
+by `JobDetailFooterTests`. Full write-up in `MILESTONES.md`.
 
-**Wanted.** In the Tracker context, when a saved kit exists, show a dedicated **"View résumé & cover
-letter"** button **alongside** the Generate button (Taylor's call — both explicit in the footer). View
-opens the sheet in load-only mode (no LLM); Generate produces fresh output.
-
-**Seam + files (Presentation only; reuses the existing Business `LoadApplicationUseCase` — no new seam).**
-- `lib/src/Presentation/Results/View/JobDetailView.swift` — footer (`footer`, ~:210) + a detection
-  `@State`; only the Tracker context (`canGenerate == true`) is affected. Results context
-  (`canGenerate == false`, Save-to-Tracker only) is untouched.
-- `lib/src/Presentation/Tracker/View/TrackerView.swift` — thread the detection use case into
-  `JobDetailView` (`TrackerView.swift:57`).
-- `lib/src/Presentation/App/RootView.swift` (`TrackerView(...)`, ~:190) + `Composition.swift`
-  (`makeTrackerViewModel` / the wiring around it) — provide `LoadApplicationUseCase`. It's **already
-  built** in `makeApplicationViewModel` (`Composition.swift:195`); expose the same instance to the
-  Tracker path rather than constructing a second.
-- `lib/src/Presentation/Application/View/ApplicationSheet.swift` + `ApplicationViewModel.swift` — support
-  opening the sheet in a **forced-regenerate** mode for the footer's Generate button (see open call).
-
-**Sub-tasks.**
-- [ ] **Detect existing materials.** Give `JobDetailView` an optional
-      `loadApplication: LoadApplicationUseCase?`; in `.task` set `@State private var hasGeneratedMaterials`
-      = `(try? await loadApplication?(forJobID: ranked.id)) != nil`. This mirrors the existing `loadStatus`
-      call already made in `JobDetailView.task` (the view intentionally has no ViewModel and calls use
-      cases directly).
-- [ ] **Keep it live.** Refresh `hasGeneratedMaterials` when the application sheet closes
-      (`.onChange(of: showingApplication)` → `false`), so the **View** button appears immediately after a
-      first generation without leaving the detail view.
-- [ ] **Footer buttons (Tracker context).** When `hasGeneratedMaterials`: show **"View résumé & cover
-      letter"** (opens the sheet in load-only mode) **and** the **Generate** button. When no materials
-      exist: show only **"Generate résumé & cover letter"** (today's behaviour). Both stay disabled while
-      `profile == nil`.
-- [ ] **Wire the use case** `Composition` → `RootView` → `TrackerView` → `JobDetailView`, reusing the
-      `LoadApplicationUseCase` already created for the Application VM.
-- [ ] **(open call) What "Generate" does when materials already exist.** **Recommended:** force a **fresh
-      regeneration** (so View vs Generate are genuinely distinct) — add a `forceRegenerate` entry to
-      `ApplicationSheet` that calls `ApplicationViewModel.generate(...)` instead of `open(...)` in `.task`,
-      and consider **relabeling it "Regenerate"** for clarity. *Alternative:* keep the "Generate" label and
-      just open the sheet (which would load the saved kit — redundant with View). Leave the final label to
-      Taylor at build time.
-- [ ] **(open call) Overlap with the in-sheet Regenerate button.** `ApplicationSheet` already offers a
-      **Regenerate** button once a kit is shown (`ApplicationSheet.swift:68`). Decide whether the footer's
-      second button is still wanted given that, or whether **View alone** (relying on in-sheet Regenerate)
-      is enough. **Recommended:** keep both per Taylor's choice, but note the overlap so the wording stays
-      consistent.
-
-**Tests.** `JobDetailView` has no ViewModel, so make the footer decision testable by extracting a **pure
-helper** — e.g. a small `enum GenerationFooter { case generateOnly, viewAndGenerate, saveToTracker }`
-derived from `(canGenerate, hasGeneratedMaterials, onSaveToTracker != nil)` — and unit-test its mapping.
-Add an `ApplicationViewModel` test that the **forced-regenerate** path calls the provider **even when a
-saved kit exists** (the mirror of the existing O-C test where `open` loads a saved kit with *zero*
-provider calls). Reuse `Preview.sampleRankedJobs`.
-
-**On-device.** Yes — the existence check is a local `PersistentRecordStore` read; regeneration uses
-whatever engine the `.application` task is set to (unchanged from today).
-
-> **Note (A × B).** Milestone B converts the Application sheet (and the Job Detail sheet) into real
-> windows. Once B lands, Milestone A's **View** / **Generate** buttons should open the Application
-> **window** rather than the sheet. Coordinate the build order (B's window mechanism, then A's buttons
-> target it — or build A as sheets first and let B migrate it). Same footer/presentation code is touched
-> by both.
+> **Note for Milestone B (builds on shipped A).** A added the Tracker's **View / Regenerate / Generate**
+> footer buttons via a `.sheet` (`JobDetailView` → `ApplicationSheet`, `startMode:`). When B converts the
+> Application view to a real window, migrate those buttons to `openWindow` — same footer/presentation code.
 
 ---
 

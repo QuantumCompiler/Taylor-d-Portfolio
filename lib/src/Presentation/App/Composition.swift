@@ -70,6 +70,9 @@ struct Composition {
     /// Status use cases (nil when persistence is unavailable) — read by the detail view.
     var markStatus: MarkStatusUseCase? { savedStatusRepository.map { MarkStatusUseCase(repository: $0) } }
     var loadStatus: LoadStatusUseCase? { savedStatusRepository.map(LoadStatusUseCase.init(repository:)) }
+    /// The saved-application loader — lets the Tracker detail offer a "View" affordance when a
+    /// generated kit already exists (v0.5.0 Milestone A).
+    var loadApplication: LoadApplicationUseCase? { savedApplicationsRepository.map(LoadApplicationUseCase.init(repository:)) }
     private var loadTrackedJobs: LoadTrackedJobsUseCase? {
         guard let savedJobsRepository, let savedStatusRepository else { return nil }
         return LoadTrackedJobsUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository)
@@ -192,7 +195,7 @@ struct Composition {
         .init(
             generateApplication: generateApplication,
             saveApplication: savedApplicationsRepository.map(SaveApplicationUseCase.init(repository:)),
-            loadApplication: savedApplicationsRepository.map(LoadApplicationUseCase.init(repository:)),
+            loadApplication: loadApplication,
             exportApplication: exportApplication
         )
     }

@@ -457,7 +457,7 @@ letter the app produces for a saved job, and the paths to view/regenerate them. 
 and commit as `v0.5.0 : Milestone X Completed`. Presentation-first (Milestone A reuses the existing
 `LoadApplicationUseCase` — no new seam). `TODO.md` has the granular breakdown.
 
-- [ ] **Milestone A — View generated materials from the Tracker.** After generating a job's résumé +
+- [x] **Milestone A — View generated materials from the Tracker.** ✅ **Done.** After generating a job's résumé +
       cover letter from the Tracker, there's no clear way back to them: the materials persist
       (`SavedApplicationsRepository`, reloaded by `ApplicationViewModel.open(for:)` with **no** LLM
       call), but `JobDetailView`'s footer always shows one **"Generate résumé & cover letter"** button
