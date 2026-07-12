@@ -27,11 +27,6 @@ struct RootView: View {
     @State private var results: ResultsViewModel
     @State private var tracker: TrackerViewModel
     @State private var settings: SettingsViewModel
-    @State private var application: ApplicationViewModel
-
-    private let markStatus: MarkStatusUseCase?
-    private let loadStatus: LoadStatusUseCase?
-    private let loadApplication: LoadApplicationUseCase?
 
     init(composition: Composition) {
         _portfolio = State(initialValue: composition.makePortfolioViewModel())
@@ -39,10 +34,6 @@ struct RootView: View {
         _results = State(initialValue: composition.makeResultsViewModel())
         _tracker = State(initialValue: composition.makeTrackerViewModel())
         _settings = State(initialValue: composition.makeSettingsViewModel())
-        _application = State(initialValue: composition.makeApplicationViewModel())
-        markStatus = composition.markStatus
-        loadStatus = composition.loadStatus
-        loadApplication = composition.loadApplication
     }
 
     var body: some View {
@@ -202,17 +193,9 @@ struct RootView: View {
         case .search:
             SearchView(viewModel: search, section: SearchSection(index: nav.selectedSubView))
         case .results:
-            ResultsView(
-                viewModel: results, profile: portfolio.profile, applicationViewModel: application,
-                markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding
-            )
+            ResultsView(viewModel: results)
         case .tracker:
-            TrackerView(
-                viewModel: tracker, section: TrackerSection(index: nav.selectedSubView),
-                profile: portfolio.profile, applicationViewModel: application,
-                markStatus: markStatus, loadStatus: loadStatus, grounding: portfolio.grounding,
-                loadApplication: loadApplication
-            )
+            TrackerView(viewModel: tracker, section: TrackerSection(index: nav.selectedSubView))
         case .settings:
             SettingsView(viewModel: settings, section: SettingsSection(index: nav.selectedSubView))
         }

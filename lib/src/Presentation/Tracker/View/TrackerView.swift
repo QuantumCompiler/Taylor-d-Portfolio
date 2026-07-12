@@ -14,15 +14,6 @@ struct TrackerView: View {
     /// Which stage-filtered sub-view to show (v0.4.0 Milestone B). Defaults to `all`, so
     /// `#Preview`s and any direct callers keep their prior "everything" behaviour.
     var section: TrackerSection = .all
-    let profile: CandidateProfile?
-    let applicationViewModel: ApplicationViewModel
-    var markStatus: MarkStatusUseCase? = nil
-    var loadStatus: LoadStatusUseCase? = nil
-    /// The candidate's real documents for grounded generation (Milestone T).
-    var grounding: PortfolioGrounding? = nil
-    /// Lets the detail view offer a "View" affordance when a generated kit already exists
-    /// (v0.5.0 Milestone A).
-    var loadApplication: LoadApplicationUseCase? = nil
 
     /// Opens the detached job-detail window (v0.5.0 Milestone B) instead of a sheet.
     @Environment(AppSession.self) private var session
@@ -74,11 +65,7 @@ struct TrackerView: View {
 #if DEBUG
 #Preview {
     let vm = TrackerViewModel()
-    return TrackerView(
-        viewModel: vm,
-        profile: Preview.sampleProfile,
-        applicationViewModel: ApplicationViewModel(generateApplication: Preview.generateApplication)
-    )
-    .frame(width: 460, height: 400)
+    return TrackerView(viewModel: vm)
+        .frame(width: 460, height: 400)
 }
 #endif

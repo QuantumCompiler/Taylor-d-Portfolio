@@ -12,10 +12,9 @@ doing.
 > **Current focus.** **v0.5.0 — document generation fixes — is in planning.** All of v0.1.0–v0.4.1 are
 > done (see `MILESTONES.md`). v0.5.0's theme is **fixing the document-generation experience** (the tailored
 > résumé + cover letter and the paths to view/regenerate them). Milestones restart at **A**; the project
-> version is bumped to **0.5.0**. **Milestone A is shipped** (see `MILESTONES.md`); **Milestone B is in
-> progress — B-A + B-B are done, B-C is next** (see the build-status note under Milestone B). Planned: **A** ✅
-> (view generated materials from the Tracker), **B** (present job detail + its Application view as real
-> windows — B-A/B-B ✅, B-C pending), **C** (remove the redundant "Mark as applied" button), **D**
+> version is bumped to **0.5.0**. **Milestones A and B are shipped** (see `MILESTONES.md`); **the next up is
+> Milestone C below.** Planned: **A** ✅ (view generated materials from the Tracker), **B** ✅ (job detail +
+> Application as real windows), **C** (remove the redundant "Mark as applied" button), **D**
 > (generation controls — fidelity scale, tailored aspects, presets, and a desired rank-match target that
 > fabricates to a target score; grounded-by-default + opt-in disclosed embellishment).
 >
@@ -62,98 +61,12 @@ by `JobDetailFooterTests`. Full write-up in `MILESTONES.md`.
 
 ---
 
-## Milestone B — Present job detail (and its Application view) as real windows, not sheets
+## Milestone B — Present job detail (and its Application view) as real windows, not sheets  ✅ done → `MILESTONES.md`
 
-**What's wrong.** Tapping a job — in the **Tracker** and in **Results** — presents `JobDetailView` as a
-modal **sheet** (`.sheet(item: $viewModel.selectedJob)` — `TrackerView.swift:57`, `ResultsView.swift:73`),
-and generating from there opens `ApplicationSheet` as a **nested sheet** (`JobDetailView.swift:57`). Taylor
-wants these to be **genuine separate macOS windows** (detached, resizable, movable, sitting alongside the
-main window) instead of modal sheets — for **everything currently presented as a sheet**. (The
-`.fileImporter` / `.fileExporter` calls are OS file panels, not custom sheets — leave them.)
-
-**Why this isn't a one-line swap (verified in source).** The app has a single `WindowGroup` scene
-(`App.swift:20`); the sheets render **inside** `RootView`'s view tree, so they can read its `@State` (the
-current `profile`, `PortfolioGrounding`, and the wired use cases). A second top-level window scene renders
-**outside** that tree and can't see it. Two hard constraints from the model layer:
-- **`PortfolioGrounding` is not `Codable`** (`PortfolioGrounding.swift:19` — only `Equatable, Sendable`),
-  and `profile` is live session state — so grounding/profile **cannot be passed as a `WindowGroup` value**.
-  They must come from **shared app-level state** injected into every scene.
-- `RankedJob` / `JobListing` are `Codable` + `Identifiable` but **not `Hashable`** (`RankedJob.swift:12`,
-  `JobListing.swift:14`), and `WindowGroup(id:for:)` needs a `Codable & Hashable` value — so the window is
-  keyed by the job **id (`String`)** and loads the `RankedJob`, unless we add `Hashable` (open call B-B).
-
-**Seam + files (Presentation-heavy; Presentation-only under the recommended id-based approach).**
-- `lib/src/Presentation/App/App.swift` — add the new `WindowGroup(id:for:)` scenes (job detail,
-  application) beside the main one; own + inject the shared session.
-- `lib/src/Presentation/App/RootView.swift` + `Composition.swift` — vend use cases to the new scenes; hold
-  the shared session.
-- `lib/src/Presentation/Tracker/View/TrackerView.swift` + `Results/View/ResultsView.swift` — replace
-  `.sheet(item:)` with `@Environment(\.openWindow)` + `openWindow(id:value:)`; drop the
-  `onChange(selectedJob == nil)` reload in favour of the cross-window refresh signal (B-A).
-- `lib/src/Presentation/Results/View/JobDetailView.swift` — becomes a window root; replace its nested
-  `.sheet(isPresented: $showingApplication)` with `openWindow`; reconcile the Results-context swipe (B-B).
-- `lib/src/Presentation/Application/View/ApplicationSheet.swift` — hosted in a window (likely rename off
-  "Sheet"); its `.fileExporter` stays.
-
-> **Build status (v0.5.0).** **B-A ✅ and B-B ✅ are done and shipped** (compiles warning-free, full suite
-> green). **B-C is the remaining sub-part** — pending a manual run to confirm the detail window behaves
-> before converting the Application view too. **Design note:** the implementation uses a **single-instance
-> `Window` scene driven by shared-session selection** rather than a value-keyed `WindowGroup(for: String)`
-> + by-id load. Reason: `PortfolioGrounding` isn't `Codable` so it must be shared via `AppSession` anyway;
-> holding the selected `RankedJob` on `AppSession` (in-memory) then sidesteps the id→load round-trip, the
-> `Hashable` question, and the value-dedup-vs-regenerate conflict entirely. Net: one reusable detail window
-> that re-targets on each click.
-
-### B-A — Shared app-level session + cross-window refresh  ✅ done
-
-- [x] **Hoist shared session state.** New `@MainActor @Observable AppSession` (`Presentation/App/AppSession.swift`)
-      owned by `Taylor_d_PortfolioApp` as `@State` and injected via `.environment(session)` into every scene.
-      Holds `profile` + `grounding` (+ the detail selection). `RootView` mirrors `portfolio.profile` /
-      `portfolio.grounding` into it (`.onChange` + initial `.onAppear`).
-- [x] **Cross-window refresh signal.** `AppSession.revision` + `dataChanged()`; the detail window bumps it
-      on mark-status / save / generation, and `RootView.onChange(of: session.revision)` reloads
-      `tracker.load()` + `results.refreshHistory()`. (Chose the revision token over `scenePhase`, as
-      recommended.) Tests: `AppSessionTests` (revision bump; `showDetail` targets job + context).
-
-### B-B — Job Detail window (replaces the two `.sheet(item:)`)  ✅ done
-
-- [x] **New scene.** A single-instance `Window("Job Detail", id: JobDetailWindow.id)` in `App.swift`;
-      `JobDetailWindow` (`Presentation/App`) reads `session.detailJob` + profile/grounding and builds
-      `JobDetailView` with `Composition` deps (`markStatus` / `loadStatus` / `loadApplication`, a per-window
-      `ApplicationViewModel`).
-- [x] **Open from lists.** Tracker + Results rows now call `session.showDetail(ranked, context:)` +
-      `openWindow(id: JobDetailWindow.id)` (via `@Environment(\.openWindow)`); the two `.sheet(item:)` blocks
-      and their `onChange(selectedJob)` reloads are removed.
-- [x] **Context without closures.** `canGenerate = (context == .tracker)`; Results-context Save-to-Tracker
-      is a **direct `MarkStatusUseCase(.saved)` call** in `JobDetailWindow` (+ `dataChanged()` + close),
-      not a passed closure.
-- [x] **Results swipe dropped in-window.** `JobDetailView` gained `allowsSwipe` (the window passes `false`);
-      `SwipeOutcome` is left intact. Status/generation mutations flow back via a new `onMutate` callback →
-      `session.dataChanged()`.
-- [ ] **Cleanup owed (do in B-C).** `ResultsView` / `TrackerView` still declare the now-unused detail params
-      (`profile`, `applicationViewModel`, `markStatus`, `loadStatus`, `grounding`, `loadApplication`) — kept
-      to avoid cascading signature/preview churn mid-refactor. Remove them (and the matching `RootView`
-      call-site args + any dead `RootView` use-case props) when B-C lands.
-
-### B-C — Application window (replaces the nested `.sheet(isPresented:)`)
-
-- [ ] **New scene.** A second `WindowGroup(id: "application", for: String.self)` (job id) hosting the
-      renamed `ApplicationSheet` (→ `ApplicationWindow`/`ApplicationView`), building `ApplicationViewModel`
-      from composition and reading `profile`/`grounding` from `AppSession`.
-- [ ] **Open from Job Detail.** The detail window's **View** / **Generate** / **Regenerate** actions
-      (incl. Milestone A's buttons) call `openWindow(id: "application", value: job.id)` instead of toggling
-      `showingApplication`.
-- [ ] **Keep export intact.** `ApplicationViewModel.open/generate`, the one-page gate, and the
-      `.fileExporter` flow are unchanged — only the container changes from sheet to window.
-
-**Tests.** The window plumbing is largely untestable in unit tests (scene wiring), so cover the **pure**
-pieces: `AppSession` state/revision-token behaviour (profile/grounding read-through, bump increments); a
-use case (or thin loader) that resolves a `RankedJob` from a job id (found / missing); and keep the
-existing `TrackerViewModel` / `ResultsViewModel` reload tests, adapting them to trigger on the revision
-signal instead of sheet dismissal. Window-open behaviour itself is a **manual (device) check** — note it in
-"Awaiting device checks."
-
-**On-device.** Yes — pure local reads + existing engines; no network, no new persistence.
+Shipped (B-A + B-B + B-C): the job-detail and Application sheets are now detached single-instance `Window`
+scenes driven by a shared `AppSession` (profile/grounding + selection + a revision token for list reloads).
+The dead detail params on `ResultsView`/`TrackerView`/`RootView` were removed in the same pass. Full
+write-up in `MILESTONES.md`.
 
 ---
 

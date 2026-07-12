@@ -37,5 +37,15 @@ struct Taylor_d_PortfolioApp: App {
         }
         .defaultSize(width: 620, height: 680)
         .windowResizability(.contentMinSize)
+
+        // The detached Application window (v0.5.0 Milestone B-C) — generate/view the tailored
+        // résumé + cover letter, opened from the detail window.
+        Window("Application", id: ApplicationWindow.id) {
+            ApplicationWindow(composition: composition)
+                .frame(minWidth: 520, minHeight: 440)
+                .environment(session)
+        }
+        .defaultSize(width: 680, height: 760)
+        .windowResizability(.contentMinSize)
     }
 }

@@ -471,7 +471,8 @@ and commit as `v0.5.0 : Milestone X Completed`. Presentation-first (Milestone A 
       `Composition`, `ApplicationSheet` / `ApplicationViewModel`; reuses Business `LoadApplicationUseCase`.
       On-device: yes (local store read; regeneration uses the current `.application` engine).
 
-- [ ] **Milestone B — Present job detail (and its Application view) as real windows, not sheets.** Tapping a
+- [x] **Milestone B — Present job detail (and its Application view) as real windows, not sheets.** ✅ **Done
+      (B-A + B-B + B-C).** Tapping a
       job in the Tracker and Results presents `JobDetailView` as a modal **sheet** (`TrackerView.swift:57`,
       `ResultsView.swift:73`), and generating opens `ApplicationSheet` as a **nested sheet**
       (`JobDetailView.swift:57`). Replace **every** custom sheet with a genuine detached macOS **window**

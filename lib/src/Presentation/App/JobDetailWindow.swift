@@ -19,15 +19,7 @@ struct JobDetailWindow: View {
     let composition: Composition
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
-    /// One Application view-model per window, reused across jobs (its `open(for:)` resets
-    /// per job) — kept for the nested Application sheet until Milestone B-C moves it to its
-    /// own window.
-    @State private var application: ApplicationViewModel
-
-    init(composition: Composition) {
-        self.composition = composition
-        _application = State(initialValue: composition.makeApplicationViewModel())
-    }
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Group {
@@ -35,7 +27,6 @@ struct JobDetailWindow: View {
                 JobDetailView(
                     ranked: ranked,
                     profile: session.profile,
-                    applicationViewModel: application,
                     markStatus: composition.markStatus,
                     loadStatus: composition.loadStatus,
                     grounding: session.grounding,
@@ -43,7 +34,12 @@ struct JobDetailWindow: View {
                     onSaveToTracker: session.detailContext == .results ? { saveToTracker(ranked) } : nil,
                     loadApplication: composition.loadApplication,
                     allowsSwipe: false,
-                    onMutate: { session.dataChanged() }
+                    onMutate: { session.dataChanged() },
+                    onOpenApplication: { mode in
+                        session.showApplication(ranked.listing, mode: mode)
+                        openWindow(id: ApplicationWindow.id)
+                    },
+                    refreshSignal: session.revision
                 )
             } else {
                 ContentUnavailableView("No job selected", systemImage: "doc.text")

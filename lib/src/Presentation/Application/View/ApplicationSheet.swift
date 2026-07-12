@@ -20,6 +20,12 @@ struct ApplicationSheet: View {
     /// Whether to load saved materials or force a fresh regeneration on appear (v0.5.0
     /// Milestone A). Defaults to view-or-generate — the prior behaviour.
     var startMode: ApplicationStartMode = .viewOrGenerate
+    /// Bumped by the hosting window on every open request, so the single-instance
+    /// Application window re-runs its start mode even when it's already open (v0.5.0 B-C).
+    var requestID: Int = 0
+    /// Called after fresh materials are generated, so the hosting window can signal the
+    /// lists + detail view to reload (v0.5.0 Milestone B-C).
+    var onGenerated: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
     // Export state for the save panel.
@@ -69,9 +75,14 @@ struct ApplicationSheet: View {
                     .clickableCursor()
                 }
                 if viewModel.kit != nil {
-                    Button("Regenerate") { Task { await viewModel.generate(for: job, profile: profile, grounding: grounding) } }
-                        .disabled(viewModel.isGenerating)
-                        .clickableCursor()
+                    Button("Regenerate") {
+                        Task {
+                            await viewModel.generate(for: job, profile: profile, grounding: grounding)
+                            onGenerated?()
+                        }
+                    }
+                    .disabled(viewModel.isGenerating)
+                    .clickableCursor()
                 }
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.defaultAction)
@@ -83,12 +94,10 @@ struct ApplicationSheet: View {
         }
         .padding(24)
         .frame(minWidth: 520, minHeight: 440)
-        .task {
-            switch startMode {
-            case .viewOrGenerate: await viewModel.open(for: job, profile: profile, grounding: grounding)
-            case .forceGenerate: await viewModel.generate(for: job, profile: profile, grounding: grounding)
-            }
-        }
+        .task { await runStartMode() }
+        // Re-run when the hosting window re-opens for a new request (e.g. View → Regenerate
+        // on the same job) — the single-instance window keeps this view alive (v0.5.0 B-C).
+        .onChange(of: requestID) { _, _ in Task { await runStartMode() } }
         // The one-page gate is template-dependent — remeasure when the user switches template.
         .onChange(of: viewModel.exportTemplate) { _, _ in viewModel.refreshLengthGate() }
         .fileExporter(
@@ -118,6 +127,20 @@ struct ApplicationSheet: View {
             .padding(.horizontal, 10).padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+        }
+    }
+
+    /// Loads saved materials or forces a fresh generation per `startMode`, signalling
+    /// `onGenerated` whenever fresh output was produced (v0.5.0 Milestone B-C).
+    private func runStartMode() async {
+        switch startMode {
+        case .viewOrGenerate:
+            await viewModel.open(for: job, profile: profile, grounding: grounding)
+            // `open` generates when nothing was saved — `isSaved` distinguishes the two.
+            if !viewModel.isSaved { onGenerated?() }
+        case .forceGenerate:
+            await viewModel.generate(for: job, profile: profile, grounding: grounding)
+            onGenerated?()
         }
     }
 

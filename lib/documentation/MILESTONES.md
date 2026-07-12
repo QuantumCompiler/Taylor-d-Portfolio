@@ -1597,3 +1597,44 @@ the materials were effectively invisible.
 On-device: yes — the existence check is a local `PersistentRecordStore` read; regeneration uses the current
 `.application` engine. Note (A × B): once Milestone B converts the Application sheet to a window, the View /
 Regenerate buttons should open that **window** instead of the sheet.
+
+## Milestone B — Job detail & Application as real windows, not sheets  ✅ done (B-A + B-B + B-C)  (`Presentation`: new `AppSession` / `JobDetailWindow` / `ApplicationWindow`, `App`, `RootView`, `JobDetailView`, `ApplicationSheet`, `ResultsView`, `TrackerView`)
+
+Goal: replace the modal **sheets** (the job-detail `.sheet(item:)` in Results + Tracker, and the Application
+`.sheet(isPresented:)` nested inside it) with genuine detached macOS **windows**.
+
+**Design decision — session-driven single-instance `Window`s (not value-keyed `WindowGroup(for:)`).** A
+detached scene renders outside `RootView`'s tree, and `PortfolioGrounding` isn't `Codable`, so profile +
+grounding must be shared via app-level state regardless. Given that, the selected job is also held on the
+shared state (in-memory) rather than serialized as a window value — which sidesteps the id→load round-trip,
+the `Hashable` requirement on `RankedJob`/`JobListing`, and a value-dedup-vs-regenerate conflict. Net: two
+reusable single-instance `Window`s that re-target on each open.
+
+- [x] **B-A — Shared session.** New `@MainActor @Observable AppSession` (`Presentation/App/AppSession.swift`):
+      `profile` + `grounding` (mirrored from `PortfolioViewModel` by `RootView`), the detail/application
+      selections, and a **revision token** (`dataChanged()`). Owned by `Taylor_d_PortfolioApp` as `@State`,
+      injected into every scene via `.environment`. `RootView.onChange(of: session.revision)` reloads
+      `tracker.load()` + `results.refreshHistory()` (a detached window has no sheet-dismiss callback).
+      Tests: `AppSessionTests`.
+- [x] **B-B — Job Detail window.** Single-instance `Window("Job Detail", id: JobDetailWindow.id)`;
+      `JobDetailWindow` reads `session.detailJob` + profile/grounding and builds `JobDetailView` from
+      `Composition`. Results + Tracker rows call `session.showDetail(_:context:)` + `openWindow` instead of
+      the removed `.sheet(item:)`. `canGenerate = (context == .tracker)`; Results Save-to-Tracker is a direct
+      `MarkStatusUseCase(.saved)` call. `JobDetailView` gained `allowsSwipe` (off in-window) + an `onMutate`
+      callback (→ `session.dataChanged()`).
+- [x] **B-C — Application window.** Single-instance `Window("Application", id: ApplicationWindow.id)`;
+      `ApplicationWindow` reads `session.applicationJob` + start mode + `applicationRequestID` and hosts
+      `ApplicationSheet`. `JobDetailView`'s View/Generate/Regenerate buttons now call an `onOpenApplication`
+      closure → `session.showApplication(_:mode:)` + `openWindow` (the nested `.sheet` + its per-window
+      `ApplicationViewModel` param are gone). `ApplicationSheet` gained `requestID` (re-runs its start mode
+      when the single window re-opens for a new request) + `onGenerated` (→ `session.dataChanged()`, so the
+      lists and the detail window's View button refresh). Generation/export/one-page-gate logic unchanged —
+      only the container moved.
+- [x] **Cleanup.** Removed the now-dead detail params (`profile`, `applicationViewModel`, `markStatus`,
+      `loadStatus`, `grounding`, `loadApplication`) from `ResultsView` / `TrackerView` and their `RootView`
+      call sites, plus the shared `application` VM + status use-case props on `RootView`.
+
+Tests: `AppSessionTests` (revision bump, `showDetail` targeting); existing VM/footer suites unchanged; full
+suite green, warning-free. **Window presentation itself is a manual (device) check** — B-A/B-B verified on a
+real run; B-C (Application window open / View↔Regenerate re-run / list refresh) to confirm on device.
+On-device: yes — local reads + existing engines, no network, no new persistence.

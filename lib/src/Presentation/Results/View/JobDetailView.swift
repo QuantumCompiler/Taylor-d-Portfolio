@@ -16,7 +16,6 @@ import SwiftUI
 struct JobDetailView: View {
     let ranked: RankedJob
     let profile: CandidateProfile?
-    let applicationViewModel: ApplicationViewModel
     var markStatus: MarkStatusUseCase? = nil
     var loadStatus: LoadStatusUseCase? = nil
     /// The candidate's real documents for grounded generation (Milestone T).
@@ -36,15 +35,18 @@ struct JobDetailView: View {
     /// Called after this view mutates shared persistence (status set, materials generated,
     /// saved), so a hosting window can signal the lists to reload (v0.5.0 Milestone B).
     var onMutate: (() -> Void)? = nil
+    /// Opens the Application window for the given mode (v0.5.0 Milestone B-C). Supplied by
+    /// the hosting window; when nil (e.g. previews) the View/Generate buttons do nothing.
+    var onOpenApplication: ((ApplicationStartMode) -> Void)? = nil
+    /// A monotonically-increasing signal from the hosting window; a change re-checks whether
+    /// materials now exist (e.g. after the Application window generated) — v0.5.0 B-C.
+    var refreshSignal: Int = 0
 
     @Environment(\.dismiss) private var dismiss
-    @State private var showingApplication = false
     @State private var status: ApplicationStatus?
     @State private var dragOffset: CGFloat = 0
     /// Whether a generated kit is already saved for this job (drives the View vs Generate footer).
     @State private var hasGeneratedMaterials = false
-    /// How the Application sheet should populate when next opened (view saved vs regenerate).
-    @State private var applicationStartMode: ApplicationStartMode = .viewOrGenerate
 
     private var listing: JobListing { ranked.listing }
     /// Only the Results context (where a save action is supplied) is swipeable, and only
@@ -65,23 +67,9 @@ struct JobDetailView: View {
             .padding(24)
             .frame(minWidth: 540, minHeight: 500)
             .task { await loadDetailState() }
-            // Re-check for saved materials after the Application sheet closes, so the View
-            // button appears immediately after a first generation (v0.5.0 Milestone A), and
-            // signal the change so a hosting window's lists reload (v0.5.0 Milestone B).
-            .onChange(of: showingApplication) { _, isShowing in
-                if !isShowing {
-                    onMutate?()
-                    Task { await refreshHasMaterials() }
-                }
-            }
-            .sheet(isPresented: $showingApplication) {
-                if let profile {
-                    ApplicationSheet(
-                        viewModel: applicationViewModel, job: listing, profile: profile,
-                        grounding: grounding, startMode: applicationStartMode
-                    )
-                }
-            }
+            // Re-check for saved materials whenever the hosting window signals a change (e.g.
+            // the Application window generated), so the View button appears live (v0.5.0 B-C).
+            .onChange(of: refreshSignal) { _, _ in Task { await refreshHasMaterials() } }
     }
 
     // MARK: Detail state loading
@@ -291,10 +279,9 @@ struct JobDetailView: View {
         }
     }
 
-    /// Opens the Application sheet in the given mode.
+    /// Opens the Application window in the given mode (via the hosting window).
     private func openApplication(_ mode: ApplicationStartMode) {
-        applicationStartMode = mode
-        showingApplication = true
+        onOpenApplication?(mode)
     }
 
     private func labeledSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -330,8 +317,7 @@ enum JobDetailFooter: Equatable {
 #Preview {
     JobDetailView(
         ranked: Preview.sampleRankedJobs[0],
-        profile: Preview.sampleProfile,
-        applicationViewModel: ApplicationViewModel(generateApplication: Preview.generateApplication)
+        profile: Preview.sampleProfile
     )
 }
 #endif

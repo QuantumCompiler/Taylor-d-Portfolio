@@ -11,12 +11,6 @@ import SwiftUI
 /// can read the full posting, generate an application, and set its status).
 struct ResultsView: View {
     @Bindable var viewModel: ResultsViewModel
-    let profile: CandidateProfile?
-    let applicationViewModel: ApplicationViewModel
-    var markStatus: MarkStatusUseCase? = nil
-    var loadStatus: LoadStatusUseCase? = nil
-    /// The candidate's real documents for grounded generation (Milestone T).
-    var grounding: PortfolioGrounding? = nil
 
     /// Opens the detached job-detail window (v0.5.0 Milestone B) instead of a sheet.
     @Environment(AppSession.self) private var session
@@ -173,11 +167,7 @@ struct ResultsView: View {
 
 #if DEBUG
 #Preview {
-    ResultsView(
-        viewModel: ResultsViewModel(results: Preview.sampleRankedJobs),
-        profile: Preview.sampleProfile,
-        applicationViewModel: ApplicationViewModel(generateApplication: Preview.generateApplication)
-    )
-    .frame(width: 460, height: 400)
+    ResultsView(viewModel: ResultsViewModel(results: Preview.sampleRankedJobs))
+        .frame(width: 460, height: 400)
 }
 #endif
