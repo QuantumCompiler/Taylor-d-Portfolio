@@ -1361,3 +1361,23 @@ existing VM methods).
 Resolved the milestone's open UX call as recommended: a just-built, **unsaved** profile shows its
 preview/save block on Saved Profiles with **no** library empty-state note beneath it — the empty state
 appears only when the whole sub-view has nothing. Presentation-only; nothing below Presentation changed.
+
+## Milestone B — Remove the content-pane header text entirely (tabs only)  ✅ done  (`Presentation/App`: `RootView` + `ShellNavigation`)
+
+Goal: drop the `Area / Sub-view` header text everywhere — above the content **and** in the window title
+bar — so the segmented **tabs** are the only sub-view indicator and the **sidebar** is the only area
+indicator. Presentation-only.
+
+- [x] **In-content header text removed.** `RootView.contentHeader` no longer renders
+      `Text(nav.breadcrumbTitle)` — it's now just the segmented `innerNav` (with its padding).
+- [x] **Window title is the app name.** The content pane's `.navigationTitle(nav.breadcrumbTitle)` became
+      `.navigationTitle("Taylor'd Portfolio")`, so the title bar never shows the area/sub-view.
+- [x] **Results (single-sub-view areas) show no header and no tabs.** `contentPane` renders the header
+      band + `Divider` only when `nav.selectedArea.subViews.count > 1`; Results (1 sub-view) fills the
+      pane from the top with no empty band or stray divider. The selected sidebar row identifies it.
+- [x] **`breadcrumbTitle` retired.** Removed `ShellNavigation.breadcrumbTitle` (nothing displays it) and
+      the two `ShellNavigationTests` breadcrumb assertions; a stale doc-comment reference was cleaned up.
+- [x] **Tests + build.** Full suite green on macOS; app builds clean.
+
+Note: Presentation-only; nothing below Presentation changed. The content header now conditionally
+appears (multi-sub-view areas only), which is also what makes Results render as its own plain section.

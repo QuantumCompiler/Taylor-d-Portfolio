@@ -9,12 +9,9 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.1 — Milestone B** next; **Milestones B → H** remain below. **A** is ✅
-> **done** (profile preview / regenerate / save controls moved from the Profile sub-view into Saved
-> Profiles — see `MILESTONES.md`). **B:** app-wide, **remove the content-pane header text entirely** — both the
-> in-content `Area / Sub-view` title ("Portfolio / Profile") and the window title bar; the segmented
-> **tabs** are the only sub-view indicator and the sidebar names the area, so Results shows no header and
-> no tabs. **C:** once a result
+> **Current focus.** **v0.4.1 — Milestone C** next; **Milestones C → H** remain below. **A** and **B**
+> are ✅ **done** (A: profile preview / regenerate / save controls moved into Saved Profiles; B: the
+> content-pane header text removed app-wide, tabs-only — see `MILESTONES.md`). **C:** once a result
 > is **saved to the Tracker**, drop it from the **Results** list — it
 > lives in the Tracker (as "Saved") from then on. **D:** give the **Tracker a tab per status** (All +
 > Saved / Applied / Interviewing / Offer / Accepted / Declined / Rejected / Withdrawn). **E:** **center**
@@ -51,42 +48,7 @@ at **A** and are committed as `v0.4.1 : Milestone X Completed`. Presentation-onl
 milestone says otherwise. (See `CLAUDE.md` → Working process → Versioning for how patch releases fit
 the numbering.)
 
-**Milestone A is complete** — its write-up moved to `MILESTONES.md`. Remaining: **B → H**.
-
-## Milestone B — Remove the content-pane header text entirely (tabs only)
-
-App-wide. Today each content pane shows a text header reading **`Area / Sub-view`** ("Portfolio /
-Profile", "Search / New Search") — both **above the segmented tabs** *and* in the **window title bar** —
-via `ShellNavigation.breadcrumbTitle` (`Presentation/App/ShellNavigation.swift`). Drop that text
-**everywhere**: the segmented **tabs are the only sub-view indicator**, and the **sidebar** already
-names the area, so **no "Portfolio / Profile"-style header should appear in any capacity** — not over
-the content, not in the title bar. Presentation-only.
-
-- [ ] **Remove the in-content header text.** In `RootView.contentHeader`, delete the
-      `Text(nav.breadcrumbTitle)` line (line ~119) so `contentHeader` renders **only** the segmented
-      `innerNav`. Re-check the surrounding spacing/`Divider` — with the title gone, the tabs sit at the
-      top of the pane; tighten the header padding so there's no empty gap where the text was.
-- [ ] **Stop the window title bar showing the area/sub-view.** The pane's
-      `.navigationTitle(nav.breadcrumbTitle)` (line ~113) is what puts "Portfolio / Profile" in the title
-      bar — change it so the window **no longer shows the area/sub-view**. Prefer the app name
-      (`.navigationTitle("Taylor'd Portfolio")`, matching the sidebar column's title) or an empty title;
-      **not** the area or sub-view name.
-- [ ] **Results (and any single-sub-view area) — no header, no tabs.** Results has no real sub-views, so
-      it shows **no segmented control and no header text** — its content simply fills the pane, and the
-      selected **sidebar** row ("Results") is what identifies it. Confirm that with the header text gone
-      and no `innerNav`, the Results pane doesn't leave an empty header band or a stray `Divider`
-      (conditionally omit the header area when there are ≤ 1 sub-views). The `MainArea.subViews` entry
-      for `.results` (`["Ranked"]`) can collapse accordingly.
-- [ ] **Retire `breadcrumbTitle`.** With nothing displaying it, remove `ShellNavigation.breadcrumbTitle`
-      (and its `RootView` uses). If a string is still wanted purely for window-title/accessibility, keep a
-      minimal one — but it must not surface the `Area / Sub-view` text in the UI.
-- [ ] **Tests.** Remove/replace the `ShellNavigationTests` breadcrumb assertions (they currently expect
-      `Area / Sub-view` for multi-sub-view areas and the bare area name for Results) — either delete them
-      with the property or assert the new behaviour (no displayed header string). Full suite green.
-
-Seam: **Presentation only** — `Presentation/App/RootView.swift` (drop the header `Text`, retitle the
-window, tidy the header band) + `ShellNavigation.swift` (retire `breadcrumbTitle`) +
-`ShellNavigationTests`. No ViewModel or lower-layer change. On-device: n/a (UI only).
+**Milestones A–B are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **C → H**.
 
 ## Milestone C — Saved-to-Tracker jobs leave the Results list
 

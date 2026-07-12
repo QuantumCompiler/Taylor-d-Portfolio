@@ -63,20 +63,6 @@ struct ShellNavigationTests {
         #expect(nav.selectedSubView == 0)
     }
 
-    @Test func breadcrumbIsBareAreaNameForSingleSubViewAreas() {
-        // Results is the only area with a single sub-view, so its breadcrumb is the bare
-        // area name (no `Area / Sub-view` split).
-        let nav = ShellNavigation(area: .results)
-        #expect(nav.breadcrumbTitle == "Results")
-    }
-
-    @Test func breadcrumbShowsAreaAndSubViewForMultiSubViewAreas() {
-        let nav = ShellNavigation(area: .portfolio)
-        #expect(nav.breadcrumbTitle == "Portfolio / Profile")   // first sub-view
-        nav.selectSubView(2)
-        #expect(nav.breadcrumbTitle == "Portfolio / Source Documents")
-    }
-
     @Test func everyAreaHasIconTitleAndAtLeastOneSubView() {
         for area in MainArea.allCases {
             #expect(!area.title.isEmpty)

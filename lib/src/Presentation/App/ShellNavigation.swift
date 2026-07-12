@@ -135,7 +135,7 @@ enum SettingsSection: Int, CaseIterable {
 
 /// Holds the shell's navigation state: which area is selected in the sidebar and which
 /// sub-view is selected in that area's inner segmented nav. Kept as a small, testable
-/// holder (rather than loose `@State` in `RootView`) so the reset/breadcrumb rules have
+/// holder (rather than loose `@State` in `RootView`) so the sub-view reset rules have
 /// a home and unit coverage.
 @MainActor
 @Observable
@@ -179,16 +179,5 @@ final class ShellNavigation {
     /// keyboard navigation (⌘⇧[).
     func previousSubView() {
         selectedSubView = max(selectedSubView - 1, 0)
-    }
-
-    /// The content-pane title: `Area / Sub-view` when the area has more than one
-    /// sub-view, otherwise just the area name (Milestone A, where each area is a
-    /// single view, reads as the bare area name).
-    var breadcrumbTitle: String {
-        let subs = selectedArea.subViews
-        guard subs.count > 1, subs.indices.contains(selectedSubView) else {
-            return selectedArea.title
-        }
-        return "\(selectedArea.title) / \(subs[selectedSubView])"
     }
 }

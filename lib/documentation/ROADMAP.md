@@ -391,14 +391,14 @@ otherwise; milestones still restart at **A** and commit as `v0.4.1 : Milestone X
       (`Portfolio/View/PortfolioView.swift`) — the ViewModel and all lower layers untouched. On-device:
       n/a (UI only).
 
-- [ ] **Milestone B — Remove the content-pane header text entirely (tabs only).** App-wide: today each
-      pane shows an `Area / Sub-view` header ("Portfolio / Profile") both above the segmented tabs and in
-      the window title bar. Drop that text everywhere — the segmented **tabs** are the only sub-view
-      indicator and the **sidebar** names the area, so no "Portfolio / Profile" appears in any capacity.
-      **Results** (no real sub-views) shows no header and no tabs — the selected sidebar row identifies
-      it. The window title becomes the app name (or empty), never the area/sub-view. Seam: Presentation
-      only (`Presentation/App/RootView.swift` header + window title; retire `ShellNavigation.breadcrumbTitle`;
-      `ShellNavigationTests`). On-device: n/a (UI only).
+- [x] **Milestone B — Remove the content-pane header text entirely (tabs only).** ✅ **Done.** App-wide:
+      dropped the `Area / Sub-view` header text everywhere — both above the segmented tabs and in the
+      window title bar. The segmented **tabs** are now the only sub-view indicator and the **sidebar**
+      names the area, so no "Portfolio / Profile" appears in any capacity. **Results** (no real sub-views)
+      shows no header and no tabs — the selected sidebar row identifies it. The window title is the app
+      name ("Taylor'd Portfolio"). `ShellNavigation.breadcrumbTitle` retired. Seam: Presentation only
+      (`Presentation/App/RootView.swift` + `ShellNavigation.swift` + `ShellNavigationTests`). On-device:
+      n/a (UI only).
 
 - [ ] **Milestone C — Saved-to-Tracker jobs leave the Results list.** Once a job has any tracker status
       (starting with `.saved` when saved to the Tracker), remove it from the **Results** list so Results

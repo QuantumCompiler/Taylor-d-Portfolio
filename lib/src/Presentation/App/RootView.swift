@@ -104,24 +104,27 @@ struct RootView: View {
 
     private var contentPane: some View {
         VStack(alignment: .leading, spacing: 0) {
-            contentHeader
-            Divider()
+            // No text header — the sidebar names the area and the segmented tabs name the
+            // sub-view (v0.4.1 Milestone B). Single-sub-view areas (Results) show neither the
+            // tabs nor a header band, so their content fills the pane from the top.
+            if nav.selectedArea.subViews.count > 1 {
+                contentHeader
+                Divider()
+            }
             selectedContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .navigationTitle(nav.breadcrumbTitle)
+        // Keep the window title the app name — never the area/sub-view.
+        .navigationTitle("Taylor'd Portfolio")
     }
 
-    /// The `Area / Sub-view` title above the segmented inner nav.
+    /// The segmented inner nav for the selected area's sub-views (no text title above it —
+    /// v0.4.1 Milestone B). Only shown for areas with more than one sub-view.
     private var contentHeader: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(nav.breadcrumbTitle)
-                .font(.headline)
-            innerNav
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        innerNav
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
     }
 
     /// The inner segmented nav for the selected area's sub-views. Milestone A shows a
