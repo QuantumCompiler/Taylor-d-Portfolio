@@ -382,14 +382,14 @@ fixes and minor refinements rather than a new feature theme. Presentation-only u
 otherwise; milestones still restart at **A** and commit as `v0.4.1 : Milestone X Completed`. See
 `TODO.md` for the granular breakdown.
 
-- [ ] **Milestone A — Move the profile preview & its controls to Saved Profiles.** In the Portfolio
-      tab, relocate the built-profile **preview**, the **Regenerate description** control, and the
-      **Save / Update Profile** row from the **Profile** sub-view into the **Saved Profiles** sub-view.
-      Profile then holds only the import/paste slots + **Build Profile**; Saved Profiles shows the
-      current built/loaded profile (preview + regenerate + save) above the saved-profiles library, and
-      its empty-state gate widens to host a just-built, unsaved profile. Seam: Presentation only
-      (`Portfolio/View/PortfolioView.swift`) — the ViewModel and all lower layers are untouched.
-      On-device: n/a (UI only).
+- [x] **Milestone A — Move the profile preview & its controls to Saved Profiles.** ✅ **Done.** In the
+      Portfolio tab, relocated the built-profile **preview**, the **Regenerate description** control, and
+      the **Save / Update Profile** row from the **Profile** sub-view into the **Saved Profiles** sub-view.
+      Profile now holds only the import/paste slots + **Build Profile**; Saved Profiles shows the current
+      built/loaded profile (preview + regenerate + save) above the saved-profiles library, and its
+      empty-state gate widened to host a just-built, unsaved profile. Seam: Presentation only
+      (`Portfolio/View/PortfolioView.swift`) — the ViewModel and all lower layers untouched. On-device:
+      n/a (UI only).
 
 - [ ] **Milestone B — Remove the content-pane header text entirely (tabs only).** App-wide: today each
       pane shows an `Area / Sub-view` header ("Portfolio / Profile") both above the segmented tabs and in

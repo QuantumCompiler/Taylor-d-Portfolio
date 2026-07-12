@@ -90,28 +90,33 @@ struct PortfolioView: View {
                 Text(error).font(.callout).foregroundStyle(.red)
             }
         }
-
-        if let profile = viewModel.profile {
-            ProfileSummary(profile: profile, isDefault: viewModel.isSelectedProfileDefault)
-            if viewModel.supportsSummaryRegeneration {
-                regenerateSummaryControl
-            }
-            if viewModel.supportsSavedProfiles {
-                saveRow
-            }
-        }
     }
 
-    // MARK: Saved Profiles — the persisted profile library
+    // MARK: Saved Profiles — the current profile's preview/edit controls + the persisted library
 
+    /// Hosts the built/loaded profile (preview + regenerate + save — moved here from the Profile
+    /// tab in v0.4.1 Milestone A) above the saved-profile library. Falls back to the empty state
+    /// only when there's **no** current profile **and** an empty library.
     @ViewBuilder private var savedProfilesTab: some View {
-        if viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty {
-            savedProfilesSection
+        let hasLibrary = viewModel.supportsSavedProfiles && !viewModel.savedProfiles.isEmpty
+        if viewModel.profile != nil || hasLibrary {
+            if let profile = viewModel.profile {
+                ProfileSummary(profile: profile, isDefault: viewModel.isSelectedProfileDefault)
+                if viewModel.supportsSummaryRegeneration {
+                    regenerateSummaryControl
+                }
+                if viewModel.supportsSavedProfiles {
+                    saveRow
+                }
+            }
+            if hasLibrary {
+                savedProfilesSection
+            }
         } else {
             InlineEmptyState(
-                title: "No saved profiles",
+                title: "No profile yet",
                 systemImage: "person.crop.square",
-                message: "Build a profile on the Profile tab and Save it — your saved profiles appear here to load, set as default, or delete."
+                message: "Build a profile on the Profile tab — it appears here to preview, refine its description, and save. Saved profiles are listed here to load, set as default, or delete."
             )
         }
     }

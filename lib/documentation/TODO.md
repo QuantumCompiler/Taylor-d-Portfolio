@@ -9,9 +9,9 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.1 — Milestones A → H** (below). **A:** move the Portfolio **profile
-> preview**, **regenerate-description**, and **save/update** controls from the **Profile** sub-view into
-> **Saved Profiles**. **B:** app-wide, **remove the content-pane header text entirely** — both the
+> **Current focus.** **v0.4.1 — Milestone B** next; **Milestones B → H** remain below. **A** is ✅
+> **done** (profile preview / regenerate / save controls moved from the Profile sub-view into Saved
+> Profiles — see `MILESTONES.md`). **B:** app-wide, **remove the content-pane header text entirely** — both the
 > in-content `Area / Sub-view` title ("Portfolio / Profile") and the window title bar; the segmented
 > **tabs** are the only sub-view indicator and the sidebar names the area, so Results shows no header and
 > no tabs. **C:** once a result
@@ -51,47 +51,7 @@ at **A** and are committed as `v0.4.1 : Milestone X Completed`. Presentation-onl
 milestone says otherwise. (See `CLAUDE.md` → Working process → Versioning for how patch releases fit
 the numbering.)
 
-## Milestone A — Move the profile preview & its controls to Saved Profiles
-
-Today the Portfolio → **Profile** sub-view holds both the *inputs* (résumé / cover-letter slots +
-Build Profile) **and**, once a profile exists, that profile's preview and edit controls. Move the
-second group into the Portfolio → **Saved Profiles** sub-view, so **Profile** is purely "import &
-build" and **Saved Profiles** owns the built profile and everything you do to it. Presentation-only —
-the ViewModel API is unchanged; these subviews already call existing VM methods, so it's a re-home,
-not a rewrite.
-
-Three blocks move out of `profileTab` (the `if let profile = viewModel.profile { … }` group in
-`Portfolio/View/PortfolioView.swift`) into the Saved Profiles sub-view:
-
-- [ ] **Profile preview** — the `ProfileSummary(profile:isDefault:)` block (the summary /
-      description preview shown after Build or Load).
-- [ ] **Regenerate description** — the `regenerateSummaryControl` (prompt field + Submit →
-      `viewModel.regenerateSummary()`), gated on `supportsSummaryRegeneration`.
-- [ ] **Update / Save profile** — the `saveRow` (profile-name field + Save Profile / Update Profile →
-      `viewModel.saveProfile()`), gated on `supportsSavedProfiles`.
-
-After the move:
-
-- [ ] **Profile sub-view** = résumé slot + optional cover-letter slot + **Build Profile** (with its
-      busy/error affordances) **only** — nothing rendered from `viewModel.profile`.
-- [ ] **Saved Profiles sub-view** = the current built/loaded profile's **preview + regenerate + save**
-      controls at the top, then the existing saved-profiles **library** (load / set default / delete)
-      below.
-- [ ] **Empty-state gate.** `savedProfilesTab` currently shows the "No saved profiles" empty state
-      whenever the library is empty. It must now also host a *just-built, unsaved* profile: render the
-      preview/regenerate/save block whenever `viewModel.profile != nil`, and fall back to the empty
-      state only when there is **no current profile and no saved profiles**. (Open UX call — resolve at
-      build time: does the saved-profiles library's own "No saved profiles" note still show *beneath* an
-      unsaved current profile, or only when the whole sub-view is empty?)
-- [ ] **Copy touch-ups.** Reword now-misplaced copy: the empty-state message ("Build a profile on the
-      **Profile** tab and Save it — …") and the regenerate helper ("… Save/Update to keep it") should
-      read correctly now that preview/save live on Saved Profiles, not Profile.
-- [ ] **Tests.** The VM API is untouched, so this is a view re-home — confirm the full suite stays
-      green; add/adjust any `PortfolioView`-level coverage only if a moved subview's gating changes.
-
-Seam: **Presentation only** — `Portfolio/View/PortfolioView.swift` (relocate the three subviews from
-`profileTab` to `savedProfilesTab`; widen the `savedProfilesTab` gate to account for an unsaved current
-profile). No ViewModel, use-case, or lower-layer change. On-device: n/a (UI only).
+**Milestone A is complete** — its write-up moved to `MILESTONES.md`. Remaining: **B → H**.
 
 ## Milestone B — Remove the content-pane header text entirely (tabs only)
 

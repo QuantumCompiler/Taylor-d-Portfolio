@@ -7,7 +7,8 @@ and how it was built. For the product spec see `SPEC.md`; for the high-level pla
 these docs fit together.
 
 Grouped by release: **v0.1.0 — foundation**, **v0.2.0 — reliability**, **v0.3.0 — output & polish**,
-**v0.4.0 — navigation & shell**, then **ad-hoc / quality-of-life** enhancements. (A former Milestone L —
+**v0.4.0 — navigation & shell**, **v0.4.1 — fixes & refinements** (the first patch release), then
+**ad-hoc / quality-of-life** enhancements. (A former Milestone L —
 "prefer AFM 3 Core Advanced on-device" — was dropped: on-device tier selection has no developer API;
 see `CLAUDE.md` → Stack.)
 
@@ -1321,3 +1322,42 @@ Note: C closes **v0.4.0 — navigation & shell**. The whole release was Presenta
 version build-setting): the sidebar shell (A), the per-area sub-view split (B), and this polish pass
 (C). Nothing below Presentation changed, so ranking / generation / persistence / export / grounding
 are exactly as they were in v0.3.0. The next version (v0.5.0) restarts milestones at A.
+
+---
+
+# v0.4.1 — fixes & refinements
+
+This project's **first patch release** (`v0.x.y`): bug fixes and small refinements on top of the v0.4.0
+navigation shell, not a new feature theme. Milestones restart at **A** and commit as
+`v0.4.1 : Milestone X Completed` (see `CLAUDE.md` → Working process → Versioning). The project version
+was bumped to **0.4.1** across all four `MARKETING_VERSION` copies at kickoff.
+
+## Milestone A — Move the profile preview & its controls to Saved Profiles  ✅ done  (`Presentation/Portfolio`: `PortfolioView`)
+
+Goal: make the Portfolio → **Profile** sub-view purely "import & build", and move the built profile's
+preview and edit controls to the Portfolio → **Saved Profiles** sub-view. Presentation-only — the
+`PortfolioViewModel` API is unchanged; the subviews were re-homed, not rewritten (they already called
+existing VM methods).
+
+- [x] **Three blocks moved.** The `ProfileSummary(profile:isDefault:)` preview, the
+      `regenerateSummaryControl` (Regenerate description → `viewModel.regenerateSummary()`), and the
+      `saveRow` (Save / Update Profile → `viewModel.saveProfile()`) moved out of `profileTab` into
+      `savedProfilesTab` in `PortfolioView.swift`. Their definitions are unchanged and still gated on
+      `supportsSummaryRegeneration` / `supportsSavedProfiles`.
+- [x] **Profile sub-view = inputs only.** After the move, Profile is the résumé slot + optional
+      cover-letter slot + **Build Profile** (with its busy/error affordances) — nothing rendered from
+      `viewModel.profile`.
+- [x] **Saved Profiles sub-view.** Renders the current built/loaded profile's preview + regenerate +
+      save at the top (when `viewModel.profile != nil`), then the existing saved-profiles library below.
+- [x] **Empty-state gate widened.** `savedProfilesTab` now shows the preview/save block whenever a
+      current profile exists, the library section when it's non-empty, and the `InlineEmptyState`
+      (retitled "No profile yet") only when there's **neither** a current profile **nor** any saved
+      profiles. The empty-state copy was reworded for the new home (build on the Profile tab → preview /
+      refine / save here; saved profiles load / set default / delete).
+- [x] **Tests + build.** No VM API change, so the existing `PortfolioViewModelTests` (incl. the
+      `regenerateSummary…` cases) still pass; full suite green on macOS and the app builds clean. (The
+      pre-existing `ExportTemplate.style` main-actor warning is v0.4.1 Milestone H, unrelated.)
+
+Resolved the milestone's open UX call as recommended: a just-built, **unsaved** profile shows its
+preview/save block on Saved Profiles with **no** library empty-state note beneath it — the empty state
+appears only when the whole sub-view has nothing. Presentation-only; nothing below Presentation changed.
