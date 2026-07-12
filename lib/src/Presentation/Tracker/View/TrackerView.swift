@@ -24,6 +24,10 @@ struct TrackerView: View {
     /// (v0.5.0 Milestone A).
     var loadApplication: LoadApplicationUseCase? = nil
 
+    /// Opens the detached job-detail window (v0.5.0 Milestone B) instead of a sheet.
+    @Environment(AppSession.self) private var session
+    @Environment(\.openWindow) private var openWindow
+
     /// The tracked jobs shown for the selected stage filter.
     private var jobs: [TrackedJob] { viewModel.jobs(in: section) }
 
@@ -51,23 +55,19 @@ struct TrackerView: View {
                 List(jobs) { tracked in
                     RankedRow(ranked: tracked.job, history: viewModel.history(for: tracked.job))
                         .contentShape(Rectangle())
-                        .onTapGesture { viewModel.select(tracked.job) }
+                        .onTapGesture { openDetail(tracked.job) }
                         .clickableCursor()
                 }
             }
         }
         .task { await viewModel.load() }
-        .sheet(item: $viewModel.selectedJob) { ranked in
-            JobDetailView(
-                ranked: ranked, profile: profile, applicationViewModel: applicationViewModel,
-                markStatus: markStatus, loadStatus: loadStatus, grounding: grounding,
-                loadApplication: loadApplication
-            )
-        }
-        // Re-load after the detail sheet (where status can change) closes.
-        .onChange(of: viewModel.selectedJob) { _, newValue in
-            if newValue == nil { Task { await viewModel.load() } }
-        }
+    }
+
+    /// Opens the shared detail window for `ranked` in the Tracker context. The window reloads
+    /// this list via the session revision signal when it mutates status/materials.
+    private func openDetail(_ ranked: RankedJob) {
+        session.showDetail(ranked, context: .tracker)
+        openWindow(id: JobDetailWindow.id)
     }
 }
 

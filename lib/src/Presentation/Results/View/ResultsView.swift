@@ -18,6 +18,9 @@ struct ResultsView: View {
     /// The candidate's real documents for grounded generation (Milestone T).
     var grounding: PortfolioGrounding? = nil
 
+    /// Opens the detached job-detail window (v0.5.0 Milestone B) instead of a sheet.
+    @Environment(AppSession.self) private var session
+    @Environment(\.openWindow) private var openWindow
     @State private var showFilters = false
 
     var body: some View {
@@ -58,7 +61,7 @@ struct ResultsView: View {
                                 RankedRow(ranked: ranked, history: viewModel.history(for: ranked))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .contentShape(Rectangle())
-                                    .onTapGesture { viewModel.select(ranked) }
+                                    .onTapGesture { openDetail(ranked) }
                                     .clickableCursor()
                                 if viewModel.supportsRowActions {
                                     rowActions(ranked)
@@ -70,18 +73,13 @@ struct ResultsView: View {
             }
         }
         .task { await viewModel.loadSavedIfNeeded() }
-        .sheet(item: $viewModel.selectedJob) { ranked in
-            JobDetailView(
-                ranked: ranked, profile: profile, applicationViewModel: applicationViewModel,
-                markStatus: markStatus, loadStatus: loadStatus, grounding: grounding,
-                canGenerate: false,                              // generation lives in the Tracker (V-D)
-                onSaveToTracker: { Task { await viewModel.saveToTracker(ranked) } }
-            )
-        }
-        // Refresh badges after the detail sheet (where status can change) closes.
-        .onChange(of: viewModel.selectedJob) { _, newValue in
-            if newValue == nil { Task { await viewModel.refreshHistory() } }
-        }
+    }
+
+    /// Opens the shared detail window for `ranked` in the Results context (read + save, no
+    /// generation — Milestone V-D). The window signals a reload when it saves to the Tracker.
+    private func openDetail(_ ranked: RankedJob) {
+        session.showDetail(ranked, context: .results)
+        openWindow(id: JobDetailWindow.id)
     }
 
     // MARK: Filter bar (Milestone W)

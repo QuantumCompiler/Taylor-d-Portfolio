@@ -30,6 +30,12 @@ struct JobDetailView: View {
     /// Loads a previously-generated kit so the Tracker footer can offer **View** alongside
     /// Generate when materials already exist (v0.5.0 Milestone A).
     var loadApplication: LoadApplicationUseCase? = nil
+    /// Whether the horizontal save/dismiss swipe is enabled. Off when hosted in a window
+    /// (v0.5.0 Milestone B) — a window has no card to swipe.
+    var allowsSwipe: Bool = true
+    /// Called after this view mutates shared persistence (status set, materials generated,
+    /// saved), so a hosting window can signal the lists to reload (v0.5.0 Milestone B).
+    var onMutate: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var showingApplication = false
@@ -41,8 +47,9 @@ struct JobDetailView: View {
     @State private var applicationStartMode: ApplicationStartMode = .viewOrGenerate
 
     private var listing: JobListing { ranked.listing }
-    /// Only the Results context (where a save action is supplied) is swipeable.
-    private var isSwipeable: Bool { onSaveToTracker != nil }
+    /// Only the Results context (where a save action is supplied) is swipeable, and only
+    /// when swiping is allowed (off in a window — v0.5.0 Milestone B).
+    private var isSwipeable: Bool { onSaveToTracker != nil && allowsSwipe }
     private static let swipeThreshold: CGFloat = 120
 
     var body: some View {
@@ -59,9 +66,13 @@ struct JobDetailView: View {
             .frame(minWidth: 540, minHeight: 500)
             .task { await loadDetailState() }
             // Re-check for saved materials after the Application sheet closes, so the View
-            // button appears immediately after a first generation (v0.5.0 Milestone A).
+            // button appears immediately after a first generation (v0.5.0 Milestone A), and
+            // signal the change so a hosting window's lists reload (v0.5.0 Milestone B).
             .onChange(of: showingApplication) { _, isShowing in
-                if !isShowing { Task { await refreshHasMaterials() } }
+                if !isShowing {
+                    onMutate?()
+                    Task { await refreshHasMaterials() }
+                }
             }
             .sheet(isPresented: $showingApplication) {
                 if let profile {
@@ -166,7 +177,10 @@ struct JobDetailView: View {
 
     private func mark(_ stage: ApplicationStage) {
         guard let markStatus else { return }
-        Task { status = try? await markStatus(jobID: ranked.id, stage: stage) }
+        Task {
+            status = try? await markStatus(jobID: ranked.id, stage: stage)
+            onMutate?()
+        }
     }
 
     // MARK: Header

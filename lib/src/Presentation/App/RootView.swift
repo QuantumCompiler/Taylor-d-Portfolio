@@ -17,6 +17,9 @@ import SwiftUI
 /// per-area split lands in Milestone B. The five screen views are unchanged — only their
 /// host moved from the old custom tab bar to this shell.
 struct RootView: View {
+    /// Shared session (v0.5.0 Milestone B): the detached windows read profile/grounding
+    /// from here, and bump its revision when they mutate persistence so the lists reload.
+    @Environment(AppSession.self) private var session
     @State private var nav = ShellNavigation()
 
     @State private var portfolio: PortfolioViewModel
@@ -52,6 +55,7 @@ struct RootView: View {
         // Profile built or selected on Portfolio flows into Search…
         .onChange(of: portfolio.profile) { _, newProfile in
             search.profile = newProfile
+            session.profile = newProfile
         }
         // …and saving/deleting a profile on Portfolio refreshes Search's picker.
         .onChange(of: portfolio.savedProfiles) { _, _ in
@@ -61,6 +65,20 @@ struct RootView: View {
         .onChange(of: search.results) { _, newResults in
             results.results = newResults
             if !newResults.isEmpty { nav.select(.results) }
+        }
+        // Keep the shared session's profile/grounding current for the detached windows
+        // (v0.5.0 Milestone B).
+        .onChange(of: portfolio.grounding) { _, g in session.grounding = g }
+        .onAppear {
+            session.profile = portfolio.profile
+            session.grounding = portfolio.grounding
+        }
+        // A detached window mutated persistence (status/generation/save) — reload the lists.
+        .onChange(of: session.revision) { _, _ in
+            Task {
+                await tracker.load()
+                await results.refreshHistory()
+            }
         }
     }
 

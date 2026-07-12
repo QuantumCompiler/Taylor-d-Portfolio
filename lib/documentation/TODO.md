@@ -12,9 +12,10 @@ doing.
 > **Current focus.** **v0.5.0 — document generation fixes — is in planning.** All of v0.1.0–v0.4.1 are
 > done (see `MILESTONES.md`). v0.5.0's theme is **fixing the document-generation experience** (the tailored
 > résumé + cover letter and the paths to view/regenerate them). Milestones restart at **A**; the project
-> version is bumped to **0.5.0**. **Milestone A is shipped** (see `MILESTONES.md`); **the next up is Milestone
-> B below.** Planned: **A** ✅ (view generated materials from the Tracker), **B** (present job detail + its
-> Application view as real windows, not sheets), **C** (remove the redundant "Mark as applied" button), **D**
+> version is bumped to **0.5.0**. **Milestone A is shipped** (see `MILESTONES.md`); **Milestone B is in
+> progress — B-A + B-B are done, B-C is next** (see the build-status note under Milestone B). Planned: **A** ✅
+> (view generated materials from the Tracker), **B** (present job detail + its Application view as real
+> windows — B-A/B-B ✅, B-C pending), **C** (remove the redundant "Mark as applied" button), **D**
 > (generation controls — fidelity scale, tailored aspects, presets, and a desired rank-match target that
 > fabricates to a target score; grounded-by-default + opt-in disclosed embellishment).
 >
@@ -94,39 +95,45 @@ current `profile`, `PortfolioGrounding`, and the wired use cases). A second top-
 - `lib/src/Presentation/Application/View/ApplicationSheet.swift` — hosted in a window (likely rename off
   "Sheet"); its `.fileExporter` stays.
 
-### B-A — Shared app-level session + cross-window refresh
+> **Build status (v0.5.0).** **B-A ✅ and B-B ✅ are done and shipped** (compiles warning-free, full suite
+> green). **B-C is the remaining sub-part** — pending a manual run to confirm the detail window behaves
+> before converting the Application view too. **Design note:** the implementation uses a **single-instance
+> `Window` scene driven by shared-session selection** rather than a value-keyed `WindowGroup(for: String)`
+> + by-id load. Reason: `PortfolioGrounding` isn't `Codable` so it must be shared via `AppSession` anyway;
+> holding the selected `RankedJob` on `AppSession` (in-memory) then sidesteps the id→load round-trip, the
+> `Hashable` question, and the value-dedup-vs-regenerate conflict entirely. Net: one reusable detail window
+> that re-targets on each click.
 
-- [ ] **Hoist shared session state.** Add an app-level `@Observable` (e.g. `AppSession`) owned by
-      `Taylor_d_PortfolioApp`, holding the current `profile: CandidateProfile?` and
-      `grounding: PortfolioGrounding?` (today RootView `@State`), injected via `.environment` into **every**
-      scene so the detail/application windows read the same live values. `PortfolioViewModel` writes through
-      to it (or the session becomes the source of truth RootView already observes).
-- [ ] **Cross-window refresh signal.** Because a detached window gives no sheet-dismiss callback, add a
-      shared **revision token** on `AppSession` (a bumped counter / `objectWillChange`) that the detail and
-      application windows increment when they mutate persistence (mark status, generate). `TrackerViewModel`
-      / `ResultsViewModel` observe it and reload, so status/generation changes reflect back in the lists.
-      *(open call: revision-token vs. reload-on-window-focus via `scenePhase`. Recommend the token — precise
-      and immediate.)*
+### B-A — Shared app-level session + cross-window refresh  ✅ done
 
-### B-B — Job Detail window (replaces the two `.sheet(item:)`)
+- [x] **Hoist shared session state.** New `@MainActor @Observable AppSession` (`Presentation/App/AppSession.swift`)
+      owned by `Taylor_d_PortfolioApp` as `@State` and injected via `.environment(session)` into every scene.
+      Holds `profile` + `grounding` (+ the detail selection). `RootView` mirrors `portfolio.profile` /
+      `portfolio.grounding` into it (`.onChange` + initial `.onAppear`).
+- [x] **Cross-window refresh signal.** `AppSession.revision` + `dataChanged()`; the detail window bumps it
+      on mark-status / save / generation, and `RootView.onChange(of: session.revision)` reloads
+      `tracker.load()` + `results.refreshHistory()`. (Chose the revision token over `scenePhase`, as
+      recommended.) Tests: `AppSessionTests` (revision bump; `showDetail` targets job + context).
 
-- [ ] **New scene.** `WindowGroup("Job", id: "job-detail", for: String.self)` (the job **id**) in
-      `App.swift`; its root loads the `RankedJob` (from `SavedJobsRepository` via a use case — both Tracker
-      and Results jobs are persisted, per O-B) and builds `JobDetailView` with session + composition deps.
-- [ ] **Open from lists.** Tracker + Results rows call `openWindow(id: "job-detail", value: ranked.id)`
-      instead of setting `selectedJob`. `WindowGroup(id:for:)` **reuses one window per id**, so re-tapping a
-      job re-activates its window rather than duplicating it.
-- [ ] **Context without closures.** The Results-vs-Tracker differences currently ride on view params
-      (`canGenerate`, `onSaveToTracker` closure) — closures can't cross a window boundary. Resolve context
-      from persisted state / a value flag: Save-to-Tracker becomes a **direct `MarkStatusUseCase` call**
-      (not a passed closure); `canGenerate` derives from context.
-- [ ] **(open call) Results swipe.** The Results detail is a **swipeable card** (left = dismiss, right =
-      save — V-C). A window has no card to swipe. **Recommended:** drop the swipe in the window and keep the
-      explicit **Save to Tracker** button (already in the footer) plus the existing row-level save/delete
-      icons; leave V-C's `SwipeOutcome` for any remaining card usage. Confirm with Taylor.
-- [ ] **(open call) Window value type.** Recommended: key by **`String` job id** + load (no Data-layer
-      change). Alternative: add `Hashable` to `RankedJob` / `JobListing` / `JobMatch` (Data) and pass the
-      value directly (avoids a load, but is a Data-layer touch and risks a stale snapshot).
+### B-B — Job Detail window (replaces the two `.sheet(item:)`)  ✅ done
+
+- [x] **New scene.** A single-instance `Window("Job Detail", id: JobDetailWindow.id)` in `App.swift`;
+      `JobDetailWindow` (`Presentation/App`) reads `session.detailJob` + profile/grounding and builds
+      `JobDetailView` with `Composition` deps (`markStatus` / `loadStatus` / `loadApplication`, a per-window
+      `ApplicationViewModel`).
+- [x] **Open from lists.** Tracker + Results rows now call `session.showDetail(ranked, context:)` +
+      `openWindow(id: JobDetailWindow.id)` (via `@Environment(\.openWindow)`); the two `.sheet(item:)` blocks
+      and their `onChange(selectedJob)` reloads are removed.
+- [x] **Context without closures.** `canGenerate = (context == .tracker)`; Results-context Save-to-Tracker
+      is a **direct `MarkStatusUseCase(.saved)` call** in `JobDetailWindow` (+ `dataChanged()` + close),
+      not a passed closure.
+- [x] **Results swipe dropped in-window.** `JobDetailView` gained `allowsSwipe` (the window passes `false`);
+      `SwipeOutcome` is left intact. Status/generation mutations flow back via a new `onMutate` callback →
+      `session.dataChanged()`.
+- [ ] **Cleanup owed (do in B-C).** `ResultsView` / `TrackerView` still declare the now-unused detail params
+      (`profile`, `applicationViewModel`, `markStatus`, `loadStatus`, `grounding`, `loadApplication`) — kept
+      to avoid cascading signature/preview churn mid-refactor. Remove them (and the matching `RootView`
+      call-site args + any dead `RootView` use-case props) when B-C lands.
 
 ### B-C — Application window (replaces the nested `.sheet(isPresented:)`)
 
