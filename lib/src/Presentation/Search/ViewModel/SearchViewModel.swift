@@ -148,7 +148,7 @@ final class SearchViewModel {
     /// Saves the current form as a re-runnable search, then refreshes the list.
     func saveCurrentSearch() async {
         guard let saveSearch, canSaveSearch else { return }
-        try? await saveSearch(buildRequest())
+        _ = try? await saveSearch(buildRequest())
         await reloadSavedSearches()
     }
 

@@ -97,11 +97,13 @@ nonisolated enum ZipArchiveWriter {
 }
 
 private extension Data {
-    mutating func append(le16 value: UInt16) {
+    // nonisolated so the nonisolated `ZipArchiveWriter` can call these synchronously
+    // (the project defaults type isolation to MainActor) — v0.4.1 Milestone H.
+    nonisolated mutating func append(le16 value: UInt16) {
         append(UInt8(value & 0xff))
         append(UInt8((value >> 8) & 0xff))
     }
-    mutating func append(le32 value: UInt32) {
+    nonisolated mutating func append(le32 value: UInt32) {
         append(UInt8(value & 0xff))
         append(UInt8((value >> 8) & 0xff))
         append(UInt8((value >> 16) & 0xff))

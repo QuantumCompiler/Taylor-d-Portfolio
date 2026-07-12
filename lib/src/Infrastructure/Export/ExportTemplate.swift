@@ -11,7 +11,7 @@ import CoreGraphics
 /// Q-B chose the Core Text renderer (not HTML), a template is just a bundle of typography
 /// and layout knobs — a ``TemplateStyle`` — not a separate document engine. Text formats
 /// (Markdown / plain / DOCX) are content-only and ignore the template.
-enum ExportTemplate: String, CaseIterable, Sendable, Identifiable {
+nonisolated enum ExportTemplate: String, CaseIterable, Sendable, Identifiable {
     /// The original look: sans-serif, black headings, roomy margins (the default, so
     /// existing exports are byte-for-byte unchanged).
     case classic
@@ -65,7 +65,7 @@ enum ExportTemplate: String, CaseIterable, Sendable, Identifiable {
 /// The concrete typography + layout an ``ExportTemplate`` resolves to. A pure value type
 /// (no AppKit), so template definitions are trivially testable; the renderer converts
 /// `headingColor` to an `NSColor` at draw time.
-struct TemplateStyle: Sendable, Equatable {
+nonisolated struct TemplateStyle: Sendable, Equatable {
     var bodySize: CGFloat
     var h1Size: CGFloat
     var h2Size: CGFloat
@@ -89,7 +89,7 @@ struct TemplateStyle: Sendable, Equatable {
 }
 
 /// A device-independent sRGB colour, kept AppKit-free so ``TemplateStyle`` stays pure.
-struct RGBColor: Sendable, Equatable {
+nonisolated struct RGBColor: Sendable, Equatable {
     var red: CGFloat
     var green: CGFloat
     var blue: CGFloat

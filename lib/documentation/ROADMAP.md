@@ -375,12 +375,12 @@ Business/Data/Infrastructure changes. `TODO.md` has the granular breakdown.
       (app icon + name + version + one-liner). Also corrected the app's `MARKETING_VERSION`
       1.0 → **0.4.0** so About reports the real version.
 
-## v0.4.1 — fixes & refinements  (patch release, in progress)
+## v0.4.1 — fixes & refinements  (complete)
 
 This project's first **point release** — a small `v0.x.y` patch on the v0.4.0 shell, gathering bug
-fixes and minor refinements rather than a new feature theme. Presentation-only unless a milestone says
-otherwise; milestones still restart at **A** and commit as `v0.4.1 : Milestone X Completed`. See
-`TODO.md` for the granular breakdown.
+fixes and minor refinements rather than a new feature theme. Mostly Presentation (H also touched
+Infrastructure/Export); milestones restart at **A** and commit as `v0.4.1 : Milestone X Completed`. See
+`MILESTONES.md` for the write-ups.
 
 - [x] **Milestone A — Move the profile preview & its controls to Saved Profiles.** ✅ **Done.** In the
       Portfolio tab, relocated the built-profile **preview**, the **Regenerate description** control, and
@@ -441,22 +441,21 @@ otherwise; milestones still restart at **A** and commit as `v0.4.1 : Milestone X
       `viewModel.save()` action/style; About is unaffected. Seam: Presentation only
       (`Settings/View/SettingsView.swift`). On-device: n/a (UI only).
 
-- [ ] **Milestone H — Clear the concurrency & unused-result build warnings.** Two kinds: the "bunch" of
-      `Main actor-isolated property 'style' can not be referenced from a nonisolated context` warnings
-      (fix by marking the pure value type `ExportTemplate` — and, if needed, `TemplateStyle` —
-      `nonisolated`, since the project defaults isolation to `MainActor`), and a `Result of 'try?' is
-      unused` in `SearchViewModel.saveCurrentSearch()` (discard with `_ =`, and sweep for the same
-      pattern). Compile-time hygiene only, no behaviour change. Seam: Infrastructure + Presentation
-      (`Infrastructure/Export/ExportTemplate.swift`, `Presentation/Search/ViewModel/SearchViewModel.swift`).
-      On-device: n/a.
+- [x] **Milestone H — Clear the concurrency & unused-result build warnings.** ✅ **Done.** Marked the pure
+      Export value types `nonisolated` (`ExportTemplate`, `TemplateStyle`, `RGBColor`, the `RGBColor.nsColor`
+      accessor, and the `Data` little-endian `append` helpers), clearing the whole family of "main
+      actor-isolated … from a nonisolated context" warnings (`ExportTemplate.style`, `nsColor`, and the
+      `ZipArchiveWriter` batch a clean build surfaced), and fixed the `Result of 'try?' is unused` in
+      `SearchViewModel.saveCurrentSearch()` with `_ =`. A clean build is now **warning-free**; behaviour
+      unchanged. Seam: Infrastructure/Export + `SearchViewModel`. On-device: n/a.
 
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
-  & shell) has shipped; **v0.4.1** (fixes & refinements) is the current patch release. Once it ships,
-  **v0.5.0** should pull the next feature item up from Backlog (native `LanguageModel` provider seam,
-  on-device embedding RAG, or optional MCP tools) and letter it A, B, C….
+  & shell) and **v0.4.1** (fixes & refinements) are both complete. **v0.5.0** should pull the next
+  feature item up from Backlog (native `LanguageModel` provider seam, on-device embedding RAG, or
+  optional MCP tools) and letter it A, B, C….
 
 > **Numbering the versions.** Each version letters its own milestones **A, B, C…** from scratch —
 > v0.4.0 restarts at Milestone A (it does **not** continue from v0.3.0's X), and a **patch release like

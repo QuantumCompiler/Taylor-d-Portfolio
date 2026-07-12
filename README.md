@@ -83,10 +83,22 @@ Reworked the app's navigation so it can grow past a single tab strip — a **Pre
 - Polish (C): keyboard navigation (⌘1–⌘5, ⌘⇧[ / ⌘⇧]), sidebar collapse/restore, and an **About**
   pane — plus a version-string fix so the app reports `0.4.0`. *(Milestones A–C.)*
 
-**Next:** v0.4.1 — a **patch release** (bug fixes & small refinements on the navigation shell;
-milestones restart at Milestone A), starting with moving the Portfolio profile preview / regenerate /
-save controls into the Saved Profiles sub-view. Then v0.5.0 (theme TBD; also restarts at Milestone A) —
-likely the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool layer.
+### v0.4.1 — fixes & refinements
+The project's first **patch release** — bug fixes and small refinements on the navigation shell, mostly
+Presentation:
+- Portfolio **Profile** tab is now inputs-only; the built profile's preview, description regeneration,
+  and Save/Update controls moved to **Saved Profiles** (A). **Source Documents** became browsable **by
+  profile**, with whole-row-clickable disclosures (a new `ExpandableRow` component) (F).
+- Removed the `Area / Sub-view` header text everywhere — the segmented tabs and sidebar carry it, and
+  **Results** is a plain section with no tabs (B).
+- **Results ↔ Tracker**: saving a result now moves it out of Results into the Tracker (C); the Tracker
+  gained a tab for **every** application status (All + Saved / Applied / Interviewing / Offer / Accepted
+  / Declined / Rejected / Withdrawn) (D); empty states are centered (E).
+- The Settings **Save** button lost its background band (G), and all concurrency / unused-result build
+  warnings were cleared (H). *(Milestones A–H.)*
+
+**Next:** v0.5.0 (theme TBD; restarts at Milestone A) — likely the native `LanguageModel` provider seam,
+on-device embedding RAG, or an optional MCP tool layer.
 
 ## Build & run
 

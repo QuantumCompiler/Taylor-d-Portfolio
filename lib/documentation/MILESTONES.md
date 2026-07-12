@@ -1526,3 +1526,35 @@ inset background band around it. Make it just the button, no container. Presenta
       device/visual check.
 
 Note: Presentation-only; no ViewModel or lower-layer change.
+
+## Milestone H — Clear the concurrency & unused-result build warnings  ✅ done  (`Infrastructure/Export` + `SearchViewModel`)
+
+Goal: silence the batch of build warnings — a family of "main actor-isolated … can not be referenced
+from a nonisolated context" plus one unused-`try?`. Root cause of the family: the project **defaults
+type isolation to `MainActor`**, so several pure Export value types were MainActor-isolated while the
+nonisolated renderer / zip writer referenced them. Compile-time hygiene only — no behaviour change.
+
+- [x] **Export value types marked `nonisolated`.** `ExportTemplate`, `TemplateStyle`, and `RGBColor`
+      (all pure `Sendable` value types) are now `nonisolated`, clearing the `ExportTemplate.style`
+      default-argument warning and every nonisolated call site at once.
+- [x] **Nonisolated accessors/helpers.** `RGBColor.nsColor` (the AppKit bridge) and the private `Data`
+      little-endian `append(le16:)` / `append(le32:)` helpers are now `nonisolated` — the latter cleared a
+      large batch of warnings in `ZipArchiveWriter` that only a **clean** build surfaced (incremental
+      builds had masked them behind the first `style` warning).
+- [x] **Unused `try?` fixed.** `SearchViewModel.saveCurrentSearch()` now discards the save result
+      explicitly: `_ = try? await saveSearch(buildRequest())`.
+- [x] **Verified warning-free.** A full **clean** build reports **zero** code warnings across the whole
+      project; the full test suite passes on macOS. No runtime behaviour changed (annotations only).
+
+Note: touches Infrastructure/Export (the one non-Presentation milestone in v0.4.1) + Presentation/Search.
+Because the export renderer and zip writer were re-annotated, PDF/DOCX export is on the v0.4.1 device
+checks — behaviour is unchanged but worth a re-verify.
+
+---
+
+**v0.4.1 — fixes & refinements is complete** (Milestones A–H). It was mostly Presentation — profile/
+Saved-Profiles reorg (A), header removal (B), Results↔Tracker triage (C), a Tracker tab per status (D),
+centered empty states (E), per-profile Source Documents with whole-row-clickable `ExpandableRow`
+disclosures (F), and the Settings Save button (G) — plus a warnings-cleanup pass that also touched
+Infrastructure/Export (H). The project version was bumped to **0.4.1**. Next is **v0.5.0** (restarts at
+Milestone A).

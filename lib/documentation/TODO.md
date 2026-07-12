@@ -9,35 +9,24 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.1 — Milestone H** (the last) remains below. **A**–**G** are ✅ **done** (A:
-> profile preview / regenerate / save controls moved into Saved Profiles; B: content-pane header text
-> removed app-wide, tabs-only; C: saved-to-Tracker jobs now leave the Results list; D: the Tracker has a
-> tab per status, All + all 8 stages; E: Tracker (and Results) empty states now centered in the pane; F:
-> Portfolio → Source Documents is now browsable by profile; G: the Settings Save button lost its
-> background band — see `MILESTONES.md`).
-> **H:** clear the build **warnings** — the `ExportTemplate.style` main-actor-isolation batch
-> (mark it `nonisolated`) and the unused `try?` in `SearchViewModel`. v0.4.1 is a
-> **patch release** — bug fixes & small refinements on the
-> v0.4.0 shell — and is this project's first `v0.x.y` point release (see the versioning note in
-> `CLAUDE.md`). Its milestones still restart at **A** and commit as `v0.4.1 : Milestone X Completed`.
-> When v0.4.1 ships, the next *feature* version is **v0.5.0** (also restarting at Milestone A; pick its
-> theme from `ROADMAP.md`'s backlog — native `LanguageModel` provider seam, on-device embedding RAG, or
-> optional MCP tools).
->
-> **⚠️ Awaiting device checks** (verify on a real run, unrelated to the code below): the **sidebar
-> shell + inner nav** — sidebar rows + accent selection, Results/Tracker count badges, each area's
-> segmented sub-views (Portfolio / Search / Tracker stage filters / Settings), the `Area / Sub-view`
-> header, split empty states, keyboard nav (⌘1–⌘5, ⌘⇧[ / ⌘⇧]), sidebar collapse, and the **About**
-> pane (icon + version 0.4.0) all look/feel right; the Search **Fetch** button (now under *From a
-> Link*) is reachable; exported **PDF/DOCX** files open correctly in Preview / Word; the **filter
-> bar** and **swipe card** feel right.
+> **Current focus.** **v0.4.1 is feature-complete — all milestones A–H are done** (A: profile preview /
+> regenerate / save controls moved into Saved Profiles; B: content-pane header text removed app-wide,
+> tabs-only; C: saved-to-Tracker jobs leave the Results list; D: the Tracker has a tab per status, All +
+> all 8 stages; E: Tracker/Results empty states centered; F: Source Documents browsable by profile
+> (whole-row-clickable disclosures via `ExpandableRow`); G: the Settings Save button lost its background
+> band; H: all concurrency + unused-`try?` build warnings cleared — a clean build is warning-free). See
+> `MILESTONES.md` for the write-ups. **Remaining before merge:** the v0.4.1 device checks (below) and the
+> user's commit/merge. v0.4.1 is this project's first `v0.x.y` **patch release** (see the versioning note
+> in `CLAUDE.md`); the next *feature* version is **v0.5.0** (restarts at Milestone A — pick its theme from
+> `ROADMAP.md`'s backlog: native `LanguageModel` provider seam, on-device embedding RAG, or optional MCP
+> tools).
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
 
 ---
 
-# v0.4.1 — fixes & refinements  (patch release, in progress)
+# v0.4.1 — fixes & refinements  (patch release, feature-complete)
 
 This project's **first point release**: a small `v0.x.y` patch on top of the v0.4.0 shell,
 gathering bug fixes and minor refinements rather than a new feature theme. Milestones still restart
@@ -45,53 +34,27 @@ at **A** and are committed as `v0.4.1 : Milestone X Completed`. Presentation-onl
 milestone says otherwise. (See `CLAUDE.md` → Working process → Versioning for how patch releases fit
 the numbering.)
 
-**Milestones A–G are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **H** (the last).
-
-## Milestone H — Clear the concurrency & unused-result build warnings
-
-A warnings-cleanup pass — **not** Presentation-only (touches Infrastructure + Presentation). Two kinds:
-
-**1. `ExportTemplate.style` main-actor-isolation warnings ("a bunch").**
-`Main actor-isolated property 'style' can not be referenced from a nonisolated context`
-(`MarkdownAttributedRenderer.swift:26` and every other nonisolated caller). Root cause: the project
-**defaults actor isolation to `MainActor`**, and `enum ExportTemplate` was never opted out — so its
-computed `style` (and `displayName` / `summary`) are MainActor-isolated, while the code that reads them
-(`nonisolated enum MarkdownAttributedRenderer`, the exporters) is nonisolated. The default argument
-`style: TemplateStyle = ExportTemplate.classic.style` on the nonisolated renderer is the flagged site,
-but the same warning fires at each nonisolated use.
-
-- [ ] **Mark `ExportTemplate` `nonisolated`.** It's a pure value type (`String`-backed, `Sendable`, no UI
-      state), like the already-`nonisolated MarkdownAttributedRenderer` and the plain `TemplateStyle`
-      value — so `nonisolated enum ExportTemplate` is correct and clears the default-argument warning **and**
-      every nonisolated call site at once. Mark `TemplateStyle` `nonisolated` too if any residual isolation
-      warning remains.
-- [ ] Seam: `Infrastructure/Export/ExportTemplate.swift` (+ confirm `MarkdownAttributedRenderer` and the
-      exporters still compile clean).
-
-**2. Unused `try?` result.** `Result of 'try?' is unused`
-(`SearchViewModel.swift:151` — `try? await saveSearch(buildRequest())` in `saveCurrentSearch()` discards
-a non-`Void` result).
-
-- [ ] **Discard explicitly.** `_ = try? await saveSearch(buildRequest())` (or handle the returned value if
-      it's meaningful). Sweep for the same pattern elsewhere (other unused `try?` / discardable results) and
-      clear them the same way.
-- [ ] Seam: `Presentation/Search/ViewModel/SearchViewModel.swift`.
-
-- [ ] **Verify.** A full build reports **zero** of these warnings (check the whole project, not just the
-      two named files — the isolation fix should silence all `'style'` occurrences); full test suite green.
-
-Seam: **Infrastructure + Presentation** (explicitly not Presentation-only) —
-`Infrastructure/Export/ExportTemplate.swift` + `Presentation/Search/ViewModel/SearchViewModel.swift`. No
-behaviour change (compile-time hygiene only). On-device: n/a.
+**All milestones A–H are complete** — write-ups in `MILESTONES.md`. v0.4.1 is **feature-complete**;
+only the release-hygiene items below and the device checks remain before it's merge-ready.
 
 ### v0.4.1 release hygiene (do before merging the patch)
 
 - [x] **Bump the project version to `0.4.1`.** ✅ All **four** `MARKETING_VERSION` copies in
       `project.pbxproj` (Debug/Release × app/test) set to `0.4.1`. Still to verify on a real build: the
       running app's `CFBundleShortVersionString` reads `0.4.1` in Settings → About.
-- [ ] **Docs to shipped state.** ROADMAP v0.4.1 header → **(complete)** with Milestone A ticked; move
-      this write-up into `MILESTONES.md` under a `# v0.4.1 —` group; README gets a v0.4.1 summary and
-      its **Next:** line points to v0.5.0; `TODO.md` carries no remaining v0.4.1 work.
+- [x] **Docs to shipped state.** ✅ ROADMAP v0.4.1 header reads **(complete)** with every milestone
+      ticked; all write-ups are in `MILESTONES.md` under the `# v0.4.1 —` group; README has a v0.4.1
+      summary and its **Next:** line points to v0.5.0; `TODO.md` carries no remaining v0.4.1 work.
+
+> **⚠️ Awaiting device checks (v0.4.1)** — verify on a real run: **A** Portfolio Profile tab is
+> inputs-only and the preview / regenerate / Save controls now sit on **Saved Profiles**; **B** no
+> `Area / Sub-view` header anywhere (content or title bar), Results is a plain section with no tabs;
+> **C** saving a result removes it from Results and it appears in the Tracker; **D** all 9 Tracker
+> status tabs are reachable (the inner nav scrolls) and each filters correctly; **E** the Tracker /
+> Results empty states are centered; **F** Source Documents lists saved profiles, each expanding to its
+> docs, whole row clickable with a pointer cursor; **G** the Settings Save button has no background band
+> and scrolls with the section; **H** exported **PDF/DOCX** still open correctly (the export renderer +
+> zip writer were touched by the concurrency-annotation cleanup — behaviour unchanged, but re-verify).
 
 # v0.5.0 — (theme TBD)
 
