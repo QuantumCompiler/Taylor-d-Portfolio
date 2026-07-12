@@ -9,33 +9,31 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.1 has shipped (feature-complete) — v0.5.0 is next.** All of v0.1.0–v0.4.1
-> are done; see `MILESTONES.md` for the record (v0.4.1 = the profile/Saved-Profiles reorg, header
-> removal, Results↔Tracker triage, a Tracker tab per status, centered empty states, per-profile Source
-> Documents, the Settings Save button, and a build-warnings cleanup). **v0.5.0 restarts its milestones at
-> Milestone A** (see the versioning note in `CLAUDE.md`) — pick the next theme from `ROADMAP.md`'s backlog
-> (native `LanguageModel` provider seam, on-device embedding RAG, or optional MCP tools) and break it into
-> Milestone A, B, C… below before starting.
+> **Current focus.** **v0.5.0 — document generation fixes — is complete and ready to merge.** All of
+> v0.1.0–v0.5.0 are done (see `MILESTONES.md`). **The next version is unstarted** — its number and theme
+> aren't decided until development on it begins (see `CLAUDE.md` → "Never pre-name the next version"). At the
+> next planning session, pick a theme from `ROADMAP.md`'s Backlog (native `LanguageModel` provider seam,
+> on-device embedding RAG, or optional MCP tools), assign the version number + bump the project version, and
+> break it into Milestone A, B, C… below.
 >
-> **⚠️ Awaiting device checks (v0.4.1)** — verify on a real run (carried across the merge): **A** the
-> Portfolio Profile tab is inputs-only and the preview / regenerate / Save controls now sit on **Saved
-> Profiles**; **B** no `Area / Sub-view` header anywhere (content or title bar), Results is a plain
-> section with no tabs; **C** saving a result removes it from Results and it appears in the Tracker;
-> **D** all 9 Tracker status tabs are reachable (the inner nav scrolls) and each filters correctly;
-> **E** the Tracker / Results empty states are centered; **F** Source Documents lists saved profiles,
-> each expanding to its docs, whole row clickable with a pointer cursor; **G** the Settings Save button
-> has no background band and scrolls with the section; **H** exported **PDF/DOCX** still open correctly
-> (the export renderer + zip writer were re-annotated in the concurrency cleanup — behaviour unchanged,
-> but re-verify). Also confirm the running app's `CFBundleShortVersionString` reads **0.4.1** in
-> Settings → About.
+> **⚠️ Awaiting device checks (v0.5.0)** — verify on a real run (some carry across the merge): job detail +
+> Application open as **separate windows** (B); marking status / saving / generating in a window refreshes
+> the main-window Results/Tracker lists (B-A revision token); **explicit Generate** button with the options
+> panel (no auto-generate on open); **fidelity** + **aspect** checkboxes visibly shift the output; **presets**
+> save / apply / delete; **embellished** mode shows the disclosures + "verify before sending"; the
+> **rank-target** loop converges and greys out fidelity/aspects; swipe-to-save/delete on Results and
+> remove-from-Tracker (return to Results / delete); and the Claude engine no longer triggers spurious
+> Photos/Music privacy prompts. Also confirm Settings → About reads **0.5.0**.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
 
 ---
 
-# v0.5.0 — (theme TBD)
+# Next version — (unstarted; number + theme TBD)
 
-**Milestones restart at Milestone A** for v0.5.0 (see the versioning note in `CLAUDE.md`). Nothing is
-scheduled yet — pick the next theme from `ROADMAP.md`'s backlog (native `LanguageModel` provider seam,
-on-device embedding RAG, optional MCP tools) and break it into Milestone A, B, C… here before starting.
+**Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its
+**number and theme aren't chosen until development starts** — Taylor decides then, so don't pre-name it here
+(see `CLAUDE.md` → "Never pre-name the next version"). At kickoff, pick a theme from `ROADMAP.md`'s Backlog
+(native `LanguageModel` provider seam, on-device embedding RAG, optional MCP tools), assign the version
+number, bump `MARKETING_VERSION`, and break it into Milestone A, B, C… here before starting.

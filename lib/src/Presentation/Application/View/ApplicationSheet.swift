@@ -17,6 +17,12 @@ struct ApplicationSheet: View {
     /// The candidate's real documents for grounded generation (Milestone T); nil falls
     /// back to profile-only generation.
     var grounding: PortfolioGrounding? = nil
+    /// Bumped by the hosting window on every open request, so the single-instance
+    /// Application window reloads the saved materials when re-opened for a different job.
+    var requestID: Int = 0
+    /// Called after fresh materials are generated, so the hosting window can signal the
+    /// lists + detail view to reload (v0.5.0 Milestone B-C).
+    var onGenerated: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
     // Export state for the save panel.
@@ -24,6 +30,7 @@ struct ApplicationSheet: View {
     @State private var exportContentType: UTType = .plainText
     @State private var exportFilename = "Application"
     @State private var isExporting = false
+    @State private var showOptions = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -65,8 +72,13 @@ struct ApplicationSheet: View {
                     .fixedSize()
                     .clickableCursor()
                 }
-                if viewModel.kit != nil {
-                    Button("Regenerate") { Task { await viewModel.generate(for: job, profile: profile, grounding: grounding) } }
+                if viewModel.kit == nil {
+                    Button("Generate application") { runGeneration() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(viewModel.isGenerating)
+                        .clickableCursor()
+                } else {
+                    Button("Regenerate") { runGeneration() }
                         .disabled(viewModel.isGenerating)
                         .clickableCursor()
                 }
@@ -75,12 +87,21 @@ struct ApplicationSheet: View {
                     .clickableCursor()
             }
             lengthGateBanner
+            generationControlsPanel
+            embellishWarning
+            rankOutcomeBanner
             Divider()
             content
         }
         .padding(24)
         .frame(minWidth: 520, minHeight: 440)
-        .task { await viewModel.open(for: job, profile: profile, grounding: grounding) }
+        // Load saved materials if present — but never auto-generate. Generation is started
+        // explicitly with the Generate button so the user can set options first (v0.5.0).
+        .task {
+            await viewModel.loadSaved(for: job)
+            await viewModel.loadPresets()
+        }
+        .onChange(of: requestID) { _, _ in Task { await viewModel.loadSaved(for: job) } }
         // The one-page gate is template-dependent — remeasure when the user switches template.
         .onChange(of: viewModel.exportTemplate) { _, _ in viewModel.refreshLengthGate() }
         .fileExporter(
@@ -89,6 +110,169 @@ struct ApplicationSheet: View {
             contentType: exportContentType,
             defaultFilename: exportFilename
         ) { _ in }
+    }
+
+    // MARK: Generation controls (Milestone D)
+
+    /// The fidelity slider + tailored-aspect checkboxes. Changes apply when the user presses
+    /// Generate / Regenerate (the controls drive `viewModel.generationSettings`).
+    private var generationControlsPanel: some View {
+        DisclosureGroup("Generation options", isExpanded: $showOptions) {
+            VStack(alignment: .leading, spacing: 12) {
+                rankTargetControl
+                Divider()
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Fidelity").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Text(fidelityLabel).font(.caption.bold())
+                    }
+                    Slider(value: $viewModel.generationSettings.fidelity, in: 0...1, step: 0.05)
+                        .clickableCursor()
+                        .disabled(rankTargetOn)
+                    HStack {
+                        Text("Authentic")
+                        Spacer()
+                        Text("Curated")
+                        Spacer()
+                        Text("Embellished")
+                    }
+                    .font(.caption2).foregroundStyle(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Tailor (none checked = all sections)").font(.caption).foregroundStyle(.secondary)
+                    ForEach(TailoredAspect.allCases) { aspect in
+                        Toggle(aspect.label, isOn: aspectBinding(aspect))
+                            .toggleStyle(.checkbox)
+                            .clickableCursor()
+                    }
+                }
+                .disabled(rankTargetOn)
+                .opacity(rankTargetOn ? 0.5 : 1)
+                if viewModel.canManagePresets {
+                    Divider()
+                    presetsRow
+                }
+                Text("Changes apply when you Generate / Regenerate.").font(.caption2).foregroundStyle(.secondary)
+            }
+            .padding(.top, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .clickableCursor()
+    }
+
+    /// Apply a saved preset, delete one, or save the current settings as a new preset (D-D).
+    private var presetsRow: some View {
+        HStack {
+            Menu {
+                if viewModel.presets.isEmpty {
+                    Text("No saved presets")
+                } else {
+                    ForEach(viewModel.presets) { preset in
+                        Button(preset.name) { viewModel.applyPreset(preset) }
+                    }
+                    Divider()
+                    Menu("Delete…") {
+                        ForEach(viewModel.presets) { preset in
+                            Button(preset.name, role: .destructive) {
+                                Task { await viewModel.deletePreset(preset) }
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Label("Presets", systemImage: "slider.horizontal.3")
+            }
+            .fixedSize()
+            .clickableCursor()
+            Spacer()
+            Button("Save as preset") { Task { await viewModel.saveCurrentAsPreset() } }
+                .clickableCursor()
+        }
+    }
+
+    private var fidelityLabel: String {
+        switch viewModel.generationSettings.band {
+        case .authentic: return "Authentic"
+        case .curated: return "Curated"
+        case .embellished: return "Embellished"
+        }
+    }
+
+    /// Whether a rank target is engaged (D-F) — it overrides fidelity + aspects.
+    private var rankTargetOn: Bool { viewModel.generationSettings.desiredRankMatch != nil }
+
+    /// The rank-target master control (D-F): when on, generation fabricates as needed to hit
+    /// a target score and overrides fidelity + aspects.
+    private var rankTargetControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle("Target a match score", isOn: rankTargetBinding)
+                .toggleStyle(.switch)
+                .clickableCursor()
+            if let target = viewModel.generationSettings.desiredRankMatch {
+                HStack {
+                    Slider(value: rankTargetSliderBinding, in: 0...100, step: 5).clickableCursor()
+                    Text("\(target)").font(.caption.bold()).monospacedDigit().frame(width: 34, alignment: .trailing)
+                }
+                Label("Fabricates as needed to hit this score — overrides fidelity & sections. Verify before sending.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption2).foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private var rankTargetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.generationSettings.desiredRankMatch != nil },
+            set: { on in viewModel.generationSettings.desiredRankMatch = on ? 80 : nil }
+        )
+    }
+
+    private var rankTargetSliderBinding: Binding<Double> {
+        Binding(
+            get: { Double(viewModel.generationSettings.desiredRankMatch ?? 80) },
+            set: { viewModel.generationSettings.desiredRankMatch = Int($0) }
+        )
+    }
+
+    /// The achieved-score note after a rank-target generation (D-F).
+    @ViewBuilder private var rankOutcomeBanner: some View {
+        if let note = viewModel.rankOutcomeNote {
+            let reached = viewModel.rankOutcome?.reachedTarget == true
+            Label(note, systemImage: reached ? "target" : "exclamationmark.triangle")
+                .font(.caption)
+                .foregroundStyle(reached ? .green : .orange)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background((reached ? Color.green : Color.orange).opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+        }
+    }
+
+    private func aspectBinding(_ aspect: TailoredAspect) -> Binding<Bool> {
+        Binding(
+            get: { viewModel.generationSettings.aspects.contains(aspect) },
+            set: { isOn in
+                if isOn { viewModel.generationSettings.aspects.insert(aspect) }
+                else { viewModel.generationSettings.aspects.remove(aspect) }
+            }
+        )
+    }
+
+    /// The disclosure warning shown whenever the fidelity is in the embellished band
+    /// (Milestone D-E): generated content may include unverified additions.
+    @ViewBuilder private var embellishWarning: some View {
+        if viewModel.generationSettings.mayEmbellish {
+            Label(
+                "Embellished mode may add unverified content. Review the Gaps note (lines marked "
+                + "\"EMBELLISHED:\") and verify everything before sending — this is a draft.",
+                systemImage: "exclamationmark.triangle.fill"
+            )
+            .font(.caption)
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+        }
     }
 
     /// A surfaced one-page warning (Milestone X): the résumé runs long in the chosen
@@ -113,6 +297,15 @@ struct ApplicationSheet: View {
         }
     }
 
+    /// Explicitly generates (or regenerates) the application with the current options, then
+    /// signals `onGenerated` so the lists + detail refresh (v0.5.0).
+    private func runGeneration() {
+        Task {
+            await viewModel.generate(for: job, profile: profile, grounding: grounding)
+            onGenerated?()
+        }
+    }
+
     /// Renders the kit to `format` and presents the save panel.
     private func startExport(_ format: ExportFormat) {
         guard let data = viewModel.exportData(format) else { return }
@@ -133,19 +326,29 @@ struct ApplicationSheet: View {
         if viewModel.isGenerating {
             ProgressView("Generating…").frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if let kit = viewModel.kit {
+            let parts = GapNoteParts.parse(kit.gapNote)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     documentSection("Résumé", kit.resumeMarkdown)
                     documentSection("Cover letter", kit.coverLetter)
-                    if !kit.gapNote.isEmpty {
-                        gapsSection(kit.gapNote)
+                    if parts.hasEmbellishments {
+                        disclosuresSection(parts.embellishments)
+                    }
+                    if !parts.gaps.isEmpty {
+                        gapsSection(parts.gaps)
                     }
                 }
             }
         } else if let error = viewModel.errorMessage {
             ContentUnavailableView("Couldn't generate", systemImage: "exclamationmark.triangle", description: Text(error))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            Spacer()
+            ContentUnavailableView(
+                "Ready to generate",
+                systemImage: "sparkles",
+                description: Text("Set your fidelity and which sections to tailor above, then press **Generate application**.")
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -167,6 +370,27 @@ struct ApplicationSheet: View {
                 .help("Copy the \(title.lowercased()) (Markdown)")
                 .clickableCursor()
             }
+        }
+    }
+
+    /// The disclosed embellishments (D-E): content NOT supported by the real profile. A hard
+    /// integrity surface — the user must verify these before sending.
+    private func disclosuresSection(_ items: [String]) -> some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(items, id: \.self) { item in
+                    Label(item, systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                        .textSelection(.enabled)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(4)
+        } label: {
+            Label("Disclosures — unverified, embellished content. Verify before sending.",
+                  systemImage: "exclamationmark.shield.fill")
+                .foregroundStyle(.orange)
         }
     }
 

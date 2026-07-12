@@ -70,6 +70,9 @@ struct Composition {
     /// Status use cases (nil when persistence is unavailable) — read by the detail view.
     var markStatus: MarkStatusUseCase? { savedStatusRepository.map { MarkStatusUseCase(repository: $0) } }
     var loadStatus: LoadStatusUseCase? { savedStatusRepository.map(LoadStatusUseCase.init(repository:)) }
+    /// The saved-application loader — lets the Tracker detail offer a "View" affordance when a
+    /// generated kit already exists (v0.5.0 Milestone A).
+    var loadApplication: LoadApplicationUseCase? { savedApplicationsRepository.map(LoadApplicationUseCase.init(repository:)) }
     private var loadTrackedJobs: LoadTrackedJobsUseCase? {
         guard let savedJobsRepository, let savedStatusRepository else { return nil }
         return LoadTrackedJobsUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository)
@@ -84,6 +87,9 @@ struct Composition {
         guard let savedJobsRepository, let savedStatusRepository, let savedApplicationsRepository else { return nil }
         return DeleteSavedJobUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository, applications: savedApplicationsRepository)
     }
+    /// Remove a job from the Tracker without forgetting it — clears only its status so it
+    /// returns to Results (v0.5.0).
+    private var untrackJob: UntrackJobUseCase? { savedStatusRepository.map(UntrackJobUseCase.init(statuses:)) }
 
     // MARK: Gateways (read settings live, so Settings edits take effect immediately)
 
@@ -109,6 +115,7 @@ struct Composition {
         .init(jobSource: jobSource, ranker: JobRanker(provider: llmProvider))
     }
     private var generateApplication: GenerateApplicationUseCase { .init(provider: llmProvider) }
+    private var generateToTarget: GenerateToTargetUseCase { .init(provider: llmProvider) }
     private var exportApplication: ExportApplicationUseCase { .init(exporter: RoutingDocumentExporter()) }
     private var fetchPosting: FetchPostingUseCase {
         .init(postingSource: jobPostingSource, ranker: JobRanker(provider: llmProvider))
@@ -130,6 +137,18 @@ struct Composition {
     }
     private var deleteSavedSearch: DeleteSavedSearchUseCase? {
         savedSearchesRepository.map(DeleteSavedSearchUseCase.init(repository:))
+    }
+    private var generationPresetsRepository: GenerationPresetsRepository? {
+        recordStore.map(GenerationPresetsRepository.init(store:))
+    }
+    private var saveGenerationPreset: SaveGenerationPresetUseCase? {
+        generationPresetsRepository.map { SaveGenerationPresetUseCase(repository: $0) }
+    }
+    private var loadGenerationPresets: LoadGenerationPresetsUseCase? {
+        generationPresetsRepository.map(LoadGenerationPresetsUseCase.init(repository:))
+    }
+    private var deleteGenerationPreset: DeleteGenerationPresetUseCase? {
+        generationPresetsRepository.map(DeleteGenerationPresetUseCase.init(repository:))
     }
     private var saveProfile: SaveProfileUseCase? {
         savedProfilesRepository.map { SaveProfileUseCase(repository: $0) }
@@ -183,7 +202,10 @@ struct Composition {
         )
     }
     func makeTrackerViewModel() -> TrackerViewModel {
-        .init(loadTrackedJobs: loadTrackedJobs, loadJobHistory: loadJobHistory)
+        .init(
+            loadTrackedJobs: loadTrackedJobs, loadJobHistory: loadJobHistory,
+            untrackJob: untrackJob, deleteSavedJob: deleteSavedJob
+        )
     }
     func makeSettingsViewModel() -> SettingsViewModel {
         .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured)
@@ -191,9 +213,13 @@ struct Composition {
     func makeApplicationViewModel() -> ApplicationViewModel {
         .init(
             generateApplication: generateApplication,
+            generateToTarget: generateToTarget,
             saveApplication: savedApplicationsRepository.map(SaveApplicationUseCase.init(repository:)),
-            loadApplication: savedApplicationsRepository.map(LoadApplicationUseCase.init(repository:)),
-            exportApplication: exportApplication
+            loadApplication: loadApplication,
+            exportApplication: exportApplication,
+            saveGenerationPreset: saveGenerationPreset,
+            loadGenerationPresets: loadGenerationPresets,
+            deleteGenerationPreset: deleteGenerationPreset
         )
     }
 }
@@ -246,6 +272,12 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     }
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
         try await router().generateApplication(for: job, profile: profile, brief: brief, grounding: grounding)
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit {
+        try await router().generateApplication(for: job, profile: profile, brief: brief, grounding: grounding, settings: settings)
+    }
+    func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
+        try await router().scoreApplication(for: job, brief: brief, kit: kit)
     }
 }
 

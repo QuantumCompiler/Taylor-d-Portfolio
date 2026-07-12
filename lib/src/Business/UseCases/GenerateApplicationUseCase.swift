@@ -22,9 +22,12 @@ nonisolated struct GenerateApplicationUseCase: Sendable {
     func callAsFunction(
         job: JobListing,
         profile: CandidateProfile,
-        grounding: PortfolioGrounding? = nil
+        grounding: PortfolioGrounding? = nil,
+        settings: GenerationSettings = .default
     ) async throws -> ApplicationKit {
         let brief = try await provider.buildTargetBrief(for: job)
-        return try await provider.generateApplication(for: job, profile: profile, brief: brief, grounding: grounding)
+        return try await provider.generateApplication(
+            for: job, profile: profile, brief: brief, grounding: grounding, settings: settings
+        )
     }
 }

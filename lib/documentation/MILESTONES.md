@@ -1558,3 +1558,262 @@ centered empty states (E), per-profile Source Documents with whole-row-clickable
 disclosures (F), and the Settings Save button (G) — plus a warnings-cleanup pass that also touched
 Infrastructure/Export (H). The project version was bumped to **0.4.1**. Next is **v0.5.0** (restarts at
 Milestone A).
+
+---
+
+# v0.5.0 — document generation fixes
+
+Theme: round out the tailored résumé + cover letter experience — the paths to view and regenerate the
+generated documents, and (later milestones) controls over how they're generated. Milestones restart at
+**A**; the project version is bumped to **0.5.0**.
+
+## Milestone A — View generated résumé & cover letter from the Tracker  ✅ done  (`Presentation`: `JobDetailView`, `TrackerView`, `RootView`, `Composition`, `ApplicationSheet` + `ApplicationViewModel`)
+
+Goal: after generating a job's materials from the Tracker, give the user a clear way back to them. The kit
+already persisted and reloaded without an LLM call (`ApplicationViewModel.open(for:)`), but the detail
+footer showed only a lone "Generate résumé & cover letter" button with no "already generated" signal — so
+the materials were effectively invisible.
+
+- [x] **Detect saved materials.** `JobDetailView` gained an optional
+      `loadApplication: LoadApplicationUseCase?`; its `.task` now loads both the status and a
+      `hasGeneratedMaterials` flag (`refreshHasMaterials()`), and re-checks after the Application sheet
+      closes (`.onChange(of: showingApplication)`), so the View button appears immediately after a first
+      generation. Follows the existing `loadStatus` direct-use-case pattern (the view has no ViewModel).
+- [x] **View + Regenerate footer.** A pure
+      `JobDetailFooter.resolve(canGenerate:hasGeneratedMaterials:canSaveToTracker:)` decides the footer:
+      Results context → Save-to-Tracker (unchanged); Tracker with no kit → **Generate**; Tracker with a
+      saved kit → **View résumé & cover letter** (primary) + **Regenerate**.
+- [x] **View vs regenerate routing.** New `ApplicationStartMode` (`.viewOrGenerate` / `.forceGenerate`)
+      passed into `ApplicationSheet`; its `.task` calls `open` (load saved, no LLM) or `generate` (fresh)
+      accordingly. **View** loads only; **Regenerate** forces fresh. *(Resolved the two planning open calls:
+      the second button is "Regenerate" and force-regenerates; the in-sheet Regenerate button coexists
+      harmlessly.)*
+- [x] **Wiring.** `LoadApplicationUseCase` exposed on `Composition` (`var loadApplication`, also reused by
+      `makeApplicationViewModel`), threaded `RootView` → `TrackerView` → `JobDetailView`. Results context
+      (`canGenerate == false`) is unaffected — no View/Generate there.
+- [x] **Tests.** `JobDetailFooterTests` covers the pure resolver (tracker with/without materials; Results
+      stays Save-only even if a kit exists; no-action fallback). Full suite green.
+
+On-device: yes — the existence check is a local `PersistentRecordStore` read; regeneration uses the current
+`.application` engine. Note (A × B): once Milestone B converts the Application sheet to a window, the View /
+Regenerate buttons should open that **window** instead of the sheet.
+
+## Milestone B — Job detail & Application as real windows, not sheets  ✅ done (B-A + B-B + B-C)  (`Presentation`: new `AppSession` / `JobDetailWindow` / `ApplicationWindow`, `App`, `RootView`, `JobDetailView`, `ApplicationSheet`, `ResultsView`, `TrackerView`)
+
+Goal: replace the modal **sheets** (the job-detail `.sheet(item:)` in Results + Tracker, and the Application
+`.sheet(isPresented:)` nested inside it) with genuine detached macOS **windows**.
+
+**Design decision — session-driven single-instance `Window`s (not value-keyed `WindowGroup(for:)`).** A
+detached scene renders outside `RootView`'s tree, and `PortfolioGrounding` isn't `Codable`, so profile +
+grounding must be shared via app-level state regardless. Given that, the selected job is also held on the
+shared state (in-memory) rather than serialized as a window value — which sidesteps the id→load round-trip,
+the `Hashable` requirement on `RankedJob`/`JobListing`, and a value-dedup-vs-regenerate conflict. Net: two
+reusable single-instance `Window`s that re-target on each open.
+
+- [x] **B-A — Shared session.** New `@MainActor @Observable AppSession` (`Presentation/App/AppSession.swift`):
+      `profile` + `grounding` (mirrored from `PortfolioViewModel` by `RootView`), the detail/application
+      selections, and a **revision token** (`dataChanged()`). Owned by `Taylor_d_PortfolioApp` as `@State`,
+      injected into every scene via `.environment`. `RootView.onChange(of: session.revision)` reloads
+      `tracker.load()` + `results.refreshHistory()` (a detached window has no sheet-dismiss callback).
+      Tests: `AppSessionTests`.
+- [x] **B-B — Job Detail window.** Single-instance `Window("Job Detail", id: JobDetailWindow.id)`;
+      `JobDetailWindow` reads `session.detailJob` + profile/grounding and builds `JobDetailView` from
+      `Composition`. Results + Tracker rows call `session.showDetail(_:context:)` + `openWindow` instead of
+      the removed `.sheet(item:)`. `canGenerate = (context == .tracker)`; Results Save-to-Tracker is a direct
+      `MarkStatusUseCase(.saved)` call. `JobDetailView` gained `allowsSwipe` (off in-window) + an `onMutate`
+      callback (→ `session.dataChanged()`).
+- [x] **B-C — Application window.** Single-instance `Window("Application", id: ApplicationWindow.id)`;
+      `ApplicationWindow` reads `session.applicationJob` + start mode + `applicationRequestID` and hosts
+      `ApplicationSheet`. `JobDetailView`'s View/Generate/Regenerate buttons now call an `onOpenApplication`
+      closure → `session.showApplication(_:mode:)` + `openWindow` (the nested `.sheet` + its per-window
+      `ApplicationViewModel` param are gone). `ApplicationSheet` gained `requestID` (re-runs its start mode
+      when the single window re-opens for a new request) + `onGenerated` (→ `session.dataChanged()`, so the
+      lists and the detail window's View button refresh). Generation/export/one-page-gate logic unchanged —
+      only the container moved.
+- [x] **Cleanup.** Removed the now-dead detail params (`profile`, `applicationViewModel`, `markStatus`,
+      `loadStatus`, `grounding`, `loadApplication`) from `ResultsView` / `TrackerView` and their `RootView`
+      call sites, plus the shared `application` VM + status use-case props on `RootView`.
+
+Tests: `AppSessionTests` (revision bump, `showDetail` targeting); existing VM/footer suites unchanged; full
+suite green, warning-free. **Window presentation itself is a manual (device) check** — B-A/B-B verified on a
+real run; B-C (Application window open / View↔Regenerate re-run / list refresh) to confirm on device.
+On-device: yes — local reads + existing engines, no network, no new persistence.
+
+## Milestone C — Remove the redundant "Mark as applied" button  ✅ done  (`Presentation/Results`: `JobDetailView`)
+
+Goal: the detail view's Application-status section showed a prominent **"Mark as applied"** button for
+untracked jobs, next to a **"Set status"** menu that already lists every settable stage — so the button was
+redundant.
+
+- [x] Removed the `if status == nil { Button("Mark as applied") … }` block from `JobDetailView.statusSection`.
+      Applied stays reachable via **Set status → Applied** (`ApplicationStage.settable` excludes only `.saved`)
+      with the identical auto-date-stamp (`mark(.applied)`). The `StatusBadge` / "Not tracked yet" text and
+      the "Set status" menu are unchanged.
+
+Seam: Presentation only, one file; `MarkStatusUseCase` / stamping untouched. Existing status coverage
+(`StatusUseCaseTests`) stands; full suite green. On-device: n/a (UI only).
+
+## Milestone D — Generation controls: fidelity, tailored aspects, presets, disclosure & rank-target  ✅ done (D-A…D-F)  (`Data/Models` + `Data/LLM` + `Data/Persistence` + `Business/UseCases` + Application Presentation)
+
+Goal: give the user control over how a job's tailored application is generated — a controls panel with a
+fidelity scale, section checkboxes, saved presets, disclosed embellishment, and an outcome-driven rank
+target. **Grounded stays the default**; embellishment/fabrication is opt-in and always disclosed. The
+default (`GenerationSettings.default`) path is **byte-for-byte** the pre-D prompt.
+
+- [x] **D-A — Model + threading + button.** `GenerationSettings` (`fidelity` + `aspects` + `desiredRankMatch`)
+      / `TailoredAspect` / `FidelityBand` (`Data/Models`). `settings` threaded `GenerateApplicationUseCase`
+      → `LLMProvider.generateApplication(…settings:)` (new requirement + forwarding default, like `grounding`)
+      → `Prompts.generateApplication` via a `generationControls(_:)` addendum (empty for `.default`). Both
+      engines + router override; `ApplicationViewModel.generationSettings`. Button renamed
+      **"Generate application"** / **"View application"**.
+- [x] **D-B — Fidelity scale.** A `0…1` slider (Authentic / Curated / Embellished bands at 0.15 / 0.75)
+      mapped to **prompt latitude** (open call resolved: no LLM sampling-temperature, to keep the two engines
+      in lockstep). Authentic = today's guardrail; curated = emphasize + infer adjacent skills; embellished =
+      permit plausible additions.
+- [x] **D-C — Tailored aspects (four résumé sections).** `TailoredAspect` = `summary` / `experience` /
+      `projects` / `skills` (empty = all). *Revision applied:* dropped `education` (verbatim) and
+      `coverLetter` (derived from the tailored résumé); each targeted section carries the objective to
+      **match the job post's keywords + description**; the cover letter is written from the tailored résumé.
+- [x] **D-D — Presets.** `GenerationPreset` + `GenerationPresetsRepository` (`kind` "generationPreset") +
+      `SaveGenerationPresetUseCase` / `LoadGenerationPresetsUseCase` / `DeleteGenerationPresetUseCase`
+      (mirroring `SavedSearch`); a **Presets** menu (apply / delete) + **Save as preset** (auto-named) in the
+      panel. Presets are global.
+- [x] **D-E — Disclosure.** The embellished band's prompt lists additions as `EMBELLISHED:` lines in
+      `gapNote`; a pure `GapNoteParts.parse` splits those from the honest gaps, and the Application view shows
+      a distinct **"Disclosures — verify before sending"** section + an embellished-mode warning banner.
+      *(open call resolved: no export "draft" watermark — stamping the deliverable is counterproductive; the
+      in-app warning is the safeguard.)*
+- [x] **D-F — Desired rank-match target (the master control).** A rank slider (0–100) that, when set,
+      **overrides fidelity + aspects** (they grey out) and runs `GenerateToTargetUseCase`: a new
+      `LLMProvider.scoreApplication(job:brief:kit:) → JobMatch` step scores the tailored résumé, and the loop
+      **generate → score → escalate latitude → regenerate** (curated → embellished → full fabrication) repeats
+      to a hard cap (default 4 rounds), stopping at the target or returning the best attempt with the achieved
+      score ("Reached 78 of your 85 target"). The winning kit carries its own D-E disclosures.
+
+**Integrity:** SPEC "Grounded generation" + CLAUDE.md "Hard rules" were revised (during planning) to
+*grounded-by-default + opt-in + disclosed*. The rank-target loop is the most aggressive mode; its D-E
+disclosure is mandatory.
+
+Also shipped as a follow-up (see the "Fix — Generation is user-initiated" entry below): generation is
+**explicit** (no auto-generate on open), so the controls can be set first.
+
+Tests: `GenerationSettingsTests`, `PromptsTests` (default byte-for-byte / curated / embellished-disclosure /
+aspect-scope + keyword goal), `GenerationPresetsRepositoryTests`, `GapNotePartsTests`,
+`GenerateToTargetUseCaseTests` (stop-at-target / cap-returns-best / fidelity escalation / VM uses the loop).
+Full suite green, warning-free. **Live LLM behaviour (does fidelity/rank actually shift output, does the
+loop converge) is a manual device check.** On-device: yes — presets are local; prompt-driven fidelity keeps
+both engines in lockstep; the rank loop's extra scoring calls run on the current `.application` engine.
+
+## Fix — Runtime provider dropped the D settings/score methods + stale length banner  ✅ done  (`Composition.SettingsBackedLLMProvider`, `ApplicationViewModel`)  — Milestone D follow-up
+
+Two bugs surfaced on a device run (rank-target generation failed with "Couldn't generate"):
+
+- [x] **Root cause — the runtime provider adapter was missing the new methods.** `SettingsBackedLLMProvider`
+      (the live `LLMProvider` the app uses, which forwards each call to a freshly-built `LLMRouter`) explicitly
+      forwards every protocol method, but the two added in Milestone D weren't added to it. So
+      `generateApplication(…settings:)` fell through to the **ignore-settings** forwarding default (fidelity /
+      aspects were silently dropped at runtime, even though unit tests passed via the router/providers), and
+      `scoreApplication(…)` fell through to the **throwing** default → the D-F rank-target loop threw. Fixed by
+      forwarding both to `router()`. **This also means D-B/D-C now actually affect real output** (they didn't
+      before this fix).
+- [x] **UI — stale length-gate banner.** `resumeExceedsOnePage` was `resumePageCount > 1` regardless of a
+      kit, so a page count from a prior generation lingered as a "Résumé is 3 pages…" banner after a
+      failed/cleared generation. Now requires `kit != nil`.
+- [x] **UI — center the Application content messages.** The "Couldn't generate" `ContentUnavailableView`
+      lacked the `.frame(maxWidth: .infinity, maxHeight: .infinity)` stretch (its loading / "Ready to
+      generate" siblings had it), so it hugged the top instead of centering. Added the frame; audited the
+      other `ContentUnavailableView`s app-wide — all centered (Portfolio/Search deliberately use the
+      left-aligned `InlineEmptyState` for scrolling screens, per v0.4.1 Milestone E).
+- [x] **Regression guard.** `LLMRouterTests.routesRankAndGenerateToo` extended to exercise
+      `generateApplication(…settings:)` + `scoreApplication` forwarding. Full suite green, warning-free.
+
+Seam: Presentation (Composition adapter + ApplicationViewModel). On-device: yes.
+
+## Fix — Spurious Photos/Music privacy prompts from the Claude subprocess  ✅ done  (`Infrastructure/LLM/ClaudeProcessClient`)
+
+The unsandboxed app launched `claude -p` **without a working directory**, so the child inherited the app's
+CWD (the user's home for a Finder-launched app). The Claude CLI's startup context-scan then reached
+TCC-protected locations (Photos = `~/Pictures`, Music = `~/Music`, Documents…), and because the app is
+unsandboxed macOS attributed those accesses to **Taylor'd Portfolio** and prompted the user — access that
+makes no sense for a job app. (Confirmed the built app's entitlements are clean: only file-picker /
+network / debug — no media entitlements, so these were runtime TCC prompts, not declared capabilities.)
+
+- [x] `ClaudeProcessClient.runProcess` now sets `process.currentDirectoryURL` to a neutral, app-owned
+      **Caches subdirectory** (`…/Caches/ClaudeProcess`, not TCC-protected, created on demand) via
+      `neutralWorkingDirectory()`. The child has nothing to traverse into the home folder, so the prompts
+      stop. `HOME` is left intact so Claude still finds its `~/.claude` auth/config.
+
+Note for the user: macOS caches prior TCC decisions, so already-granted/denied entries persist in
+System Settings → Privacy & Security; they can be cleared with `tccutil reset Photos com.veritum.Taylor-d-Portfolio`
+(and `... SystemPolicyDocumentsFolder`, `MediaLibrary`, etc.) if desired. Seam: Infrastructure only.
+
+## Fix — Restore swipe-to-save/delete on Results  ✅ done  (`Presentation/Results`: `ResultsView`)  — Milestone B follow-up
+
+Milestone B moved the result detail into a window, which dropped the V-C swipe gesture (it lived on the
+old detail *card*). Restored it directly on the **Results list rows** using native macOS `List`
+`.swipeActions`, reusing the same view-model methods as the existing row icons:
+
+- [x] **Swipe right (leading) = Save to Tracker** (`viewModel.saveToTracker`, green, full-swipe enabled).
+- [x] **Swipe left (trailing) = Delete** (`viewModel.delete`, destructive). `allowsFullSwipe: false` — a
+      full swipe *reveals* the Delete button rather than firing instantly, since delete also clears the
+      job's saved status + generated materials. (Open to enabling full-swipe delete if preferred.)
+- [x] Gated on `supportsRowActions` (same as the icons); the explicit save/delete icons remain. Build +
+      full suite green, warning-free.
+
+Seam: Presentation only (`ResultsView.resultRow`). On-device: n/a (UI only).
+
+## Feature — Remove a job from the Tracker (return to Results or delete)  ✅ done  (`Business/UseCases`, `TrackerViewModel`, `TrackerView`, `Composition`)
+
+Ad-hoc request: from the Tracker, remove a job — either **put it back in Results** or **delete it entirely**.
+
+- [x] **Untrack (return to Results).** New `UntrackJobUseCase` (`Business/UseCases`) clears **only** the job's
+      `ApplicationStatus` (`SavedStatusRepository.delete`), keeping the saved listing + any generated
+      materials — so the job drops out of the Tracker and reappears in Results as an un-triaged result
+      (reversible). `TrackerViewModel.returnToResults(_:)`.
+- [x] **Delete entirely.** Reuses `DeleteSavedJobUseCase` (listing + status + materials).
+      `TrackerViewModel.delete(_:)`.
+- [x] **UI.** Swipe actions on the Tracker list rows (symmetric with the Results rows): **swipe right = "To
+      Results"** (blue, full-swipe), **swipe left = "Delete"** (destructive, `allowsFullSwipe: false` →
+      reveal + tap). Both call `session.dataChanged()` so the main window's Results list refreshes (the
+      returned job reappears there). Gated on `supportsRowActions` (both use cases wired).
+- [x] **Wiring + tests.** `untrackJob` + `deleteSavedJob` threaded through `Composition.makeTrackerViewModel`.
+      `TrackerViewModelTests`: untrack clears status but keeps the listing; delete forgets listing + status +
+      materials; `supportsRowActions` gating.
+
+Also (drive-by): marked the pure `SwipeOutcome` and `JobDetailFooter` enums `nonisolated` to clear
+main-actor-isolated `Equatable`-conformance warnings surfaced in the test target (would be Swift 6 errors).
+Full suite green, warning-free. Note: a returned job reappears in Results once the list reflects the store
+(it does within a session / after a fresh Results load). Seam: Presentation + one Business use case.
+On-device: yes (local status/store writes).
+
+## Fix — Generation is user-initiated (explicit Generate button)  ✅ done  (`ApplicationViewModel`, `ApplicationSheet`, + `AppSession`/`ApplicationWindow`/`JobDetailView` cleanup)  — Milestone D follow-up
+
+Opening the Application view auto-generated immediately, so the Milestone D options panel (fidelity /
+aspects) couldn't be set first. Made generation **explicit**:
+
+- [x] `ApplicationViewModel.open(...)` (load-or-generate) replaced by **`loadSaved(for:)`** — loads saved
+      materials if present (no LLM call), otherwise leaves `kit` nil. Opening never auto-generates.
+- [x] `ApplicationSheet` now shows the **Generation options** panel (expanded by default) + a prominent
+      **"Generate application"** button (→ "Regenerate" once a kit exists); a "Ready to generate" placeholder
+      invites setting options first. Generation runs only on that button (`runGeneration`).
+- [x] **Cleanup:** removed the vestigial `ApplicationStartMode` / `startMode` / auto-generate machinery from
+      B-C (`AppSession.showApplication` drops the mode; `ApplicationWindow` / `JobDetailView.onOpenApplication`
+      updated). The Tracker detail footer simplified to **"Generate application"** / **"View application"**
+      (the Application window now owns generate/regenerate); `JobDetailFooter.viewAndRegenerate` → `.view`.
+- [x] Tests updated (`ApplicationViewModelTests`: loadSaved never auto-generates, then explicit generate
+      persists; loads saved without a provider call; `JobDetailFooterTests`). Full suite green, warning-free.
+
+Seam: Presentation only. On-device: yes.
+
+---
+
+**v0.5.0 — document generation fixes is complete** (Milestones A–D + fixes). A: view generated materials
+from the Tracker. B: job detail + Application as real single-instance `Window`s driven by a shared
+`AppSession`. C: removed the redundant "Mark as applied" button. D (D-A…D-F): the generation-controls panel
+— fidelity scale, tailored-section checkboxes (four résumé sections aimed at the JD keywords), presets,
+disclosed embellishment (`GapNoteParts`), and the outcome-driven rank-target loop (`GenerateToTargetUseCase`
++ `scoreApplication`). Grounded stays the default; embellishment is opt-in and disclosed (SPEC / CLAUDE
+hard-rules revised accordingly). Plus fixes: explicit user-initiated generation, swipe-to-save/delete on
+Results, remove-from-Tracker, the runtime provider forwarding the D settings/score methods, and the Claude
+subprocess running in a neutral directory (no spurious Photos/Music prompts). The project version is
+**0.5.0**. The next version — number and theme chosen when it's started — restarts at Milestone A.

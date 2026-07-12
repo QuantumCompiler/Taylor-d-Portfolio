@@ -46,6 +46,17 @@ protocol LLMProvider: Sendable {
     /// that **ignores grounding** and forwards to the base method, so stubs and engines that
     /// don't support it need no change; real engines override it.
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit
+
+    /// Stage 2 with grounding **and** generation controls (Milestone D): fidelity/aspects
+    /// shape how much latitude the generation has. Has a default that **ignores settings**
+    /// and forwards to the grounding method, so stubs and engines that don't support it need
+    /// no change; the real engines and the router override it.
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit
+
+    /// Scores a generated application's résumé against the role (Milestone D-F, the
+    /// rank-target loop). Has a throwing default, so only real engines implement it; the
+    /// router forwards to one.
+    func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch
 }
 
 extension LLMProvider {
@@ -70,6 +81,17 @@ extension LLMProvider {
     /// (Foundation Models, Claude) and the router override this to inject the documents.
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
         try await generateApplication(for: job, profile: profile, brief: brief)
+    }
+
+    /// Default: ignore generation controls and fall back to grounded generation. Real
+    /// engines (Foundation Models, Claude) and the router override this.
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit {
+        try await generateApplication(for: job, profile: profile, brief: brief, grounding: grounding)
+    }
+
+    /// Default: scoring isn't supported. Real engines override this; the router forwards.
+    func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
+        throw LLMProviderError.noProviderAvailable
     }
 }
 

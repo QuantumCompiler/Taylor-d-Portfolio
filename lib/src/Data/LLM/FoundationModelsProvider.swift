@@ -68,10 +68,22 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
     }
 
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
+        try await generateApplication(for: job, profile: profile, brief: brief, grounding: grounding, settings: .default)
+    }
+
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit {
         try await client.respond(
-            to: Prompts.generateApplication(job: job, profile: profile, brief: brief, grounding: grounding),
+            to: Prompts.generateApplication(job: job, profile: profile, brief: brief, grounding: grounding, settings: settings),
             generating: ApplicationKit.self,
             instructions: Prompts.generateInstructions
+        )
+    }
+
+    func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
+        try await client.respond(
+            to: Prompts.scoreApplication(job: job, brief: brief, kit: kit),
+            generating: JobMatch.self,
+            instructions: Prompts.scoreInstructions
         )
     }
 }

@@ -87,8 +87,14 @@ user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
 
 ## Principles
 
-- **Grounded generation.** Generated resumes/cover letters reorder and rephrase
-  *real* experience only. Never invent employers, titles, dates, or credentials.
+- **Grounded generation (by default).** At the default generation-fidelity setting,
+  generated resumes/cover letters reorder and rephrase *real* experience only, and never
+  invent employers, titles, dates, or credentials. The user may **opt in** to more latitude
+  via a fidelity control (ROADMAP v0.5.0 Milestone D) — from curation up to, at the top of
+  the scale, embellished/invented content — but any content beyond the real profile is then
+  **disclosed, never silent**: listed as an addition and flagged in the UI with a
+  "draft — verify before sending" marker. Fabrication is only ever an explicit, surfaced
+  user choice; the default path stays strictly grounded.
   Generation is **two-stage** (ported from Taylor's résumé agent, `AGENT.md`):
   first distil the posting into a structured *target brief* (company, exact role,
   must-have vs. nice-to-have keywords, tech stack, domain, mission/values), then

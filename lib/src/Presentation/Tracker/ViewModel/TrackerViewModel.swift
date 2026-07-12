@@ -23,13 +23,46 @@ final class TrackerViewModel {
 
     private let loadTrackedJobs: LoadTrackedJobsUseCase?
     private let loadJobHistory: LoadJobHistoryUseCase?
+    private let untrackJob: UntrackJobUseCase?
+    private let deleteSavedJob: DeleteSavedJobUseCase?
 
-    init(loadTrackedJobs: LoadTrackedJobsUseCase? = nil, loadJobHistory: LoadJobHistoryUseCase? = nil) {
+    init(
+        loadTrackedJobs: LoadTrackedJobsUseCase? = nil,
+        loadJobHistory: LoadJobHistoryUseCase? = nil,
+        untrackJob: UntrackJobUseCase? = nil,
+        deleteSavedJob: DeleteSavedJobUseCase? = nil
+    ) {
         self.loadTrackedJobs = loadTrackedJobs
         self.loadJobHistory = loadJobHistory
+        self.untrackJob = untrackJob
+        self.deleteSavedJob = deleteSavedJob
     }
 
     var isEmpty: Bool { trackedJobs.isEmpty }
+
+    /// Whether the per-row remove-from-Tracker / delete actions are wired in this build.
+    var supportsRowActions: Bool { untrackJob != nil && deleteSavedJob != nil }
+
+    // MARK: Row actions (v0.5.0)
+
+    /// Removes `job` from the Tracker but keeps it: clears its status so it returns to the
+    /// Results list as an un-triaged result (the saved listing + any generated materials are
+    /// preserved). Drops the row locally for instant feedback.
+    func returnToResults(_ job: RankedJob) async {
+        guard let untrackJob else { return }
+        try? await untrackJob(jobID: job.id)
+        trackedJobs.removeAll { $0.id == job.id }
+        historyByID[job.id] = nil
+    }
+
+    /// Fully forgets `job`: removes the saved listing, its status, and any generated
+    /// materials, so it disappears from both the Tracker and Results.
+    func delete(_ job: RankedJob) async {
+        guard let deleteSavedJob else { return }
+        try? await deleteSavedJob(jobID: job.id)
+        trackedJobs.removeAll { $0.id == job.id }
+        historyByID[job.id] = nil
+    }
 
     /// The tracked jobs that fall under `section`'s stage filter (`All` returns every
     /// tracked job). Drives the Tracker inner-nav sub-views (v0.4.0 Milestone B).

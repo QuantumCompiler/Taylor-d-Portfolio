@@ -23,25 +23,84 @@ final class ApplicationViewModel {
     private(set) var job: JobListing?
     /// The résumé template used for PDF export + the one-page gate (Milestone X).
     var exportTemplate: ExportTemplate = .classic
+    /// The generation controls (fidelity + tailored aspects) applied on the next generate /
+    /// regenerate (Milestone D). `.default` = the grounded, pre-D behaviour.
+    var generationSettings: GenerationSettings = .default
     /// How many pages the résumé occupies in `exportTemplate`'s layout — 0 when there's no
     /// kit/exporter. Recomputed by `refreshLengthGate()` when the kit or template changes.
     private(set) var resumePageCount = 0
 
+    /// The user's saved generation presets (Milestone D-D), newest first.
+    private(set) var presets: [GenerationPreset] = []
+
+    /// The outcome of the last rank-target generation (Milestone D-F), if that path was used.
+    private(set) var rankOutcome: GenerateToTargetUseCase.Outcome?
+
     private let generateApplication: GenerateApplicationUseCase
+    private let generateToTarget: GenerateToTargetUseCase?
     private let saveApplication: SaveApplicationUseCase?
     private let loadApplication: LoadApplicationUseCase?
     private let exportApplication: ExportApplicationUseCase?
+    private let saveGenerationPreset: SaveGenerationPresetUseCase?
+    private let loadGenerationPresets: LoadGenerationPresetsUseCase?
+    private let deleteGenerationPreset: DeleteGenerationPresetUseCase?
 
     init(
         generateApplication: GenerateApplicationUseCase,
+        generateToTarget: GenerateToTargetUseCase? = nil,
         saveApplication: SaveApplicationUseCase? = nil,
         loadApplication: LoadApplicationUseCase? = nil,
-        exportApplication: ExportApplicationUseCase? = nil
+        exportApplication: ExportApplicationUseCase? = nil,
+        saveGenerationPreset: SaveGenerationPresetUseCase? = nil,
+        loadGenerationPresets: LoadGenerationPresetsUseCase? = nil,
+        deleteGenerationPreset: DeleteGenerationPresetUseCase? = nil
     ) {
         self.generateApplication = generateApplication
+        self.generateToTarget = generateToTarget
         self.saveApplication = saveApplication
         self.loadApplication = loadApplication
         self.exportApplication = exportApplication
+        self.saveGenerationPreset = saveGenerationPreset
+        self.loadGenerationPresets = loadGenerationPresets
+        self.deleteGenerationPreset = deleteGenerationPreset
+    }
+
+    /// A user-facing note about the rank-target outcome, if used.
+    var rankOutcomeNote: String? {
+        guard let outcome = rankOutcome else { return nil }
+        return outcome.reachedTarget
+            ? "Reached a \(outcome.achievedScore) match (your target was \(outcome.target))."
+            : "Reached \(outcome.achievedScore) of your \(outcome.target) target after \(outcome.rounds) attempts."
+    }
+
+    // MARK: Presets (Milestone D-D)
+
+    /// Whether preset save/load is wired in this build.
+    var canManagePresets: Bool { saveGenerationPreset != nil && loadGenerationPresets != nil }
+
+    /// Loads the saved presets (newest first).
+    func loadPresets() async {
+        guard let loadGenerationPresets else { return }
+        presets = (try? await loadGenerationPresets()) ?? []
+    }
+
+    /// Saves the current `generationSettings` as a named preset (auto-named when `name` is nil).
+    func saveCurrentAsPreset(named name: String? = nil) async {
+        guard let saveGenerationPreset else { return }
+        _ = try? await saveGenerationPreset(generationSettings, name: name)
+        await loadPresets()
+    }
+
+    /// Applies a saved preset's settings to the next generation.
+    func applyPreset(_ preset: GenerationPreset) {
+        generationSettings = preset.settings
+    }
+
+    /// Deletes a saved preset.
+    func deletePreset(_ preset: GenerationPreset) async {
+        guard let deleteGenerationPreset else { return }
+        try? await deleteGenerationPreset(id: preset.id)
+        await loadPresets()
     }
 
     // MARK: Export (Q-A)
@@ -58,9 +117,10 @@ final class ApplicationViewModel {
 
     // MARK: One-page gate (Milestone X)
 
-    /// True when the résumé overflows one page in the chosen template — a surfaced warning,
-    /// never a reason to truncate content.
-    var resumeExceedsOnePage: Bool { resumePageCount > 1 }
+    /// True when the current résumé overflows one page in the chosen template — a surfaced
+    /// warning, never a reason to truncate content. Requires a kit, so a stale page count
+    /// from a prior generation doesn't linger after a failed/cleared generation (v0.5.0 fix).
+    var resumeExceedsOnePage: Bool { kit != nil && resumePageCount > 1 }
 
     /// Recomputes `resumePageCount` for the current kit + template. Cheap (short résumés);
     /// call after the kit loads/generates and whenever the template changes.
@@ -85,38 +145,60 @@ final class ApplicationViewModel {
         return base.components(separatedBy: illegal).joined(separator: "-")
     }
 
-    /// Opens the application for `job`: shows previously-saved materials if present
-    /// (no LLM call), otherwise generates fresh output. `grounding` carries the candidate's
-    /// real documents (résumé + optional cover letter) for grounded generation (Milestone T).
-    func open(for job: JobListing, profile: CandidateProfile, grounding: PortfolioGrounding? = nil) async {
+    /// Loads previously-saved materials for `job` if present (no LLM call); otherwise leaves
+    /// `kit` nil so the view offers an explicit **Generate** button. Opening the Application
+    /// view never auto-generates — generation is user-initiated so options can be set first
+    /// (v0.5.0).
+    func loadSaved(for job: JobListing) async {
         self.job = job
+        errorMessage = nil
+        isGenerating = false
         if let loadApplication, let saved = try? await loadApplication(forJobID: job.id) {
             kit = saved
             isSaved = true
-            errorMessage = nil
-            isGenerating = false
             refreshLengthGate()
-            return
+        } else {
+            kit = nil
+            isSaved = false
+            resumePageCount = 0
         }
-        await generate(for: job, profile: profile, grounding: grounding)
     }
 
-    /// Generates fresh materials (also used by "Regenerate") and persists them.
+    /// Generates fresh materials (also used by "Regenerate") and persists them. When a rank
+    /// target is set (Milestone D-F), runs the outcome-driven loop instead of a single pass.
     func generate(for job: JobListing, profile: CandidateProfile, grounding: PortfolioGrounding? = nil) async {
         self.job = job
         isGenerating = true
         errorMessage = nil
         kit = nil
         isSaved = false
+        rankOutcome = nil
         defer { isGenerating = false }
         do {
-            let produced = try await generateApplication(job: job, profile: profile, grounding: grounding)
+            let produced: ApplicationKit
+            if let target = generationSettings.desiredRankMatch, let generateToTarget {
+                let outcome = try await generateToTarget(job: job, profile: profile, grounding: grounding, target: target)
+                produced = outcome.kit
+                rankOutcome = outcome
+            } else {
+                produced = try await generateApplication(job: job, profile: profile, grounding: grounding, settings: generationSettings)
+            }
             kit = produced
             refreshLengthGate()
             // Best-effort persist — a storage failure shouldn't lose the generated output.
             try? await saveApplication?(produced, forJobID: job.id)
         } catch {
-            errorMessage = "Couldn't generate the application. Try again."
+            errorMessage = Self.describe(error)
         }
+    }
+
+    /// A user-facing message that still surfaces the real cause (a bare "try again" hides
+    /// engine/CLI failures that the user needs to see).
+    private static func describe(_ error: Error) -> String {
+        if case LLMProviderError.noProviderAvailable = error {
+            return "No LLM engine is available for this step. Check Settings → Engines — for the Claude "
+                + "engine the `claude` CLI must be installed and authenticated."
+        }
+        return "Couldn't generate the application. Try again.\n\n(\(String(describing: error)))"
     }
 }

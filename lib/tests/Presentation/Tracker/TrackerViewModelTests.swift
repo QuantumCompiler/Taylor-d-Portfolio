@@ -140,4 +140,61 @@ struct TrackerViewModelTests {
         #expect(history.status?.stage == .interviewing)
         #expect(history.isGenerated == false)
     }
+
+    // MARK: Row actions — remove from Tracker (v0.5.0)
+
+    /// Builds a VM wired with the untrack + delete use cases over one in-memory store.
+    private func makeActionableVM(
+        store: InMemoryRecordStore,
+        jobs: SavedJobsRepository, statuses: SavedStatusRepository, applications: SavedApplicationsRepository
+    ) -> TrackerViewModel {
+        TrackerViewModel(
+            loadTrackedJobs: LoadTrackedJobsUseCase(jobs: jobs, statuses: statuses),
+            untrackJob: UntrackJobUseCase(statuses: statuses),
+            deleteSavedJob: DeleteSavedJobUseCase(jobs: jobs, statuses: statuses, applications: applications)
+        )
+    }
+
+    @Test func returnToResultsClearsStatusButKeepsListing() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        try await jobs.save([ranked("a")])
+        try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 100)), forJobID: "a")
+        let vm = makeActionableVM(store: store, jobs: jobs, statuses: statuses, applications: apps)
+        await vm.load()
+        #expect(vm.trackedJobs.map(\.id) == ["a"])
+
+        await vm.returnToResults(ranked("a"))
+
+        #expect(vm.trackedJobs.isEmpty)
+        // Status cleared (so it's un-tracked → returns to Results)…
+        #expect(try await statuses.status(forJobID: "a") == nil)
+        // …but the saved listing is kept.
+        #expect(try await jobs.savedJobs().map(\.id) == ["a"])
+    }
+
+    @Test func deleteForgetsListingStatusAndMaterials() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        try await jobs.save([ranked("a")])
+        try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 100)), forJobID: "a")
+        try await apps.save(ApplicationKit(resumeMarkdown: "r", coverLetter: "c", gapNote: ""), forJobID: "a")
+        let vm = makeActionableVM(store: store, jobs: jobs, statuses: statuses, applications: apps)
+        await vm.load()
+
+        await vm.delete(ranked("a"))
+
+        #expect(vm.trackedJobs.isEmpty)
+        #expect(try await jobs.savedJobs().isEmpty)
+        #expect(try await statuses.status(forJobID: "a") == nil)
+        #expect(try await apps.kit(forJobID: "a") == nil)
+    }
+
+    @Test func rowActionsRequireBothUseCases() {
+        #expect(TrackerViewModel().supportsRowActions == false)
+    }
 }

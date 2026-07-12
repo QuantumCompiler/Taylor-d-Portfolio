@@ -72,10 +72,22 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
     }
 
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
+        try await generateApplication(for: job, profile: profile, brief: brief, grounding: grounding, settings: .default)
+    }
+
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit {
         try await generateJSON(
-            prompt: Prompts.generateApplication(job: job, profile: profile, brief: brief, grounding: grounding),
+            prompt: Prompts.generateApplication(job: job, profile: profile, brief: brief, grounding: grounding, settings: settings),
             instructions: Prompts.generateInstructions,
             as: ApplicationKit.self
+        )
+    }
+
+    func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
+        try await generateJSON(
+            prompt: Prompts.scoreApplication(job: job, brief: brief, kit: kit),
+            instructions: Prompts.scoreInstructions,
+            as: JobMatch.self
         )
     }
 

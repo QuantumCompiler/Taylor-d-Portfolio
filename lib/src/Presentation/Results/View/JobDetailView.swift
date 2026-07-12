@@ -16,7 +16,6 @@ import SwiftUI
 struct JobDetailView: View {
     let ranked: RankedJob
     let profile: CandidateProfile?
-    let applicationViewModel: ApplicationViewModel
     var markStatus: MarkStatusUseCase? = nil
     var loadStatus: LoadStatusUseCase? = nil
     /// The candidate's real documents for grounded generation (Milestone T).
@@ -27,15 +26,32 @@ struct JobDetailView: View {
     /// Save-to-Tracker action, provided in the Results context (enables the footer button +
     /// the right-swipe). `nil` in the Tracker context.
     var onSaveToTracker: (() -> Void)? = nil
+    /// Loads a previously-generated kit so the Tracker footer can offer **View** alongside
+    /// Generate when materials already exist (v0.5.0 Milestone A).
+    var loadApplication: LoadApplicationUseCase? = nil
+    /// Whether the horizontal save/dismiss swipe is enabled. Off when hosted in a window
+    /// (v0.5.0 Milestone B) — a window has no card to swipe.
+    var allowsSwipe: Bool = true
+    /// Called after this view mutates shared persistence (status set, materials generated,
+    /// saved), so a hosting window can signal the lists to reload (v0.5.0 Milestone B).
+    var onMutate: (() -> Void)? = nil
+    /// Opens the Application window (v0.5.0 Milestone B-C). Supplied by the hosting window;
+    /// when nil (e.g. previews) the View/Generate buttons do nothing.
+    var onOpenApplication: (() -> Void)? = nil
+    /// A monotonically-increasing signal from the hosting window; a change re-checks whether
+    /// materials now exist (e.g. after the Application window generated) — v0.5.0 B-C.
+    var refreshSignal: Int = 0
 
     @Environment(\.dismiss) private var dismiss
-    @State private var showingApplication = false
     @State private var status: ApplicationStatus?
     @State private var dragOffset: CGFloat = 0
+    /// Whether a generated kit is already saved for this job (drives the View vs Generate footer).
+    @State private var hasGeneratedMaterials = false
 
     private var listing: JobListing { ranked.listing }
-    /// Only the Results context (where a save action is supplied) is swipeable.
-    private var isSwipeable: Bool { onSaveToTracker != nil }
+    /// Only the Results context (where a save action is supplied) is swipeable, and only
+    /// when swiping is allowed (off in a window — v0.5.0 Milestone B).
+    private var isSwipeable: Bool { onSaveToTracker != nil && allowsSwipe }
     private static let swipeThreshold: CGFloat = 120
 
     var body: some View {
@@ -50,15 +66,25 @@ struct JobDetailView: View {
             )
             .padding(24)
             .frame(minWidth: 540, minHeight: 500)
-            .task {
-                guard let loadStatus else { return }
-                status = (try? await loadStatus(forJobID: ranked.id)) ?? nil
-            }
-            .sheet(isPresented: $showingApplication) {
-                if let profile {
-                    ApplicationSheet(viewModel: applicationViewModel, job: listing, profile: profile, grounding: grounding)
-                }
-            }
+            .task { await loadDetailState() }
+            // Re-check for saved materials whenever the hosting window signals a change (e.g.
+            // the Application window generated), so the View button appears live (v0.5.0 B-C).
+            .onChange(of: refreshSignal) { _, _ in Task { await refreshHasMaterials() } }
+    }
+
+    // MARK: Detail state loading
+
+    private func loadDetailState() async {
+        if let loadStatus {
+            status = (try? await loadStatus(forJobID: ranked.id)) ?? nil
+        }
+        await refreshHasMaterials()
+    }
+
+    /// Refreshes whether a generated kit exists for this job (Tracker context only).
+    private func refreshHasMaterials() async {
+        guard let loadApplication else { hasGeneratedMaterials = false; return }
+        hasGeneratedMaterials = ((try? await loadApplication(forJobID: ranked.id)) ?? nil) != nil
     }
 
     private var card: some View {
@@ -121,11 +147,9 @@ struct JobDetailView: View {
                     Text("Not tracked yet").font(.callout).foregroundStyle(.secondary)
                 }
                 Spacer()
-                if status == nil {
-                    Button("Mark as applied") { mark(.applied) }
-                        .buttonStyle(.borderedProminent).controlSize(.small)
-                        .clickableCursor()
-                }
+                // "Set status" already offers every settable stage (incl. Applied) with the
+                // same auto-date-stamp, so the dedicated "Mark as applied" button was
+                // redundant and was removed (v0.5.0 Milestone C).
                 Menu("Set status") {
                     ForEach(ApplicationStage.settable, id: \.self) { stage in
                         Button(stage.label) { mark(stage) }
@@ -139,7 +163,10 @@ struct JobDetailView: View {
 
     private func mark(_ stage: ApplicationStage) {
         guard let markStatus else { return }
-        Task { status = try? await markStatus(jobID: ranked.id, stage: stage) }
+        Task {
+            status = try? await markStatus(jobID: ranked.id, stage: stage)
+            onMutate?()
+        }
     }
 
     // MARK: Header
@@ -216,21 +243,41 @@ struct JobDetailView: View {
                 .clickableCursor()
             }
             Spacer()
-            if canGenerate {
-                // Tracker context: generate tailored materials (Milestone V-D).
-                Button("Generate résumé & cover letter") { showingApplication = true }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(profile == nil)
-                    .clickableCursor()
-            } else if let onSaveToTracker {
+            switch JobDetailFooter.resolve(
+                canGenerate: canGenerate,
+                hasGeneratedMaterials: hasGeneratedMaterials,
+                canSaveToTracker: onSaveToTracker != nil
+            ) {
+            case .none:
+                EmptyView()
+            case .saveToTracker:
                 // Results context: no generation — read the posting and choose to save.
-                Button { onSaveToTracker(); dismiss() } label: {
+                Button { onSaveToTracker?(); dismiss() } label: {
                     Label("Save to Tracker", systemImage: "bookmark")
                 }
                 .buttonStyle(.borderedProminent)
                 .clickableCursor()
+            case .generate:
+                // Tracker context, nothing generated yet (Milestone V-D). Opens the
+                // Application window where the user sets options and presses Generate.
+                Button("Generate application") { openApplication() }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(profile == nil)
+                    .clickableCursor()
+            case .view:
+                // Tracker context with saved materials (v0.5.0 Milestone A): open the
+                // Application window to view them (and regenerate there, with options).
+                Button("View application") { openApplication() }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(profile == nil)
+                    .clickableCursor()
             }
         }
+    }
+
+    /// Opens the Application window (via the hosting window).
+    private func openApplication() {
+        onOpenApplication?()
     }
 
     private func labeledSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -242,12 +289,31 @@ struct JobDetailView: View {
     }
 }
 
+/// Which action(s) the job-detail footer offers, resolved from the view's context.
+/// Pure so it can be unit-tested without the SwiftUI view (v0.5.0 Milestone A).
+nonisolated enum JobDetailFooter: Equatable {
+    /// No primary action (e.g. Results context with no save action wired).
+    case none
+    /// Results context: save the posting to the Tracker.
+    case saveToTracker
+    /// Tracker context, nothing generated yet: a single Generate action.
+    case generate
+    /// Tracker context with saved materials: a View action (opens the Application window).
+    case view
+
+    static func resolve(canGenerate: Bool, hasGeneratedMaterials: Bool, canSaveToTracker: Bool) -> JobDetailFooter {
+        if canGenerate {
+            return hasGeneratedMaterials ? .view : .generate
+        }
+        return canSaveToTracker ? .saveToTracker : .none
+    }
+}
+
 #if DEBUG
 #Preview {
     JobDetailView(
         ranked: Preview.sampleRankedJobs[0],
-        profile: Preview.sampleProfile,
-        applicationViewModel: ApplicationViewModel(generateApplication: Preview.generateApplication)
+        profile: Preview.sampleProfile
     )
 }
 #endif

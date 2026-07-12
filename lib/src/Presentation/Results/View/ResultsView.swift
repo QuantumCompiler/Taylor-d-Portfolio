@@ -11,13 +11,10 @@ import SwiftUI
 /// can read the full posting, generate an application, and set its status).
 struct ResultsView: View {
     @Bindable var viewModel: ResultsViewModel
-    let profile: CandidateProfile?
-    let applicationViewModel: ApplicationViewModel
-    var markStatus: MarkStatusUseCase? = nil
-    var loadStatus: LoadStatusUseCase? = nil
-    /// The candidate's real documents for grounded generation (Milestone T).
-    var grounding: PortfolioGrounding? = nil
 
+    /// Opens the detached job-detail window (v0.5.0 Milestone B) instead of a sheet.
+    @Environment(AppSession.self) private var session
+    @Environment(\.openWindow) private var openWindow
     @State private var showFilters = false
 
     var body: some View {
@@ -54,34 +51,20 @@ struct ResultsView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)   // center below the filter bar (v0.4.1 Milestone E)
                     } else {
                         List(viewModel.filteredResults) { ranked in
-                            HStack(spacing: 8) {
-                                RankedRow(ranked: ranked, history: viewModel.history(for: ranked))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture { viewModel.select(ranked) }
-                                    .clickableCursor()
-                                if viewModel.supportsRowActions {
-                                    rowActions(ranked)
-                                }
-                            }
+                            resultRow(ranked)
                         }
                     }
                 }
             }
         }
         .task { await viewModel.loadSavedIfNeeded() }
-        .sheet(item: $viewModel.selectedJob) { ranked in
-            JobDetailView(
-                ranked: ranked, profile: profile, applicationViewModel: applicationViewModel,
-                markStatus: markStatus, loadStatus: loadStatus, grounding: grounding,
-                canGenerate: false,                              // generation lives in the Tracker (V-D)
-                onSaveToTracker: { Task { await viewModel.saveToTracker(ranked) } }
-            )
-        }
-        // Refresh badges after the detail sheet (where status can change) closes.
-        .onChange(of: viewModel.selectedJob) { _, newValue in
-            if newValue == nil { Task { await viewModel.refreshHistory() } }
-        }
+    }
+
+    /// Opens the shared detail window for `ranked` in the Results context (read + save, no
+    /// generation — Milestone V-D). The window signals a reload when it saves to the Tracker.
+    private func openDetail(_ ranked: RankedJob) {
+        session.showDetail(ranked, context: .results)
+        openWindow(id: JobDetailWindow.id)
     }
 
     // MARK: Filter bar (Milestone W)
@@ -154,6 +137,41 @@ struct ResultsView: View {
     }
 
     /// Per-row Save-to-Tracker + Delete icons (Milestone V-A/V-B); each intercepts its own tap.
+    /// One result row: the ranked card + explicit save/delete icons, plus **swipe-to-save**
+    /// (leading / swipe right) and **swipe-to-delete** (trailing / swipe left) — restored after
+    /// the detail moved to a window (v0.5.0). Both reuse the same view-model methods as the icons.
+    /// Delete uses `allowsFullSwipe: false` (reveal + tap) since it also clears saved status +
+    /// materials; save is a safe full-swipe.
+    @ViewBuilder
+    private func resultRow(_ ranked: RankedJob) -> some View {
+        let row = HStack(spacing: 8) {
+            RankedRow(ranked: ranked, history: viewModel.history(for: ranked))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture { openDetail(ranked) }
+                .clickableCursor()
+            if viewModel.supportsRowActions {
+                rowActions(ranked)
+            }
+        }
+        if viewModel.supportsRowActions {
+            row
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button { Task { await viewModel.saveToTracker(ranked) } } label: {
+                        Label(viewModel.isTracked(ranked) ? "Saved" : "Save", systemImage: "bookmark.fill")
+                    }
+                    .tint(.green)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) { Task { await viewModel.delete(ranked) } } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+        } else {
+            row
+        }
+    }
+
     private func rowActions(_ ranked: RankedJob) -> some View {
         HStack(spacing: 10) {
             Button { Task { await viewModel.saveToTracker(ranked) } } label: {
@@ -175,11 +193,7 @@ struct ResultsView: View {
 
 #if DEBUG
 #Preview {
-    ResultsView(
-        viewModel: ResultsViewModel(results: Preview.sampleRankedJobs),
-        profile: Preview.sampleProfile,
-        applicationViewModel: ApplicationViewModel(generateApplication: Preview.generateApplication)
-    )
-    .frame(width: 460, height: 400)
+    ResultsView(viewModel: ResultsViewModel(results: Preview.sampleRankedJobs))
+        .frame(width: 460, height: 400)
 }
 #endif

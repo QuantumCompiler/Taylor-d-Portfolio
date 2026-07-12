@@ -212,4 +212,63 @@ struct PromptsTests {
         #expect(!prompt.contains(longLetter))
         #expect(prompt.contains("…"))
     }
+
+    // MARK: D — generation controls (fidelity / aspects / disclosure)
+
+    @Test func defaultSettingsLeaveThePromptUnchanged() {
+        let base = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief)
+        let withDefault = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief, settings: .default)
+        #expect(base == withDefault)   // grounded default path is byte-for-byte unchanged
+        #expect(!withDefault.contains("GENERATION CONTROLS"))
+    }
+
+    @Test func curatedFidelityAppendsALatitudeClause() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(fidelity: 0.5)
+        )
+        #expect(prompt.contains("GENERATION CONTROLS"))
+        #expect(prompt.lowercased().contains("curate"))
+        #expect(prompt.contains("Scope: tailor all"))
+        #expect(!prompt.contains("EMBELLISHED:"))   // no disclosure clause below the embellished band
+    }
+
+    @Test func embellishedFidelityRequiresDisclosure() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(fidelity: 1.0)
+        )
+        #expect(prompt.contains("plausible embellishments"))
+        #expect(prompt.contains("Disclosure (REQUIRED)"))
+        #expect(prompt.contains("EMBELLISHED:"))
+    }
+
+    @Test func selectedAspectsRestrictTheScope() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(fidelity: 0.5, aspects: [.summary, .skills])
+        )
+        #expect(prompt.contains("tailor ONLY these"))
+        #expect(prompt.contains("Summary / Headline"))
+        #expect(prompt.contains("Skills"))
+        #expect(prompt.contains("Reproduce every other section"))
+    }
+
+    @Test func tailoringNamesTheKeywordMatchingGoalAndCoverLetterFollowsResume() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(fidelity: 0.5, aspects: [.experience])
+        )
+        // D-C: every targeted section aims at the job post's keywords + description.
+        #expect(prompt.contains("MATCH THIS JOB POST'S keywords"))
+        // D-C: the cover letter is derived from the tailored résumé, not tailored on its own.
+        #expect(prompt.contains("write it FROM the tailored"))
+    }
+
+    @Test func tailoredAspectsAreTheFourResumeSectionsOnly() {
+        let cases = Set(TailoredAspect.allCases.map(\.rawValue))
+        #expect(cases == ["summary", "experience", "projects", "skills"])
+        #expect(!cases.contains("education"))
+        #expect(!cases.contains("coverLetter"))
+    }
 }

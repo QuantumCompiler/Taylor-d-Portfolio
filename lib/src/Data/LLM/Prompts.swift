@@ -212,13 +212,46 @@ nonisolated enum Prompts {
     /// Ports the résumé-agent discipline (AGENT.md §5): map each brief signal to a true
     /// profile fact, foreground the best-fit overlap, flag gaps, and structure the cover
     /// letter as *About Me / Why <company> / Why Me*.
+    // MARK: Score a generated application (Milestone D-F)
+
+    static let scoreInstructions =
+        "You are a technical recruiter scoring how well a tailored résumé matches a role. " +
+        "Judge only on the résumé's text against the role's stated requirements."
+
+    /// Scores a generated résumé against the target role, returning a `JobMatch` — the
+    /// outcome the rank-target loop chases (Milestone D-F).
+    static func scoreApplication(job: JobListing, brief: TargetBrief, kit: ApplicationKit) -> String {
+        """
+        Score how strongly this tailored résumé matches the target role. Return a single JobMatch.
+
+        Target role:
+        - roleTitle: \(brief.roleTitle)
+        - company: \(brief.company)
+        - mustHaveKeywords: \(brief.mustHaveKeywords.joined(separator: ", "))
+        - niceToHaveKeywords: \(brief.niceToHaveKeywords.joined(separator: ", "))
+        - techStack: \(brief.techStack.joined(separator: ", "))
+
+        Tailored résumé:
+        \(truncate(kit.resumeMarkdown, to: maxDescriptionCharacters))
+
+        Produce a JobMatch:
+        - jobId: \(job.id)
+        - score: 0 (no fit) to 100 (perfect fit) — how well the résumé matches the must-have and
+          nice-to-have keywords and the role's requirements.
+        - reason: one or two sentences explaining the score.
+        - matchedSkills: role keywords the résumé clearly demonstrates.
+        - missingSkills: role keywords the résumé still does not demonstrate.
+        """
+    }
+
     static func generateApplication(
         job: JobListing,
         profile: CandidateProfile,
         brief: TargetBrief,
-        grounding: PortfolioGrounding? = nil
+        grounding: PortfolioGrounding? = nil,
+        settings: GenerationSettings = .default
     ) -> String {
-        """
+        let base = """
         Tailor application materials for this role, grounded ONLY in the candidate profile\
         \(grounding?.resumeText.isEmpty == false ? " and résumé" : "") below.
 
@@ -259,6 +292,57 @@ nonisolated enum Prompts {
         - gapNote: an honest, short note listing the notable must-have requirements the candidate
           does NOT clearly meet (the gaps from step 1). Never disguise a gap as a strength.
         """
+        return base + generationControls(settings)
+    }
+
+    /// The generation-controls addendum (Milestone D). Empty for `.default`, so the grounded
+    /// path is byte-for-byte the base prompt; otherwise it appends latitude (D-B), aspect
+    /// scope (D-C), and — in the embellished band — a mandatory disclosure clause (D-E) that
+    /// **override** the base instructions where they conflict.
+    static func generationControls(_ settings: GenerationSettings) -> String {
+        guard !settings.isDefault else { return "" }
+        var lines: [String] = []
+
+        switch settings.band {
+        case .authentic:
+            lines.append("- Latitude: reorder and rephrase the candidate's REAL experience only. "
+                + "Never invent employers, titles, dates, degrees, credentials, or metrics.")
+        case .curated:
+            lines.append("- Latitude: curate aggressively — emphasize and reframe real experience, and you "
+                + "MAY infer reasonable adjacent skills the candidate plausibly has. Still never invent "
+                + "employers, titles, dates, degrees, or credentials.")
+        case .embellished:
+            lines.append("- Latitude: you MAY add plausible embellishments to strengthen the fit, including "
+                + "details not present in the profile, to maximise the match. Prefer skills/impact framing "
+                + "over fabricated hard credentials.")
+        }
+
+        if settings.aspects.isEmpty {
+            lines.append("- Scope: tailor all résumé sections.")
+        } else {
+            let names = settings.aspects
+                .sorted { $0.rawValue < $1.rawValue }
+                .map(\.label)
+                .joined(separator: ", ")
+            lines.append("- Scope: tailor ONLY these résumé sections — \(names). Reproduce every other section "
+                + "faithfully from the candidate's real experience, unchanged.")
+        }
+        // The tailoring objective (D-C): every targeted section aims at the JD's language.
+        lines.append("- Objective: tailor each targeted section to MATCH THIS JOB POST'S keywords and "
+            + "description — foreground the brief's must-have and nice-to-have keywords and the posting's own "
+            + "language wherever they are genuinely supported for this candidate.")
+        // The cover letter is derived from the tailored résumé, not tailored on its own (D-C).
+        lines.append("- Cover letter: write it FROM the tailored résumé above so it inherits the same keyword "
+            + "alignment (plus the candidate's voice exemplar) — do not tailor it as a separate section.")
+
+        if settings.band == .embellished {
+            lines.append("- Disclosure (REQUIRED): in gapNote, list every statement in the résumé or cover "
+                + "letter that is NOT directly supported by the candidate profile — each on its own line, "
+                + "prefixed \"EMBELLISHED: \". List the honest gaps as usual after them.")
+        }
+
+        return "\n\nGENERATION CONTROLS (override the instructions above where they conflict):\n"
+            + lines.joined(separator: "\n")
     }
 
     // MARK: Grounding (Milestone T)
