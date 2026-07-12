@@ -53,21 +53,34 @@ final class ResultsViewModel {
 
     var isEmpty: Bool { results.isEmpty }
 
+    // MARK: Triage — tracked jobs leave the Results list (v0.4.1 Milestone C)
+
+    /// The results that are **not** yet in the Tracker. Once a job has any application
+    /// status (saved … withdrawn) it belongs to the Tracker, so Results shows only the
+    /// un-triaged jobs — everything the list derives from is built on this set. Saving a
+    /// job (which sets its status and calls `refreshHistory`) makes it drop out live.
+    var untrackedResults: [RankedJob] { results.filter { !isTracked($0) } }
+
+    /// True when results are loaded but every one has moved to the Tracker — a distinct
+    /// empty state from "no results yet" (nothing searched).
+    var allResultsTracked: Bool { !results.isEmpty && untrackedResults.isEmpty }
+
     // MARK: Filtering (Milestone W — view-only, non-destructive)
 
-    /// The results after applying the live `filter` (what the list shows).
+    /// The (un-tracked) results after applying the live `filter` — what the list shows.
+    /// Tracked jobs are already excluded, so no row is tracked here.
     var filteredResults: [RankedJob] {
-        filter.apply(to: results, isTracked: { [historyByID] in historyByID[$0.id]?.status != nil })
+        filter.apply(to: untrackedResults, isTracked: { _ in false })
     }
     var visibleCount: Int { filteredResults.count }
-    var totalCount: Int { results.count }
-    /// True when a filter is active but hides every row (a distinct empty state).
-    var isFilteredEmpty: Bool { !results.isEmpty && filter.isActive && filteredResults.isEmpty }
+    var totalCount: Int { untrackedResults.count }
+    /// True when a filter is active but hides every un-tracked row (a distinct empty state).
+    var isFilteredEmpty: Bool { !untrackedResults.isEmpty && filter.isActive && filteredResults.isEmpty }
 
-    /// Distinct locations present in the loaded results, for the filter's location picker.
-    var locationOptions: [String] { distinct(results.map(\.listing.location)) }
-    /// Distinct companies present in the loaded results, for the filter's company picker.
-    var companyOptions: [String] { distinct(results.map(\.listing.company)) }
+    /// Distinct locations present in the shown (un-tracked) results, for the location picker.
+    var locationOptions: [String] { distinct(untrackedResults.map(\.listing.location)) }
+    /// Distinct companies present in the shown (un-tracked) results, for the company picker.
+    var companyOptions: [String] { distinct(untrackedResults.map(\.listing.company)) }
 
     func clearFilter() { filter = ResultsFilter() }
 

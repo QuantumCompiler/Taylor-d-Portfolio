@@ -400,12 +400,14 @@ otherwise; milestones still restart at **A** and commit as `v0.4.1 : Milestone X
       (`Presentation/App/RootView.swift` + `ShellNavigation.swift` + `ShellNavigationTests`). On-device:
       n/a (UI only).
 
-- [ ] **Milestone C — Saved-to-Tracker jobs leave the Results list.** Once a job has any tracker status
-      (starting with `.saved` when saved to the Tracker), remove it from the **Results** list so Results
-      shows only un-triaged ranked jobs; the job lives in the **Tracker** from then on (as "Saved" until
-      advanced). Live removal on save; the now-redundant Results "Saved" badge is cleaned up. Seam:
-      Presentation + a status read (`Results/ViewModel/ResultsViewModel` excludes tracked ids using the
-      existing Milestone O/P status data). On-device: yes.
+- [x] **Milestone C — Saved-to-Tracker jobs leave the Results list.** ✅ **Done.** Once a job has any
+      tracker status (starting with `.saved` when saved to the Tracker), it's excluded from the
+      **Results** list so Results shows only un-triaged ranked jobs; the job lives in the **Tracker** from
+      then on. `ResultsViewModel.untrackedResults` drives the list/counts/filter; saving refreshes history
+      so the row drops out live; a distinct "All results are in your Tracker" empty state; the now-dead
+      "Tracked" filter facet and the (auto-gone) Results status badge cleaned up. Seam: Presentation + a
+      status read (`Results/ViewModel/ResultsViewModel` + `Results/View`), reusing the Milestone O/P status
+      data. On-device: yes.
 
 - [ ] **Milestone D — Tracker: one tab per application status.** Expand the Tracker inner nav from
       All / Applied / Interviewing / Offers to **All + a tab for every `ApplicationStage`** (Saved,

@@ -9,11 +9,10 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.1 — Milestone C** next; **Milestones C → H** remain below. **A** and **B**
-> are ✅ **done** (A: profile preview / regenerate / save controls moved into Saved Profiles; B: the
-> content-pane header text removed app-wide, tabs-only — see `MILESTONES.md`). **C:** once a result
-> is **saved to the Tracker**, drop it from the **Results** list — it
-> lives in the Tracker (as "Saved") from then on. **D:** give the **Tracker a tab per status** (All +
+> **Current focus.** **v0.4.1 — Milestone D** next; **Milestones D → H** remain below. **A**, **B**, and
+> **C** are ✅ **done** (A: profile preview / regenerate / save controls moved into Saved Profiles; B:
+> content-pane header text removed app-wide, tabs-only; C: saved-to-Tracker jobs now leave the Results
+> list — see `MILESTONES.md`). **D:** give the **Tracker a tab per status** (All +
 > Saved / Applied / Interviewing / Offer / Accepted / Declined / Rejected / Withdrawn). **E:** **center**
 > the Tracker empty-state icon & text in the sub-view (today it hugs the top). **F:** make Portfolio →
 > **Source Documents** browsable **by profile** — list saved profiles, expand one to see its source
@@ -48,40 +47,7 @@ at **A** and are committed as `v0.4.1 : Milestone X Completed`. Presentation-onl
 milestone says otherwise. (See `CLAUDE.md` → Working process → Versioning for how patch releases fit
 the numbering.)
 
-**Milestones A–B are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **C → H**.
-
-## Milestone C — Saved-to-Tracker jobs leave the Results list
-
-Right now saving a result to the Tracker (Milestone V-B: marks the job `.saved`) keeps the row in
-**Results** with a "Saved" badge. Change that: once a job has **any** tracker status, it should **drop
-out of the Results list** and live only in the **Tracker**. Results becomes strictly the *un-triaged*
-ranked jobs; saving (or otherwise tracking) a job moves it out.
-
-- [ ] **Exclude tracked jobs from the displayed results.** In `ResultsViewModel`, filter the shown
-      `[RankedJob]` to those with **no persisted `ApplicationStatus`** (i.e. not in the Tracker). The
-      tracked-status data already loads for badges (`LoadJobHistoryUseCase` / the status repository) — a
-      job with any stage (`.saved` … `.withdrawn`) is excluded. This composes with the existing
-      `ResultsFilter` (still applied over the already-un-tracked set).
-- [ ] **Remove live on save.** After a Save-to-Tracker action (row button or right-swipe → `.saved`),
-      refresh so the row disappears from Results immediately, rather than only on the next load.
-- [ ] **"Saved" is a Tracker state, shown in the Tracker.** A job saved with no further status stays at
-      `.saved` (label already "Saved") and appears under the Tracker's **Saved** tab (see Milestone D).
-      Its status is set/advanced from the Tracker (or the detail view), not from Results.
-- [ ] **Clean up the now-dead Results "Saved" badge.** With saved jobs no longer in Results, the
-      "Saved" badge on `RankedRow` in the Results context is moot — remove or repurpose it (Delete/other
-      badges stay). Confirm the swipe card's **left = dismiss** (no save) still just hides the row and
-      the right-swipe save now also removes it.
-- [ ] **Empty-state wording.** If filtering-out tracked jobs can empty the list, make sure the Results
-      empty state reads sensibly ("nothing left to triage" vs. "no results found") — distinct from the
-      filter-bar empty state (Milestone W).
-- [ ] **Tests.** `ResultsViewModel` coverage: a tracked job is excluded; saving a job removes it from
-      the shown results; the `ResultsFilter` still applies to the remaining un-tracked set. Full suite
-      green.
-
-Seam: **Presentation + a use-case read** — `Results/ViewModel/ResultsViewModel` (exclude tracked ids
-using the already-loaded status/history data) + `Results/View` (badge cleanup, empty state). No new
-persistence or domain type — reuses Milestone O/P status data and V's save/delete flow. On-device: yes
-(all local).
+**Milestones A–C are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **D → H**.
 
 ## Milestone D — Tracker: one tab per application status
 

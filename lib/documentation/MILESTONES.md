@@ -1381,3 +1381,33 @@ indicator. Presentation-only.
 
 Note: Presentation-only; nothing below Presentation changed. The content header now conditionally
 appears (multi-sub-view areas only), which is also what makes Results render as its own plain section.
+
+## Milestone C — Saved-to-Tracker jobs leave the Results list  ✅ done  (`Presentation/Results`: `ResultsViewModel` + `ResultsView`)
+
+Goal: once a job has any tracker status, drop it from the **Results** list so Results shows only the
+*un-triaged* ranked jobs; the job then lives in the **Tracker** (as "Saved" until advanced).
+Presentation only — no new persistence or domain type; it reads the Milestone O/P status data that
+already loads for the row badges.
+
+- [x] **Tracked jobs excluded from the list.** New `ResultsViewModel.untrackedResults` = `results`
+      minus any job with a persisted status (`isTracked`, from `historyByID`). `filteredResults`,
+      `totalCount`, `isFilteredEmpty`, and the location/company picker options all derive from this
+      un-tracked set; the underlying `results` array is untouched (delete/save still act on it).
+- [x] **Live removal on save.** `saveToTracker` already marks `.saved` and calls `refreshHistory()`,
+      which updates `historyByID` — so the saved row leaves `untrackedResults` immediately (row button,
+      swipe-right, or the detail sheet's Save all flow through it). No extra plumbing needed.
+- [x] **Distinct empty state.** New `allResultsTracked` (`results` non-empty but `untrackedResults`
+      empty) drives an "All results are in your Tracker" `ContentUnavailableView`, kept separate from
+      "No results yet" (nothing searched) and the filter-bar "No results match your filters".
+- [x] **Dead UI cleaned up.** Removed the filter bar's now-meaningless **Tracked** facet (all shown
+      rows are un-tracked). The Results status/"Saved" badge needed no code change — `RankedRow` renders
+      the `.status` facet only when `status != nil`, and no shown row has a status now; `RankedRow` stays
+      shared and unchanged so the **Tracker** keeps its status badges. `ResultsFilter.trackedStatus`/
+      `TrackedFilter` stay (default `.any`, still unit-tested) — only the control was removed.
+- [x] **Tests.** Replaced the obsolete `trackedFacetUsesTheStatusMap` test with Milestone C coverage in
+      `ResultsViewModelTests`: a tracked job is excluded (list + counts); saving a job removes it live;
+      `allResultsTracked` when every job is saved; the `ResultsFilter` still applies over the un-tracked
+      set. Full suite green on macOS; build clean.
+
+Note: Presentation-only. Reuses V's save/delete flow and the O/P status/history data; nothing below
+Presentation changed. Milestone D gives the Tracker a **Saved** tab so these moved-out jobs have a home.
