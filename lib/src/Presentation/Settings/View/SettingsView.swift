@@ -20,14 +20,9 @@ struct SettingsView: View {
     var body: some View {
         Form {
             switch section {
-            case .engines:
-                enginesSection
-                saveSection
-            case .adzuna:
-                adzunaSection
-                saveSection
-            case .about:
-                aboutSection
+            case .engines: enginesSection
+            case .adzuna: adzunaSection
+            case .about: aboutSection
             }
         }
         .formStyle(.grouped)
@@ -43,16 +38,21 @@ struct SettingsView: View {
         } header: {
             Text("Engines")
         } footer: {
-            Text("Each task runs on its own engine. Claude uses the selected model; "
-                + "On-device uses Apple's Foundation model; Auto tries on-device first, "
-                + "then Claude.")
+            // The Save control lives in the section footer: attached to the end of the section
+            // and scrolling with it, but with no grouped-section background band (v0.4.1 G).
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Each task runs on its own engine. Claude uses the selected model; "
+                    + "On-device uses Apple's Foundation model; Auto tries on-device first, "
+                    + "then Claude.")
+                saveButton
+            }
         }
     }
 
     // MARK: Adzuna — country code + baked-in credentials status
 
     private var adzunaSection: some View {
-        Section("Adzuna") {
+        Section {
             TextField("Country code", text: $viewModel.adzunaCountry)
             LabeledContent("Credentials") {
                 if viewModel.adzunaConfigured {
@@ -63,16 +63,21 @@ struct SettingsView: View {
                         .foregroundStyle(.orange)
                 }
             }
+        } header: {
+            Text("Adzuna")
+        } footer: {
+            saveButton
         }
     }
 
-    /// The shared Save control for the settings-editing panes (Engines / Adzuna).
-    private var saveSection: some View {
-        Section {
-            Button("Save") { viewModel.save() }
-                .buttonStyle(.borderedProminent)
-                .clickableCursor()
-        }
+    /// The shared Save control for the settings-editing panes. Placed in the section **footer**,
+    /// so it's attached to the end of the section and scrolls with the content, but carries no
+    /// grouped-section background band (footers render outside the section's rounded fill).
+    private var saveButton: some View {
+        Button("Save") { viewModel.save() }
+            .buttonStyle(.borderedProminent)
+            .clickableCursor()
+            .padding(.top, 2)
     }
 
     // MARK: About — app identity (Milestone C)

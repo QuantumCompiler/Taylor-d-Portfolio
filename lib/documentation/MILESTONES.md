@@ -1505,3 +1505,24 @@ individually. A view restructure over existing data — each `SavedProfile` alre
 Note: Presentation-only. Reuses the `SavedProfile` source/cover-letter fields and `documentDisclosure`;
 nothing below Presentation changed. `ExpandableRow` is a reusable component (self-managed or
 caller-controlled expansion) available for future disclosures.
+
+## Milestone G — Settings Save button: drop the surrounding section background  ✅ done  (`Presentation/Settings`: `SettingsView`)
+
+Goal: the Settings **Save** button sat inside a grouped-form `Section`, so `.formStyle(.grouped)` drew an
+inset background band around it. Make it just the button, no container. Presentation-only.
+
+- [x] **Bare Save button in the section footer.** The old `saveSection` (a form `Section`, which drew the
+      band) was replaced by a `saveButton` placed in each section's **`footer:`** — footers render outside
+      the grouped section's rounded fill, so the button has **no background band**, yet it's **attached to
+      the end of the section and scrolls with the content**. (Two earlier attempts were corrected: an
+      out-of-`Form` `VStack` was pinned to the view bottom and didn't scroll; a loose in-`Form` row with
+      `.listRowBackground(Color.clear)` still showed the band.) Engines keeps its explanatory footer text
+      with the button below it; Adzuna gained a footer holding just the button.
+- [x] **Both editing panes, About unaffected.** `saveButton` sits in the Engines and Adzuna footers; the
+      About pane has nothing to save and shows no button.
+- [x] **Behaviour preserved.** Same `viewModel.save()` action, `.borderedProminent` style, and
+      `clickableCursor()` — only the surrounding background is gone.
+- [x] **Build + tests.** Full suite green on macOS; app builds clean. The bare-button appearance is a
+      device/visual check.
+
+Note: Presentation-only; no ViewModel or lower-layer change.

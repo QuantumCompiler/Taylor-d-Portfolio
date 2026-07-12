@@ -9,13 +9,13 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.1 — Milestone G** next; **Milestones G → H** remain below. **A**–**F** are ✅
-> **done** (A: profile preview / regenerate / save controls moved into Saved Profiles; B: content-pane
-> header text removed app-wide, tabs-only; C: saved-to-Tracker jobs now leave the Results list; D: the
-> Tracker has a tab per status, All + all 8 stages; E: Tracker (and Results) empty states now centered
-> in the pane; F: Portfolio → Source Documents is now browsable by profile — see `MILESTONES.md`).
-> **G:** in **Settings**, drop the background band around the **Save** button (just the
-> button). **H:** clear the build **warnings** — the `ExportTemplate.style` main-actor-isolation batch
+> **Current focus.** **v0.4.1 — Milestone H** (the last) remains below. **A**–**G** are ✅ **done** (A:
+> profile preview / regenerate / save controls moved into Saved Profiles; B: content-pane header text
+> removed app-wide, tabs-only; C: saved-to-Tracker jobs now leave the Results list; D: the Tracker has a
+> tab per status, All + all 8 stages; E: Tracker (and Results) empty states now centered in the pane; F:
+> Portfolio → Source Documents is now browsable by profile; G: the Settings Save button lost its
+> background band — see `MILESTONES.md`).
+> **H:** clear the build **warnings** — the `ExportTemplate.style` main-actor-isolation batch
 > (mark it `nonisolated`) and the unused `try?` in `SearchViewModel`. v0.4.1 is a
 > **patch release** — bug fixes & small refinements on the
 > v0.4.0 shell — and is this project's first `v0.x.y` point release (see the versioning note in
@@ -45,28 +45,7 @@ at **A** and are committed as `v0.4.1 : Milestone X Completed`. Presentation-onl
 milestone says otherwise. (See `CLAUDE.md` → Working process → Versioning for how patch releases fit
 the numbering.)
 
-**Milestones A–F are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **G → H**.
-
-## Milestone G — Settings Save button: drop the surrounding section background
-
-In Settings (Engines / Adzuna), the **Save** button sits inside a grouped-form `Section` (`saveSection`),
-so `.formStyle(.grouped)` draws an inset **background band** around it. It should be **just the button** —
-no background container.
-
-- [ ] **Present Save as a bare button.** Take the Save control out of the grouped `Form` section so it
-      renders as a plain `borderedProminent` button with no inset row/background. Cleanest: move it **below
-      the `Form`** in a small plain container (e.g. an `HStack { Button…; Spacer() }` footer) rather than
-      as a `Form` `Section`. (Alternative if kept in-form: clear the row background with
-      `.listRowBackground(Color.clear)` + zeroed insets — but out-of-form reads cleaner.)
-- [ ] **Both editing panes.** Applies to **Engines** and **Adzuna** (the two panes that show Save); the
-      **About** pane has no Save and is unaffected.
-- [ ] **Preserve behaviour.** Same `viewModel.save()` action, `.borderedProminent` style, and
-      `clickableCursor()` — only the surrounding background goes away.
-- [ ] **Check.** Visual/device check (add to the v0.4.1 device checks): the Save button shows with no
-      band behind it, still aligned sensibly under the settings rows on both panes.
-
-Seam: **Presentation only** — `Settings/View/SettingsView.swift` (`saveSection` placement / the
-`body`'s `Form` composition). No ViewModel or lower-layer change. On-device: n/a (UI only).
+**Milestones A–G are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **H** (the last).
 
 ## Milestone H — Clear the concurrency & unused-result build warnings
 

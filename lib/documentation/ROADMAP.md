@@ -435,10 +435,10 @@ otherwise; milestones still restart at **A** and commit as `v0.4.1 : Milestone X
       profiles** appear (an unsaved just-built profile shows once saved). Seam: Presentation only
       (`Portfolio/View/PortfolioView.swift`) — no ViewModel/persistence change. On-device: yes.
 
-- [ ] **Milestone G — Settings Save button: drop the section background.** In Settings (Engines / Adzuna)
-      the Save button sits in a grouped-form `Section`, so it renders inside an inset background band; make
-      it a bare `borderedProminent` button with no container (move it out of the grouped `Form`). Same
-      action/style, both editing panes; About is unaffected. Seam: Presentation only
+- [x] **Milestone G — Settings Save button: drop the section background.** ✅ **Done.** Moved the Save
+      button into the Engines / Adzuna section **footer** (`saveButton`), so it has no grouped-section
+      background band **and still scrolls with the content**, attached to the end of the section. Same
+      `viewModel.save()` action/style; About is unaffected. Seam: Presentation only
       (`Settings/View/SettingsView.swift`). On-device: n/a (UI only).
 
 - [ ] **Milestone H — Clear the concurrency & unused-result build warnings.** Two kinds: the "bunch" of
