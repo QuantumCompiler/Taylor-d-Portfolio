@@ -9,13 +9,12 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.1 — Milestone F** next; **Milestones F → H** remain below. **A**–**E** are ✅
+> **Current focus.** **v0.4.1 — Milestone G** next; **Milestones G → H** remain below. **A**–**F** are ✅
 > **done** (A: profile preview / regenerate / save controls moved into Saved Profiles; B: content-pane
 > header text removed app-wide, tabs-only; C: saved-to-Tracker jobs now leave the Results list; D: the
 > Tracker has a tab per status, All + all 8 stages; E: Tracker (and Results) empty states now centered
-> in the pane — see `MILESTONES.md`). **F:** make Portfolio →
-> **Source Documents** browsable **by profile** — list saved profiles, expand one to see its source
-> documents. **G:** in **Settings**, drop the background band around the **Save** button (just the
+> in the pane; F: Portfolio → Source Documents is now browsable by profile — see `MILESTONES.md`).
+> **G:** in **Settings**, drop the background band around the **Save** button (just the
 > button). **H:** clear the build **warnings** — the `ExportTemplate.style` main-actor-isolation batch
 > (mark it `nonisolated`) and the unused `try?` in `SearchViewModel`. v0.4.1 is a
 > **patch release** — bug fixes & small refinements on the
@@ -46,42 +45,7 @@ at **A** and are committed as `v0.4.1 : Milestone X Completed`. Presentation-onl
 milestone says otherwise. (See `CLAUDE.md` → Working process → Versioning for how patch releases fit
 the numbering.)
 
-**Milestones A–E are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **F → H**.
-
-## Milestone F — Source Documents browsable by profile
-
-Today the Portfolio → **Source Documents** sub-view shows only the **currently-loaded** profile's
-tidied documents (`viewModel.readableText` / `coverLetterReadableText`) as a flat list of disclosures.
-Make it **keyed by profile**: list the saved profiles, and clicking/expanding one reveals **that
-profile's** source documents. Each `SavedProfile` already carries its own `sourceFileName` /
-`readableText` and `coverLetterFileName` / `coverLetterReadableText`, and `viewModel.savedProfiles`
-already loads them — so this is a **view restructure over existing data**, not a data change.
-
-- [ ] **List saved profiles.** Render one selectable/expandable row per `viewModel.savedProfiles` entry
-      (by `name`), replacing the single loaded-profile view.
-- [ ] **Expand to that profile's documents.** Expanding a profile reveals its documents in the existing
-      collapsed, scrollable `documentDisclosure`: the **résumé** readable text (`readableText`, labelled
-      with `sourceFileName`) and, if present, the **cover-letter** readable text (`coverLetterReadableText`
-      / `coverLetterFileName`). Net result is a two-level disclosure — **profile → documents** (decide the
-      exact control: nested `DisclosureGroup`, or a profile picker/`List` selection that swaps the shown
-      documents; a nested disclosure keeps it simple and matches the current pattern).
-- [ ] **Per-profile empty note.** A saved profile with no tidied source text (older/empty saves) shows an
-      inline "no source documents saved for this profile" note when expanded.
-- [ ] **Sub-view empty state + gate.** When there are **no saved profiles**, keep the `InlineEmptyState`
-      (reworded for the per-profile framing). Change the `hasSourceDocuments` gate (line ~194) from "the
-      loaded profile has readable text" to "there is at least one saved profile (with source docs)".
-- [ ] **Unsaved current profile (open call).** Decide whether a just-built, **not-yet-saved** profile
-      also appears here (e.g. a "Current (unsaved)" entry) or whether Source Documents lists **only saved**
-      profiles. Recommended: **only saved profiles** — source docs are a property of a saved profile — with
-      the empty/hint copy directing the user to build & save first. (Consistent with Milestone A moving the
-      save controls into Saved Profiles.)
-- [ ] **Tests.** A view restructure over existing `savedProfiles` data — confirm the suite stays green;
-      add coverage only if a small `PortfolioViewModel` helper is introduced to vend a profile's documents.
-
-Seam: **Presentation only** — `Portfolio/View/PortfolioView.swift` (`sourceDocumentsSection` +
-`sourceDocumentsTab` gate; reuse `documentDisclosure`), reading `viewModel.savedProfiles`. Each
-`SavedProfile` already carries its readable source + cover-letter text, so **no ViewModel/use-case/
-persistence change** is required (an optional VM convenience aside). On-device: yes (all local).
+**Milestones A–F are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **G → H**.
 
 ## Milestone G — Settings Save button: drop the surrounding section background
 

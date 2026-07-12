@@ -426,13 +426,14 @@ otherwise; milestones still restart at **A** and commit as `v0.4.1 : Milestone X
       `InlineEmptyState` (Portfolio/Search) left as-is. Seam: Presentation only (`TrackerView` +
       `ResultsView`). On-device: n/a (UI only).
 
-- [ ] **Milestone F — Source Documents browsable by profile.** The Portfolio → Source Documents sub-view
-      today shows only the currently-loaded profile's tidied documents; make it keyed by profile — list
-      the saved profiles and expand one to reveal that profile's résumé + cover-letter readable text (a
-      profile → documents disclosure). View restructure over existing data: each `SavedProfile` already
-      carries its own source + cover-letter readable text via `viewModel.savedProfiles`. Seam: Presentation
-      only (`Portfolio/View/PortfolioView.swift` `sourceDocumentsSection` + gate) — no ViewModel/persistence
-      change. On-device: yes.
+- [x] **Milestone F — Source Documents browsable by profile.** ✅ **Done.** The Portfolio → Source
+      Documents sub-view now lists the **saved profiles**, each a disclosure that expands to that profile's
+      résumé + optional cover-letter readable text (a two-level profile → documents disclosure), with a
+      per-profile "no source documents" note and a reworded empty state gated on having saved profiles.
+      View restructure over existing data — each `SavedProfile` already carries its source + cover-letter
+      readable text via `viewModel.savedProfiles`. Open call resolved as recommended: **only saved
+      profiles** appear (an unsaved just-built profile shows once saved). Seam: Presentation only
+      (`Portfolio/View/PortfolioView.swift`) — no ViewModel/persistence change. On-device: yes.
 
 - [ ] **Milestone G — Settings Save button: drop the section background.** In Settings (Engines / Adzuna)
       the Save button sits in a grouped-form `Section`, so it renders inside an inset background band; make

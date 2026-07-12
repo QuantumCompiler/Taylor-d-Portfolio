@@ -206,7 +206,9 @@ struct SearchView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            DisclosureGroup("Page won’t load? Paste the posting text", isExpanded: $showPasteFallback) {
+            ExpandableRow(isExpanded: $showPasteFallback) {
+                Text("Page won’t load? Paste the posting text")
+            } content: {
                 VStack(alignment: .leading, spacing: 6) {
                     TextEditor(text: $viewModel.pastedPosting)
                         .frame(minHeight: 100)

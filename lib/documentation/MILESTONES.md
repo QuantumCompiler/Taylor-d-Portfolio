@@ -1467,3 +1467,41 @@ rendered at their natural top-leading position. Presentation-only.
 
 Note: Presentation-only, pure layout — no ViewModel or lower-layer change. The exact centered
 appearance across window sizes is a manual (device) check.
+
+## Milestone F — Source Documents browsable by profile  ✅ done  (`Presentation/Portfolio`: `PortfolioView`)
+
+Goal: the Portfolio → **Source Documents** sub-view showed only the *currently-loaded* profile's tidied
+documents; make it **keyed by profile** so each saved profile's résumé + cover letter are discoverable
+individually. A view restructure over existing data — each `SavedProfile` already carries its own
+`sourceFileName` / `readableText` and `coverLetterFileName` / `coverLetterReadableText`, and
+`viewModel.savedProfiles` already loads them. Presentation only — no ViewModel/persistence change.
+
+- [x] **Per-profile disclosures.** `sourceDocumentsSection` now iterates `viewModel.savedProfiles`,
+      rendering each as a `profileDocuments(_:)` `DisclosureGroup` titled with the profile name
+      (`person.text.rectangle`). Expanding it reveals that profile's documents via the existing collapsed,
+      scrollable `documentDisclosure` — résumé (`readableText`, labelled with `sourceFileName`) and, if
+      present, the cover letter (`coverLetterReadableText` / `coverLetterFileName`). Net result is a
+      two-level **profile → documents** disclosure.
+- [x] **Per-profile empty note.** A saved profile with no tidied source text (older/empty saves) shows an
+      inline "No source documents saved for this profile." note when expanded.
+- [x] **Empty state + gate.** Replaced the `hasSourceDocuments` gate (which keyed off the loaded profile's
+      readable text) with `hasSavedProfiles` (`supportsSavedProfiles && !savedProfiles.isEmpty`); the
+      `InlineEmptyState` copy was reworded for the per-profile framing (build & save a profile → its docs
+      appear here, grouped by profile).
+- [x] **Open call resolved.** Source Documents lists **only saved profiles** (the recommended option) — an
+      unsaved, just-built profile appears here once saved, consistent with Milestone A putting the save
+      controls on Saved Profiles.
+- [x] **Whole header row clickable (`ExpandableRow`).** SwiftUI's `DisclosureGroup` only toggles on the
+      caret; both Portfolio disclosures now use a new shared **`Presentation/Components/ExpandableRow`**
+      whose entire header row is the tap target, with the pointing-hand cursor on the header (the expanded,
+      selectable text keeps its native I-beam). So clicking anywhere on a profile row expands its documents.
+      The same component now also backs the Search **"Paste the posting text"** fallback (via its
+      caller-controlled `isExpanded:` initializer, so the auto-expand-on-fetch-error still works). The
+      Results **filter bar** keeps `DisclosureGroup` on purpose — its header holds an interactive Clear
+      button, so a whole-row tap would conflict.
+- [x] **Tests + build.** No ViewModel API change (the view reads `SavedProfile` fields directly), so no new
+      unit tests were needed; full suite stays green and the app builds clean.
+
+Note: Presentation-only. Reuses the `SavedProfile` source/cover-letter fields and `documentDisclosure`;
+nothing below Presentation changed. `ExpandableRow` is a reusable component (self-managed or
+caller-controlled expansion) available for future disclosures.

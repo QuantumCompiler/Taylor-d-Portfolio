@@ -218,7 +218,9 @@ lib/src/
                   e.g. Results/View holds ResultsView + RankedRow + JobDetailView + StatusBadge,
                   Tracker/View holds TrackerView, Application/View the sheet)
     Components/     shared view helpers — ScrollableScreen (scroll wrapper), ExportFileDocument,
-                  InlineEmptyState (left-aligned empty state for scrolling screens)
+                  InlineEmptyState (left-aligned empty state for scrolling screens),
+                  ExpandableRow (disclosure whose whole header row toggles, not just the caret),
+                  CursorStyle (clickableCursor pointer affordance)
   Business/
     UseCases/     BuildProfileUseCase, ImportPortfolioUseCase, SearchAndRankUseCase,
                   GenerateApplicationUseCase, FetchPostingUseCase, ExportApplicationUseCase,
