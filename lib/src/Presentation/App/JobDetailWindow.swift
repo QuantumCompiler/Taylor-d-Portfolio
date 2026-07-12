@@ -35,8 +35,8 @@ struct JobDetailWindow: View {
                     loadApplication: composition.loadApplication,
                     allowsSwipe: false,
                     onMutate: { session.dataChanged() },
-                    onOpenApplication: { mode in
-                        session.showApplication(ranked.listing, mode: mode)
+                    onOpenApplication: {
+                        session.showApplication(ranked.listing)
                         openWindow(id: ApplicationWindow.id)
                     },
                     refreshSignal: session.revision

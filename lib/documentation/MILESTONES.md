@@ -1691,3 +1691,22 @@ main-actor-isolated `Equatable`-conformance warnings surfaced in the test target
 Full suite green, warning-free. Note: a returned job reappears in Results once the list reflects the store
 (it does within a session / after a fresh Results load). Seam: Presentation + one Business use case.
 On-device: yes (local status/store writes).
+
+## Fix — Generation is user-initiated (explicit Generate button)  ✅ done  (`ApplicationViewModel`, `ApplicationSheet`, + `AppSession`/`ApplicationWindow`/`JobDetailView` cleanup)  — Milestone D follow-up
+
+Opening the Application view auto-generated immediately, so the Milestone D options panel (fidelity /
+aspects) couldn't be set first. Made generation **explicit**:
+
+- [x] `ApplicationViewModel.open(...)` (load-or-generate) replaced by **`loadSaved(for:)`** — loads saved
+      materials if present (no LLM call), otherwise leaves `kit` nil. Opening never auto-generates.
+- [x] `ApplicationSheet` now shows the **Generation options** panel (expanded by default) + a prominent
+      **"Generate application"** button (→ "Regenerate" once a kit exists); a "Ready to generate" placeholder
+      invites setting options first. Generation runs only on that button (`runGeneration`).
+- [x] **Cleanup:** removed the vestigial `ApplicationStartMode` / `startMode` / auto-generate machinery from
+      B-C (`AppSession.showApplication` drops the mode; `ApplicationWindow` / `JobDetailView.onOpenApplication`
+      updated). The Tracker detail footer simplified to **"Generate application"** / **"View application"**
+      (the Application window now owns generate/regenerate); `JobDetailFooter.viewAndRegenerate` → `.view`.
+- [x] Tests updated (`ApplicationViewModelTests`: loadSaved never auto-generates, then explicit generate
+      persists; loads saved without a provider call; `JobDetailFooterTests`). Full suite green, warning-free.
+
+Seam: Presentation only. On-device: yes.

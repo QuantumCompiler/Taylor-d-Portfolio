@@ -212,4 +212,45 @@ struct PromptsTests {
         #expect(!prompt.contains(longLetter))
         #expect(prompt.contains("…"))
     }
+
+    // MARK: D — generation controls (fidelity / aspects / disclosure)
+
+    @Test func defaultSettingsLeaveThePromptUnchanged() {
+        let base = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief)
+        let withDefault = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief, settings: .default)
+        #expect(base == withDefault)   // grounded default path is byte-for-byte unchanged
+        #expect(!withDefault.contains("GENERATION CONTROLS"))
+    }
+
+    @Test func curatedFidelityAppendsALatitudeClause() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(fidelity: 0.5)
+        )
+        #expect(prompt.contains("GENERATION CONTROLS"))
+        #expect(prompt.lowercased().contains("curate"))
+        #expect(prompt.contains("tailor all sections"))
+        #expect(!prompt.contains("EMBELLISHED:"))   // no disclosure clause below the embellished band
+    }
+
+    @Test func embellishedFidelityRequiresDisclosure() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(fidelity: 1.0)
+        )
+        #expect(prompt.contains("plausible embellishments"))
+        #expect(prompt.contains("Disclosure (REQUIRED)"))
+        #expect(prompt.contains("EMBELLISHED:"))
+    }
+
+    @Test func selectedAspectsRestrictTheScope() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(fidelity: 0.5, aspects: [.summary, .skills])
+        )
+        #expect(prompt.contains("tailor ONLY these sections"))
+        #expect(prompt.contains("Summary / Headline"))
+        #expect(prompt.contains("Skills"))
+        #expect(prompt.contains("Reproduce every other section"))
+    }
 }

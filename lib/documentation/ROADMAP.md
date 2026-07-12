@@ -498,8 +498,10 @@ and commit as `v0.5.0 : Milestone X Completed`. Presentation-first (Milestone A 
       a non-colliding label for the `ApplicationKit` output); (2) a **generation-fidelity** slider `0…1`
       (0 = authentic / verbatim, 0.5 = curated, 1.0 = embellished) mapped to **prompt latitude** and threaded
       `GenerateApplicationUseCase` → `LLMProvider.generateApplication(…settings:)` → `Prompts` (new `settings`
-      param with a forwarding default, like `grounding`); (3) **tailored-aspect** checkboxes (Summary /
-      Experience / Projects / Skills / Education / Cover Letter — none = all); (4) named **presets**
+      param with a forwarding default, like `grounding`); (3) **tailored-aspect** checkboxes over the
+      four résumé sections (Summary / Experience / Projects / Skills — none = all; **Education** stays
+      verbatim and the **Cover Letter** is derived from the curated résumé, so neither is a knob), each
+      tailored to **match the job post's keywords + description**; (4) named **presets**
       (`GenerationPreset` + `GenerationPresetsRepository`, reusable across jobs, mirroring `SavedSearch`);
       and (5) a **desired rank-match target** (D-F) — the master control: set a target fit score and an
       **outcome-driven loop** (generate → score the tailored output via a new `scoreApplication`/`rank`

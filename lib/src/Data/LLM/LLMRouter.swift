@@ -76,6 +76,10 @@ nonisolated struct LLMRouter: LLMProvider {
         try await run(.application) { try await $0.generateApplication(for: job, profile: profile, brief: brief, grounding: grounding) }
     }
 
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit {
+        try await run(.application) { try await $0.generateApplication(for: job, profile: profile, brief: brief, grounding: grounding, settings: settings) }
+    }
+
     // MARK: Routing
 
     /// The engines to try, in order, for `task`'s configured choice.

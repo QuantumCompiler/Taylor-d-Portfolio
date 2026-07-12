@@ -17,11 +17,8 @@ struct ApplicationSheet: View {
     /// The candidate's real documents for grounded generation (Milestone T); nil falls
     /// back to profile-only generation.
     var grounding: PortfolioGrounding? = nil
-    /// Whether to load saved materials or force a fresh regeneration on appear (v0.5.0
-    /// Milestone A). Defaults to view-or-generate — the prior behaviour.
-    var startMode: ApplicationStartMode = .viewOrGenerate
     /// Bumped by the hosting window on every open request, so the single-instance
-    /// Application window re-runs its start mode even when it's already open (v0.5.0 B-C).
+    /// Application window reloads the saved materials when re-opened for a different job.
     var requestID: Int = 0
     /// Called after fresh materials are generated, so the hosting window can signal the
     /// lists + detail view to reload (v0.5.0 Milestone B-C).
@@ -33,6 +30,7 @@ struct ApplicationSheet: View {
     @State private var exportContentType: UTType = .plainText
     @State private var exportFilename = "Application"
     @State private var isExporting = false
+    @State private var showOptions = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -74,30 +72,32 @@ struct ApplicationSheet: View {
                     .fixedSize()
                     .clickableCursor()
                 }
-                if viewModel.kit != nil {
-                    Button("Regenerate") {
-                        Task {
-                            await viewModel.generate(for: job, profile: profile, grounding: grounding)
-                            onGenerated?()
-                        }
-                    }
-                    .disabled(viewModel.isGenerating)
-                    .clickableCursor()
+                if viewModel.kit == nil {
+                    Button("Generate application") { runGeneration() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(viewModel.isGenerating)
+                        .clickableCursor()
+                } else {
+                    Button("Regenerate") { runGeneration() }
+                        .disabled(viewModel.isGenerating)
+                        .clickableCursor()
                 }
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.defaultAction)
                     .clickableCursor()
             }
             lengthGateBanner
+            generationControlsPanel
+            embellishWarning
             Divider()
             content
         }
         .padding(24)
         .frame(minWidth: 520, minHeight: 440)
-        .task { await runStartMode() }
-        // Re-run when the hosting window re-opens for a new request (e.g. View → Regenerate
-        // on the same job) — the single-instance window keeps this view alive (v0.5.0 B-C).
-        .onChange(of: requestID) { _, _ in Task { await runStartMode() } }
+        // Load saved materials if present — but never auto-generate. Generation is started
+        // explicitly with the Generate button so the user can set options first (v0.5.0).
+        .task { await viewModel.loadSaved(for: job) }
+        .onChange(of: requestID) { _, _ in Task { await viewModel.loadSaved(for: job) } }
         // The one-page gate is template-dependent — remeasure when the user switches template.
         .onChange(of: viewModel.exportTemplate) { _, _ in viewModel.refreshLengthGate() }
         .fileExporter(
@@ -106,6 +106,81 @@ struct ApplicationSheet: View {
             contentType: exportContentType,
             defaultFilename: exportFilename
         ) { _ in }
+    }
+
+    // MARK: Generation controls (Milestone D)
+
+    /// The fidelity slider + tailored-aspect checkboxes. Changes apply when the user presses
+    /// Generate / Regenerate (the controls drive `viewModel.generationSettings`).
+    private var generationControlsPanel: some View {
+        DisclosureGroup("Generation options", isExpanded: $showOptions) {
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Fidelity").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Text(fidelityLabel).font(.caption.bold())
+                    }
+                    Slider(value: $viewModel.generationSettings.fidelity, in: 0...1, step: 0.05)
+                        .clickableCursor()
+                    HStack {
+                        Text("Authentic")
+                        Spacer()
+                        Text("Curated")
+                        Spacer()
+                        Text("Embellished")
+                    }
+                    .font(.caption2).foregroundStyle(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Tailor (none checked = all sections)").font(.caption).foregroundStyle(.secondary)
+                    ForEach(TailoredAspect.allCases) { aspect in
+                        Toggle(aspect.label, isOn: aspectBinding(aspect))
+                            .toggleStyle(.checkbox)
+                            .clickableCursor()
+                    }
+                }
+                Text("Changes apply when you Regenerate.").font(.caption2).foregroundStyle(.secondary)
+            }
+            .padding(.top, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .clickableCursor()
+    }
+
+    private var fidelityLabel: String {
+        switch viewModel.generationSettings.band {
+        case .authentic: return "Authentic"
+        case .curated: return "Curated"
+        case .embellished: return "Embellished"
+        }
+    }
+
+    private func aspectBinding(_ aspect: TailoredAspect) -> Binding<Bool> {
+        Binding(
+            get: { viewModel.generationSettings.aspects.contains(aspect) },
+            set: { isOn in
+                if isOn { viewModel.generationSettings.aspects.insert(aspect) }
+                else { viewModel.generationSettings.aspects.remove(aspect) }
+            }
+        )
+    }
+
+    /// The disclosure warning shown whenever the fidelity is in the embellished band
+    /// (Milestone D-E): generated content may include unverified additions.
+    @ViewBuilder private var embellishWarning: some View {
+        if viewModel.generationSettings.mayEmbellish {
+            Label(
+                "Embellished mode may add unverified content. Review the Gaps note (lines marked "
+                + "\"EMBELLISHED:\") and verify everything before sending — this is a draft.",
+                systemImage: "exclamationmark.triangle.fill"
+            )
+            .font(.caption)
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+        }
     }
 
     /// A surfaced one-page warning (Milestone X): the résumé runs long in the chosen
@@ -130,15 +205,10 @@ struct ApplicationSheet: View {
         }
     }
 
-    /// Loads saved materials or forces a fresh generation per `startMode`, signalling
-    /// `onGenerated` whenever fresh output was produced (v0.5.0 Milestone B-C).
-    private func runStartMode() async {
-        switch startMode {
-        case .viewOrGenerate:
-            await viewModel.open(for: job, profile: profile, grounding: grounding)
-            // `open` generates when nothing was saved — `isSaved` distinguishes the two.
-            if !viewModel.isSaved { onGenerated?() }
-        case .forceGenerate:
+    /// Explicitly generates (or regenerates) the application with the current options, then
+    /// signals `onGenerated` so the lists + detail refresh (v0.5.0).
+    private func runGeneration() {
+        Task {
             await viewModel.generate(for: job, profile: profile, grounding: grounding)
             onGenerated?()
         }
@@ -176,7 +246,12 @@ struct ApplicationSheet: View {
         } else if let error = viewModel.errorMessage {
             ContentUnavailableView("Couldn't generate", systemImage: "exclamationmark.triangle", description: Text(error))
         } else {
-            Spacer()
+            ContentUnavailableView(
+                "Ready to generate",
+                systemImage: "sparkles",
+                description: Text("Set your fidelity and which sections to tailor above, then press **Generate application**.")
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 

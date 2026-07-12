@@ -35,9 +35,9 @@ struct JobDetailView: View {
     /// Called after this view mutates shared persistence (status set, materials generated,
     /// saved), so a hosting window can signal the lists to reload (v0.5.0 Milestone B).
     var onMutate: (() -> Void)? = nil
-    /// Opens the Application window for the given mode (v0.5.0 Milestone B-C). Supplied by
-    /// the hosting window; when nil (e.g. previews) the View/Generate buttons do nothing.
-    var onOpenApplication: ((ApplicationStartMode) -> Void)? = nil
+    /// Opens the Application window (v0.5.0 Milestone B-C). Supplied by the hosting window;
+    /// when nil (e.g. previews) the View/Generate buttons do nothing.
+    var onOpenApplication: (() -> Void)? = nil
     /// A monotonically-increasing signal from the hosting window; a change re-checks whether
     /// materials now exist (e.g. after the Application window generated) — v0.5.0 B-C.
     var refreshSignal: Int = 0
@@ -258,18 +258,16 @@ struct JobDetailView: View {
                 .buttonStyle(.borderedProminent)
                 .clickableCursor()
             case .generate:
-                // Tracker context, nothing generated yet (Milestone V-D).
-                Button("Generate résumé & cover letter") { openApplication(.viewOrGenerate) }
+                // Tracker context, nothing generated yet (Milestone V-D). Opens the
+                // Application window where the user sets options and presses Generate.
+                Button("Generate application") { openApplication() }
                     .buttonStyle(.borderedProminent)
                     .disabled(profile == nil)
                     .clickableCursor()
-            case .viewAndRegenerate:
-                // Tracker context with saved materials (v0.5.0 Milestone A): view them (no
-                // LLM call) or force a fresh regeneration.
-                Button("Regenerate") { openApplication(.forceGenerate) }
-                    .disabled(profile == nil)
-                    .clickableCursor()
-                Button("View résumé & cover letter") { openApplication(.viewOrGenerate) }
+            case .view:
+                // Tracker context with saved materials (v0.5.0 Milestone A): open the
+                // Application window to view them (and regenerate there, with options).
+                Button("View application") { openApplication() }
                     .buttonStyle(.borderedProminent)
                     .disabled(profile == nil)
                     .clickableCursor()
@@ -277,9 +275,9 @@ struct JobDetailView: View {
         }
     }
 
-    /// Opens the Application window in the given mode (via the hosting window).
-    private func openApplication(_ mode: ApplicationStartMode) {
-        onOpenApplication?(mode)
+    /// Opens the Application window (via the hosting window).
+    private func openApplication() {
+        onOpenApplication?()
     }
 
     private func labeledSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -300,12 +298,12 @@ nonisolated enum JobDetailFooter: Equatable {
     case saveToTracker
     /// Tracker context, nothing generated yet: a single Generate action.
     case generate
-    /// Tracker context with saved materials: View (no LLM) + Regenerate.
-    case viewAndRegenerate
+    /// Tracker context with saved materials: a View action (opens the Application window).
+    case view
 
     static func resolve(canGenerate: Bool, hasGeneratedMaterials: Bool, canSaveToTracker: Bool) -> JobDetailFooter {
         if canGenerate {
-            return hasGeneratedMaterials ? .viewAndRegenerate : .generate
+            return hasGeneratedMaterials ? .view : .generate
         }
         return canSaveToTracker ? .saveToTracker : .none
     }

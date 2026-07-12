@@ -66,7 +66,7 @@ struct ApplicationViewModelTests {
 
     // MARK: O-C — persistence
 
-    @Test func openGeneratesAndPersistsWhenNothingSaved() async throws {
+    @Test func loadSavedNeverAutoGeneratesThenExplicitGeneratePersists() async throws {
         let repo = SavedApplicationsRepository(store: InMemoryRecordStore())
         let provider = RecordingGenProvider()
         let vm = ApplicationViewModel(
@@ -74,15 +74,17 @@ struct ApplicationViewModelTests {
             saveApplication: SaveApplicationUseCase(repository: repo),
             loadApplication: LoadApplicationUseCase(repository: repo)
         )
-        await vm.open(for: job, profile: profile)
+        await vm.loadSaved(for: job)
+        #expect(vm.kit == nil)                        // opening never auto-generates (v0.5.0)
+        #expect(await provider.generateCalls == 0)
 
+        await vm.generate(for: job, profile: profile)  // the explicit Generate button
         #expect(vm.kit?.resumeMarkdown == "FRESH")
-        #expect(vm.isSaved == false)
         #expect(await provider.generateCalls == 1)
         #expect(try await repo.kit(forJobID: job.id)?.resumeMarkdown == "FRESH")   // persisted
     }
 
-    @Test func openLoadsSavedKitWithoutCallingProvider() async throws {
+    @Test func loadSavedShowsSavedKitWithoutCallingProvider() async throws {
         let repo = SavedApplicationsRepository(store: InMemoryRecordStore())
         try await repo.save(savedKit("# Saved"), forJobID: job.id)
         let provider = RecordingGenProvider()
@@ -91,7 +93,7 @@ struct ApplicationViewModelTests {
             saveApplication: SaveApplicationUseCase(repository: repo),
             loadApplication: LoadApplicationUseCase(repository: repo)
         )
-        await vm.open(for: job, profile: profile)
+        await vm.loadSaved(for: job)
 
         #expect(vm.kit?.resumeMarkdown == "# Saved")
         #expect(vm.isSaved)
@@ -126,10 +128,10 @@ struct ApplicationViewModelTests {
         #expect(await provider.lastGrounding == grounding)   // résumé + cover letter reach the engine
     }
 
-    @Test func openWithoutGroundingFallsBackToProfileOnly() async {
+    @Test func generateWithoutGroundingFallsBackToProfileOnly() async {
         let provider = RecordingGenProvider()
         let vm = ApplicationViewModel(generateApplication: GenerateApplicationUseCase(provider: provider))
-        await vm.open(for: job, profile: profile)            // no grounding passed
+        await vm.generate(for: job, profile: profile)        // no grounding passed
         #expect(await provider.lastGrounding == nil)         // back-compat: profile-only
     }
 

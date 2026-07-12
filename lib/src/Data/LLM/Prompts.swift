@@ -216,9 +216,10 @@ nonisolated enum Prompts {
         job: JobListing,
         profile: CandidateProfile,
         brief: TargetBrief,
-        grounding: PortfolioGrounding? = nil
+        grounding: PortfolioGrounding? = nil,
+        settings: GenerationSettings = .default
     ) -> String {
-        """
+        let base = """
         Tailor application materials for this role, grounded ONLY in the candidate profile\
         \(grounding?.resumeText.isEmpty == false ? " and résumé" : "") below.
 
@@ -259,6 +260,50 @@ nonisolated enum Prompts {
         - gapNote: an honest, short note listing the notable must-have requirements the candidate
           does NOT clearly meet (the gaps from step 1). Never disguise a gap as a strength.
         """
+        return base + generationControls(settings)
+    }
+
+    /// The generation-controls addendum (Milestone D). Empty for `.default`, so the grounded
+    /// path is byte-for-byte the base prompt; otherwise it appends latitude (D-B), aspect
+    /// scope (D-C), and — in the embellished band — a mandatory disclosure clause (D-E) that
+    /// **override** the base instructions where they conflict.
+    static func generationControls(_ settings: GenerationSettings) -> String {
+        guard !settings.isDefault else { return "" }
+        var lines: [String] = []
+
+        switch settings.band {
+        case .authentic:
+            lines.append("- Latitude: reorder and rephrase the candidate's REAL experience only. "
+                + "Never invent employers, titles, dates, degrees, credentials, or metrics.")
+        case .curated:
+            lines.append("- Latitude: curate aggressively — emphasize and reframe real experience, and you "
+                + "MAY infer reasonable adjacent skills the candidate plausibly has. Still never invent "
+                + "employers, titles, dates, degrees, or credentials.")
+        case .embellished:
+            lines.append("- Latitude: you MAY add plausible embellishments to strengthen the fit, including "
+                + "details not present in the profile, to maximise the match. Prefer skills/impact framing "
+                + "over fabricated hard credentials.")
+        }
+
+        if settings.aspects.isEmpty {
+            lines.append("- Scope: tailor all sections.")
+        } else {
+            let names = settings.aspects
+                .sorted { $0.rawValue < $1.rawValue }
+                .map(\.label)
+                .joined(separator: ", ")
+            lines.append("- Scope: tailor ONLY these sections — \(names). Reproduce every other section "
+                + "faithfully from the candidate's real experience, unchanged.")
+        }
+
+        if settings.band == .embellished {
+            lines.append("- Disclosure (REQUIRED): in gapNote, list every statement in the résumé or cover "
+                + "letter that is NOT directly supported by the candidate profile — each on its own line, "
+                + "prefixed \"EMBELLISHED: \". List the honest gaps as usual after them.")
+        }
+
+        return "\n\nGENERATION CONTROLS (override the instructions above where they conflict):\n"
+            + lines.joined(separator: "\n")
     }
 
     // MARK: Grounding (Milestone T)

@@ -34,7 +34,6 @@ struct ApplicationWindow: View {
                     job: job,
                     profile: profile,
                     grounding: session.grounding,
-                    startMode: session.applicationStartMode,
                     requestID: session.applicationRequestID,
                     onGenerated: { session.dataChanged() }
                 )

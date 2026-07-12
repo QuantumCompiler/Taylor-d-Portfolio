@@ -8,15 +8,6 @@
 import Foundation
 import Observation
 
-/// How the Application view should populate when it appears (v0.5.0 Milestone A):
-/// load a previously-saved kit if present, or force a fresh regeneration.
-nonisolated enum ApplicationStartMode: Sendable {
-    /// Show saved materials if they exist (no LLM call); generate only when none exist.
-    case viewOrGenerate
-    /// Always regenerate fresh, replacing any saved materials.
-    case forceGenerate
-}
-
 /// Drives the Application sheet: generates a tailored resume + cover letter for a job,
 /// persisting the result and reloading it on reopen (Milestone O-C) so the user isn't
 /// charged a redundant generation.
@@ -32,6 +23,9 @@ final class ApplicationViewModel {
     private(set) var job: JobListing?
     /// The résumé template used for PDF export + the one-page gate (Milestone X).
     var exportTemplate: ExportTemplate = .classic
+    /// The generation controls (fidelity + tailored aspects) applied on the next generate /
+    /// regenerate (Milestone D). `.default` = the grounded, pre-D behaviour.
+    var generationSettings: GenerationSettings = .default
     /// How many pages the résumé occupies in `exportTemplate`'s layout — 0 when there's no
     /// kit/exporter. Recomputed by `refreshLengthGate()` when the kit or template changes.
     private(set) var resumePageCount = 0
@@ -94,20 +88,23 @@ final class ApplicationViewModel {
         return base.components(separatedBy: illegal).joined(separator: "-")
     }
 
-    /// Opens the application for `job`: shows previously-saved materials if present
-    /// (no LLM call), otherwise generates fresh output. `grounding` carries the candidate's
-    /// real documents (résumé + optional cover letter) for grounded generation (Milestone T).
-    func open(for job: JobListing, profile: CandidateProfile, grounding: PortfolioGrounding? = nil) async {
+    /// Loads previously-saved materials for `job` if present (no LLM call); otherwise leaves
+    /// `kit` nil so the view offers an explicit **Generate** button. Opening the Application
+    /// view never auto-generates — generation is user-initiated so options can be set first
+    /// (v0.5.0).
+    func loadSaved(for job: JobListing) async {
         self.job = job
+        errorMessage = nil
+        isGenerating = false
         if let loadApplication, let saved = try? await loadApplication(forJobID: job.id) {
             kit = saved
             isSaved = true
-            errorMessage = nil
-            isGenerating = false
             refreshLengthGate()
-            return
+        } else {
+            kit = nil
+            isSaved = false
+            resumePageCount = 0
         }
-        await generate(for: job, profile: profile, grounding: grounding)
     }
 
     /// Generates fresh materials (also used by "Regenerate") and persists them.
@@ -119,7 +116,7 @@ final class ApplicationViewModel {
         isSaved = false
         defer { isGenerating = false }
         do {
-            let produced = try await generateApplication(job: job, profile: profile, grounding: grounding)
+            let produced = try await generateApplication(job: job, profile: profile, grounding: grounding, settings: generationSettings)
             kit = produced
             refreshLengthGate()
             // Best-effort persist — a storage failure shouldn't lose the generated output.

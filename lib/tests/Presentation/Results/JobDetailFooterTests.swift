@@ -19,10 +19,10 @@ struct JobDetailFooterTests {
         )
     }
 
-    @Test func trackerWithMaterialsShowsViewAndRegenerate() {
+    @Test func trackerWithMaterialsShowsView() {
         #expect(
             JobDetailFooter.resolve(canGenerate: true, hasGeneratedMaterials: true, canSaveToTracker: false)
-            == .viewAndRegenerate
+            == .view
         )
     }
 

@@ -37,11 +37,9 @@ final class AppSession {
     var detailJob: RankedJob?
     var detailContext: JobDetailContext = .tracker
 
-    /// The job whose **Application window** is open (v0.5.0 Milestone B-C), the start mode,
-    /// and a request id bumped on every open so re-opening the same job (e.g. View then
-    /// Regenerate) re-runs even though the single-instance window persists.
+    /// The job whose **Application window** is open (v0.5.0 Milestone B-C), and a request id
+    /// bumped on every open so the single-instance window reloads for a newly-opened job.
     var applicationJob: JobListing?
-    var applicationStartMode: ApplicationStartMode = .viewOrGenerate
     private(set) var applicationRequestID = 0
 
     /// Bumped whenever a detached window mutates shared persistence, so the main window's
@@ -57,10 +55,9 @@ final class AppSession {
         detailContext = context
     }
 
-    /// Opens (or re-triggers) the Application window for `job` in the given start mode.
-    func showApplication(_ job: JobListing, mode: ApplicationStartMode) {
+    /// Opens (or re-targets) the Application window for `job`.
+    func showApplication(_ job: JobListing) {
         applicationJob = job
-        applicationStartMode = mode
         applicationRequestID &+= 1
     }
 }
