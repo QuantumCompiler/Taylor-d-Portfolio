@@ -137,6 +137,18 @@ struct Composition {
     private var deleteSavedSearch: DeleteSavedSearchUseCase? {
         savedSearchesRepository.map(DeleteSavedSearchUseCase.init(repository:))
     }
+    private var generationPresetsRepository: GenerationPresetsRepository? {
+        recordStore.map(GenerationPresetsRepository.init(store:))
+    }
+    private var saveGenerationPreset: SaveGenerationPresetUseCase? {
+        generationPresetsRepository.map { SaveGenerationPresetUseCase(repository: $0) }
+    }
+    private var loadGenerationPresets: LoadGenerationPresetsUseCase? {
+        generationPresetsRepository.map(LoadGenerationPresetsUseCase.init(repository:))
+    }
+    private var deleteGenerationPreset: DeleteGenerationPresetUseCase? {
+        generationPresetsRepository.map(DeleteGenerationPresetUseCase.init(repository:))
+    }
     private var saveProfile: SaveProfileUseCase? {
         savedProfilesRepository.map { SaveProfileUseCase(repository: $0) }
     }
@@ -202,7 +214,10 @@ struct Composition {
             generateApplication: generateApplication,
             saveApplication: savedApplicationsRepository.map(SaveApplicationUseCase.init(repository:)),
             loadApplication: loadApplication,
-            exportApplication: exportApplication
+            exportApplication: exportApplication,
+            saveGenerationPreset: saveGenerationPreset,
+            loadGenerationPresets: loadGenerationPresets,
+            deleteGenerationPreset: deleteGenerationPreset
         )
     }
 }

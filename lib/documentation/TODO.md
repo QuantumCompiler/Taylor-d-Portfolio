@@ -135,8 +135,9 @@ the default path byte-for-byte unchanged.
 > (default-unchanged / curated / embellished-disclosure / aspect-scope). **The D-C revision is applied**
 > (`TailoredAspect` narrowed to the four résumé sections; keyword/description-matching goal + cover-letter-
 > from-résumé in the prompt). Also (drive-by): generation is now **user-initiated** (explicit Generate button,
-> no auto-generate on open) — see `MILESTONES.md`. **Remaining: D-D (presets), D-E (fuller disclosure UI —
-> prompt clause + warning banner already in), D-F (rank-target loop).**
+> no auto-generate on open) — see `MILESTONES.md`. **D-D (presets) is done** (`GenerationPreset` +
+> repository + 3 use cases + a Presets menu / Save-as-preset in the panel). **Remaining: D-E (fuller
+> disclosure UI — prompt clause + warning banner already in), D-F (rank-target loop).**
 
 ### D-A — Button rename + controls panel scaffold  ✅ done
 
@@ -181,15 +182,18 @@ the default path byte-for-byte unchanged.
 - [x] **Tests.** `PromptsTests` aspect-scope cases updated to the four-section set; asserts the
       keyword/description-matching goal + cover-letter-from-résumé; asserts `education`/`coverLetter` are gone.
 
-### D-D — Presets (save + reuse across jobs)
+### D-D — Presets (save + reuse across jobs)  ✅ done
 
-- [ ] `GenerationPreset` (id + name + `GenerationSettings` — incl. `desiredRankMatch`) +
+- [x] `GenerationPreset` (id + name + `GenerationSettings` — incl. `desiredRankMatch`) +
       `GenerationPresetsRepository` (`kind` "generationPreset", upsert, newest-first) on
       `PersistentRecordStore`, mirroring `SavedSearchesRepository`.
-- [ ] `SaveGenerationPresetUseCase` / `LoadGenerationPresetsUseCase` / `DeleteGenerationPresetUseCase`; wire
-      through `Composition`.
-- [ ] Panel UI: **Save as preset…** (names the current fidelity+aspects), a **preset picker** that applies a
-      saved preset to the current job, and delete. Presets are **global** — reusable on any job.
+- [x] `SaveGenerationPresetUseCase` / `LoadGenerationPresetsUseCase` / `DeleteGenerationPresetUseCase`; wired
+      through `Composition` → `makeApplicationViewModel`.
+- [x] Panel UI: a **Presets** menu (apply a saved preset / Delete…) + a **Save as preset** button
+      (auto-named via `GenerationPreset.defaultName`) in the Generation options panel; `ApplicationViewModel`
+      holds `presets` + `loadPresets`/`saveCurrentAsPreset`/`applyPreset`/`deletePreset`. Presets are **global**.
+- [x] Tests: `GenerationPresetsRepositoryTests` (round-trip newest-first, upsert, delete, `defaultName`) +
+      the save use case (auto-name / id+date assignment / preserve-on-update).
 
 ### D-E — Disclosure of embellished / invented content (integrity safeguard)
 

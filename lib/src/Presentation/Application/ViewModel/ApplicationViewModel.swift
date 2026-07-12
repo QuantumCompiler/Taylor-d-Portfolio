@@ -30,21 +30,63 @@ final class ApplicationViewModel {
     /// kit/exporter. Recomputed by `refreshLengthGate()` when the kit or template changes.
     private(set) var resumePageCount = 0
 
+    /// The user's saved generation presets (Milestone D-D), newest first.
+    private(set) var presets: [GenerationPreset] = []
+
     private let generateApplication: GenerateApplicationUseCase
     private let saveApplication: SaveApplicationUseCase?
     private let loadApplication: LoadApplicationUseCase?
     private let exportApplication: ExportApplicationUseCase?
+    private let saveGenerationPreset: SaveGenerationPresetUseCase?
+    private let loadGenerationPresets: LoadGenerationPresetsUseCase?
+    private let deleteGenerationPreset: DeleteGenerationPresetUseCase?
 
     init(
         generateApplication: GenerateApplicationUseCase,
         saveApplication: SaveApplicationUseCase? = nil,
         loadApplication: LoadApplicationUseCase? = nil,
-        exportApplication: ExportApplicationUseCase? = nil
+        exportApplication: ExportApplicationUseCase? = nil,
+        saveGenerationPreset: SaveGenerationPresetUseCase? = nil,
+        loadGenerationPresets: LoadGenerationPresetsUseCase? = nil,
+        deleteGenerationPreset: DeleteGenerationPresetUseCase? = nil
     ) {
         self.generateApplication = generateApplication
         self.saveApplication = saveApplication
         self.loadApplication = loadApplication
         self.exportApplication = exportApplication
+        self.saveGenerationPreset = saveGenerationPreset
+        self.loadGenerationPresets = loadGenerationPresets
+        self.deleteGenerationPreset = deleteGenerationPreset
+    }
+
+    // MARK: Presets (Milestone D-D)
+
+    /// Whether preset save/load is wired in this build.
+    var canManagePresets: Bool { saveGenerationPreset != nil && loadGenerationPresets != nil }
+
+    /// Loads the saved presets (newest first).
+    func loadPresets() async {
+        guard let loadGenerationPresets else { return }
+        presets = (try? await loadGenerationPresets()) ?? []
+    }
+
+    /// Saves the current `generationSettings` as a named preset (auto-named when `name` is nil).
+    func saveCurrentAsPreset(named name: String? = nil) async {
+        guard let saveGenerationPreset else { return }
+        _ = try? await saveGenerationPreset(generationSettings, name: name)
+        await loadPresets()
+    }
+
+    /// Applies a saved preset's settings to the next generation.
+    func applyPreset(_ preset: GenerationPreset) {
+        generationSettings = preset.settings
+    }
+
+    /// Deletes a saved preset.
+    func deletePreset(_ preset: GenerationPreset) async {
+        guard let deleteGenerationPreset else { return }
+        try? await deleteGenerationPreset(id: preset.id)
+        await loadPresets()
     }
 
     // MARK: Export (Q-A)

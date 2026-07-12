@@ -96,7 +96,10 @@ struct ApplicationSheet: View {
         .frame(minWidth: 520, minHeight: 440)
         // Load saved materials if present — but never auto-generate. Generation is started
         // explicitly with the Generate button so the user can set options first (v0.5.0).
-        .task { await viewModel.loadSaved(for: job) }
+        .task {
+            await viewModel.loadSaved(for: job)
+            await viewModel.loadPresets()
+        }
         .onChange(of: requestID) { _, _ in Task { await viewModel.loadSaved(for: job) } }
         // The one-page gate is template-dependent — remeasure when the user switches template.
         .onChange(of: viewModel.exportTemplate) { _, _ in viewModel.refreshLengthGate() }
@@ -140,12 +143,46 @@ struct ApplicationSheet: View {
                             .clickableCursor()
                     }
                 }
-                Text("Changes apply when you Regenerate.").font(.caption2).foregroundStyle(.secondary)
+                if viewModel.canManagePresets {
+                    Divider()
+                    presetsRow
+                }
+                Text("Changes apply when you Generate / Regenerate.").font(.caption2).foregroundStyle(.secondary)
             }
             .padding(.top, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .clickableCursor()
+    }
+
+    /// Apply a saved preset, delete one, or save the current settings as a new preset (D-D).
+    private var presetsRow: some View {
+        HStack {
+            Menu {
+                if viewModel.presets.isEmpty {
+                    Text("No saved presets")
+                } else {
+                    ForEach(viewModel.presets) { preset in
+                        Button(preset.name) { viewModel.applyPreset(preset) }
+                    }
+                    Divider()
+                    Menu("Delete…") {
+                        ForEach(viewModel.presets) { preset in
+                            Button(preset.name, role: .destructive) {
+                                Task { await viewModel.deletePreset(preset) }
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Label("Presets", systemImage: "slider.horizontal.3")
+            }
+            .fixedSize()
+            .clickableCursor()
+            Spacer()
+            Button("Save as preset") { Task { await viewModel.saveCurrentAsPreset() } }
+                .clickableCursor()
+        }
     }
 
     private var fidelityLabel: String {
