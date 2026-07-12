@@ -391,11 +391,16 @@ The loop, so any session can pick up where the last left off:
 
 Keep these updates in the same commit/change as the code they describe.
 
-**Versioning.** Releases are numbered **`v0.x.0`** (`v0.1.0` foundation, `v0.2.0` reliability,
-`v0.3.0` output & polish, `v0.4.0` navigation & shell; `v0.5.0` next). The **current version isn't
-hard-coded in these docs** — at the **start of every session, ask the user what version is in
-progress** and use that number for commit-label suggestions. (The `## v0.x.0 —` headers in
-`ROADMAP.md` / `MILESTONES.md` name the release *themes*, not the live working version.)
+**Versioning.** Feature releases are numbered **`v0.x.0`** (`v0.1.0` foundation, `v0.2.0` reliability,
+`v0.3.0` output & polish, `v0.4.0` navigation & shell; `v0.5.0` next). **Patch / point releases** use
+**`v0.x.y`** with `y > 0` (first one: **`v0.4.1`**) for a batch of **bug fixes and small refinements**
+on top of a shipped `v0.x.0`, when the changes don't warrant a new feature theme. A patch release is a
+first-class release: it gets its own `## v0.x.y —` header in `ROADMAP.md` / `MILESTONES.md`, its own
+`MARKETING_VERSION` bump, and its milestones **restart at A** (committed `v0.x.y : Milestone X
+Completed`) — exactly like a `.0`, just themed as fixes rather than a feature. The **current version
+isn't hard-coded in these docs** — at the **start of every session, ask the user what version is in
+progress** and use that number for commit-label suggestions. (The `## v0.x.0 —` / `## v0.x.y —` headers
+in `ROADMAP.md` / `MILESTONES.md` name the release *themes*, not the live working version.)
 
 **Keep the project version in sync — update it when a new version starts.** The app's
 `MARKETING_VERSION` build setting (in `Taylor'd Portfolio.xcodeproj/project.pbxproj` — **4 copies**,
@@ -407,7 +412,8 @@ it at a stale or template value. (This was missed until `v0.4.0`, where it sat a
 `CURRENT_PROJECT_VERSION` isn't shown, so it needn't track the milestone.
 
 **Milestone letters restart at A each version.** `v0.1.0`–`v0.3.0` ran A–X *continuously*, but
-from **`v0.4.0` onward every new version begins its milestones again at Milestone A** (A, B, C…).
+from **`v0.4.0` onward every new version begins its milestones again at Milestone A** (A, B, C…) —
+**including patch releases** (`v0.4.1` restarts at A, independent of v0.4.0's A–C).
 So a milestone ID is only unique *within* its version — always pair it with the version when it
 could be ambiguous (e.g. "v0.4.0 Milestone A"), and note that `MILESTONES.md` groups completed
 milestones under `## v0.x.0 —` headers precisely to keep the reused letters unambiguous.

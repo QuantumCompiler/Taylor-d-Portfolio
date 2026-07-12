@@ -375,16 +375,87 @@ Business/Data/Infrastructure changes. `TODO.md` has the granular breakdown.
       (app icon + name + version + one-liner). Also corrected the app's `MARKETING_VERSION`
       1.0 → **0.4.0** so About reports the real version.
 
+## v0.4.1 — fixes & refinements  (patch release, in progress)
+
+This project's first **point release** — a small `v0.x.y` patch on the v0.4.0 shell, gathering bug
+fixes and minor refinements rather than a new feature theme. Presentation-only unless a milestone says
+otherwise; milestones still restart at **A** and commit as `v0.4.1 : Milestone X Completed`. See
+`TODO.md` for the granular breakdown.
+
+- [ ] **Milestone A — Move the profile preview & its controls to Saved Profiles.** In the Portfolio
+      tab, relocate the built-profile **preview**, the **Regenerate description** control, and the
+      **Save / Update Profile** row from the **Profile** sub-view into the **Saved Profiles** sub-view.
+      Profile then holds only the import/paste slots + **Build Profile**; Saved Profiles shows the
+      current built/loaded profile (preview + regenerate + save) above the saved-profiles library, and
+      its empty-state gate widens to host a just-built, unsaved profile. Seam: Presentation only
+      (`Portfolio/View/PortfolioView.swift`) — the ViewModel and all lower layers are untouched.
+      On-device: n/a (UI only).
+
+- [ ] **Milestone B — Remove the content-pane header text entirely (tabs only).** App-wide: today each
+      pane shows an `Area / Sub-view` header ("Portfolio / Profile") both above the segmented tabs and in
+      the window title bar. Drop that text everywhere — the segmented **tabs** are the only sub-view
+      indicator and the **sidebar** names the area, so no "Portfolio / Profile" appears in any capacity.
+      **Results** (no real sub-views) shows no header and no tabs — the selected sidebar row identifies
+      it. The window title becomes the app name (or empty), never the area/sub-view. Seam: Presentation
+      only (`Presentation/App/RootView.swift` header + window title; retire `ShellNavigation.breadcrumbTitle`;
+      `ShellNavigationTests`). On-device: n/a (UI only).
+
+- [ ] **Milestone C — Saved-to-Tracker jobs leave the Results list.** Once a job has any tracker status
+      (starting with `.saved` when saved to the Tracker), remove it from the **Results** list so Results
+      shows only un-triaged ranked jobs; the job lives in the **Tracker** from then on (as "Saved" until
+      advanced). Live removal on save; the now-redundant Results "Saved" badge is cleaned up. Seam:
+      Presentation + a status read (`Results/ViewModel/ResultsViewModel` excludes tracked ids using the
+      existing Milestone O/P status data). On-device: yes.
+
+- [ ] **Milestone D — Tracker: one tab per application status.** Expand the Tracker inner nav from
+      All / Applied / Interviewing / Offers to **All + a tab for every `ApplicationStage`** (Saved,
+      Applied, Interviewing, Offer, Accepted, Declined, Rejected, Withdrawn), each filtering to exactly
+      its stage. Open call: fitting 9 segments (compress vs. scrollable control/menu). Seam: Presentation
+      only (`TrackerSection` cases + `includes` in `ShellNavigation.swift`, per-tab empty states, tests) —
+      reuses the existing status model. On-device: yes.
+
+- [ ] **Milestone E — Center the Tracker empty-state icon & text.** The Tracker empty-state
+      `ContentUnavailableView` hugs the top of the pane under the tabs instead of centering; stretch the
+      empty-state branches with `.frame(maxWidth: .infinity, maxHeight: .infinity)` (matching the sibling
+      `ProgressView`) so the icon + text center in the sub-view. Composes with D's per-tab empty states;
+      leave the left-aligned `InlineEmptyState` (Portfolio/Search) as-is. Seam: Presentation only
+      (`Tracker/View/TrackerView.swift`). On-device: n/a (UI only).
+
+- [ ] **Milestone F — Source Documents browsable by profile.** The Portfolio → Source Documents sub-view
+      today shows only the currently-loaded profile's tidied documents; make it keyed by profile — list
+      the saved profiles and expand one to reveal that profile's résumé + cover-letter readable text (a
+      profile → documents disclosure). View restructure over existing data: each `SavedProfile` already
+      carries its own source + cover-letter readable text via `viewModel.savedProfiles`. Seam: Presentation
+      only (`Portfolio/View/PortfolioView.swift` `sourceDocumentsSection` + gate) — no ViewModel/persistence
+      change. On-device: yes.
+
+- [ ] **Milestone G — Settings Save button: drop the section background.** In Settings (Engines / Adzuna)
+      the Save button sits in a grouped-form `Section`, so it renders inside an inset background band; make
+      it a bare `borderedProminent` button with no container (move it out of the grouped `Form`). Same
+      action/style, both editing panes; About is unaffected. Seam: Presentation only
+      (`Settings/View/SettingsView.swift`). On-device: n/a (UI only).
+
+- [ ] **Milestone H — Clear the concurrency & unused-result build warnings.** Two kinds: the "bunch" of
+      `Main actor-isolated property 'style' can not be referenced from a nonisolated context` warnings
+      (fix by marking the pure value type `ExportTemplate` — and, if needed, `TemplateStyle` —
+      `nonisolated`, since the project defaults isolation to `MainActor`), and a `Result of 'try?' is
+      unused` in `SearchViewModel.saveCurrentSearch()` (discard with `_ =`, and sweep for the same
+      pattern). Compile-time hygiene only, no behaviour change. Seam: Infrastructure + Presentation
+      (`Infrastructure/Export/ExportTemplate.swift`, `Presentation/Search/ViewModel/SearchViewModel.swift`).
+      On-device: n/a.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
-  & shell) has shipped. **v0.5.0** should pull the next feature item up from Backlog (native
-  `LanguageModel` provider seam, on-device embedding RAG, or optional MCP tools) and letter it A, B, C….
+  & shell) has shipped; **v0.4.1** (fixes & refinements) is the current patch release. Once it ships,
+  **v0.5.0** should pull the next feature item up from Backlog (native `LanguageModel` provider seam,
+  on-device embedding RAG, or optional MCP tools) and letter it A, B, C….
 
 > **Numbering the versions.** Each version letters its own milestones **A, B, C…** from scratch —
-> v0.4.0 restarts at Milestone A (it does **not** continue from v0.3.0's X). See `CLAUDE.md` →
-> "Working process" → Versioning.
+> v0.4.0 restarts at Milestone A (it does **not** continue from v0.3.0's X), and a **patch release like
+> v0.4.1 restarts at A too**. Patch releases use a `v0.x.y` number (`y > 0`) for bug-fix / refinement
+> batches on top of a shipped `v0.x.0`. See `CLAUDE.md` → "Working process" → Versioning.
 
 ## Backlog (to be specced from chat)
 

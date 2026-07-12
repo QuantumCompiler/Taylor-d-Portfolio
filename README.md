@@ -83,8 +83,10 @@ Reworked the app's navigation so it can grow past a single tab strip — a **Pre
 - Polish (C): keyboard navigation (⌘1–⌘5, ⌘⇧[ / ⌘⇧]), sidebar collapse/restore, and an **About**
   pane — plus a version-string fix so the app reports `0.4.0`. *(Milestones A–C.)*
 
-**Next:** v0.5.0 (theme TBD; its milestones restart numbering at Milestone A) — likely the native
-`LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool layer.
+**Next:** v0.4.1 — a **patch release** (bug fixes & small refinements on the navigation shell;
+milestones restart at Milestone A), starting with moving the Portfolio profile preview / regenerate /
+save controls into the Saved Profiles sub-view. Then v0.5.0 (theme TBD; also restarts at Milestone A) —
+likely the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool layer.
 
 ## Build & run
 
