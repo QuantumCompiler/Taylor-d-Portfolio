@@ -44,6 +44,11 @@ private struct StubLLMProvider: LLMProvider {
         if fails { throw Boom() }
         return ApplicationKit(resumeMarkdown: tag, coverLetter: "", gapNote: "")
     }
+
+    func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
+        if fails { throw Boom() }
+        return JobMatch(jobId: tag, score: 42, reason: "", matchedSkills: [], missingSkills: [])
+    }
 }
 
 @Suite("LLMRouter")
@@ -115,6 +120,15 @@ struct LLMRouterTests {
 
         let kit = try await router.generateApplication(for: job, profile: profile, brief: brief)
         #expect(kit.resumeMarkdown == "claude")
+
+        // The settings + score methods (Milestone D) must also route to the engine — a
+        // forwarding adapter that misses them silently drops settings / throws on scoring.
+        let tailored = try await router.generateApplication(
+            for: job, profile: profile, brief: brief, grounding: nil, settings: GenerationSettings(fidelity: 0.8)
+        )
+        #expect(tailored.resumeMarkdown == "claude")
+        let score = try await router.scoreApplication(for: job, brief: brief, kit: kit)
+        #expect(score.jobId == "claude")
     }
 
     // MARK: Per-task routing

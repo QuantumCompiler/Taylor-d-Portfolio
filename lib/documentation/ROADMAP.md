@@ -493,7 +493,8 @@ and commit as `v0.5.0 : Milestone X Completed`. Presentation-first (Milestone A 
       it's presented from both Results and Tracker). Seam: **Presentation only** (`JobDetailView.statusSection`);
       no lower-layer change. On-device: n/a (UI only).
 
-- [ ] **Milestone D — Generation controls: fidelity scale, tailored aspects, and presets.** Add a controls
+- [x] **Milestone D — Generation controls: fidelity scale, tailored aspects, and presets.** ✅ **Done (D-A…D-F).**
+      Add a controls
       panel to the generate flow: (1) rename the button to **"Generate application"** (`JobDetailView.swift:221`;
       a non-colliding label for the `ApplicationKit` output); (2) a **generation-fidelity** slider `0…1`
       (0 = authentic / verbatim, 0.5 = curated, 1.0 = embellished) mapped to **prompt latitude** and threaded

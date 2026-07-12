@@ -83,6 +83,14 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         )
     }
 
+    func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
+        try await generateJSON(
+            prompt: Prompts.scoreApplication(job: job, brief: brief, kit: kit),
+            instructions: Prompts.scoreInstructions,
+            as: JobMatch.self
+        )
+    }
+
     /// Adds the JSON-only instruction, runs the engine, and decodes the reply.
     private func generateJSON<T: Decodable>(
         prompt: String,

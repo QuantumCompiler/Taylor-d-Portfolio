@@ -89,6 +89,7 @@ struct ApplicationSheet: View {
             lengthGateBanner
             generationControlsPanel
             embellishWarning
+            rankOutcomeBanner
             Divider()
             content
         }
@@ -118,6 +119,8 @@ struct ApplicationSheet: View {
     private var generationControlsPanel: some View {
         DisclosureGroup("Generation options", isExpanded: $showOptions) {
             VStack(alignment: .leading, spacing: 12) {
+                rankTargetControl
+                Divider()
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("Fidelity").font(.caption).foregroundStyle(.secondary)
@@ -126,6 +129,7 @@ struct ApplicationSheet: View {
                     }
                     Slider(value: $viewModel.generationSettings.fidelity, in: 0...1, step: 0.05)
                         .clickableCursor()
+                        .disabled(rankTargetOn)
                     HStack {
                         Text("Authentic")
                         Spacer()
@@ -143,6 +147,8 @@ struct ApplicationSheet: View {
                             .clickableCursor()
                     }
                 }
+                .disabled(rankTargetOn)
+                .opacity(rankTargetOn ? 0.5 : 1)
                 if viewModel.canManagePresets {
                     Divider()
                     presetsRow
@@ -190,6 +196,55 @@ struct ApplicationSheet: View {
         case .authentic: return "Authentic"
         case .curated: return "Curated"
         case .embellished: return "Embellished"
+        }
+    }
+
+    /// Whether a rank target is engaged (D-F) — it overrides fidelity + aspects.
+    private var rankTargetOn: Bool { viewModel.generationSettings.desiredRankMatch != nil }
+
+    /// The rank-target master control (D-F): when on, generation fabricates as needed to hit
+    /// a target score and overrides fidelity + aspects.
+    private var rankTargetControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle("Target a match score", isOn: rankTargetBinding)
+                .toggleStyle(.switch)
+                .clickableCursor()
+            if let target = viewModel.generationSettings.desiredRankMatch {
+                HStack {
+                    Slider(value: rankTargetSliderBinding, in: 0...100, step: 5).clickableCursor()
+                    Text("\(target)").font(.caption.bold()).monospacedDigit().frame(width: 34, alignment: .trailing)
+                }
+                Label("Fabricates as needed to hit this score — overrides fidelity & sections. Verify before sending.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption2).foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private var rankTargetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.generationSettings.desiredRankMatch != nil },
+            set: { on in viewModel.generationSettings.desiredRankMatch = on ? 80 : nil }
+        )
+    }
+
+    private var rankTargetSliderBinding: Binding<Double> {
+        Binding(
+            get: { Double(viewModel.generationSettings.desiredRankMatch ?? 80) },
+            set: { viewModel.generationSettings.desiredRankMatch = Int($0) }
+        )
+    }
+
+    /// The achieved-score note after a rank-target generation (D-F).
+    @ViewBuilder private var rankOutcomeBanner: some View {
+        if let note = viewModel.rankOutcomeNote {
+            let reached = viewModel.rankOutcome?.reachedTarget == true
+            Label(note, systemImage: reached ? "target" : "exclamationmark.triangle")
+                .font(.caption)
+                .foregroundStyle(reached ? .green : .orange)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background((reached ? Color.green : Color.orange).opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
         }
     }
 
@@ -271,17 +326,22 @@ struct ApplicationSheet: View {
         if viewModel.isGenerating {
             ProgressView("Generating…").frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if let kit = viewModel.kit {
+            let parts = GapNoteParts.parse(kit.gapNote)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     documentSection("Résumé", kit.resumeMarkdown)
                     documentSection("Cover letter", kit.coverLetter)
-                    if !kit.gapNote.isEmpty {
-                        gapsSection(kit.gapNote)
+                    if parts.hasEmbellishments {
+                        disclosuresSection(parts.embellishments)
+                    }
+                    if !parts.gaps.isEmpty {
+                        gapsSection(parts.gaps)
                     }
                 }
             }
         } else if let error = viewModel.errorMessage {
             ContentUnavailableView("Couldn't generate", systemImage: "exclamationmark.triangle", description: Text(error))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ContentUnavailableView(
                 "Ready to generate",
@@ -310,6 +370,27 @@ struct ApplicationSheet: View {
                 .help("Copy the \(title.lowercased()) (Markdown)")
                 .clickableCursor()
             }
+        }
+    }
+
+    /// The disclosed embellishments (D-E): content NOT supported by the real profile. A hard
+    /// integrity surface — the user must verify these before sending.
+    private func disclosuresSection(_ items: [String]) -> some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(items, id: \.self) { item in
+                    Label(item, systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                        .textSelection(.enabled)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(4)
+        } label: {
+            Label("Disclosures — unverified, embellished content. Verify before sending.",
+                  systemImage: "exclamationmark.shield.fill")
+                .foregroundStyle(.orange)
         }
     }
 

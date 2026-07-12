@@ -139,12 +139,31 @@ nonisolated struct ClaudeProcessClient: TextGenerating {
 
     // MARK: - Process execution
 
+    /// A neutral, app-owned working directory for the `claude` subprocess — an (empty) Caches
+    /// subdirectory, which is not TCC-protected. Keeps the child out of the user's home so its
+    /// startup scan can't touch Photos / Music / Documents and trigger privacy prompts. Falls
+    /// back to `nil` (inherit the caller's directory) only if Caches is somehow unavailable.
+    private static func neutralWorkingDirectory() -> URL? {
+        let fileManager = FileManager.default
+        guard let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first else { return nil }
+        let directory = caches.appendingPathComponent("ClaudeProcess", isDirectory: true)
+        try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
+    }
+
     private static func runProcess(executableURL: URL, arguments: [String]) async throws -> Data {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let process = Process()
                 process.executableURL = executableURL
                 process.arguments = arguments
+                // Run the child in a neutral, app-owned directory. Without this it inherits the
+                // app's working directory (the user's home for a Finder-launched app), where the
+                // Claude CLI's startup context-scan reaches TCC-protected locations (Photos,
+                // Music, Documents…). Because the app is unsandboxed, macOS attributes those
+                // accesses to this app and prompts the user for access that makes no sense for a
+                // job app. An empty Caches subdirectory has nothing to traverse into.
+                process.currentDirectoryURL = neutralWorkingDirectory()
                 // GUI apps inherit a minimal PATH; widen it so `env` can find `claude`.
                 var environment = ProcessInfo.processInfo.environment
                 environment["PATH"] = searchPATH(base: environment["PATH"], home: environment["HOME"] ?? NSHomeDirectory())

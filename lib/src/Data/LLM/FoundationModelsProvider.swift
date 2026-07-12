@@ -78,4 +78,12 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
             instructions: Prompts.generateInstructions
         )
     }
+
+    func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
+        try await client.respond(
+            to: Prompts.scoreApplication(job: job, brief: brief, kit: kit),
+            generating: JobMatch.self,
+            instructions: Prompts.scoreInstructions
+        )
+    }
 }

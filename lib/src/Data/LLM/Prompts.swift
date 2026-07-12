@@ -212,6 +212,38 @@ nonisolated enum Prompts {
     /// Ports the résumé-agent discipline (AGENT.md §5): map each brief signal to a true
     /// profile fact, foreground the best-fit overlap, flag gaps, and structure the cover
     /// letter as *About Me / Why <company> / Why Me*.
+    // MARK: Score a generated application (Milestone D-F)
+
+    static let scoreInstructions =
+        "You are a technical recruiter scoring how well a tailored résumé matches a role. " +
+        "Judge only on the résumé's text against the role's stated requirements."
+
+    /// Scores a generated résumé against the target role, returning a `JobMatch` — the
+    /// outcome the rank-target loop chases (Milestone D-F).
+    static func scoreApplication(job: JobListing, brief: TargetBrief, kit: ApplicationKit) -> String {
+        """
+        Score how strongly this tailored résumé matches the target role. Return a single JobMatch.
+
+        Target role:
+        - roleTitle: \(brief.roleTitle)
+        - company: \(brief.company)
+        - mustHaveKeywords: \(brief.mustHaveKeywords.joined(separator: ", "))
+        - niceToHaveKeywords: \(brief.niceToHaveKeywords.joined(separator: ", "))
+        - techStack: \(brief.techStack.joined(separator: ", "))
+
+        Tailored résumé:
+        \(truncate(kit.resumeMarkdown, to: maxDescriptionCharacters))
+
+        Produce a JobMatch:
+        - jobId: \(job.id)
+        - score: 0 (no fit) to 100 (perfect fit) — how well the résumé matches the must-have and
+          nice-to-have keywords and the role's requirements.
+        - reason: one or two sentences explaining the score.
+        - matchedSkills: role keywords the résumé clearly demonstrates.
+        - missingSkills: role keywords the résumé still does not demonstrate.
+        """
+    }
+
     static func generateApplication(
         job: JobListing,
         profile: CandidateProfile,

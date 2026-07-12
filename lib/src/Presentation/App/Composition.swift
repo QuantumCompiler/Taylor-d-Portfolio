@@ -115,6 +115,7 @@ struct Composition {
         .init(jobSource: jobSource, ranker: JobRanker(provider: llmProvider))
     }
     private var generateApplication: GenerateApplicationUseCase { .init(provider: llmProvider) }
+    private var generateToTarget: GenerateToTargetUseCase { .init(provider: llmProvider) }
     private var exportApplication: ExportApplicationUseCase { .init(exporter: RoutingDocumentExporter()) }
     private var fetchPosting: FetchPostingUseCase {
         .init(postingSource: jobPostingSource, ranker: JobRanker(provider: llmProvider))
@@ -212,6 +213,7 @@ struct Composition {
     func makeApplicationViewModel() -> ApplicationViewModel {
         .init(
             generateApplication: generateApplication,
+            generateToTarget: generateToTarget,
             saveApplication: savedApplicationsRepository.map(SaveApplicationUseCase.init(repository:)),
             loadApplication: loadApplication,
             exportApplication: exportApplication,
@@ -270,6 +272,12 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     }
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?) async throws -> ApplicationKit {
         try await router().generateApplication(for: job, profile: profile, brief: brief, grounding: grounding)
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit {
+        try await router().generateApplication(for: job, profile: profile, brief: brief, grounding: grounding, settings: settings)
+    }
+    func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
+        try await router().scoreApplication(for: job, brief: brief, kit: kit)
     }
 }
 

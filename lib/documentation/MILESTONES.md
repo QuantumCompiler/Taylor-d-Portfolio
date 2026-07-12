@@ -1653,6 +1653,100 @@ redundant.
 Seam: Presentation only, one file; `MarkStatusUseCase` / stamping untouched. Existing status coverage
 (`StatusUseCaseTests`) stands; full suite green. On-device: n/a (UI only).
 
+## Milestone D — Generation controls: fidelity, tailored aspects, presets, disclosure & rank-target  ✅ done (D-A…D-F)  (`Data/Models` + `Data/LLM` + `Data/Persistence` + `Business/UseCases` + Application Presentation)
+
+Goal: give the user control over how a job's tailored application is generated — a controls panel with a
+fidelity scale, section checkboxes, saved presets, disclosed embellishment, and an outcome-driven rank
+target. **Grounded stays the default**; embellishment/fabrication is opt-in and always disclosed. The
+default (`GenerationSettings.default`) path is **byte-for-byte** the pre-D prompt.
+
+- [x] **D-A — Model + threading + button.** `GenerationSettings` (`fidelity` + `aspects` + `desiredRankMatch`)
+      / `TailoredAspect` / `FidelityBand` (`Data/Models`). `settings` threaded `GenerateApplicationUseCase`
+      → `LLMProvider.generateApplication(…settings:)` (new requirement + forwarding default, like `grounding`)
+      → `Prompts.generateApplication` via a `generationControls(_:)` addendum (empty for `.default`). Both
+      engines + router override; `ApplicationViewModel.generationSettings`. Button renamed
+      **"Generate application"** / **"View application"**.
+- [x] **D-B — Fidelity scale.** A `0…1` slider (Authentic / Curated / Embellished bands at 0.15 / 0.75)
+      mapped to **prompt latitude** (open call resolved: no LLM sampling-temperature, to keep the two engines
+      in lockstep). Authentic = today's guardrail; curated = emphasize + infer adjacent skills; embellished =
+      permit plausible additions.
+- [x] **D-C — Tailored aspects (four résumé sections).** `TailoredAspect` = `summary` / `experience` /
+      `projects` / `skills` (empty = all). *Revision applied:* dropped `education` (verbatim) and
+      `coverLetter` (derived from the tailored résumé); each targeted section carries the objective to
+      **match the job post's keywords + description**; the cover letter is written from the tailored résumé.
+- [x] **D-D — Presets.** `GenerationPreset` + `GenerationPresetsRepository` (`kind` "generationPreset") +
+      `SaveGenerationPresetUseCase` / `LoadGenerationPresetsUseCase` / `DeleteGenerationPresetUseCase`
+      (mirroring `SavedSearch`); a **Presets** menu (apply / delete) + **Save as preset** (auto-named) in the
+      panel. Presets are global.
+- [x] **D-E — Disclosure.** The embellished band's prompt lists additions as `EMBELLISHED:` lines in
+      `gapNote`; a pure `GapNoteParts.parse` splits those from the honest gaps, and the Application view shows
+      a distinct **"Disclosures — verify before sending"** section + an embellished-mode warning banner.
+      *(open call resolved: no export "draft" watermark — stamping the deliverable is counterproductive; the
+      in-app warning is the safeguard.)*
+- [x] **D-F — Desired rank-match target (the master control).** A rank slider (0–100) that, when set,
+      **overrides fidelity + aspects** (they grey out) and runs `GenerateToTargetUseCase`: a new
+      `LLMProvider.scoreApplication(job:brief:kit:) → JobMatch` step scores the tailored résumé, and the loop
+      **generate → score → escalate latitude → regenerate** (curated → embellished → full fabrication) repeats
+      to a hard cap (default 4 rounds), stopping at the target or returning the best attempt with the achieved
+      score ("Reached 78 of your 85 target"). The winning kit carries its own D-E disclosures.
+
+**Integrity:** SPEC "Grounded generation" + CLAUDE.md "Hard rules" were revised (during planning) to
+*grounded-by-default + opt-in + disclosed*. The rank-target loop is the most aggressive mode; its D-E
+disclosure is mandatory.
+
+Also shipped as a follow-up (see the "Fix — Generation is user-initiated" entry below): generation is
+**explicit** (no auto-generate on open), so the controls can be set first.
+
+Tests: `GenerationSettingsTests`, `PromptsTests` (default byte-for-byte / curated / embellished-disclosure /
+aspect-scope + keyword goal), `GenerationPresetsRepositoryTests`, `GapNotePartsTests`,
+`GenerateToTargetUseCaseTests` (stop-at-target / cap-returns-best / fidelity escalation / VM uses the loop).
+Full suite green, warning-free. **Live LLM behaviour (does fidelity/rank actually shift output, does the
+loop converge) is a manual device check.** On-device: yes — presets are local; prompt-driven fidelity keeps
+both engines in lockstep; the rank loop's extra scoring calls run on the current `.application` engine.
+
+## Fix — Runtime provider dropped the D settings/score methods + stale length banner  ✅ done  (`Composition.SettingsBackedLLMProvider`, `ApplicationViewModel`)  — Milestone D follow-up
+
+Two bugs surfaced on a device run (rank-target generation failed with "Couldn't generate"):
+
+- [x] **Root cause — the runtime provider adapter was missing the new methods.** `SettingsBackedLLMProvider`
+      (the live `LLMProvider` the app uses, which forwards each call to a freshly-built `LLMRouter`) explicitly
+      forwards every protocol method, but the two added in Milestone D weren't added to it. So
+      `generateApplication(…settings:)` fell through to the **ignore-settings** forwarding default (fidelity /
+      aspects were silently dropped at runtime, even though unit tests passed via the router/providers), and
+      `scoreApplication(…)` fell through to the **throwing** default → the D-F rank-target loop threw. Fixed by
+      forwarding both to `router()`. **This also means D-B/D-C now actually affect real output** (they didn't
+      before this fix).
+- [x] **UI — stale length-gate banner.** `resumeExceedsOnePage` was `resumePageCount > 1` regardless of a
+      kit, so a page count from a prior generation lingered as a "Résumé is 3 pages…" banner after a
+      failed/cleared generation. Now requires `kit != nil`.
+- [x] **UI — center the Application content messages.** The "Couldn't generate" `ContentUnavailableView`
+      lacked the `.frame(maxWidth: .infinity, maxHeight: .infinity)` stretch (its loading / "Ready to
+      generate" siblings had it), so it hugged the top instead of centering. Added the frame; audited the
+      other `ContentUnavailableView`s app-wide — all centered (Portfolio/Search deliberately use the
+      left-aligned `InlineEmptyState` for scrolling screens, per v0.4.1 Milestone E).
+- [x] **Regression guard.** `LLMRouterTests.routesRankAndGenerateToo` extended to exercise
+      `generateApplication(…settings:)` + `scoreApplication` forwarding. Full suite green, warning-free.
+
+Seam: Presentation (Composition adapter + ApplicationViewModel). On-device: yes.
+
+## Fix — Spurious Photos/Music privacy prompts from the Claude subprocess  ✅ done  (`Infrastructure/LLM/ClaudeProcessClient`)
+
+The unsandboxed app launched `claude -p` **without a working directory**, so the child inherited the app's
+CWD (the user's home for a Finder-launched app). The Claude CLI's startup context-scan then reached
+TCC-protected locations (Photos = `~/Pictures`, Music = `~/Music`, Documents…), and because the app is
+unsandboxed macOS attributed those accesses to **Taylor'd Portfolio** and prompted the user — access that
+makes no sense for a job app. (Confirmed the built app's entitlements are clean: only file-picker /
+network / debug — no media entitlements, so these were runtime TCC prompts, not declared capabilities.)
+
+- [x] `ClaudeProcessClient.runProcess` now sets `process.currentDirectoryURL` to a neutral, app-owned
+      **Caches subdirectory** (`…/Caches/ClaudeProcess`, not TCC-protected, created on demand) via
+      `neutralWorkingDirectory()`. The child has nothing to traverse into the home folder, so the prompts
+      stop. `HOME` is left intact so Claude still finds its `~/.claude` auth/config.
+
+Note for the user: macOS caches prior TCC decisions, so already-granted/denied entries persist in
+System Settings → Privacy & Security; they can be cleared with `tccutil reset Photos com.veritum.Taylor-d-Portfolio`
+(and `... SystemPolicyDocumentsFolder`, `MediaLibrary`, etc.) if desired. Seam: Infrastructure only.
+
 ## Fix — Restore swipe-to-save/delete on Results  ✅ done  (`Presentation/Results`: `ResultsView`)  — Milestone B follow-up
 
 Milestone B moved the result detail into a window, which dropped the V-C swipe gesture (it lived on the
