@@ -7,15 +7,17 @@
 
 import Foundation
 
-/// A part of the application the user can choose to tailor (Milestone D-C). An empty
-/// selection means "tailor everything" (today's behaviour).
+/// A **résumé section** the user can choose to tailor (Milestone D-C). An empty selection
+/// means "tailor all sections" (today's behaviour).
+///
+/// Only the four tailorable résumé sections are knobs. **Education** stays verbatim (it's
+/// factual and never embellished), and the **cover letter** isn't independent — it's written
+/// from the tailored résumé — so neither is a case here (D-C revision).
 nonisolated enum TailoredAspect: String, Codable, Sendable, CaseIterable, Identifiable {
     case summary
     case experience
     case projects
     case skills
-    case education
-    case coverLetter
 
     var id: String { rawValue }
 
@@ -25,8 +27,6 @@ nonisolated enum TailoredAspect: String, Codable, Sendable, CaseIterable, Identi
         case .experience: return "Work Experience"
         case .projects: return "Projects"
         case .skills: return "Skills"
-        case .education: return "Education"
-        case .coverLetter: return "Cover Letter"
         }
     }
 }

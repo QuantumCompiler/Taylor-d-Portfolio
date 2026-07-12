@@ -132,10 +132,11 @@ the default path byte-for-byte unchanged.
 > providers + router override; `ApplicationViewModel.generationSettings`; a "Generation options" panel
 > (fidelity slider + aspect checkboxes) + an embellished-band warning banner on the Application view; button
 > renamed **"Generate application"** / **"View application"**. Tests: `GenerationSettingsTests`, `PromptsTests`
-> (default-unchanged / curated / embellished-disclosure / aspect-scope). **Remaining: the D-C revision
-> (narrow `TailoredAspect` to the four résumé sections — drop `education`/`coverLetter` — + a keyword/
-> description-matching goal), D-D (presets), D-E (fuller disclosure UI — prompt clause + warning banner
-> already in), D-F (rank-target loop).**
+> (default-unchanged / curated / embellished-disclosure / aspect-scope). **The D-C revision is applied**
+> (`TailoredAspect` narrowed to the four résumé sections; keyword/description-matching goal + cover-letter-
+> from-résumé in the prompt). Also (drive-by): generation is now **user-initiated** (explicit Generate button,
+> no auto-generate on open) — see `MILESTONES.md`. **Remaining: D-D (presets), D-E (fuller disclosure UI —
+> prompt clause + warning banner already in), D-F (rank-target loop).**
 
 ### D-A — Button rename + controls panel scaffold  ✅ done
 
@@ -159,33 +160,26 @@ the default path byte-for-byte unchanged.
 - [ ] **(open call)** Exact band thresholds + labels (e.g. 0.0–0.15 authentic / 0.15–0.75 curated /
       0.75–1.0 embellished). Recommend the implementer tune against real output.
 
-### D-C — Tailored-aspect checkboxes (résumé sections only)  ✅ built, ⚠️ revision pending
+### D-C — Tailored-aspect checkboxes (résumé sections only)  ✅ done (built + revision applied)
 
-> **Revision (post-build).** D-C shipped with a six-case `TailoredAspect`
-> (`summary`/`experience`/`projects`/`skills`/`education`/`coverLetter`). Taylor has narrowed it to the four
-> résumé sections and sharpened the tailoring goal — the checkboxes below capture the follow-up code change.
+> **Revision (post-build) — applied.** D-C shipped with a six-case `TailoredAspect`; Taylor narrowed it to
+> the four résumé sections and sharpened the tailoring goal. All follow-up items below are done.
 
 - [x] `TailoredAspect` enum + `GenerationSettings.aspects: Set<TailoredAspect>` (**empty = all**) + checkbox
       group + instruction-driven prompt scope. *(Built.)*
-- [ ] **Drop `education` and `coverLetter` from `TailoredAspect`** → final set is `summary`, `experience`,
-      `projects`, `skills`. **Why:** education is factual and **never embellished** (stays verbatim regardless
-      of settings), and the cover letter is **not** independently tailorable (see below). Remove their
-      checkboxes + any prompt handling. *(Low risk — presets/persistence for settings aren't built yet, so no
-      stored enum values to migrate; if `GenerationSettings` is persisted by the time this lands, decode
-      unknown cases leniently.)*
-- [ ] **Sharpen the tailoring goal in the prompt.** Each selected section is tailored with **one explicit
-      objective: match the job post's keywords and description** — surface the `TargetBrief` must-have /
-      nice-to-have keywords and the JD language that are supported for this candidate under the current
-      fidelity / rank settings. State this goal for the named sections.
-- [ ] **Cover letter follows the curated résumé.** The cover letter is generated **from the curated/tailored
-      résumé** (not tailored on its own), so it inherits the résumé's keyword alignment automatically — which
-      is why it isn't a checkbox. Ensure the cover-letter step is grounded in the freshly-tailored
-      `resumeMarkdown` (+ the cover-letter voice exemplar from `PortfolioGrounding`). *(open call: keep the
-      single-shot `ApplicationKit` generation but instruct the prompt to derive the letter from the tailored
-      résumé, vs. a two-step résumé→letter chain. Recommend the single-shot instruction first; split only if
-      the letter drifts from the résumé.)*
-- [ ] **Tests.** Update `PromptsTests` aspect-scope cases to the four-section set; assert the prompt names the
-      keyword/description-matching goal for selected sections; assert `education`/`coverLetter` are gone.
+- [x] **Dropped `education` and `coverLetter` from `TailoredAspect`** → final set is `summary`, `experience`,
+      `projects`, `skills`. Education is factual (verbatim regardless of settings) and the cover letter isn't
+      independently tailorable (below). Checkboxes auto-follow `TailoredAspect.allCases`; no persisted settings
+      to migrate yet.
+- [x] **Sharpened the tailoring goal in the prompt.** `generationControls` now states, for the targeted
+      sections, the objective: **match the job post's keywords and description** (foreground the brief's
+      must-have / nice-to-have keywords + the posting's own language where genuinely supported).
+- [x] **Cover letter follows the curated résumé.** The prompt now instructs that the cover letter is written
+      **from the tailored résumé** (+ the voice exemplar), so it inherits the résumé's keyword alignment —
+      hence not a checkbox. *(open call resolved: single-shot `ApplicationKit` generation with the derive-from-
+      résumé instruction, per the recommendation; split into a two-step chain later only if the letter drifts.)*
+- [x] **Tests.** `PromptsTests` aspect-scope cases updated to the four-section set; asserts the
+      keyword/description-matching goal + cover-letter-from-résumé; asserts `education`/`coverLetter` are gone.
 
 ### D-D — Presets (save + reuse across jobs)
 

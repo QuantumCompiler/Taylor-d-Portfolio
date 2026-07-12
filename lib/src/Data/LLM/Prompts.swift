@@ -286,15 +286,22 @@ nonisolated enum Prompts {
         }
 
         if settings.aspects.isEmpty {
-            lines.append("- Scope: tailor all sections.")
+            lines.append("- Scope: tailor all résumé sections.")
         } else {
             let names = settings.aspects
                 .sorted { $0.rawValue < $1.rawValue }
                 .map(\.label)
                 .joined(separator: ", ")
-            lines.append("- Scope: tailor ONLY these sections — \(names). Reproduce every other section "
+            lines.append("- Scope: tailor ONLY these résumé sections — \(names). Reproduce every other section "
                 + "faithfully from the candidate's real experience, unchanged.")
         }
+        // The tailoring objective (D-C): every targeted section aims at the JD's language.
+        lines.append("- Objective: tailor each targeted section to MATCH THIS JOB POST'S keywords and "
+            + "description — foreground the brief's must-have and nice-to-have keywords and the posting's own "
+            + "language wherever they are genuinely supported for this candidate.")
+        // The cover letter is derived from the tailored résumé, not tailored on its own (D-C).
+        lines.append("- Cover letter: write it FROM the tailored résumé above so it inherits the same keyword "
+            + "alignment (plus the candidate's voice exemplar) — do not tailor it as a separate section.")
 
         if settings.band == .embellished {
             lines.append("- Disclosure (REQUIRED): in gapNote, list every statement in the résumé or cover "
