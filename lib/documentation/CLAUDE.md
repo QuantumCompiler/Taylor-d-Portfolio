@@ -402,7 +402,8 @@ The loop, so any session can pick up where the last left off:
 Keep these updates in the same commit/change as the code they describe.
 
 **Versioning.** Feature releases are numbered **`v0.x.0`** (`v0.1.0` foundation, `v0.2.0` reliability,
-`v0.3.0` output & polish, `v0.4.0` navigation & shell; `v0.5.0` next). **Patch / point releases** use
+`v0.3.0` output & polish, `v0.4.0` navigation & shell, `v0.5.0` document generation fixes). **Patch /
+point releases** use
 **`v0.x.y`** with `y > 0` (first one: **`v0.4.1`**) for a batch of **bug fixes and small refinements**
 on top of a shipped `v0.x.0`, when the changes don't warrant a new feature theme. A patch release is a
 first-class release: it gets its own `## v0.x.y —` header in `ROADMAP.md` / `MILESTONES.md`, its own
@@ -411,6 +412,14 @@ Completed`) — exactly like a `.0`, just themed as fixes rather than a feature.
 isn't hard-coded in these docs** — at the **start of every session, ask the user what version is in
 progress** and use that number for commit-label suggestions. (The `## v0.x.0 —` / `## v0.x.y —` headers
 in `ROADMAP.md` / `MILESTONES.md` name the release *themes*, not the live working version.)
+
+> **Never pre-name the next version.** Taylor doesn't decide the next version's number — or whether it's a
+> feature `.0` or a patch `.y` — until he actually starts developing it. So the docs must **not** name an
+> unstarted version (don't write `v0.6.0` in `ROADMAP.md` / `TODO.md` / `README.md` / `MILESTONES.md` before
+> it's begun). Refer to it generically as **"the next version"**; forward-pointers (the `README.md`
+> **Next:** line, `TODO.md`'s next-version placeholder, the merge-ready wrap) describe the likely *theme*
+> without a number. The number is assigned only at the planning kickoff of that version (per the planning
+> steps above), when the `MARKETING_VERSION` bump and headers are added.
 
 **Keep the project version in sync — update it when a new version starts.** The app's
 `MARKETING_VERSION` build setting (in `Taylor'd Portfolio.xcodeproj/project.pbxproj` — **4 copies**,
@@ -496,10 +505,10 @@ mid-flight state — and check each of these:
 - **`MILESTONES.md`** — every completed milestone / sub-part has its write-up here (moved out of
   `TODO.md`), grouped under the version's `## v0.x.0 —` header.
 - **`TODO.md`** — holds **no remaining work for the shipped version**; "Current focus" points at the
-  next version (milestones restart at A) with only its placeholder + the carried-forward "Awaiting
-  device checks" note below.
+  next version (milestones restart at A) with only its **un-numbered** placeholder + the carried-forward
+  "Awaiting device checks" note below. Don't name the next version (see "Never pre-name the next version").
 - **`README.md`** — has the shipped version's one-paragraph summary under "Version history", and the
-  **Next:** line names the upcoming version.
+  **Next:** line points forward to the likely theme **without a version number** (chosen when it's started).
 - **Project version** — every `MARKETING_VERSION` equals the shipped `0.x.0` (see **Versioning**
   above); confirm the built app's `CFBundleShortVersionString` matches.
 - **Scaffolding removed** — any temporary per-release references (e.g. a `design/` subfolder) are

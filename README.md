@@ -97,8 +97,24 @@ Presentation:
 - The Settings **Save** button lost its background band (G), and all concurrency / unused-result build
   warnings were cleared (H). *(Milestones A–H.)*
 
-**Next:** v0.5.0 — **document generation fixes** (in progress; restarts at Milestone A) — rounding out the
-tailored résumé + cover letter experience and the paths to view and regenerate them.
+### v0.5.0 — document generation fixes
+Rounds out the tailored résumé + cover letter experience and the control the user has over it:
+- **View generated materials** back from the Tracker (A), and job detail + the Application view are now
+  real detached **windows** instead of modal sheets, driven by a shared `AppSession` (B).
+- Removed the redundant "Mark as applied" button — the status menu covers it (C).
+- **Generation controls (D):** a **fidelity** scale (Authentic → Curated → Embellished), **tailored-section**
+  checkboxes (Summary / Experience / Projects / Skills, each aimed at the job post's keywords), reusable
+  **presets**, disclosed embellishment, and a **desired rank-match target** — an outcome-driven loop that
+  fabricates as needed to hit a score. **Grounded stays the default; anything invented is opt-in and
+  disclosed** ("verify before sending"), and the default path is byte-for-byte the old prompt.
+- Generation is now **user-initiated** (an explicit Generate button, so options can be set first); swipe
+  save/delete restored on Results; remove-from-Tracker (return to Results or delete); and the Claude
+  subprocess runs in a neutral directory so it no longer triggers spurious Photos/Music privacy prompts.
+  *(Milestones A–D + fixes.)*
+
+**Next:** the next version's number and theme are decided when development on it starts. Likely candidates
+come from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional
+MCP tool layer.
 
 ## Build & run
 

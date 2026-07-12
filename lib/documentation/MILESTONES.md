@@ -1804,3 +1804,16 @@ aspects) couldn't be set first. Made generation **explicit**:
       persists; loads saved without a provider call; `JobDetailFooterTests`). Full suite green, warning-free.
 
 Seam: Presentation only. On-device: yes.
+
+---
+
+**v0.5.0 — document generation fixes is complete** (Milestones A–D + fixes). A: view generated materials
+from the Tracker. B: job detail + Application as real single-instance `Window`s driven by a shared
+`AppSession`. C: removed the redundant "Mark as applied" button. D (D-A…D-F): the generation-controls panel
+— fidelity scale, tailored-section checkboxes (four résumé sections aimed at the JD keywords), presets,
+disclosed embellishment (`GapNoteParts`), and the outcome-driven rank-target loop (`GenerateToTargetUseCase`
++ `scoreApplication`). Grounded stays the default; embellishment is opt-in and disclosed (SPEC / CLAUDE
+hard-rules revised accordingly). Plus fixes: explicit user-initiated generation, swipe-to-save/delete on
+Results, remove-from-Tracker, the runtime provider forwarding the D settings/score methods, and the Claude
+subprocess running in a neutral directory (no spurious Photos/Music prompts). The project version is
+**0.5.0**. The next version — number and theme chosen when it's started — restarts at Milestone A.

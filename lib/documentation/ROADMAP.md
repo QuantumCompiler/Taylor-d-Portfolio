@@ -449,13 +449,18 @@ Infrastructure/Export); milestones restart at **A** and commit as `v0.4.1 : Mile
       `SearchViewModel.saveCurrentSearch()` with `_ =`. A clean build is now **warning-free**; behaviour
       unchanged. Seam: Infrastructure/Export + `SearchViewModel`. On-device: n/a.
 
-## v0.5.0 — document generation fixes  (in progress)
+## v0.5.0 — document generation fixes  (complete)
 
 The theme: fix and round out the **document-generation experience** — the tailored résumé + cover
 letter the app produces for a saved job, and the paths to view/regenerate them. A feature release
 (not a patch) gathering the generation-side gaps Taylor has hit in use. Milestones restart at **A**
 and commit as `v0.5.0 : Milestone X Completed`. Presentation-first (Milestone A reuses the existing
 `LoadApplicationUseCase` — no new seam). `TODO.md` has the granular breakdown.
+
+Also shipped in v0.5.0 as ad-hoc fixes (see `MILESTONES.md`): **generation is user-initiated** (explicit
+Generate button, no auto-generate), swipe-to-save/delete restored on Results, remove-from-Tracker (return
+to Results / delete), the runtime provider now forwards the D settings/score methods, and the Claude
+subprocess runs in a neutral directory (no more spurious Photos/Music privacy prompts).
 
 - [x] **Milestone A — View generated materials from the Tracker.** ✅ **Done.** After generating a job's résumé +
       cover letter from the Tracker, there's no clear way back to them: the materials persist
@@ -520,9 +525,10 @@ and commit as `v0.5.0 : Milestone X Completed`. Presentation-first (Milestone A 
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
-  & shell) and **v0.4.1** (fixes & refinements) are complete; **v0.5.0** (document generation fixes)
-  is **in progress** — see its section above. The three larger Backlog items (native `LanguageModel`
-  provider seam, on-device embedding RAG, optional MCP tools) remain unspecced for a later version.
+  & shell), **v0.4.1** (fixes & refinements), and **v0.5.0** (document generation fixes) are all complete.
+  **The next version is unstarted** — its number and theme are decided when development on it begins (see
+  `CLAUDE.md` → "Never pre-name the next version"); pull a theme from Backlog (native `LanguageModel`
+  provider seam, on-device embedding RAG, or optional MCP tools) and letter it A, B, C….
 
 > **Numbering the versions.** Each version letters its own milestones **A, B, C…** from scratch —
 > v0.4.0 restarts at Milestone A (it does **not** continue from v0.3.0's X), and a **patch release like
