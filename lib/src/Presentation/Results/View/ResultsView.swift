@@ -25,11 +25,13 @@ struct ResultsView: View {
             if viewModel.isLoading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.isEmpty {
+                // Centered in the pane (matches the loading branch) — v0.4.1 Milestone E.
                 ContentUnavailableView(
                     "No results yet",
                     systemImage: "list.bullet.rectangle",
                     description: Text("Run a search to see jobs ranked against your profile.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.allResultsTracked {
                 // Loaded results, but every one has been saved to the Tracker (Milestone C).
                 ContentUnavailableView(
@@ -37,6 +39,7 @@ struct ResultsView: View {
                     systemImage: "briefcase",
                     description: Text("Every ranked job has been saved to the Tracker. Run a new search to see more.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VStack(spacing: 0) {
                     filterBar
@@ -48,6 +51,7 @@ struct ResultsView: View {
                         } actions: {
                             Button("Clear filters") { viewModel.clearFilter() }.clickableCursor()
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)   // center below the filter bar (v0.4.1 Milestone E)
                     } else {
                         List(viewModel.filteredResults) { ranked in
                             HStack(spacing: 8) {

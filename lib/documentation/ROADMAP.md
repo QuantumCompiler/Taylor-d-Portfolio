@@ -418,12 +418,13 @@ otherwise; milestones still restart at **A** and commit as `v0.4.1 : Milestone X
       `includes` in `ShellNavigation.swift`, the inner-nav scroll in `RootView`, tests) — reuses the
       existing status model. On-device: yes.
 
-- [ ] **Milestone E — Center the Tracker empty-state icon & text.** The Tracker empty-state
-      `ContentUnavailableView` hugs the top of the pane under the tabs instead of centering; stretch the
-      empty-state branches with `.frame(maxWidth: .infinity, maxHeight: .infinity)` (matching the sibling
-      `ProgressView`) so the icon + text center in the sub-view. Composes with D's per-tab empty states;
-      leave the left-aligned `InlineEmptyState` (Portfolio/Search) as-is. Seam: Presentation only
-      (`Tracker/View/TrackerView.swift`). On-device: n/a (UI only).
+- [x] **Milestone E — Center the Tracker empty-state icon & text.** ✅ **Done.** Stretched the Tracker's
+      empty-state `ContentUnavailableView` branches with `.frame(maxWidth: .infinity, maxHeight: .infinity)`
+      (matching the sibling `ProgressView`) so the icon + text center in the pane instead of hugging the
+      top under the tabs — applied to all of D's per-status tabs. Consistency sweep centered the Results
+      empty states the same way (no results / all-tracked / filtered-empty); the left-aligned
+      `InlineEmptyState` (Portfolio/Search) left as-is. Seam: Presentation only (`TrackerView` +
+      `ResultsView`). On-device: n/a (UI only).
 
 - [ ] **Milestone F — Source Documents browsable by profile.** The Portfolio → Source Documents sub-view
       today shows only the currently-loaded profile's tidied documents; make it keyed by profile — list

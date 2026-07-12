@@ -1444,3 +1444,26 @@ per `ApplicationStage`**, so every status is directly reachable. Presentation on
 Note: Presentation-only; the status model, persistence, and `TrackerViewModel` filter shape are
 unchanged. The inner-nav scroll wrapper is shared but only actually scrolls where the content exceeds
 the pane (today just the Tracker).
+
+## Milestone E — Center the Tracker empty-state icon & text in the sub-view  ✅ done  (`Presentation`: `TrackerView` + `ResultsView`)
+
+Goal: the Tracker's empty-state `ContentUnavailableView` hugged the top of the pane (just under the
+tabs) instead of centering. Cause: the sibling `ProgressView` branch had
+`.frame(maxWidth: .infinity, maxHeight: .infinity)` but the empty-state branches didn't, so they
+rendered at their natural top-leading position. Presentation-only.
+
+- [x] **Tracker empty states centered.** Added `.frame(maxWidth: .infinity, maxHeight: .infinity)` to
+      both `ContentUnavailableView` branches in `TrackerView` ("No tracked applications" and the per-stage
+      "No <stage> applications"), so the icon + title + description center vertically and horizontally.
+      Applies to every one of Milestone D's per-status tabs.
+- [x] **Consistency sweep — Results.** Centered the Results empty states the same way: "No results yet",
+      the "All results are in your Tracker" state (added in Milestone C), and the filter-empty "No results
+      match your filters" (centered below the filter bar).
+- [x] **Left-aligned empty states untouched.** The scrolling Portfolio/Search sub-views keep their
+      left-aligned `InlineEmptyState` (correct by design) — this milestone only affects the centered
+      `ContentUnavailableView` panes.
+- [x] **Build + tests.** Centering isn't unit-testable (a device/visual check), but the full suite stays
+      green and the app builds clean.
+
+Note: Presentation-only, pure layout — no ViewModel or lower-layer change. The exact centered
+appearance across window sizes is a manual (device) check.

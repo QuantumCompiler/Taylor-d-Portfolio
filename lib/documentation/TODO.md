@@ -9,11 +9,11 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.1 — Milestone E** next; **Milestones E → H** remain below. **A**–**D** are ✅
+> **Current focus.** **v0.4.1 — Milestone F** next; **Milestones F → H** remain below. **A**–**E** are ✅
 > **done** (A: profile preview / regenerate / save controls moved into Saved Profiles; B: content-pane
 > header text removed app-wide, tabs-only; C: saved-to-Tracker jobs now leave the Results list; D: the
-> Tracker has a tab per status, All + all 8 stages — see `MILESTONES.md`). **E:** **center**
-> the Tracker empty-state icon & text in the sub-view (today it hugs the top). **F:** make Portfolio →
+> Tracker has a tab per status, All + all 8 stages; E: Tracker (and Results) empty states now centered
+> in the pane — see `MILESTONES.md`). **F:** make Portfolio →
 > **Source Documents** browsable **by profile** — list saved profiles, expand one to see its source
 > documents. **G:** in **Settings**, drop the background band around the **Save** button (just the
 > button). **H:** clear the build **warnings** — the `ExportTemplate.style` main-actor-isolation batch
@@ -46,31 +46,7 @@ at **A** and are committed as `v0.4.1 : Milestone X Completed`. Presentation-onl
 milestone says otherwise. (See `CLAUDE.md` → Working process → Versioning for how patch releases fit
 the numbering.)
 
-**Milestones A–D are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **E → H**.
-
-## Milestone E — Center the Tracker empty-state icon & text in the sub-view
-
-In the Tracker, the empty-state `ContentUnavailableView` (both "No tracked applications" and the
-per-stage "No <stage> applications") **hugs the top** of the content pane, just under the tabs, instead
-of sitting centered in the available space. Cause: those branches aren't stretched — the sibling
-`ProgressView` (`TrackerView.swift` line ~30) has `.frame(maxWidth: .infinity, maxHeight: .infinity)`
-but the `ContentUnavailableView` branches don't, so they render at their natural (top) position.
-
-- [ ] **Stretch the empty-state branches.** Give the two `ContentUnavailableView` branches (line ~32 and
-      ~38) — or the enclosing `Group` — `.frame(maxWidth: .infinity, maxHeight: .infinity)` so the icon +
-      title + description **center vertically and horizontally** in the content pane, matching the
-      `ProgressView` branch.
-- [ ] **Consistency sweep (optional).** Check other list-based `ContentUnavailableView` empty states
-      (e.g. Results) for the same top-hug and center them the same way. **Leave the scrolling
-      Portfolio/Search sub-views alone** — they deliberately use the **left-aligned** `InlineEmptyState`,
-      which is correct there; this is only about the centered `ContentUnavailableView` panes.
-- [ ] **Composes with Milestone D.** D adds a per-stage tab (and empty state) for every status; those new
-      empty states should be centered by the same fix — do E's centering on whatever set of tabs D lands.
-- [ ] **Check.** Centering isn't unit-testable — it's a device/visual check (add to the v0.4.1 device
-      checks): the empty state sits centered in the pane across window sizes.
-
-Seam: **Presentation only** — `Tracker/View/TrackerView.swift` (+ any sibling `ContentUnavailableView`
-that shares the top-hug). No ViewModel or lower-layer change. On-device: n/a (UI only).
+**Milestones A–E are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **F → H**.
 
 ## Milestone F — Source Documents browsable by profile
 
