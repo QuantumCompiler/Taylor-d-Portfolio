@@ -486,7 +486,7 @@ and commit as `v0.5.0 : Milestone X Completed`. Presentation-first (Milestone A 
       recommended id-based windows; the pass-by-value alternative would add `Hashable` in Data. On-device:
       yes (local reads + existing engines).
 
-- [ ] **Milestone C — Remove the "Mark as applied" button (the status menu covers it).** `JobDetailView`
+- [x] **Milestone C — Remove the "Mark as applied" button (the status menu covers it).** ✅ **Done.** `JobDetailView`
       shows a prominent **"Mark as applied"** button for untracked jobs (`JobDetailView.swift:125`) beside a
       **"Set status"** menu that already includes Applied (`ApplicationStage.settable` excludes only
       `.saved`) with the same auto-date-stamp — so the button is redundant. Remove it in all views (one file;

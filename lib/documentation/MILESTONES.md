@@ -1638,3 +1638,56 @@ Tests: `AppSessionTests` (revision bump, `showDetail` targeting); existing VM/fo
 suite green, warning-free. **Window presentation itself is a manual (device) check** — B-A/B-B verified on a
 real run; B-C (Application window open / View↔Regenerate re-run / list refresh) to confirm on device.
 On-device: yes — local reads + existing engines, no network, no new persistence.
+
+## Milestone C — Remove the redundant "Mark as applied" button  ✅ done  (`Presentation/Results`: `JobDetailView`)
+
+Goal: the detail view's Application-status section showed a prominent **"Mark as applied"** button for
+untracked jobs, next to a **"Set status"** menu that already lists every settable stage — so the button was
+redundant.
+
+- [x] Removed the `if status == nil { Button("Mark as applied") … }` block from `JobDetailView.statusSection`.
+      Applied stays reachable via **Set status → Applied** (`ApplicationStage.settable` excludes only `.saved`)
+      with the identical auto-date-stamp (`mark(.applied)`). The `StatusBadge` / "Not tracked yet" text and
+      the "Set status" menu are unchanged.
+
+Seam: Presentation only, one file; `MarkStatusUseCase` / stamping untouched. Existing status coverage
+(`StatusUseCaseTests`) stands; full suite green. On-device: n/a (UI only).
+
+## Fix — Restore swipe-to-save/delete on Results  ✅ done  (`Presentation/Results`: `ResultsView`)  — Milestone B follow-up
+
+Milestone B moved the result detail into a window, which dropped the V-C swipe gesture (it lived on the
+old detail *card*). Restored it directly on the **Results list rows** using native macOS `List`
+`.swipeActions`, reusing the same view-model methods as the existing row icons:
+
+- [x] **Swipe right (leading) = Save to Tracker** (`viewModel.saveToTracker`, green, full-swipe enabled).
+- [x] **Swipe left (trailing) = Delete** (`viewModel.delete`, destructive). `allowsFullSwipe: false` — a
+      full swipe *reveals* the Delete button rather than firing instantly, since delete also clears the
+      job's saved status + generated materials. (Open to enabling full-swipe delete if preferred.)
+- [x] Gated on `supportsRowActions` (same as the icons); the explicit save/delete icons remain. Build +
+      full suite green, warning-free.
+
+Seam: Presentation only (`ResultsView.resultRow`). On-device: n/a (UI only).
+
+## Feature — Remove a job from the Tracker (return to Results or delete)  ✅ done  (`Business/UseCases`, `TrackerViewModel`, `TrackerView`, `Composition`)
+
+Ad-hoc request: from the Tracker, remove a job — either **put it back in Results** or **delete it entirely**.
+
+- [x] **Untrack (return to Results).** New `UntrackJobUseCase` (`Business/UseCases`) clears **only** the job's
+      `ApplicationStatus` (`SavedStatusRepository.delete`), keeping the saved listing + any generated
+      materials — so the job drops out of the Tracker and reappears in Results as an un-triaged result
+      (reversible). `TrackerViewModel.returnToResults(_:)`.
+- [x] **Delete entirely.** Reuses `DeleteSavedJobUseCase` (listing + status + materials).
+      `TrackerViewModel.delete(_:)`.
+- [x] **UI.** Swipe actions on the Tracker list rows (symmetric with the Results rows): **swipe right = "To
+      Results"** (blue, full-swipe), **swipe left = "Delete"** (destructive, `allowsFullSwipe: false` →
+      reveal + tap). Both call `session.dataChanged()` so the main window's Results list refreshes (the
+      returned job reappears there). Gated on `supportsRowActions` (both use cases wired).
+- [x] **Wiring + tests.** `untrackJob` + `deleteSavedJob` threaded through `Composition.makeTrackerViewModel`.
+      `TrackerViewModelTests`: untrack clears status but keeps the listing; delete forgets listing + status +
+      materials; `supportsRowActions` gating.
+
+Also (drive-by): marked the pure `SwipeOutcome` and `JobDetailFooter` enums `nonisolated` to clear
+main-actor-isolated `Equatable`-conformance warnings surfaced in the test target (would be Swift 6 errors).
+Full suite green, warning-free. Note: a returned job reappears in Results once the list reflects the store
+(it does within a session / after a fresh Results load). Seam: Presentation + one Business use case.
+On-device: yes (local status/store writes).

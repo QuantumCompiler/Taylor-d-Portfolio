@@ -12,9 +12,9 @@ doing.
 > **Current focus.** **v0.5.0 — document generation fixes — is in planning.** All of v0.1.0–v0.4.1 are
 > done (see `MILESTONES.md`). v0.5.0's theme is **fixing the document-generation experience** (the tailored
 > résumé + cover letter and the paths to view/regenerate them). Milestones restart at **A**; the project
-> version is bumped to **0.5.0**. **Milestones A and B are shipped** (see `MILESTONES.md`); **the next up is
-> Milestone C below.** Planned: **A** ✅ (view generated materials from the Tracker), **B** ✅ (job detail +
-> Application as real windows), **C** (remove the redundant "Mark as applied" button), **D**
+> version is bumped to **0.5.0**. **Milestones A, B, and C are shipped** (see `MILESTONES.md`); **the next up
+> is Milestone D below.** Planned: **A** ✅ (view generated materials from the Tracker), **B** ✅ (job detail +
+> Application as real windows), **C** ✅ (removed the redundant "Mark as applied" button), **D**
 > (generation controls — fidelity scale, tailored aspects, presets, and a desired rank-match target that
 > fabricates to a target score; grounded-by-default + opt-in disclosed embellishment).
 >
@@ -70,35 +70,10 @@ write-up in `MILESTONES.md`.
 
 ---
 
-## Milestone C — Remove the "Mark as applied" button (the status menu covers it)
+## Milestone C — Remove the "Mark as applied" button (the status menu covers it)  ✅ done → `MILESTONES.md`
 
-**What's wrong.** `JobDetailView`'s Application-status section shows a prominent **"Mark as applied"**
-button whenever a job is untracked (`JobDetailView.swift:125`, only rendered when `status == nil`), *next
-to* a **"Set status"** menu. The menu already lists every settable stage — `ApplicationStage.settable` is
-`allCases.filter { $0 != .saved }` (`ApplicationStatus.swift:37`), so it **includes `.applied`** via the
-same auto-date-stamping `mark(.applied)` path. The dedicated button is redundant with the dropdown.
-
-**Wanted.** Remove the "Mark as applied" button in **all** views. (It lives in one place — `JobDetailView`
-— which is presented from both the Results and Tracker contexts, so removing it there removes it
-everywhere.) Applied stays reachable via **Set status → Applied**, with the identical auto-stamp.
-
-**Seam + files.** **Presentation only, single file** — `lib/src/Presentation/Results/View/JobDetailView.swift`,
-the `statusSection` (`:115`). Delete the `if status == nil { Button("Mark as applied") … }` block
-(`:124–128`); keep the `StatusBadge` / "Not tracked yet" text and the "Set status" `Menu` unchanged. No
-ViewModel, use-case, or lower-layer change; `MarkStatusUseCase` and the `.applied` stamping are untouched.
-
-**Sub-tasks.**
-- [ ] Remove the `Button("Mark as applied")` and its enclosing `if status == nil` guard from `statusSection`.
-- [ ] Confirm the "Set status" menu stays always-visible (it currently is) so an untracked job can still be
-      moved to Applied (and any other stage) in one step.
-- [ ] (optional) If the untracked row now looks bare, consider whether "Set status" wants a subtle prominent
-      style — leave as-is unless it reads oddly at build time.
-
-**Tests.** No logic change to test (pure view edit). The existing status-marking coverage
-(`StatusUseCaseTests` auto-stamp on `.applied`; `JobDetailView` `#Preview`) stands. If a footer/status pure
-helper is extracted during Milestone A/B, ensure it doesn't reintroduce the button.
-
-**On-device.** N/a (UI only).
+Shipped: removed the redundant "Mark as applied" button from `JobDetailView.statusSection`; Applied stays
+reachable via **Set status → Applied** with the same auto-stamp. Write-up in `MILESTONES.md`.
 
 ---
 

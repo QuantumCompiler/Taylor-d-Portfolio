@@ -44,14 +44,40 @@ struct TrackerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(jobs) { tracked in
-                    RankedRow(ranked: tracked.job, history: viewModel.history(for: tracked.job))
-                        .contentShape(Rectangle())
-                        .onTapGesture { openDetail(tracked.job) }
-                        .clickableCursor()
+                    trackerRow(tracked)
                 }
             }
         }
         .task { await viewModel.load() }
+    }
+
+    /// One tracked-job row with **swipe-to-Results** (leading / swipe right — clears the
+    /// status so it returns to Results) and **swipe-to-delete** (trailing / swipe left —
+    /// forgets it entirely). Delete uses `allowsFullSwipe: false` (reveal + tap) since it
+    /// removes the listing + status + materials. Both signal the shared session so Results
+    /// updates (v0.5.0).
+    @ViewBuilder
+    private func trackerRow(_ tracked: TrackedJob) -> some View {
+        let row = RankedRow(ranked: tracked.job, history: viewModel.history(for: tracked.job))
+            .contentShape(Rectangle())
+            .onTapGesture { openDetail(tracked.job) }
+            .clickableCursor()
+        if viewModel.supportsRowActions {
+            row
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button { Task { await viewModel.returnToResults(tracked.job); session.dataChanged() } } label: {
+                        Label("To Results", systemImage: "arrow.uturn.backward")
+                    }
+                    .tint(.blue)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) { Task { await viewModel.delete(tracked.job); session.dataChanged() } } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+        } else {
+            row
+        }
     }
 
     /// Opens the shared detail window for `ranked` in the Tracker context. The window reloads

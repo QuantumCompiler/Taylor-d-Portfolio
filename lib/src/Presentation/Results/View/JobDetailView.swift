@@ -147,11 +147,9 @@ struct JobDetailView: View {
                     Text("Not tracked yet").font(.callout).foregroundStyle(.secondary)
                 }
                 Spacer()
-                if status == nil {
-                    Button("Mark as applied") { mark(.applied) }
-                        .buttonStyle(.borderedProminent).controlSize(.small)
-                        .clickableCursor()
-                }
+                // "Set status" already offers every settable stage (incl. Applied) with the
+                // same auto-date-stamp, so the dedicated "Mark as applied" button was
+                // redundant and was removed (v0.5.0 Milestone C).
                 Menu("Set status") {
                     ForEach(ApplicationStage.settable, id: \.self) { stage in
                         Button(stage.label) { mark(stage) }
@@ -295,7 +293,7 @@ struct JobDetailView: View {
 
 /// Which action(s) the job-detail footer offers, resolved from the view's context.
 /// Pure so it can be unit-tested without the SwiftUI view (v0.5.0 Milestone A).
-enum JobDetailFooter: Equatable {
+nonisolated enum JobDetailFooter: Equatable {
     /// No primary action (e.g. Results context with no save action wired).
     case none
     /// Results context: save the posting to the Tracker.

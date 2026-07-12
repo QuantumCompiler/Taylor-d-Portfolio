@@ -51,16 +51,7 @@ struct ResultsView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)   // center below the filter bar (v0.4.1 Milestone E)
                     } else {
                         List(viewModel.filteredResults) { ranked in
-                            HStack(spacing: 8) {
-                                RankedRow(ranked: ranked, history: viewModel.history(for: ranked))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture { openDetail(ranked) }
-                                    .clickableCursor()
-                                if viewModel.supportsRowActions {
-                                    rowActions(ranked)
-                                }
-                            }
+                            resultRow(ranked)
                         }
                     }
                 }
@@ -146,6 +137,41 @@ struct ResultsView: View {
     }
 
     /// Per-row Save-to-Tracker + Delete icons (Milestone V-A/V-B); each intercepts its own tap.
+    /// One result row: the ranked card + explicit save/delete icons, plus **swipe-to-save**
+    /// (leading / swipe right) and **swipe-to-delete** (trailing / swipe left) — restored after
+    /// the detail moved to a window (v0.5.0). Both reuse the same view-model methods as the icons.
+    /// Delete uses `allowsFullSwipe: false` (reveal + tap) since it also clears saved status +
+    /// materials; save is a safe full-swipe.
+    @ViewBuilder
+    private func resultRow(_ ranked: RankedJob) -> some View {
+        let row = HStack(spacing: 8) {
+            RankedRow(ranked: ranked, history: viewModel.history(for: ranked))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture { openDetail(ranked) }
+                .clickableCursor()
+            if viewModel.supportsRowActions {
+                rowActions(ranked)
+            }
+        }
+        if viewModel.supportsRowActions {
+            row
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button { Task { await viewModel.saveToTracker(ranked) } } label: {
+                        Label(viewModel.isTracked(ranked) ? "Saved" : "Save", systemImage: "bookmark.fill")
+                    }
+                    .tint(.green)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) { Task { await viewModel.delete(ranked) } } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+        } else {
+            row
+        }
+    }
+
     private func rowActions(_ ranked: RankedJob) -> some View {
         HStack(spacing: 10) {
             Button { Task { await viewModel.saveToTracker(ranked) } } label: {

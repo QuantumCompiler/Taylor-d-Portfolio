@@ -87,6 +87,9 @@ struct Composition {
         guard let savedJobsRepository, let savedStatusRepository, let savedApplicationsRepository else { return nil }
         return DeleteSavedJobUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository, applications: savedApplicationsRepository)
     }
+    /// Remove a job from the Tracker without forgetting it — clears only its status so it
+    /// returns to Results (v0.5.0).
+    private var untrackJob: UntrackJobUseCase? { savedStatusRepository.map(UntrackJobUseCase.init(statuses:)) }
 
     // MARK: Gateways (read settings live, so Settings edits take effect immediately)
 
@@ -186,7 +189,10 @@ struct Composition {
         )
     }
     func makeTrackerViewModel() -> TrackerViewModel {
-        .init(loadTrackedJobs: loadTrackedJobs, loadJobHistory: loadJobHistory)
+        .init(
+            loadTrackedJobs: loadTrackedJobs, loadJobHistory: loadJobHistory,
+            untrackJob: untrackJob, deleteSavedJob: deleteSavedJob
+        )
     }
     func makeSettingsViewModel() -> SettingsViewModel {
         .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured)
