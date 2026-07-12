@@ -120,11 +120,15 @@ struct RootView: View {
     }
 
     /// The segmented inner nav for the selected area's sub-views (no text title above it —
-    /// v0.4.1 Milestone B). Only shown for areas with more than one sub-view.
+    /// v0.4.1 Milestone B). Only shown for areas with more than one sub-view. Wrapped in a
+    /// horizontal scroll so a many-tab area (the Tracker's All + 8 statuses, v0.4.1 Milestone D)
+    /// never overflows the pane; narrow areas (2–3 tabs) fit without scrolling and look the same.
     private var contentHeader: some View {
-        innerNav
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+        ScrollView(.horizontal, showsIndicators: false) {
+            innerNav
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     /// The inner segmented nav for the selected area's sub-views. Milestone A shows a

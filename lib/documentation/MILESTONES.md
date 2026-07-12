@@ -1411,3 +1411,36 @@ already loads for the row badges.
 
 Note: Presentation-only. Reuses V's save/delete flow and the O/P status/history data; nothing below
 Presentation changed. Milestone D gives the Tracker a **Saved** tab so these moved-out jobs have a home.
+
+## Milestone D — Tracker: one tab per application status  ✅ done  (`Presentation/App`: `TrackerSection` + `RootView`)
+
+Goal: expand the Tracker's inner nav from **All / Applied / Interviewing / Offers** to **All + a tab
+per `ApplicationStage`**, so every status is directly reachable. Presentation only — reuses the existing
+`ApplicationStage` / `ApplicationStatus` data.
+
+- [x] **`TrackerSection` = All + 8 stages.** Rewrote the enum to `all, saved, applied, interviewing,
+      offer, accepted, declined, rejected, withdrawn` (`ShellNavigation.swift`). A new `stage:
+      ApplicationStage?` maps each case to its stage (`nil` for `All`); `title` derives from
+      `stage?.label ?? "All"` (kept identical to the status badge); `rawValue` is still the segment index
+      and `init(index:)` still clamps. `MainArea.subViews` for `.tracker` keeps deriving from
+      `TrackerSection.allCases`, so the segment labels update automatically.
+- [x] **Exact-stage filtering.** `includes(_:)` is now `stage == nil || stage == theStage` — All shows
+      everything, every other tab matches its exact stage. This **un-bundles** the old Offers tab
+      (which used to include `accepted`): Offer and Accepted are now separate tabs. `TrackerViewModel.
+      jobs(in:)` is unchanged — it just sees the new cases.
+- [x] **9-segment fit (the open call).** Resolved by wrapping the inner nav in a horizontal
+      `ScrollView(.horizontal, showsIndicators: false)` in `RootView.contentHeader`, so the Tracker's 9
+      tabs scroll rather than overflow the pane. Narrow areas (Portfolio/Search/Settings, 2–3 tabs) fit
+      without scrolling and look identical.
+- [x] **Per-tab empty states — no new code.** `TrackerView`'s per-stage empty state already derives its
+      copy from `section.title` ("No <stage> applications" / "Nothing at the <stage> stage yet…"), so
+      each new tab gets its own empty state automatically.
+- [x] **Tests.** `SectionRoutingTests`: updated the tracker `subViews` list + `init(index:)` clamp;
+      replaced the Offers-grouping test with `everyStageTabMatchesExactlyItsOwnStage`,
+      `offerAndAcceptedAreDistinctTabs`, and `everyStageHasItsOwnReachableTab`. `TrackerViewModelTests.
+      jobsInSectionFilterByStage` now seeds one job per stage and asserts each lands in exactly its own
+      tab (and all under All). Full suite green on macOS; build clean.
+
+Note: Presentation-only; the status model, persistence, and `TrackerViewModel` filter shape are
+unchanged. The inner-nav scroll wrapper is shared but only actually scrolls where the content exceeds
+the pane (today just the Tracker).

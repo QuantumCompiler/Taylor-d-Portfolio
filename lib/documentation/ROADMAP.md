@@ -409,12 +409,14 @@ otherwise; milestones still restart at **A** and commit as `v0.4.1 : Milestone X
       status read (`Results/ViewModel/ResultsViewModel` + `Results/View`), reusing the Milestone O/P status
       data. On-device: yes.
 
-- [ ] **Milestone D — Tracker: one tab per application status.** Expand the Tracker inner nav from
-      All / Applied / Interviewing / Offers to **All + a tab for every `ApplicationStage`** (Saved,
-      Applied, Interviewing, Offer, Accepted, Declined, Rejected, Withdrawn), each filtering to exactly
-      its stage. Open call: fitting 9 segments (compress vs. scrollable control/menu). Seam: Presentation
-      only (`TrackerSection` cases + `includes` in `ShellNavigation.swift`, per-tab empty states, tests) —
-      reuses the existing status model. On-device: yes.
+- [x] **Milestone D — Tracker: one tab per application status.** ✅ **Done.** Expanded the Tracker inner
+      nav from All / Applied / Interviewing / Offers to **All + a tab for every `ApplicationStage`** (Saved,
+      Applied, Interviewing, Offer, Accepted, Declined, Rejected, Withdrawn), each filtering to exactly its
+      stage — un-bundling the old Offers-includes-accepted grouping. The 9-segment fit was resolved by
+      wrapping the inner nav in a horizontal scroll (narrow areas look unchanged); per-tab empty states
+      come free from the existing section-title template. Seam: Presentation only (`TrackerSection` +
+      `includes` in `ShellNavigation.swift`, the inner-nav scroll in `RootView`, tests) — reuses the
+      existing status model. On-device: yes.
 
 - [ ] **Milestone E — Center the Tracker empty-state icon & text.** The Tracker empty-state
       `ContentUnavailableView` hugs the top of the pane under the tabs instead of centering; stretch the

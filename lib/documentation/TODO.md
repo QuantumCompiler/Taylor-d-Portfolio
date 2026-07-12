@@ -9,11 +9,10 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus.** **v0.4.1 — Milestone D** next; **Milestones D → H** remain below. **A**, **B**, and
-> **C** are ✅ **done** (A: profile preview / regenerate / save controls moved into Saved Profiles; B:
-> content-pane header text removed app-wide, tabs-only; C: saved-to-Tracker jobs now leave the Results
-> list — see `MILESTONES.md`). **D:** give the **Tracker a tab per status** (All +
-> Saved / Applied / Interviewing / Offer / Accepted / Declined / Rejected / Withdrawn). **E:** **center**
+> **Current focus.** **v0.4.1 — Milestone E** next; **Milestones E → H** remain below. **A**–**D** are ✅
+> **done** (A: profile preview / regenerate / save controls moved into Saved Profiles; B: content-pane
+> header text removed app-wide, tabs-only; C: saved-to-Tracker jobs now leave the Results list; D: the
+> Tracker has a tab per status, All + all 8 stages — see `MILESTONES.md`). **E:** **center**
 > the Tracker empty-state icon & text in the sub-view (today it hugs the top). **F:** make Portfolio →
 > **Source Documents** browsable **by profile** — list saved profiles, expand one to see its source
 > documents. **G:** in **Settings**, drop the background band around the **Save** button (just the
@@ -47,37 +46,7 @@ at **A** and are committed as `v0.4.1 : Milestone X Completed`. Presentation-onl
 milestone says otherwise. (See `CLAUDE.md` → Working process → Versioning for how patch releases fit
 the numbering.)
 
-**Milestones A–C are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **D → H**.
-
-## Milestone D — Tracker: one tab per application status
-
-The Tracker's inner nav has only **All / Applied / Interviewing / Offers** (and `.offers` bundles
-`offer` **+** `accepted`; `saved`, `rejected`, `declined`, `withdrawn` appear only under All). Give
-**every** `ApplicationStage` its own tab so each status is directly reachable.
-
-- [ ] **Expand `TrackerSection`.** Replace the four cases with **All + one case per `ApplicationStage`**:
-      **All, Saved, Applied, Interviewing, Offer, Accepted, Declined, Rejected, Withdrawn**
-      (`ShellNavigation.swift`). `title` per case matches the stage `label`; `rawValue` stays the segment
-      index; `init(index:)` still clamps. `MainArea.subViews` for `.tracker` keeps deriving from
-      `TrackerSection.allCases`, so the segmented labels update automatically.
-- [ ] **Exact-stage filtering.** `TrackerSection.includes(_ stage:)` becomes All = every stage, and each
-      other tab = its **exact** stage (drop the special-case where Offers also matched `accepted`).
-      `TrackerViewModel.jobs(in:)` is unchanged in shape — it just sees the new cases.
-- [ ] **Per-tab empty states.** Each stage tab needs its own "nothing at this stage yet" empty state
-      (e.g. "No saved jobs", "No offers yet"), distinct from "no tracked jobs at all" under All.
-- [ ] **Segmented-control width (open call).** All + 8 stages = **9 segments** — a segmented `Picker`
-      may not fit the content width. Decide at build time: let it compress, switch this inner nav to a
-      scrollable segmented control / menu, or group less-used terminal outcomes. Keep every status
-      reachable regardless of the chosen control.
-- [ ] **Tests.** Update `SectionRoutingTests` (labels/order vs. `TrackerSection.allCases`; `init(index:)`
-      clamp; the full new `includes` policy — each tab matches exactly its stage, All matches all) and
-      `TrackerViewModelTests.jobsInSectionFilterByStage` (Saved/Accepted/Declined/Rejected/Withdrawn now
-      have their own tabs). Full suite green.
-
-Seam: **Presentation only** — `Presentation/App/ShellNavigation.swift` (`TrackerSection` cases +
-`includes`) + `Tracker/View` (per-tab empty states; possibly the inner-nav control) + the two test
-files. Reuses the existing `ApplicationStage` / `ApplicationStatus` data — no domain or persistence
-change. On-device: yes (all local).
+**Milestones A–D are complete** — their write-ups moved to `MILESTONES.md`. Remaining: **E → H**.
 
 ## Milestone E — Center the Tracker empty-state icon & text in the sub-view
 
