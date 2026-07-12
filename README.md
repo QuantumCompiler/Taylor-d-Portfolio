@@ -97,8 +97,8 @@ Presentation:
 - The Settings **Save** button lost its background band (G), and all concurrency / unused-result build
   warnings were cleared (H). *(Milestones A–H.)*
 
-**Next:** v0.5.0 (theme TBD; restarts at Milestone A) — likely the native `LanguageModel` provider seam,
-on-device embedding RAG, or an optional MCP tool layer.
+**Next:** v0.5.0 — **document generation fixes** (in progress; restarts at Milestone A) — rounding out the
+tailored résumé + cover letter experience and the paths to view and regenerate them.
 
 ## Build & run
 

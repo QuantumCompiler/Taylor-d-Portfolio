@@ -335,9 +335,15 @@ xcodebuild test -project "Taylor'd Portfolio.xcodeproj" -scheme "Taylor'd Portfo
 
 ## Hard rules for generated content
 
-- Resumes and cover letters must be grounded strictly in the user's portfolio.
-  **Never** invent employers, job titles, dates, degrees, or credentials.
-- Reordering and rephrasing real experience is fine; fabrication is not.
+- **Grounded by default.** With the generation-fidelity control at its default (0), resumes
+  and cover letters are grounded strictly in the user's portfolio: reorder and rephrase real
+  experience only, and **never** invent employers, job titles, dates, degrees, or credentials.
+- **Opt-in embellishment is always disclosed.** Raising the fidelity control (ROADMAP v0.5.0
+  Milestone D) permits curation and, at the top of the scale, invented content — but only as an
+  explicit user choice, and every addition not supported by the profile must be **surfaced**:
+  listed in the gap note / disclosures, flagged in the UI, and marked "draft — verify before
+  sending." **Never emit fabricated content silently or by default**, and keep the default
+  (fidelity 0) generation path byte-for-byte grounded.
 
 ## Build & run
 

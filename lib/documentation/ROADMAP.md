@@ -449,13 +449,76 @@ Infrastructure/Export); milestones restart at **A** and commit as `v0.4.1 : Mile
       `SearchViewModel.saveCurrentSearch()` with `_ =`. A clean build is now **warning-free**; behaviour
       unchanged. Seam: Infrastructure/Export + `SearchViewModel`. On-device: n/a.
 
+## v0.5.0 — document generation fixes  (in progress)
+
+The theme: fix and round out the **document-generation experience** — the tailored résumé + cover
+letter the app produces for a saved job, and the paths to view/regenerate them. A feature release
+(not a patch) gathering the generation-side gaps Taylor has hit in use. Milestones restart at **A**
+and commit as `v0.5.0 : Milestone X Completed`. Presentation-first (Milestone A reuses the existing
+`LoadApplicationUseCase` — no new seam). `TODO.md` has the granular breakdown.
+
+- [ ] **Milestone A — View generated materials from the Tracker.** After generating a job's résumé +
+      cover letter from the Tracker, there's no clear way back to them: the materials persist
+      (`SavedApplicationsRepository`, reloaded by `ApplicationViewModel.open(for:)` with **no** LLM
+      call), but `JobDetailView`'s footer always shows one **"Generate résumé & cover letter"** button
+      (`JobDetailView.swift:219`) with no "already generated" indicator — so the user can't tell that
+      tapping it shows the existing docs rather than making new ones. Add a **"View résumé & cover
+      letter"** button alongside Generate in the Tracker context (`canGenerate == true`), shown when a
+      saved kit exists (detected via the existing `LoadApplicationUseCase`, threaded
+      `Composition` → `RootView` → `TrackerView` → `JobDetailView`); View opens the sheet in
+      load-only mode, Generate forces a fresh regeneration (open call: label + force-regenerate
+      mechanics). Seam: **Presentation only** — `JobDetailView`, `TrackerView`, `RootView`,
+      `Composition`, `ApplicationSheet` / `ApplicationViewModel`; reuses Business `LoadApplicationUseCase`.
+      On-device: yes (local store read; regeneration uses the current `.application` engine).
+
+- [ ] **Milestone B — Present job detail (and its Application view) as real windows, not sheets.** Tapping a
+      job in the Tracker and Results presents `JobDetailView` as a modal **sheet** (`TrackerView.swift:57`,
+      `ResultsView.swift:73`), and generating opens `ApplicationSheet` as a **nested sheet**
+      (`JobDetailView.swift:57`). Replace **every** custom sheet with a genuine detached macOS **window**
+      (`WindowGroup(id:for:)` + `openWindow`). Not a one-line swap: the app has a single `WindowGroup`
+      (`App.swift:20`) and the sheets read `RootView`'s live `profile` / `PortfolioGrounding` — but
+      `PortfolioGrounding` isn't `Codable`, so session state must be **hoisted into a shared app-level
+      `@Observable`** injected across scenes (B-A), and the detail (B-B) + application (B-C) windows keyed by
+      job **id**. Also adds a cross-window **refresh signal** (no sheet-dismiss callback) and reconciles the
+      Results **swipe** card (open call). Seam: **Presentation** (`App`, `RootView`, `Composition`,
+      `TrackerView`, `ResultsView`, `JobDetailView`, `ApplicationSheet`) — Presentation-only under the
+      recommended id-based windows; the pass-by-value alternative would add `Hashable` in Data. On-device:
+      yes (local reads + existing engines).
+
+- [ ] **Milestone C — Remove the "Mark as applied" button (the status menu covers it).** `JobDetailView`
+      shows a prominent **"Mark as applied"** button for untracked jobs (`JobDetailView.swift:125`) beside a
+      **"Set status"** menu that already includes Applied (`ApplicationStage.settable` excludes only
+      `.saved`) with the same auto-date-stamp — so the button is redundant. Remove it in all views (one file;
+      it's presented from both Results and Tracker). Seam: **Presentation only** (`JobDetailView.statusSection`);
+      no lower-layer change. On-device: n/a (UI only).
+
+- [ ] **Milestone D — Generation controls: fidelity scale, tailored aspects, and presets.** Add a controls
+      panel to the generate flow: (1) rename the button to **"Generate application"** (`JobDetailView.swift:221`;
+      a non-colliding label for the `ApplicationKit` output); (2) a **generation-fidelity** slider `0…1`
+      (0 = authentic / verbatim, 0.5 = curated, 1.0 = embellished) mapped to **prompt latitude** and threaded
+      `GenerateApplicationUseCase` → `LLMProvider.generateApplication(…settings:)` → `Prompts` (new `settings`
+      param with a forwarding default, like `grounding`); (3) **tailored-aspect** checkboxes (Summary /
+      Experience / Projects / Skills / Education / Cover Letter — none = all); (4) named **presets**
+      (`GenerationPreset` + `GenerationPresetsRepository`, reusable across jobs, mirroring `SavedSearch`);
+      and (5) a **desired rank-match target** (D-F) — the master control: set a target fit score and an
+      **outcome-driven loop** (generate → score the tailored output via a new `scoreApplication`/`rank`
+      step → escalate → regenerate, to an iteration cap) fabricates as needed to hit it, **overriding both
+      the fidelity slider and the aspect checkboxes**.
+      **Integrity:** grounded stays the **default**; the upper scale is opt-in and any invented content is
+      **disclosed** (gap-note list + UI "draft — verify" warning) — this revises SPEC "Grounded generation"
+      and CLAUDE "Hard rules for generated content" to *grounded-by-default + opt-in + disclosed*. Seam:
+      **Presentation + Business + Data** (new `GenerationSettings` / `TailoredAspect` / `GenerationPreset`
+      models, preset repo + use cases, prompt/provider threading), optional Infrastructure (sampling
+      temperature, on-device only). On-device: yes (local presets; prompt-driven fidelity keeps both engines
+      in lockstep).
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
-  & shell) and **v0.4.1** (fixes & refinements) are both complete. **v0.5.0** should pull the next
-  feature item up from Backlog (native `LanguageModel` provider seam, on-device embedding RAG, or
-  optional MCP tools) and letter it A, B, C….
+  & shell) and **v0.4.1** (fixes & refinements) are complete; **v0.5.0** (document generation fixes)
+  is **in progress** — see its section above. The three larger Backlog items (native `LanguageModel`
+  provider seam, on-device embedding RAG, optional MCP tools) remain unspecced for a later version.
 
 > **Numbering the versions.** Each version letters its own milestones **A, B, C…** from scratch —
 > v0.4.0 restarts at Milestone A (it does **not** continue from v0.3.0's X), and a **patch release like
