@@ -62,12 +62,34 @@ nonisolated enum MarkdownAttributedRenderer {
             s.append(styledInline(text, size: style.bodySize, baseTraits: [], color: .black, style: style))
             s.addAttribute(.paragraphStyle, value: para, range: NSRange(location: 0, length: s.length))
             return s
+        case .thematicBreak:
+            return thematicBreak(style: style)
         case .paragraph(let text):
             let para = NSMutableParagraphStyle()
             para.paragraphSpacing = style.paragraphSpacing
             return styled(text, size: style.bodySize, baseTraits: [], color: .black,
                           style: style, paragraph: para)
         }
+    }
+
+    /// A subtle horizontal rule for a Markdown thematic break (`---`). Drawn as an
+    /// **underlined tab** that fills the text column — Core Text has no paragraph border, and
+    /// this renders a real line (never literal dashes). Width matches
+    /// ``PDFDocumentExporter``'s US-Letter text column (page 612pt − 2·margin).
+    private static func thematicBreak(style: TemplateStyle) -> NSAttributedString {
+        let columnWidth = 612 - style.margin * 2
+        let para = NSMutableParagraphStyle()
+        para.paragraphSpacingBefore = 6
+        para.paragraphSpacing = 6
+        para.tabStops = [NSTextTab(textAlignment: .right, location: columnWidth)]
+        let rule = NSMutableAttributedString(string: "\t")
+        let full = NSRange(location: 0, length: rule.length)
+        rule.addAttribute(.paragraphStyle, value: para, range: full)
+        rule.addAttribute(.font, value: font(size: style.bodySize, traits: [], style: style), range: full)
+        rule.addAttribute(.foregroundColor, value: NSColor.black, range: full)
+        rule.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: full)
+        rule.addAttribute(.underlineColor, value: NSColor(white: 0.6, alpha: 1), range: full)
+        return rule
     }
 
     /// A whole-paragraph inline render with a shared paragraph style applied.

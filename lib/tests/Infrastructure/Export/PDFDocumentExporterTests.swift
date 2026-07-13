@@ -74,6 +74,16 @@ struct PDFDocumentExporterTests {
         let modern = try exporter.export(markdown: sample, as: .pdf, template: .modern)
         #expect(classic != modern)   // serif + accent headings produce different output
     }
+
+    @Test func thematicBreakRendersAsARuleNotLiteralDashes() {
+        let rendered = MarkdownAttributedRenderer.attributedString(from: "Summary\n\n---\n\nSkills")
+        #expect(!rendered.string.contains("---"))   // no literal dashes reach the PDF text
+        var hasUnderline = false
+        rendered.enumerateAttribute(.underlineStyle, in: NSRange(location: 0, length: rendered.length)) { value, _, _ in
+            if let raw = value as? Int, raw != 0 { hasUnderline = true }
+        }
+        #expect(hasUnderline)   // the break is drawn as an underlined (rule) run
+    }
 }
 
 @Suite("ExportTemplate")

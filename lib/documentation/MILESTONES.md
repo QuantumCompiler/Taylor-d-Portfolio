@@ -1817,3 +1817,280 @@ hard-rules revised accordingly). Plus fixes: explicit user-initiated generation,
 Results, remove-from-Tracker, the runtime provider forwarding the D settings/score methods, and the Claude
 subprocess running in a neutral directory (no spurious Photos/Music prompts). The project version is
 **0.5.0**. The next version — number and theme chosen when it's started — restarts at Milestone A.
+
+---
+
+# v0.5.1 — LaTeX résumé & cover letter output
+
+Theme: give the app a **second, high-fidelity PDF output path** — render the generated `ApplicationKit` into
+`.tex` against Taylor's own awesome-cv classes and compile with `lualatex` (Milestones A–E, in progress) —
+plus a batch of export/Tracker refinements (F–I). A **patch release** on shipped v0.5.0; milestones restart
+at **A**; the project version is bumped to **0.5.1**. (Milestone A done; B–E tracked in `TODO.md`.)
+
+## Milestone A — Bundle the awesome-cv LaTeX assets in the app  ✅ done  (`Infrastructure/Tex/TexAssets` (new); `lib/tex/` bundled assets; `project.pbxproj` folder reference)
+
+Goal: ship the awesome-cv **presentation** assets inside the app bundle so the LaTeX compile (Milestone B)
+can stage them into a scratch build dir where an app-generated `.tex` resolves `\documentclass{Class/…}` and
+`\fontdir[fonts/]`. Only presentation assets are bundled — never the candidate's content sections.
+
+- [x] **Assets copied** to a new **`lib/tex/`** folder (kept OUT of the synchronized `lib/src` root to avoid a
+      sync-group conflict): `Class/{Resume,CoverLetter,Portfolio}.cls`, `fonts/` (19 Roboto / Source Sans /
+      FontAwesome faces), `Images/` (Signature + logo), and `fontawesome.sty` / `fontawesome5.sty` (~3.6 MB).
+- [x] **Xcode integration (open call resolved).** Added `lib/tex` as a **blue folder reference** in the app
+      target's (previously empty) Resources build phase, so the whole tree copies into
+      `…/Taylor'd Portfolio.app/Contents/Resources/tex/` with structure preserved (verified in the built
+      `.app`). Chose the folder-reference route over a synchronized-group membership exception because the
+      assets sit outside `lib/src` and the `.tex`/`.cls` need the directory layout intact — mirroring how
+      `lib/secrets` / `lib/xcode` are non-synchronized explicit references. Needed a new `PBXBuildFile` section
+      (the project had none — everything else is synchronized).
+- [x] **`TexAssets`** (`Infrastructure/Tex`, `nonisolated`): `init?(bundle:)` resolves the bundled `tex/`
+      folder (nil when absent — degrades gracefully), `init(root:)` for fixtures, typed `classesDirectory` /
+      `fontsDirectory` / `imagesDirectory` accessors, and `isComplete` (the three classes + fonts present).
+- [x] **Header identity (open call resolved as recommended):** the classes' `\pageHeader` keeps Taylor's fixed
+      contact block; the app supplies only the role headline + content. Profile-driven identity is a later idea.
+- [x] **Tests.** `TexAssetsTests` resolves the assets **from the running app bundle** (which doubles as the
+      "assets are in the built `.app`" check — Resume.cls / CoverLetter.cls / a Roboto face / fontawesome5.sty
+      present + `isComplete`), returns nil for the asset-free test bundle, and flags incomplete/complete
+      fixtures. Full suite green.
+
+Seam: Infrastructure/Tex (new) + the Xcode project (folder reference). On-device: n/a (static packaging).
+Note: the `CLAUDE.md` layer-map / Build-&-run update for the new `Infrastructure/Tex` seam + `lib/tex/` assets
++ the `lualatex` dependency is **deferred to Milestone E** (the docs milestone).
+
+## Milestone B — `LaTeXCompiling` port + `LaTeXProcessClient` (shell `lualatex`)  ✅ done  (`Infrastructure/Tex/LaTeXCompiling` + `LaTeXProcessClient` (new), `Infrastructure/Process/ProcessSupport` (new), `Infrastructure/LLM/ClaudeProcessClient`)
+
+Goal: the engine that turns a `.tex` document into PDF bytes — the second external binary the (unsandboxed)
+app shells out to, mirroring `ClaudeProcessClient`.
+
+- [x] **`LaTeXCompiling` port** (`Infrastructure/Tex`): `func compile(tex:jobName:) async throws -> Data` +
+      `var isAvailable: Bool`, with a `LaTeXProcessError` enum (`notInstalled`, `assetsUnavailable`,
+      `launchFailed`, `nonZeroExit(code:log:)`, `noOutput`).
+- [x] **`LaTeXProcessClient`** (`nonisolated struct`): resolves `lualatex` via a `.env`/`.path` `Launcher`;
+      a compile stages the bundled ``TexAssets`` (Milestone A) into a fresh app-owned Caches build dir by
+      **symlinking** each item (`Class/`, `fonts/`, `Images/`, `*.sty` — so `\documentclass{Class/…}` /
+      `\fontdir[fonts/]` resolve), writes the `.tex`, runs `lualatex` **twice**
+      (`-interaction=nonstopmode -halt-on-error`), reads the produced PDF, and tears the dir down (defer).
+      Non-zero exit surfaces the `logTail` of lualatex's output; missing PDF → `noOutput`.
+- [x] **Shared PATH helper (open call resolved).** Lifted `searchPATH` into a new
+      `Infrastructure/Process/ProcessSupport` (now taking `extraDirectories`) + a `locateExecutable(named:inPATH:)`
+      probe; `ClaudeProcessClient.searchPATH` delegates to it (signature/behaviour unchanged, its tests
+      untouched). `LaTeXProcessClient` prepends the TeX bin dirs (`/Library/TeX/texbin`, TeX Live, Homebrew) so
+      `lualatex` resolves from a GUI app's minimal `PATH`; `isAvailable`/`locate()` drive Milestone D's disabled
+      state. *(Open call: stage by symlink — resolved to symlink, per the recommendation.)*
+- [x] **Tests.** Pure helpers unit-tested without launching a process (arg vector, `safeBaseName`, `logTail`,
+      PATH prepending, executable location, staging symlinks) plus deterministic compile guards
+      (`assetsUnavailable`, `notInstalled`) — and a **real end-to-end compile** (`compilesATrivialDocumentEndToEnd`)
+      that runs `lualatex` and asserts `%PDF` output, **guarded on `isAvailable`** so a TeX-less environment
+      skips it rather than failing. Full suite green.
+
+Seam: `Infrastructure/Tex` + `Infrastructure/Process` (new) + `Infrastructure/LLM` (delegation). On-device:
+n/a for the model; **needs a local TeX install** (`lualatex`) — a new optional external dependency, like the
+`claude` CLI. (Verified against the machine's `/Library/TeX/texbin/lualatex`.)
+
+## Milestone C — `TexDocumentBuilder`: `ApplicationKit` → awesome-cv `.tex`  ✅ done  (`Infrastructure/Tex/TexDocumentBuilder` (new); reuses `Infrastructure/Text/MarkdownBlockParser` + `MarkdownInline`)
+
+Goal: the mapping piece — the inverse of the repo's `tex2docx.py`. Render the generated résumé / cover-letter
+**Markdown** into `.tex` that drives the bundled awesome-cv classes. Pure + domain-agnostic (Markdown in,
+`.tex` out), fully unit-testable. **Resolved the C-parse vs C-structured open call to C-parse** (best-effort
+structural map, no generation-seam change) for the patch; C-structured stays the flagged fast-follow.
+
+- [x] **Résumé** (`resume(fromMarkdown:)`): emits the `Class/Resume` driver + `\makecvheader`, a `\position`
+      role headline (the leading fully-bold line), a `\paragraphstyle` summary, then a `\cvsection` per H2.
+      Skills-like sections (`skill`/`qualification`/`competenc`) → `cvskills` + `\cvskill{bucket}{items}`
+      (split on the first `": "`); other sections → entries: a heading or fully-bold line is the title
+      (`\entrytitlestyle`), the next plain line a subtitle (`\entrydatestyle`, e.g. location · date), bullets
+      → `\begin{cvitems}\item{…}`. The **name** H1 and **contact** lines are dropped (the class header renders
+      them). Loose prose falls back to a justified paragraph.
+- [x] **Cover letter** (`coverLetter(fromMarkdown:)`): emits the `Class/CoverLetter` driver, `\begin{cvletter}`,
+      one `\lettersection` per H2 with its paragraphs, and `\makeletterclosing`.
+- [x] **Escaping + inline.** A char-by-char `escape` for the LaTeX specials (`& % $ # _ { } ~ ^ \`); `inlineLaTeX`
+      renders `**bold**`/`*italic*`/links via `MarkdownInline` → `\textbf`/`\textit` (links collapse to text);
+      `plainLaTeX` strips emphasis for titles a class style already bolds. Only the FontAwesome icons already in
+      the classes are used (none introduced). The `gapNote` never reaches the builder (it takes the per-document
+      Markdown, matching Milestone G).
+- [x] **Split fix.** Sections are headings at *exactly* the section level, so an H1 name lands in the preamble
+      (not a spurious `\cvsection`) and H3 entries fall inside their section.
+- [x] **Layout fidelity (revised after visual review).** The first pass rendered entries as loose
+      `\entrytitlestyle`+`\par` lines in Markdown order — which didn't match the hand-authored résumé's
+      spacing/ordering. Reworked to emit the **exact** awesome-cv structure: `\begin{cventries}` +
+      `\cventry`/`\cvproject` (with dash-free `\cventrysolo`/`\cvprojectsolo` helpers injected for entries
+      missing an org/role), the canonical **Education → Experience → Projects → Qualifications** order
+      (`canonicalOrder`), the per-section `\vspace` tweaks (`-1em`/`-1.5em`/`-0.5em`, `sectionVSpace`), and
+      `\renewcommand{\arraystretch}{0.7}` before `\begin{cvskills}`. Entry metadata is split from the app's own
+      "Title — Org" / "Location · Date" shapes — the location/date splits on the **middot** (never the date
+      range's dash). A "Summary" section renders as a lead paragraph. Verified by compiling a realistic résumé
+      through the app's staging and comparing to the hand-built PDF — order, spacing, entry layout, and skills
+      grid now match. (FontAwesome fonts were already byte-identical; the manual's per-entry link icons remain
+      content-specific and out of scope.)
+- [x] **Tests.** Pure unit tests (escaping, inline bold/italic + link, section split + reorder, per-section
+      vspace, `cventries`/`cventry`/`cvproject`/`cvprojectsolo` shapes, `arraystretch`+`cvskills`, title vs
+      location/date splitting, dropped contact line, summary-as-lead) — **and a real end-to-end
+      `emittedTexCompilesUnderLualatex`** that compiles a realistic résumé + cover letter under the bundled
+      classes to `%PDF` (guarded on `lualatex` availability). Full suite green.
+
+Seam: `Infrastructure/Tex` (new, pure). On-device: yes — pure local string transform. Note: entry metadata
+fidelity is best-effort (loose Markdown has no explicit org/date fields); C-structured is the upgrade path if
+needed.
+
+## Milestone D — Wire the awesome-cv PDF route through export + the Application sheet  ✅ done  (`Business/ExportApplicationUseCase`, `Presentation`: `Composition`, `ApplicationViewModel`, `ApplicationSheet`)
+
+Goal: expose the LaTeX path to the user beside the existing exports. Because `DocumentExporter` is a
+**synchronous** port and `lualatex` is an **async** external process, the LaTeX route rides its own async path
+(the sync `RoutingDocumentExporter` is untouched — the recommended open-call resolution).
+
+- [x] **Use case.** `ExportApplicationUseCase` gains an injected `compiler: (any LaTeXCompiling)?`,
+      `isLaTeXAvailable`, a deterministic `texSource(_:_:)` (per-document `.tex`, no compile — works without a
+      TeX install), and an async `latexPDF(_:_:)` (builds via `TexDocumentBuilder` → compiles via
+      `LaTeXCompiling`; throws `notInstalled` when no compiler).
+- [x] **Composition.** Wires `LaTeXProcessClient()` into the use case unconditionally; it self-reports
+      availability so the UI only offers the route when `lualatex` is installed.
+- [x] **ViewModel.** `canExportLaTeX` / `canExportLaTeX(_:)` (available **and** document present), async
+      `exportLaTeXPDF(_:)` (sets `exportError` with the real `lualatex` log on failure; records the compiled
+      résumé's real page count), `exportTexSource(_:)` + `texFilename(for:)`, a PDFKit `pdfPageCount` helper,
+      and `latexResumeExceedsOnePage` (the real compiled count, distinct from the Core Text gate).
+- [x] **Application sheet.** Each document submenu (Milestone G) gains **"PDF — Portfolio (LaTeX)"** (when
+      available) and **"LaTeX source (.tex)"** (always — the PortfolioBuddy handoff); an "install a TeX
+      distribution" note when `lualatex` is absent; a compile spinner; and a `latexNotices` banner surfacing
+      the compile-error log + the résumé-overflow advisory. The `.tex` export uses a `tex` `UTType`.
+- [x] **One-page gate.** For the LaTeX route the compiled PDF's **real** page count (PDFKit) drives the
+      overflow advisory, not the Core Text estimate — resolved the open call to keep the résumé-only rule.
+- [x] **Tests.** Use-case: `texSource` drivers, availability reflects the compiler, `latexPDF` throws without
+      one / compiles the right source via a recording stub, **+ a guarded real end-to-end compile**. VM:
+      availability × presence gating, PDF bytes + real page count, compile-error surfacing, `.tex` export works
+      without TeX but respects presence, and `pdfPageCount`. Full suite green.
+
+Seam: Business + Presentation. On-device: yes for the app logic; the compile needs the local TeX install.
+**Device check (awaiting):** actually saving a "PDF — Portfolio (LaTeX)" / ".tex" file from the running app's
+Export menu (the tests prove the compile + wiring; the file dialog is a manual step).
+
+## Milestone E — Availability surfacing, docs, and release hygiene  ✅ done  (`Presentation`: `SettingsViewModel`, `SettingsView`, `Composition`; docs)
+
+Goal: make the new `lualatex` dependency legible and bring the docs to a shipped state.
+
+- [x] **Availability in Settings → About.** `SettingsViewModel` gains a `latexAvailable` flag (probed once in
+      `Composition` via `LaTeXProcessClient().isAvailable`, per the composition-root convention); the About pane
+      shows "LaTeX output: available" or an "install a TeX distribution (MacTeX)" hint.
+- [x] **`CLAUDE.md`.** Documented `lualatex` as a **second optional external binary** (Build & run, beside the
+      `claude` CLI, sharing `ProcessSupport.searchPATH`), added `Infrastructure/Process/` + `Infrastructure/Tex/`
+      to the layer map, and described `lib/tex/` (the bundled awesome-cv assets as a blue folder reference).
+- [x] **`SPEC.md`.** Noted the awesome-cv LaTeX PDF (+ `.tex` source) as a second export path in the core flow.
+- [x] **`README.md`.** Added the v0.5.1 summary under Version history; the **Next:** line points forward
+      without a number (per "never pre-name the next version").
+- [x] **Release hygiene.** `MARKETING_VERSION` = `0.5.1` (4 copies, bumped at kickoff); About reads 0.5.1.
+
+Seam: Presentation (a read-only availability display) + docs. On-device: n/a (a local availability read).
+
+---
+
+**v0.5.1 — LaTeX résumé & cover letter output is complete** (Milestones A–I). A: the awesome-cv presentation
+assets ship in the bundle (`lib/tex/`). B: `LaTeXCompiling` + `LaTeXProcessClient` shell `lualatex`. C:
+`TexDocumentBuilder` renders an `ApplicationKit` into `.tex` matching the hand-authored layout (order, spacing,
+`cventries`/`cventry`/`cvproject`, `cvskills`). D: the async export route + "PDF — Portfolio (LaTeX)" / ".tex"
+items in the Application-sheet menu. E: availability surfacing + docs. Plus the independent refinements — F
+(Markdown `---` → real rule), G (résumé & cover letter as separate documents), H (Tracker sort), I
+(additional-context box). `lualatex` is an optional external dependency (like the `claude` CLI); the native
+exports are untouched. The project version is **0.5.1**. Carried device checks: v0.5.0's list, plus saving a
+LaTeX PDF / `.tex` from the Export menu on a machine with TeX installed.
+
+## Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally  ✅ done  (`Infrastructure`: `Text/MarkdownBlockParser`, `Export/MarkdownAttributedRenderer` + `Export/OOXMLDocument`; `Presentation`: `Components/MarkdownText`)
+
+Goal: the generated résumé/cover-letter Markdown uses `---` as section separators, but every native renderer
+printed the literal characters `---` on the page (visible in an exported PDF). Root cause: the shared
+`MarkdownBlockParser.classify` had no thematic-break case — a `---` line isn't blank, isn't a heading, and
+fails the bullet test — so it fell through to `.paragraph(text: "---")` and each renderer drew it verbatim.
+
+- [x] **Parser.** Added `case thematicBreak` to `MarkdownBlock` and an `isThematicBreak(_:)` detector (3+ of
+      a single `-`/`*`/`_`, spaces allowed between, whole-line), classified **before** the bullet rule so
+      `- - -` / `***` aren't misread as bullets.
+- [x] **PDF** (`MarkdownAttributedRenderer`): draws a subtle rule as an **underlined tab** filling the
+      US-Letter text column (Core Text has no paragraph border) — never literal dashes.
+- [x] **DOCX** (`OOXMLDocument`): emits an empty paragraph with a bottom border (`<w:pBdr>`), Word's standard
+      horizontal rule.
+- [x] **In-app preview** (`MarkdownText`): renders a SwiftUI `Divider()`. The new enum case is
+      compiler-enforced across all three exhaustive switches.
+- [x] **Tests.** Parser classification (`---`/`***`/`___`/`- - -`/spaced) + the misclassification traps (a
+      real `- item` bullet, `--`, `-nospace`, `mix-of---dashes` stay correct); golden-string checks that the
+      PDF renderer emits an underline rule (no `---` in the text) and the DOCX emits a border (no literal
+      dashes). Full suite green.
+
+On-device: yes — pure local rendering, no network, no model.
+
+## Milestone G — Export the résumé and cover letter as separate documents  ✅ done  (`Business`: `ExportApplicationUseCase`; `Presentation`: `ApplicationViewModel`, `ApplicationSheet`)
+
+Goal: export merged both deliverables into one file (`assembleMarkdown` joined `# Résumé` + `# Cover Letter`).
+A résumé and a cover letter are separate deliverables — sent as two files, named differently, often only one
+wanted — so export is now per-document. Also aligns the native path with the LaTeX path (A–E), which emits two
+files.
+
+- [x] **Use case.** New `ApplicationDocument` selector (`.resume` / `.coverLetter`, with `displayName` /
+      `filenameSuffix`); `callAsFunction(_:_:as:template:)` exports one document (no combined wrapper
+      heading), plus `markdown(for:from:)` / `isPresent(_:in:)`. The combined `assembleMarkdown` path is
+      retained for the "copy everything" affordance.
+- [x] **ViewModel.** Per-document `exportData(_:_:)` (guarded on presence so an empty section never exports
+      an empty file), `canExport(_:)`, and `exportFilename(for:_:)` → `Company - Role - Résumé.pdf` /
+      `… - Cover Letter.pdf`. `exportedText` still yields the combined document for clipboard.
+- [x] **UI.** The `ApplicationSheet` export menu is now **Résumé** / **Cover Letter** submenus (each with
+      PDF / Word / Markdown / Plain Text), showing only present documents; `startExport(_:_:)` carries the
+      document and per-document filename.
+- [x] **Tests.** Per-document assembly (résumé file has no cover-letter content and vice-versa; no wrapper
+      heading), presence reflects empty sections, filename suffixes, and VM availability/filenames + the
+      empty-document guard (which caught a real defect: it had been exporting empty bytes). Full suite green.
+
+On-device: yes — pure local assembly + export, no network, no model.
+
+## Milestone H — Sort control in the Tracker  ✅ done  (`Presentation`: `Tracker/View/TrackerSort` (new), `Tracker/ViewModel/TrackerViewModel`, `Tracker/View/TrackerView`)
+
+Goal: the Results tab has a live `ResultsFilter`; the Tracker had a fixed load-time order and no interactive
+control. Added an interactive **sort**, built the same way — a pure value the view holds and applies live over
+each stage tab's rows.
+
+- [x] **`TrackerSort`** (pure, `Equatable`/`Sendable`): a `Key` (recent activity / date applied / stage /
+      match score / company / role title) + a `Direction`, with `apply(to:)` and `isDefault`. Dated keys keep
+      **undated jobs last** in both directions; equal keys break ties on title for stable ordering. `.default`
+      (recent activity, descending) reproduces the historic load order.
+- [x] **ViewModel.** Holds `var sort` and applies it in `jobs(in:)`; the load-time `.sorted { … }` block is
+      retired in favour of `TrackerSort.default` (rows are ordered on read, so the raw `trackedJobs` store is
+      order-agnostic).
+- [x] **View.** A compact sort bar above the list (key picker + direction toggle + a Reset that appears once
+      off-default), mirroring the Results filter bar; shown only when there are rows.
+- [x] **Tests.** New `TrackerSortTests` covers every key + direction (incl. undated-last, stage progression,
+      case-insensitive company/title, `dateApplied` vs current-stage date, and title tie-breaking) and that
+      `.default` reproduces most-recent-first; the existing `listsTrackedJobsMostRecentFirst` now asserts via
+      `jobs(in:)`. Full suite green (434 tests).
+
+On-device: yes — pure local sort, no network, no persistence, no model.
+
+## Milestone I — Additional-context text box on the generate / regenerate flow  ✅ done  (`Data`: `GenerationSettings`, `LLM/Prompts`; `Business`: `GenerateToTargetUseCase`; `Presentation`: `ApplicationViewModel`, `ApplicationSheet`)
+
+Goal: give the Application view a free-text box for **extra guidance to steer generation** ("lean into the
+API-gateway angle for this role"), behaving like the Portfolio tab's "Regenerate description" prompt but
+feeding the **application** generation. It rides the existing `settings:` thread — no new provider overload.
+
+- [x] **`GenerationSettings.additionalContext`** — a `String` on the settings struct. **Excluded from
+      `Codable`** (custom `CodingKeys`) so it's per-job and never captured into a reusable `GenerationPreset`,
+      and so legacy preset blobs still decode; **included in `Equatable`**, so non-empty context makes
+      `isDefault` false. A new `hasDefaultControls` (fidelity/aspect/target only, ignoring context) drives the
+      prompt's controls block.
+- [x] **`Prompts`.** New `additionalContextSection(_:)` appends an "ADDITIONAL USER GUIDANCE (steer emphasis
+      and framing, NOT facts)" block when non-empty (bounded to `maxAdditionalContextCharacters`); empty
+      context is byte-for-byte the base prompt. `generationControls` now guards on `hasDefaultControls`, so
+      context-only generation adds the guidance without the fidelity/scope block.
+- [x] **Threading.** Single-pass generation already carried it inside `settings`; the outcome-driven
+      `GenerateToTargetUseCase` gained an `additionalContext` parameter folded into each round's settings, and
+      `ApplicationViewModel.generate` passes `generationSettings.additionalContext` into that path.
+- [x] **UI.** A multiline "Additional context (optional)" `TextField` in `ApplicationSheet`'s generation-options
+      panel, bound to `generationSettings.additionalContext`, applied on Generate/Regenerate (no separate
+      Submit). Stays enabled under a rank target (context steers both paths). Applying a preset clears the
+      typed context (presets are about fidelity/aspects/target).
+- [x] **Guardrail.** The guidance steers emphasis/framing only — the grounding + fidelity rules still bind, so
+      at the default fidelity it can't introduce fabricated facts (SPEC "Grounded generation" / CLAUDE hard
+      rules unchanged).
+- [x] **Tests.** Prompt injection (present when set, byte-for-byte base when empty, no fidelity block for
+      context-only, bounded); `GenerationSettings` (context counts against `isDefault` not `hasDefaultControls`,
+      and is not persisted); the rank-target loop forwards context each round; and applying a preset clears the
+      typed context. Full suite green.
+
+On-device: yes — the field is prompt text; both engines honour it through the shared `Prompts`.
+
+*(Open calls resolved as recommended: the field lives on `GenerationSettings` but is excluded from presets;
+no separate Submit — it feeds the existing Generate/Regenerate.)*

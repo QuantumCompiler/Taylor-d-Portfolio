@@ -56,17 +56,39 @@ nonisolated struct GenerationSettings: Codable, Equatable, Sendable {
     var aspects: Set<TailoredAspect>
     /// A target fit score 0–100 (Milestone D-F); `nil` = off. When set, overrides the above.
     var desiredRankMatch: Int?
+    /// Free-text guidance the user types to steer emphasis/framing on the next
+    /// generate/regenerate (Milestone I) — e.g. "lean into the API-gateway angle". It steers
+    /// which true experience to foreground, never licenses invention (the grounding + fidelity
+    /// rules still apply). **Deliberately excluded from `Codable`** (see `CodingKeys`) so it is
+    /// per-job and never captured into a reusable ``GenerationPreset``; it *is* part of
+    /// `Equatable`, so non-empty context counts against `isDefault`.
+    var additionalContext: String = ""
 
-    init(fidelity: Double = 0, aspects: Set<TailoredAspect> = [], desiredRankMatch: Int? = nil) {
+    init(fidelity: Double = 0, aspects: Set<TailoredAspect> = [], desiredRankMatch: Int? = nil,
+         additionalContext: String = "") {
         self.fidelity = fidelity
         self.aspects = aspects
         self.desiredRankMatch = desiredRankMatch
+        self.additionalContext = additionalContext
+    }
+
+    /// Persisted keys — `additionalContext` is intentionally omitted, so presets store only the
+    /// fidelity/aspect/target controls and legacy blobs (which never had it) still decode.
+    private enum CodingKeys: String, CodingKey {
+        case fidelity, aspects, desiredRankMatch
     }
 
     static let `default` = GenerationSettings()
 
     /// True for the grounded default — generation then matches the pre-Milestone-D prompt.
+    /// Non-empty `additionalContext` makes this false (the prompt is no longer byte-for-byte
+    /// the grounded base).
     var isDefault: Bool { self == .default }
+
+    /// Whether the fidelity/aspect/target controls are all at their defaults — ignores the
+    /// free-text `additionalContext`, so context-only generation keeps the base latitude prompt
+    /// and merely appends the user's guidance.
+    var hasDefaultControls: Bool { fidelity == 0 && aspects.isEmpty && desiredRankMatch == nil }
 
     /// The latitude band `fidelity` falls into (drives prompt latitude + disclosure).
     var band: FidelityBand {

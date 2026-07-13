@@ -31,6 +31,18 @@ private actor RecordingGenProvider: LLMProvider {
     }
 }
 
+/// A `LaTeXCompiling` stub for the awesome-cv export path (Milestone D).
+private final class VMStubCompiler: LaTeXCompiling, @unchecked Sendable {
+    let available: Bool
+    let result: Result<Data, Error>
+    init(available: Bool = true, result: Result<Data, Error> = .success(Data("%PDF".utf8))) {
+        self.available = available
+        self.result = result
+    }
+    var isAvailable: Bool { available }
+    func compile(tex: String, jobName: String) async throws -> Data { try result.get() }
+}
+
 @MainActor
 @Suite("ApplicationViewModel")
 struct ApplicationViewModelTests {
@@ -147,7 +159,7 @@ struct ApplicationViewModelTests {
     @Test func cannotExportBeforeAKitExists() {
         let vm = exportVM()
         #expect(vm.canExport == false)
-        #expect(vm.exportData(.markdown) == nil)
+        #expect(vm.exportData(.resume, .markdown) == nil)
         #expect(vm.exportedText() == nil)
     }
 
@@ -164,7 +176,7 @@ struct ApplicationViewModelTests {
         #expect(plain?.contains("#") == false)
         #expect(plain?.contains("Swift dev") == true)
 
-        #expect(vm.exportData(.pdf) == nil)   // unsupported format degrades to nil, no crash
+        #expect(vm.exportData(.resume, .pdf) == nil)   // unsupported format degrades to nil, no crash
     }
 
     @Test func exportWithoutAnExporterIsUnavailable() async {
@@ -174,7 +186,7 @@ struct ApplicationViewModelTests {
         await vm.generate(for: job, profile: profile)
         #expect(vm.kit != nil)
         #expect(vm.canExport == false)        // no exporter wired
-        #expect(vm.exportData(.markdown) == nil)
+        #expect(vm.exportData(.resume, .markdown) == nil)
     }
 
     @Test func filenameBaseComesFromTheJob() async {
@@ -243,7 +255,100 @@ struct ApplicationViewModelTests {
         let vm = gateVM(exporter)
         await vm.generate(for: job, profile: profile)
         vm.exportTemplate = .modern
-        _ = vm.exportData(.pdf)
+        _ = vm.exportData(.resume, .pdf)
         #expect(exporter.lastExportTemplate == .modern)
+    }
+
+    // MARK: Milestone G — résumé + cover letter export as separate documents
+
+    @Test func perDocumentExportAvailabilityAndFilenames() async {
+        let vm = exportVM()
+        await vm.generate(for: JobListing(id: "x", title: "iOS Engineer", company: "Acme", location: "l", description: "d"),
+                          profile: profile)
+        #expect(vm.canExport(.resume))                     // the stub generates a résumé
+        #expect(vm.exportData(.resume, .markdown) != nil)
+        #expect(vm.exportFilename(for: .resume, .pdf) == "Acme - iOS Engineer - Résumé.pdf")
+        #expect(vm.exportFilename(for: .coverLetter, .docx) == "Acme - iOS Engineer - Cover Letter.docx")
+    }
+
+    @Test func absentDocumentIsNotExportable() async {
+        // The stub produces a résumé but no cover letter → cover letter isn't offered.
+        let vm = exportVM()
+        await vm.generate(for: job, profile: profile)
+        #expect(vm.canExport(.coverLetter) == false)
+        #expect(vm.exportData(.coverLetter, .markdown) == nil)
+    }
+
+    // MARK: Milestone I — additional-context box
+
+    @Test func applyingAPresetClearsTypedAdditionalContext() {
+        let vm = exportVM()
+        vm.generationSettings.additionalContext = "steer this specific job"
+        vm.applyPreset(GenerationPreset(id: "p", name: "Curated",
+                                        settings: GenerationSettings(fidelity: 0.5),
+                                        createdAt: Date(timeIntervalSince1970: 0)))
+        #expect(vm.generationSettings.fidelity == 0.5)          // preset's controls applied
+        #expect(vm.generationSettings.additionalContext == "")  // per-job free-text is not carried by presets
+    }
+
+    // MARK: Milestone D — awesome-cv LaTeX export
+
+    private func latexVM(compiler: any LaTeXCompiling) -> ApplicationViewModel {
+        ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: PresentationStubProvider(kitResume: "# Resume\nSwift dev")),
+            exportApplication: ExportApplicationUseCase(exporter: MarkdownDocumentExporter(), compiler: compiler)
+        )
+    }
+
+    @Test func laTeXExportGatingReflectsAvailabilityAndPresence() async {
+        let vm = latexVM(compiler: VMStubCompiler(available: true))
+        #expect(vm.canExportLaTeX == false)                     // no kit yet
+        await vm.generate(for: job, profile: profile)
+        #expect(vm.canExportLaTeX)                              // available + kit
+        #expect(vm.canExportLaTeX(.resume))                    // résumé present
+        #expect(vm.canExportLaTeX(.coverLetter) == false)      // stub produces no cover letter
+    }
+
+    @Test func laTeXUnavailableWhenCompilerReportsUnavailable() async {
+        let vm = latexVM(compiler: VMStubCompiler(available: false))
+        await vm.generate(for: job, profile: profile)
+        #expect(vm.canExportLaTeX == false)
+        #expect(vm.canExportLaTeX(.resume) == false)
+    }
+
+    @Test func exportLaTeXPDFReturnsBytesAndRecordsRealPageCount() async throws {
+        let realPDF = try PDFDocumentExporter().export(markdown: "# R\n\nbody", as: .pdf)   // a valid one-page PDF
+        let vm = latexVM(compiler: VMStubCompiler(result: .success(realPDF)))
+        await vm.generate(for: job, profile: profile)
+        let out = await vm.exportLaTeXPDF(.resume)
+        #expect(out == realPDF)
+        #expect(vm.latexResumePages == 1)
+        #expect(vm.latexResumeExceedsOnePage == false)
+        #expect(vm.exportError == nil)
+    }
+
+    @Test func exportLaTeXPDFSurfacesCompileErrors() async {
+        let vm = latexVM(compiler: VMStubCompiler(
+            result: .failure(LaTeXProcessError.nonZeroExit(code: 1, log: "! Undefined control sequence."))))
+        await vm.generate(for: job, profile: profile)
+        let out = await vm.exportLaTeXPDF(.resume)
+        #expect(out == nil)
+        #expect(vm.exportError?.contains("Undefined control sequence") == true)
+    }
+
+    @Test func texSourceExportsWithoutTeXButRespectsPresence() async {
+        let vm = latexVM(compiler: VMStubCompiler(available: false))   // no lualatex
+        await vm.generate(for: job, profile: profile)
+        let tex = vm.exportTexSource(.resume)
+        #expect(tex != nil)                                            // .tex source doesn't need a TeX install
+        #expect(String(decoding: tex ?? Data(), as: UTF8.self).contains("Class/Resume"))
+        #expect(vm.exportTexSource(.coverLetter) == nil)              // absent document
+        #expect(vm.texFilename(for: .resume).hasSuffix(" - Résumé.tex"))
+    }
+
+    @Test func pdfPageCountReadsRealPDFsAndDegradesToZero() throws {
+        let realPDF = try PDFDocumentExporter().export(markdown: "# R\n\nbody", as: .pdf)
+        #expect(ApplicationViewModel.pdfPageCount(realPDF) == 1)
+        #expect(ApplicationViewModel.pdfPageCount(Data("not a pdf".utf8)) == 0)
     }
 }

@@ -14,6 +14,9 @@ import Observation
 final class TrackerViewModel {
     private(set) var trackedJobs: [TrackedJob] = []
     var selectedJob: RankedJob?
+    /// The live sort applied to each stage tab's rows (Milestone H). `.default` reproduces
+    /// the historic most-recent-activity order; the view can change it without reloading.
+    var sort: TrackerSort = .default
     /// True while the tracked-jobs load is in flight — the view shows a spinner instead of
     /// flashing the "No tracked applications" empty state (Milestone S-B).
     private(set) var isLoading = false
@@ -65,9 +68,10 @@ final class TrackerViewModel {
     }
 
     /// The tracked jobs that fall under `section`'s stage filter (`All` returns every
-    /// tracked job). Drives the Tracker inner-nav sub-views (v0.4.0 Milestone B).
+    /// tracked job), ordered by the active ``sort`` (Milestone H). Drives the Tracker
+    /// inner-nav sub-views (v0.4.0 Milestone B).
     func jobs(in section: TrackerSection) -> [TrackedJob] {
-        trackedJobs.filter { section.includes($0.status.stage) }
+        sort.apply(to: trackedJobs.filter { section.includes($0.status.stage) })
     }
 
     func select(_ job: RankedJob) { selectedJob = job }
@@ -82,21 +86,15 @@ final class TrackerViewModel {
         return JobHistory()
     }
 
-    /// Loads tracked jobs, sorted by most-recent status activity (undated last), and the
-    /// per-job history map for the badges.
+    /// Loads tracked jobs and the per-job history map for the badges. Row ordering is applied
+    /// on read by ``jobs(in:)`` via the active ``sort`` (whose default reproduces the historic
+    /// most-recent-activity order), so the load itself stores them as-fetched.
     func load() async {
         guard let loadTrackedJobs else { return }
         isLoading = true
         defer { isLoading = false }
         guard let jobs = try? await loadTrackedJobs() else { return }
-        trackedJobs = jobs.sorted { lhs, rhs in
-            switch (lhs.status.currentDate, rhs.status.currentDate) {
-            case let (l?, r?): return l > r
-            case (nil, _?): return false
-            case (_?, nil): return true
-            case (nil, nil): return lhs.job.listing.title < rhs.job.listing.title
-            }
-        }
+        trackedJobs = jobs
         if let loadJobHistory, let history = try? await loadJobHistory() {
             historyByID = history
         }

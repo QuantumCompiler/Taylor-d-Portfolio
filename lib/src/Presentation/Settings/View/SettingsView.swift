@@ -99,6 +99,17 @@ struct SettingsView: View {
             Text("Searches jobs, ranks them against your portfolio, and generates a tailored "
                 + "résumé & cover letter for a job you pick — human-in-the-loop, never auto-submitting.")
                 .font(.callout).foregroundStyle(.secondary)
+
+            // The awesome-cv LaTeX export route needs a local TeX install (Milestone E).
+            Label {
+                Text(viewModel.latexAvailable
+                     ? "LaTeX résumé/cover-letter output: available"
+                     : "LaTeX output: install a TeX distribution (MacTeX) to enable the awesome-cv PDF export")
+            } icon: {
+                Image(systemName: viewModel.latexAvailable ? "checkmark.seal.fill" : "exclamationmark.triangle")
+            }
+            .font(.caption)
+            .foregroundStyle(viewModel.latexAvailable ? Color.green : Color.secondary)
         }
     }
 

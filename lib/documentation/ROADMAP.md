@@ -521,14 +521,96 @@ subprocess runs in a neutral directory (no more spurious Photos/Music privacy pr
       temperature, on-device only). On-device: yes (local presets; prompt-driven fidelity keeps both engines
       in lockstep).
 
+## v0.5.1 — LaTeX résumé & cover letter output  (complete)
+
+A **patch release** on top of shipped v0.5.0 that adds a **second, high-fidelity PDF output path**: render the
+generated `ApplicationKit` into `.tex` against Taylor's own **awesome-cv LaTeX classes** and compile it with
+**`lualatex`** — shelled as an external process, exactly like the `claude -p` provider — so the app can produce
+résumé + cover-letter PDFs identical to the ones he builds by hand in his `Resume-And-Cover-Letter` repo. The
+existing native exports (Core Text PDF / DOCX / Markdown, Milestones Q/X) are untouched; `lualatex` is an
+**optional external dependency** (present → the awesome-cv PDF is offered, absent → the route is disabled with
+a clear note), like the `claude` CLI. Milestones **restart at A**; commit as `v0.5.1 : Milestone X Completed`.
+**DOCX-from-LaTeX** (the repo's `tex2docx.py` → pandoc path) is out of scope. `TODO.md` has the granular
+breakdown + open calls.
+
+- [x] **Milestone A — Bundle the awesome-cv LaTeX assets.** ✅ **Done.** Ships the presentation assets `lualatex`
+      compiles against inside the app bundle — the three `Class/*.cls`, `fonts/`, `Images/`, and
+      `fontawesome*.sty` — as a **blue folder reference** (`lib/tex/` → `…app/Contents/Resources/tex/`, structure
+      preserved), with a `nonisolated` `TexAssets` accessor resolving/validating them at runtime. Content
+      sections are **not** bundled. Seam: `Infrastructure/Tex` (new) + a `project.pbxproj` folder reference (the
+      open call, resolved to a folder reference over a sync-group exception). On-device: n/a (packaging).
+- [x] **Milestone B — `LaTeXCompiling` port + `LaTeXProcessClient`.** ✅ **Done.** The compile engine, mirroring
+      `ClaudeProcessClient`: stages the bundled assets + generated `.tex` into an app-owned temp dir (symlinks),
+      runs `lualatex` twice (`-interaction=nonstopmode -halt-on-error`), returns PDF `Data`, tears the dir down,
+      surfaces the log tail on failure; PATH-widens to TeX bin dirs via a shared `ProcessSupport` (also now used
+      by `ClaudeProcessClient`), plus an `isAvailable`/`locate()` probe. Verified with a real end-to-end
+      `lualatex` compile (guarded on availability). Seam: `Infrastructure/Tex` + `Infrastructure/Process` (new).
+      On-device: n/a; needs a local TeX install (MacTeX / TeX Live).
+- [x] **Milestone C — `TexDocumentBuilder` (`ApplicationKit` → awesome-cv `.tex`).** ✅ **Done (C-parse).** The
+      inverse of the repo's `tex2docx.py`: renders the generated résumé Markdown + cover letter into `.tex`
+      driving the awesome-cv macros (`\cvsection`/`\cvitems`/`\cvskills`/`\lettersection`/`\position` + entry
+      title/date styles), reusing `MarkdownBlockParser`/`MarkdownInline`, with char-by-char LaTeX escaping and
+      only the classes' existing FontAwesome icons. Best-effort structural map (**C-parse**, no generation-seam
+      change); C-structured remains the flagged fast-follow. Verified by a real end-to-end compile of the
+      emitted `.tex` under the bundled classes. Seam: `Infrastructure/Tex` (new, pure). On-device: yes.
+- [x] **Milestone D — Wire the awesome-cv PDF route through export + the Application sheet.** ✅ **Done.** An
+      **async** route (the sync `RoutingDocumentExporter` untouched): `ExportApplicationUseCase` gains an
+      injected `LaTeXCompiling` compiler + `texSource`/`latexPDF`, wired in `Composition`; `ApplicationViewModel`
+      exposes `canExportLaTeX` (available × present), async `exportLaTeXPDF`, `.tex`-source export, and a PDFKit
+      page count; the `ApplicationSheet` per-document submenus gain **"PDF — Portfolio (LaTeX)"** + **"LaTeX
+      source (.tex)"** (the PortfolioBuddy handoff, works without TeX), a "requires a TeX install" note, a
+      compile spinner, and an error/overflow banner. One-page gate reconciled to the compiled PDF's real page
+      count. Verified by a guarded real end-to-end compile through the use case. Seam: Business + Presentation.
+      On-device: yes (compile needs the local TeX install).
+- [x] **Milestone E — Availability surfacing, docs, release hygiene.** ✅ **Done.** `lualatex` availability shows
+      in Settings → About (probed in `Composition`, flagged on `SettingsViewModel`); `CLAUDE.md` documents the
+      second optional binary + `Infrastructure/Process/` + `Infrastructure/Tex/` + `lib/tex/`; `SPEC.md` notes
+      the LaTeX PDF path; `README.md` has the v0.5.1 summary and a forward-pointing Next line;
+      `MARKETING_VERSION` = `0.5.1`. Seam: Presentation (read-only display) + docs. On-device: n/a.
+- [x] **Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally.** ✅ **Done.**
+      An **independent bug fix** to the existing native renderer (not part of the LaTeX path): the generated
+      Markdown's `---` section separators print as literal `---` in the PDF/DOCX/preview because
+      `MarkdownBlockParser.classify` has no thematic-break case and falls through to a paragraph. Add a
+      `.thematicBreak` block (3+ `-`/`*`/`_`, whole-line, detected before the bullet rule) and render it as a
+      thin rule in `MarkdownAttributedRenderer` (PDF), `OOXMLDocument` (DOCX), and a `Divider` in `MarkdownText`
+      (in-app preview) — the compiler flags all three exhaustive switches. Seam: `Infrastructure/Text` +
+      `Infrastructure/Export` + one Presentation component. On-device: yes (pure local rendering).
+- [x] **Milestone G — Export the résumé and cover letter as separate documents.** ✅ **Done.** An **independent
+      export refinement**: `ExportApplicationUseCase.assembleMarkdown` merged both into one file. Split export so
+      each is its own named deliverable (`<Company> - <Role> - Résumé.<ext>` / `… - Cover Letter.<ext>`) via an
+      `ApplicationDocument` selector on the use case, per-document `exportData`/filenames/Copy in
+      `ApplicationViewModel`, and Résumé / Cover Letter groups in the `ApplicationSheet` export menu — which
+      also aligns the native path with the LaTeX path (C/D already emit two files). Seam: Business
+      (`ExportApplicationUseCase`) + Presentation (`ApplicationViewModel`, `ApplicationSheet`). On-device: yes
+      (pure local assembly + export).
+- [x] **Milestone H — Sort control in the Tracker.** ✅ **Done.** Mirror the Results tab's live `ResultsFilter` with an
+      interactive **sort** in the Tracker: a pure, unit-tested `TrackerSort` (sort key + direction) the view
+      holds and applies live over `TrackerViewModel.jobs(in:)`, composing with the existing per-stage tab
+      filter. Folds today's load-time ordering (recent status activity) into the default sort; adds keys like
+      date applied, stage, match score, company, and title. Seam: **Presentation only**
+      (`Tracker/View/TrackerSort.swift` + `TrackerViewModel` + `TrackerView`), paralleling
+      `Results/View/ResultsFilter.swift`. On-device: yes (pure local sort, session-only).
+- [x] **Milestone I — Additional-context text box on the generate / regenerate flow.** ✅ **Done.** A free-text
+      box in the Application view's generation-options panel to **steer generation** ("lean into the API-gateway
+      angle"), behaving like the Portfolio "Regenerate description" prompt but feeding the application. Rides the
+      existing `settings:` thread as `GenerationSettings.additionalContext` (excluded from `Codable`/presets,
+      counted in `isDefault`); `Prompts` appends an "additional user guidance" block (empty = byte-for-byte the
+      base prompt); threaded through `GenerateToTargetUseCase` + `ApplicationViewModel` + `ApplicationSheet`.
+      Steers emphasis/framing only — grounding + fidelity rules still bind. Seam: Data (`GenerationSettings`,
+      `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device: yes.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
-  & shell), **v0.4.1** (fixes & refinements), and **v0.5.0** (document generation fixes) are all complete.
-  **The next version is unstarted** — its number and theme are decided when development on it begins (see
-  `CLAUDE.md` → "Never pre-name the next version"); pull a theme from Backlog (native `LanguageModel`
-  provider seam, on-device embedding RAG, or optional MCP tools) and letter it A, B, C….
+  & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), and **v0.5.1** (LaTeX
+  résumé & cover letter output) are all complete. **The next version is unstarted** — its number and theme are
+  chosen when development on it begins (see `CLAUDE.md` → "Never pre-name the next version"); pull a theme from
+  Backlog (native `LanguageModel` provider seam, on-device embedding RAG, or optional MCP tools).
+- **C-structured résumé (v0.5.1 fast-follow).** If the Milestone C Markdown-parse fidelity proves too coarse,
+  add a `@Generable` structured résumé representation (sections → entries with org/location/date, projects,
+  skill buckets) that generation emits and `TexDocumentBuilder` renders faithfully — full awesome-cv fidelity.
+  Touches `LLMProvider` / `Prompts` / `ApplicationKit`, so it's larger than the patch.
 
 > **Numbering the versions.** Each version letters its own milestones **A, B, C…** from scratch —
 > v0.4.0 restarts at Milestone A (it does **not** continue from v0.3.0's X), and a **patch release like

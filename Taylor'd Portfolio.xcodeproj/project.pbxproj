@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		34159C7000000000000000B2 /* tex in Resources */ = {isa = PBXBuildFile; fileRef = 34159C7000000000000000B1 /* tex */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		34159C402FFC888B00B3B6DE /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,6 +25,7 @@
 		34159C3F2FFC888B00B3B6DE /* Taylor'd PortfolioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Taylor'd PortfolioTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		34159C602FFC888C00B3B6DE /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		34159C622FFC888C00B3B6DE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		34159C7000000000000000B1 /* tex */ = {isa = PBXFileReference; lastKnownFileType = folder; path = tex; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -80,9 +85,10 @@
 			isa = PBXGroup;
 			children = (
 				34FE587E3002FF96002F1C1D /* documentation */,
+				34159C7000000000000000A2 /* secrets */,
 				34159C2F2FFC888A00B3B6DE /* src */,
 				34159C422FFC888B00B3B6DE /* tests */,
-				34159C7000000000000000A2 /* secrets */,
+				34159C7000000000000000B1 /* tex */,
 				34159C7000000000000000A3 /* xcode */,
 			);
 			path = lib;
@@ -197,6 +203,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				34159C7000000000000000B2 /* tex in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -382,7 +389,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.veritum.Taylor-d-Portfolio";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -430,7 +437,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.veritum.Taylor-d-Portfolio";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -457,7 +464,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.veritum.Taylor-d-PortfolioTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -483,7 +490,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.veritum.Taylor-d-PortfolioTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;

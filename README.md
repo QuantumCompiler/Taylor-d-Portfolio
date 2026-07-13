@@ -112,9 +112,22 @@ Rounds out the tailored résumé + cover letter experience and the control the u
   subprocess runs in a neutral directory so it no longer triggers spurious Photos/Music privacy prompts.
   *(Milestones A–D + fixes.)*
 
-**Next:** the next version's number and theme are decided when development on it starts. Likely candidates
-come from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional
-MCP tool layer.
+### v0.5.1 — LaTeX résumé & cover letter output
+Adds a **second, high-fidelity PDF export path** plus a batch of export/Tracker refinements:
+- **awesome-cv LaTeX output (A–E):** the app renders a generated application into `.tex` against Taylor's own
+  awesome-cv classes (bundled in `lib/tex/`) and compiles it with **`lualatex`** — shelled as an external
+  process, like the `claude` CLI — producing résumé + cover-letter PDFs that match the ones he builds by hand
+  (matching section order, spacing, and entry macros). The raw **`.tex` source** exports too (a handoff into
+  his manual pipeline). `lualatex` is **optional**: present → the awesome-cv PDF is offered (Settings → About
+  shows availability), absent → only the native exports appear.
+- **Export/Tracker refinements:** Markdown `---` renders as a real rule instead of literal dashes (F); the
+  résumé and cover letter export as **separate** documents (G); a live **sort control** in the Tracker (H);
+  and an **additional-context** box that steers generation without changing the grounded default (I).
+  *(Milestones A–I.)*
+
+**Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
+from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
+layer.
 
 ## Build & run
 

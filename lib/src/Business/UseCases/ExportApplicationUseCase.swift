@@ -7,17 +7,86 @@
 
 import Foundation
 
-/// Turns a generated ``ApplicationKit`` into exportable bytes: it assembles the résumé and
-/// cover letter into a single Markdown document (the factual, grounded output — the
-/// internal `gapNote` is advisory and not part of the deliverable), then hands that Markdown
-/// to the domain-agnostic ``DocumentExporter`` for the requested ``ExportFormat``.
-nonisolated struct ExportApplicationUseCase: Sendable {
-    let exporter: any DocumentExporter
+/// One of the two deliverables in an ``ApplicationKit`` — the résumé or the cover letter.
+/// They export as **separate** documents (a résumé and a cover letter are sent as two files,
+/// named differently, and often only one is wanted), so the export API is per-document.
+nonisolated enum ApplicationDocument: String, CaseIterable, Sendable, Identifiable {
+    case resume
+    case coverLetter
 
-    init(exporter: any DocumentExporter) {
-        self.exporter = exporter
+    var id: String { rawValue }
+
+    /// Menu / heading label.
+    var displayName: String {
+        switch self {
+        case .resume: return "Résumé"
+        case .coverLetter: return "Cover Letter"
+        }
     }
 
+    /// The suffix appended to an export's base filename (e.g. `… - Résumé.pdf`).
+    var filenameSuffix: String { displayName }
+}
+
+/// Turns a generated ``ApplicationKit`` into exportable bytes. Each deliverable — the résumé
+/// and the cover letter — exports as its **own** document (the factual, grounded output; the
+/// internal `gapNote` is advisory and never part of a deliverable), rendered by the
+/// domain-agnostic ``DocumentExporter`` for the requested ``ExportFormat``. A combined
+/// résumé+cover-letter assembly is retained for "copy everything" callers.
+nonisolated struct ExportApplicationUseCase: Sendable {
+    let exporter: any DocumentExporter
+    /// The awesome-cv LaTeX compiler for the high-fidelity PDF route (Milestone D); `nil` (or an
+    /// unavailable one) means the LaTeX route isn't offered.
+    let compiler: (any LaTeXCompiling)?
+
+    init(exporter: any DocumentExporter, compiler: (any LaTeXCompiling)? = nil) {
+        self.exporter = exporter
+        self.compiler = compiler
+    }
+
+    // MARK: LaTeX (awesome-cv) route — Milestone D
+
+    /// Whether the awesome-cv LaTeX PDF route is available (a `lualatex` install was found).
+    var isLaTeXAvailable: Bool { compiler?.isAvailable ?? false }
+
+    /// The awesome-cv `.tex` **source** for one document — deterministic, no compile, so it works
+    /// even without a TeX install (a handoff into the manual `PortfolioBuddy` pipeline).
+    func texSource(_ kit: ApplicationKit, _ document: ApplicationDocument) -> String {
+        switch document {
+        case .resume: return TexDocumentBuilder.resume(fromMarkdown: kit.resumeMarkdown)
+        case .coverLetter: return TexDocumentBuilder.coverLetter(fromMarkdown: kit.coverLetter)
+        }
+    }
+
+    /// Compiles one document into an awesome-cv **PDF** via `lualatex`. Throws
+    /// ``LaTeXProcessError/notInstalled`` when no compiler is wired/available.
+    func latexPDF(_ kit: ApplicationKit, _ document: ApplicationDocument) async throws -> Data {
+        guard let compiler else { throw LaTeXProcessError.notInstalled }
+        return try await compiler.compile(tex: texSource(kit, document), jobName: document.displayName)
+    }
+
+    /// Exports a **single** document (résumé or cover letter) — the primary path. Each file
+    /// contains only that document's Markdown (no combined wrapper heading).
+    func callAsFunction(_ kit: ApplicationKit, _ document: ApplicationDocument,
+                        as format: ExportFormat, template: ExportTemplate = .classic) throws -> Data {
+        try exporter.export(markdown: Self.markdown(for: document, from: kit), as: format, template: template)
+    }
+
+    /// The trimmed Markdown for one document (empty when that section wasn't generated).
+    static func markdown(for document: ApplicationDocument, from kit: ApplicationKit) -> String {
+        switch document {
+        case .resume: return kit.resumeMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .coverLetter: return kit.coverLetter.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    }
+
+    /// Whether `document` has content to export (an all-blank section isn't offered).
+    static func isPresent(_ document: ApplicationDocument, in kit: ApplicationKit) -> Bool {
+        !markdown(for: document, from: kit).isEmpty
+    }
+
+    /// Exports the **combined** résumé + cover letter as one document — kept for the
+    /// "copy everything" affordance, not the per-document file export.
     func callAsFunction(_ kit: ApplicationKit, as format: ExportFormat, template: ExportTemplate = .classic) throws -> Data {
         try exporter.export(markdown: Self.assembleMarkdown(from: kit), as: format, template: template)
     }

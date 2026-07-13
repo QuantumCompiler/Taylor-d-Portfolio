@@ -35,6 +35,14 @@ struct OOXMLDocumentTests {
         #expect(xml.contains("A &amp; B &lt; C &gt; D"))
         #expect(!xml.contains("A & B"))            // raw ampersand would be invalid XML
     }
+
+    @Test func thematicBreakBecomesABorderNotLiteralDashes() throws {
+        let xml = OOXMLDocument.documentXML(from: "Above\n\n---\n\nBelow")
+        #expect(xml.contains("<w:pBdr>"))          // rendered as a bottom-border rule
+        #expect(xml.contains("<w:bottom w:val=\"single\""))
+        #expect(!xml.contains(">---<"))            // never emits the literal dashes as text
+        _ = try XMLDocument(data: Data(xml.utf8), options: [])   // still well-formed
+    }
 }
 
 @Suite("ZipArchiveWriter")

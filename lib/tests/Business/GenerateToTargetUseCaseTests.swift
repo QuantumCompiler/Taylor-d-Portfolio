@@ -16,6 +16,8 @@ private actor ScoringStubProvider: LLMProvider {
     let scores: [Int]
     private(set) var generateCalls = 0
     private(set) var scoreCalls = 0
+    /// The `additionalContext` seen on the most recent settings-carrying generate call.
+    private(set) var lastAdditionalContext = ""
 
     init(scores: [Int]) { self.scores = scores }
 
@@ -31,7 +33,8 @@ private actor ScoringStubProvider: LLMProvider {
         return ApplicationKit(resumeMarkdown: "round \(generateCalls)", coverLetter: "c", gapNote: "")
     }
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit {
-        try await generateApplication(for: job, profile: profile, brief: brief)
+        lastAdditionalContext = settings.additionalContext
+        return try await generateApplication(for: job, profile: profile, brief: brief)
     }
     func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
         let index = min(scoreCalls, scores.count - 1)
@@ -96,6 +99,14 @@ struct GenerateToTargetUseCaseTests {
                 job: job, profile: profile, target: 80
             )
         }
+    }
+
+    @Test func forwardsAdditionalContextIntoEachRound() async throws {
+        let provider = ScoringStubProvider(scores: [90])
+        _ = try await GenerateToTargetUseCase(provider: provider)(
+            job: job, profile: profile, target: 80, additionalContext: "emphasize EV Charging"
+        )
+        #expect(await provider.lastAdditionalContext == "emphasize EV Charging")
     }
 
     @Test func fidelityEscalatesEachRound() {
