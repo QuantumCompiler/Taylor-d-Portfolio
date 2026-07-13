@@ -18,14 +18,14 @@ doing.
 >
 > **✅ Done so far (see `MILESTONES.md`):** the four independent refinements — **F** (Markdown `---` renders as
 > a real rule), **G** (résumé & cover letter export as separate documents), **H** (a Tracker sort control),
-> **I** (an additional-context box on generate/regenerate) — and **A** (the awesome-cv LaTeX assets now ship
-> in the app bundle as `lib/tex/` → `…app/Contents/Resources/tex/`, resolved by `TexAssets`). Full suite green
-> (446 tests).
+> **I** (an additional-context box on generate/regenerate) — plus **A** (awesome-cv assets ship in the bundle
+> as `lib/tex/`, resolved by `TexAssets`) and **B** (`LaTeXCompiling` + `LaTeXProcessClient` — shells
+> `lualatex`, verified with a real compile). Full suite green (457 tests).
 >
-> **Remaining: the LaTeX output path, B–E.** Start at **Milestone B** (`LaTeXCompiling` port +
-> `LaTeXProcessClient` — shell `lualatex`, already installed at `/Library/TeX/texbin`), then **C**
-> (`TexDocumentBuilder`), **D** (wire the export route + Application-sheet menu), **E** (availability
-> surfacing + the deferred `CLAUDE.md`/`SPEC.md` docs + release hygiene).
+> **Remaining: the LaTeX output path, C–E.** Start at **Milestone C** (`TexDocumentBuilder` — render the
+> generated `ApplicationKit` into awesome-cv `.tex`; note the **C-parse vs C-structured** fidelity open call),
+> then **D** (wire the async export route + Application-sheet menu, using the Milestone B compiler), **E**
+> (availability surfacing + the deferred `CLAUDE.md`/`SPEC.md` docs + release hygiene).
 >
 > **Release type (noted).** This is feature-sized work carried as a **patch (`v0.5.1`)** at Taylor's
 > choice; the number and branch are fixed. Kickoff hygiene (below) is done: `MARKETING_VERSION` bumped to
@@ -69,48 +69,6 @@ are standalone fixes to the *existing* native export path; **Milestone H** adds 
 (Presentation-only, mirroring the Results filter); **Milestone I** adds a free-text additional-context box to
 the generate/regenerate flow. **DOCX-from-LaTeX** (the repo's `tex2docx.py` → pandoc path) is **out of scope**
 — the app already has native DOCX; a LaTeX-driven DOCX is a later idea.
-
-## Milestone B — `LaTeXCompiling` port + `LaTeXProcessClient` (shell `lualatex`)
-
-**What / why.** The engine that turns `.tex` into PDF bytes. A new Infrastructure port + a process client that
-**mirrors `ClaudeProcessClient`** almost exactly: it's the second external binary the (unsandboxed) app
-shells out to. Stage the bundled assets (Milestone A) + the generated `.tex` into a temp build dir, run
-`lualatex` **twice** (footers/refs settle — the same two-pass rule `PortfolioBuddy` uses), return the compiled
-PDF `Data`, clean `*.aux/*.log/*.out`.
-
-**Seam + files.**
-- New `Infrastructure/Tex/LaTeXCompiling.swift` — the port: `func compile(tex: String, jobName: String) async throws -> Data`
-  plus an availability probe (`var isAvailable: Bool` / `func locate() -> URL?`).
-- New `Infrastructure/Tex/LaTeXProcessClient.swift` — the impl. Reuse the `ClaudeProcessClient` playbook:
-  - **PATH widening** — copy `searchPATH(base:home:)` and add TeX bin dirs: `/Library/TeX/texbin` (MacTeX
-    symlink), `/usr/local/texlive/*/bin/*`, `/opt/homebrew/bin`, `/usr/local/bin`. Extract the shared PATH
-    helper if it's worth de-duplicating (open call below).
-  - **Launcher** — `.env(binaryName: "lualatex")` / `.path(String)`, like `ClaudeProcessClient.Launcher`.
-  - **Temp build dir** — create under Caches (app-owned, TCC-neutral, per `neutralWorkingDirectory()`), stage
-    the class/fonts/images/sty (symlink or copy) so relative `\documentclass{Class/…}` + `\fontdir[fonts/]`
-    resolve, write `Resume.tex` / `Cover Letter.tex`, `cd` in, run two passes with
-    `-interaction=nonstopmode -halt-on-error`, read the produced PDF, tear the dir down.
-  - **Errors** — a `LaTeXProcessError` enum (`launchFailed`, `nonZeroExit(code,message)`, `notInstalled`,
-    `noOutput`), surfacing the real `lualatex` log tail like `ClaudeProcessError` does.
-
-**Sub-tasks.**
-- [ ] Define `LaTeXCompiling` (compile + availability).
-- [ ] Implement `LaTeXProcessClient`: staging, two-pass run, PDF read, aux cleanup, error surfacing.
-- [ ] Availability probe (resolve `lualatex` on the widened PATH) → drives the disabled state in D.
-- [ ] **(open call)** *Share the PATH helper.* `ClaudeProcessClient.searchPATH` is exactly what's needed.
-      **Recommended default:** lift it to a tiny `Infrastructure/ProcessSupport` helper (`searchPATH` +
-      `neutralWorkingDirectory`) reused by both clients, rather than copy-paste. Keep it Infrastructure-only.
-- [ ] **(open call)** *Stage assets by symlink vs copy.* **Recommended default:** symlink the bundled
-      `Class/`/`fonts/`/`Images/` into the temp dir (fast, no duplication — how `PortfolioBuddy` scaffolds),
-      copying only if a read-only bundle path can't be symlinked from Caches.
-
-**Tests.** Unit-test the pure helpers (arg vector, PATH build, temp-dir layout, error mapping) without
-launching a process (the `ClaudeProcessClient` test pattern). A real compile is an **integration/device check**
-gated on `lualatex` being installed — add it to the awaiting-checks note, don't fail the suite when TeX is
-absent.
-
-**On-device.** N/A for the model; **needs a local TeX install** (MacTeX / TeX Live with `lualatex`) — a new
-optional external dependency, documented like the `claude` CLI (Milestone E updates `CLAUDE.md` → Build & run).
 
 ## Milestone C — `TexDocumentBuilder`: `ApplicationKit` → awesome-cv `.tex`
 

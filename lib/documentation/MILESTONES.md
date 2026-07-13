@@ -1857,6 +1857,36 @@ Seam: Infrastructure/Tex (new) + the Xcode project (folder reference). On-device
 Note: the `CLAUDE.md` layer-map / Build-&-run update for the new `Infrastructure/Tex` seam + `lib/tex/` assets
 + the `lualatex` dependency is **deferred to Milestone E** (the docs milestone).
 
+## Milestone B — `LaTeXCompiling` port + `LaTeXProcessClient` (shell `lualatex`)  ✅ done  (`Infrastructure/Tex/LaTeXCompiling` + `LaTeXProcessClient` (new), `Infrastructure/Process/ProcessSupport` (new), `Infrastructure/LLM/ClaudeProcessClient`)
+
+Goal: the engine that turns a `.tex` document into PDF bytes — the second external binary the (unsandboxed)
+app shells out to, mirroring `ClaudeProcessClient`.
+
+- [x] **`LaTeXCompiling` port** (`Infrastructure/Tex`): `func compile(tex:jobName:) async throws -> Data` +
+      `var isAvailable: Bool`, with a `LaTeXProcessError` enum (`notInstalled`, `assetsUnavailable`,
+      `launchFailed`, `nonZeroExit(code:log:)`, `noOutput`).
+- [x] **`LaTeXProcessClient`** (`nonisolated struct`): resolves `lualatex` via a `.env`/`.path` `Launcher`;
+      a compile stages the bundled ``TexAssets`` (Milestone A) into a fresh app-owned Caches build dir by
+      **symlinking** each item (`Class/`, `fonts/`, `Images/`, `*.sty` — so `\documentclass{Class/…}` /
+      `\fontdir[fonts/]` resolve), writes the `.tex`, runs `lualatex` **twice**
+      (`-interaction=nonstopmode -halt-on-error`), reads the produced PDF, and tears the dir down (defer).
+      Non-zero exit surfaces the `logTail` of lualatex's output; missing PDF → `noOutput`.
+- [x] **Shared PATH helper (open call resolved).** Lifted `searchPATH` into a new
+      `Infrastructure/Process/ProcessSupport` (now taking `extraDirectories`) + a `locateExecutable(named:inPATH:)`
+      probe; `ClaudeProcessClient.searchPATH` delegates to it (signature/behaviour unchanged, its tests
+      untouched). `LaTeXProcessClient` prepends the TeX bin dirs (`/Library/TeX/texbin`, TeX Live, Homebrew) so
+      `lualatex` resolves from a GUI app's minimal `PATH`; `isAvailable`/`locate()` drive Milestone D's disabled
+      state. *(Open call: stage by symlink — resolved to symlink, per the recommendation.)*
+- [x] **Tests.** Pure helpers unit-tested without launching a process (arg vector, `safeBaseName`, `logTail`,
+      PATH prepending, executable location, staging symlinks) plus deterministic compile guards
+      (`assetsUnavailable`, `notInstalled`) — and a **real end-to-end compile** (`compilesATrivialDocumentEndToEnd`)
+      that runs `lualatex` and asserts `%PDF` output, **guarded on `isAvailable`** so a TeX-less environment
+      skips it rather than failing. Full suite green.
+
+Seam: `Infrastructure/Tex` + `Infrastructure/Process` (new) + `Infrastructure/LLM` (delegation). On-device:
+n/a for the model; **needs a local TeX install** (`lualatex`) — a new optional external dependency, like the
+`claude` CLI. (Verified against the machine's `/Library/TeX/texbin/lualatex`.)
+
 ## Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally  ✅ done  (`Infrastructure`: `Text/MarkdownBlockParser`, `Export/MarkdownAttributedRenderer` + `Export/OOXMLDocument`; `Presentation`: `Components/MarkdownText`)
 
 Goal: the generated résumé/cover-letter Markdown uses `---` as section separators, but every native renderer

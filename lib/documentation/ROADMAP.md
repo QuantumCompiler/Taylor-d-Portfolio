@@ -539,11 +539,12 @@ breakdown + open calls.
       preserved), with a `nonisolated` `TexAssets` accessor resolving/validating them at runtime. Content
       sections are **not** bundled. Seam: `Infrastructure/Tex` (new) + a `project.pbxproj` folder reference (the
       open call, resolved to a folder reference over a sync-group exception). On-device: n/a (packaging).
-- [ ] **Milestone B — `LaTeXCompiling` port + `LaTeXProcessClient`.** The compile engine, mirroring
-      `ClaudeProcessClient`: stage the bundled assets + generated `.tex` into an app-owned temp dir, run
-      `lualatex` twice (`-interaction=nonstopmode -halt-on-error`), return PDF `Data`, clean aux, surface the
-      log tail on failure; PATH-widen to TeX bin dirs (`/Library/TeX/texbin`, `texlive`), plus an availability
-      probe. Seam: `Infrastructure/Tex` (new), reusing the `ClaudeProcessClient` PATH/temp-dir helpers.
+- [x] **Milestone B — `LaTeXCompiling` port + `LaTeXProcessClient`.** ✅ **Done.** The compile engine, mirroring
+      `ClaudeProcessClient`: stages the bundled assets + generated `.tex` into an app-owned temp dir (symlinks),
+      runs `lualatex` twice (`-interaction=nonstopmode -halt-on-error`), returns PDF `Data`, tears the dir down,
+      surfaces the log tail on failure; PATH-widens to TeX bin dirs via a shared `ProcessSupport` (also now used
+      by `ClaudeProcessClient`), plus an `isAvailable`/`locate()` probe. Verified with a real end-to-end
+      `lualatex` compile (guarded on availability). Seam: `Infrastructure/Tex` + `Infrastructure/Process` (new).
       On-device: n/a; needs a local TeX install (MacTeX / TeX Live).
 - [ ] **Milestone C — `TexDocumentBuilder` (`ApplicationKit` → awesome-cv `.tex`).** The inverse of the repo's
       `tex2docx.py`: turn the generated résumé Markdown + cover letter into `.tex` driving the awesome-cv

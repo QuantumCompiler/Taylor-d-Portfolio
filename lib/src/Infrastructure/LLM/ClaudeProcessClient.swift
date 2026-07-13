@@ -105,23 +105,9 @@ nonisolated struct ClaudeProcessClient: TextGenerating {
     /// minimal environment omits (`~/.local/bin`, Homebrew, npm global), so
     /// `/usr/bin/env` can find tools like `claude`. Launched-from-Finder/Xcode apps
     /// inherit only `/usr/bin:/bin:/usr/sbin:/sbin`, where `claude` usually isn't.
-    /// Common dirs are prepended; any existing `base` entries are preserved, de-duped.
+    /// Delegates to the shared ``ProcessSupport/searchPATH(base:home:extraDirectories:)``.
     static func searchPATH(base: String?, home: String) -> String {
-        let common = [
-            "\(home)/.local/bin",
-            "\(home)/.npm-global/bin",
-            "/opt/homebrew/bin",
-            "/opt/homebrew/sbin",
-            "/usr/local/bin",
-            "/usr/bin", "/bin", "/usr/sbin", "/sbin",
-        ]
-        let existing = base?.split(separator: ":").map(String.init) ?? []
-        var seen = Set<String>()
-        var ordered = [String]()
-        for dir in common + existing where !dir.isEmpty && seen.insert(dir).inserted {
-            ordered.append(dir)
-        }
-        return ordered.joined(separator: ":")
+        ProcessSupport.searchPATH(base: base, home: home)
     }
 
     /// The subset of the CLI's JSON envelope we consume.
