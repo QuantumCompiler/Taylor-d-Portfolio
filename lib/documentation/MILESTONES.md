@@ -1887,6 +1887,38 @@ Seam: `Infrastructure/Tex` + `Infrastructure/Process` (new) + `Infrastructure/LL
 n/a for the model; **needs a local TeX install** (`lualatex`) — a new optional external dependency, like the
 `claude` CLI. (Verified against the machine's `/Library/TeX/texbin/lualatex`.)
 
+## Milestone C — `TexDocumentBuilder`: `ApplicationKit` → awesome-cv `.tex`  ✅ done  (`Infrastructure/Tex/TexDocumentBuilder` (new); reuses `Infrastructure/Text/MarkdownBlockParser` + `MarkdownInline`)
+
+Goal: the mapping piece — the inverse of the repo's `tex2docx.py`. Render the generated résumé / cover-letter
+**Markdown** into `.tex` that drives the bundled awesome-cv classes. Pure + domain-agnostic (Markdown in,
+`.tex` out), fully unit-testable. **Resolved the C-parse vs C-structured open call to C-parse** (best-effort
+structural map, no generation-seam change) for the patch; C-structured stays the flagged fast-follow.
+
+- [x] **Résumé** (`resume(fromMarkdown:)`): emits the `Class/Resume` driver + `\makecvheader`, a `\position`
+      role headline (the leading fully-bold line), a `\paragraphstyle` summary, then a `\cvsection` per H2.
+      Skills-like sections (`skill`/`qualification`/`competenc`) → `cvskills` + `\cvskill{bucket}{items}`
+      (split on the first `": "`); other sections → entries: a heading or fully-bold line is the title
+      (`\entrytitlestyle`), the next plain line a subtitle (`\entrydatestyle`, e.g. location · date), bullets
+      → `\begin{cvitems}\item{…}`. The **name** H1 and **contact** lines are dropped (the class header renders
+      them). Loose prose falls back to a justified paragraph.
+- [x] **Cover letter** (`coverLetter(fromMarkdown:)`): emits the `Class/CoverLetter` driver, `\begin{cvletter}`,
+      one `\lettersection` per H2 with its paragraphs, and `\makeletterclosing`.
+- [x] **Escaping + inline.** A char-by-char `escape` for the LaTeX specials (`& % $ # _ { } ~ ^ \`); `inlineLaTeX`
+      renders `**bold**`/`*italic*`/links via `MarkdownInline` → `\textbf`/`\textit` (links collapse to text);
+      `plainLaTeX` strips emphasis for titles a class style already bolds. Only the FontAwesome icons already in
+      the classes are used (none introduced). The `gapNote` never reaches the builder (it takes the per-document
+      Markdown, matching Milestone G).
+- [x] **Split fix.** Sections are headings at *exactly* the section level, so an H1 name lands in the preamble
+      (not a spurious `\cvsection`) and H3 entries fall inside their section.
+- [x] **Tests.** Pure unit tests (escaping, inline bold/italic + link, section split, skills, entries with
+      escaped `&`/`%`, driver + `\position` + `cvsection`/`cvskills`/`cvitems` shapes, dropped contact line) —
+      **and a real end-to-end `emittedTexCompilesUnderLualatex`** that renders a realistic résumé + cover letter
+      and compiles both under the bundled classes to `%PDF` (guarded on `lualatex` availability). Full suite
+      green.
+
+Seam: `Infrastructure/Tex` (new, pure). On-device: yes — pure local string transform. Note: fidelity is
+best-effort (loose Markdown has no explicit org/date fields); C-structured is the upgrade path if needed.
+
 ## Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally  ✅ done  (`Infrastructure`: `Text/MarkdownBlockParser`, `Export/MarkdownAttributedRenderer` + `Export/OOXMLDocument`; `Presentation`: `Components/MarkdownText`)
 
 Goal: the generated résumé/cover-letter Markdown uses `---` as section separators, but every native renderer

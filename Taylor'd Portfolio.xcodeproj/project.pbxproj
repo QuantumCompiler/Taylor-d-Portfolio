@@ -85,11 +85,11 @@
 			isa = PBXGroup;
 			children = (
 				34FE587E3002FF96002F1C1D /* documentation */,
+				34159C7000000000000000A2 /* secrets */,
 				34159C2F2FFC888A00B3B6DE /* src */,
 				34159C422FFC888B00B3B6DE /* tests */,
-				34159C7000000000000000A2 /* secrets */,
-				34159C7000000000000000A3 /* xcode */,
 				34159C7000000000000000B1 /* tex */,
+				34159C7000000000000000A3 /* xcode */,
 			);
 			path = lib;
 			sourceTree = "<group>";

@@ -22,9 +22,11 @@ doing.
 > as `lib/tex/`, resolved by `TexAssets`) and **B** (`LaTeXCompiling` + `LaTeXProcessClient` — shells
 > `lualatex`, verified with a real compile). Full suite green (457 tests).
 >
-> **Remaining: the LaTeX output path, C–E.** Start at **Milestone C** (`TexDocumentBuilder` — render the
-> generated `ApplicationKit` into awesome-cv `.tex`; note the **C-parse vs C-structured** fidelity open call),
-> then **D** (wire the async export route + Application-sheet menu, using the Milestone B compiler), **E**
+> **Remaining: the LaTeX output path, D–E.** **C** is done (C-parse) — `TexDocumentBuilder` renders the
+> generated `ApplicationKit` into awesome-cv `.tex`, verified by a real compile. Next is **Milestone D** (wire
+> the **async** export route: `ExportApplicationUseCase.latex(...)` → builder → `LaTeXCompiling`, injected in
+> `Composition`, exposed as a "PDF — Portfolio (LaTeX)" item + a `.tex`-source export in the Application-sheet
+> menu, disabled when `lualatex` is absent; reconcile the one-page gate to the compiled PDF), then **E**
 > (availability surfacing + the deferred `CLAUDE.md`/`SPEC.md` docs + release hygiene).
 >
 > **Release type (noted).** This is feature-sized work carried as a **patch (`v0.5.1`)** at Taylor's
@@ -69,50 +71,6 @@ are standalone fixes to the *existing* native export path; **Milestone H** adds 
 (Presentation-only, mirroring the Results filter); **Milestone I** adds a free-text additional-context box to
 the generate/regenerate flow. **DOCX-from-LaTeX** (the repo's `tex2docx.py` → pandoc path) is **out of scope**
 — the app already has native DOCX; a LaTeX-driven DOCX is a later idea.
-
-## Milestone C — `TexDocumentBuilder`: `ApplicationKit` → awesome-cv `.tex`
-
-**What / why.** The mapping piece — the inverse of the repo's `tex2docx.py`. Turn the generated résumé
-(`ApplicationKit.resumeMarkdown`) and cover letter (`ApplicationKit.coverLetter`) into `.tex` that drives the
-awesome-cv classes: résumé sections as `\cvsection` + `\cventry`/`\cvproject` + `\cvitems`/`\item` +
-`\cvskills`/`\cvskill`; the cover letter as the `\begin{cvletter}` … `\lettersection{…}` … `\end{cvletter}`
-rhythm with `\makeletterclosing`; the role headline as `\position{…}`.
-
-**Seam + files.**
-- New `Infrastructure/Tex/TexDocumentBuilder.swift` — pure, domain-agnostic (Markdown `String` in, `.tex`
-  `String` out — same shape as `DocumentExporter`), so it's fully unit-testable and never imports upward.
-  Reuse `Infrastructure/Text/MarkdownBlockParser` (already the exporters' parser) to lift headings/bullets.
-- LaTeX escaping is mandatory: escape `& % $ # _ { } ~ ^ \` in all interpolated text, render em-dashes as
-  `---`, and reuse **only** the safe FontAwesome icons already in the classes (`\faGithubSquare`, `\faApple`,
-  `\faAtom`) — never introduce new ones (undefined-icon = compile failure; see AGENT.md §8).
-
-**Sub-tasks.**
-- [ ] Résumé builder: parse `resumeMarkdown` → emit `\cvsection` + entry/project/skill macros against the
-      `Resume.cls` vocabulary; wrap in the `Resume.tex` driver preamble (`\documentclass[6pt]{Class/Resume}`,
-      geometry, `\pageHeader`/`\pageFooter`, `\makecvheader`).
-- [ ] Cover-letter builder: emit the `cvletter` body from `coverLetter` (one `\lettersection` per heading),
-      wrap in the `Cover Letter.tex` driver (`\documentclass[11pt,a4paper]{Class/CoverLetter}`,
-      `\makeletterclosing`).
-- [ ] A robust LaTeX-escaper (unit-tested against the special-char set); the `gapNote` is **not** emitted
-      (advisory only — matches `ExportApplicationUseCase.assembleMarkdown` excluding it).
-- [ ] **(open call — the big one) Fidelity of the Markdown→LaTeX mapping.** `ApplicationKit.resumeMarkdown`
-      is a loosely-structured Markdown blob — it has no explicit org / location / date / role fields, so a
-      pure parse can't perfectly reconstruct `\cventry{title}{org}{loc}{date}{…}`.
-      - **C-parse (recommended for v0.5.1):** best-effort map from Markdown structure — `##` → `\cvsection`,
-        `**bold**` lead lines → entry titles, bullet lists → `\cvitems`, a "Skills" section → `\cvskills`.
-        Keeps this milestone **Infrastructure/export-only** (no generation-seam change) and fits the patch
-        scope. Accept that entry metadata (dates/locations) is only as rich as the Markdown carries.
-      - **C-structured (deferred, flagged):** add a `@Generable` structured résumé type (sections → entries
-        with title/org/location/date/bullets, projects, skill buckets) that generation emits, rendered
-        faithfully to `.tex`. Higher fidelity but touches `LLMProvider` / `Prompts` / `ApplicationKit` —
-        bigger than a patch. Recommend as the **v0.5.1 fast-follow** if C-parse fidelity proves too coarse.
-      Write the milestone for **C-parse**; note C-structured as the upgrade path.
-
-**Tests.** Unit-test the builder: known `ApplicationKit` → expected `.tex` (macro shapes, escaping, no
-`gapNote`, safe icons only). A golden-file compile (does the emitted `.tex` actually build under `lualatex`)
-is the Milestone B/D integration check.
-
-**On-device.** Yes — pure local string transform, no network, no model.
 
 ## Milestone D — Wire the awesome-cv PDF route through export + the Application sheet
 

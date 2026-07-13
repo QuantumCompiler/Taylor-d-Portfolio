@@ -546,13 +546,13 @@ breakdown + open calls.
       by `ClaudeProcessClient`), plus an `isAvailable`/`locate()` probe. Verified with a real end-to-end
       `lualatex` compile (guarded on availability). Seam: `Infrastructure/Tex` + `Infrastructure/Process` (new).
       On-device: n/a; needs a local TeX install (MacTeX / TeX Live).
-- [ ] **Milestone C — `TexDocumentBuilder` (`ApplicationKit` → awesome-cv `.tex`).** The inverse of the repo's
-      `tex2docx.py`: turn the generated résumé Markdown + cover letter into `.tex` driving the awesome-cv
-      macros (`\cvsection`/`\cventry`/`\cvproject`/`\cvitems`/`\cvskills`, `\lettersection`, `\position`),
-      reusing `MarkdownBlockParser`, with strict LaTeX escaping and only the safe FontAwesome icons. **Open
-      call:** best-effort Markdown parse (C-parse, recommended for the patch) vs. a `@Generable` structured
-      résumé that generation emits (C-structured, deferred fast-follow for full fidelity). Seam:
-      `Infrastructure/Tex` (new), pure + domain-agnostic. On-device: yes (local string transform).
+- [x] **Milestone C — `TexDocumentBuilder` (`ApplicationKit` → awesome-cv `.tex`).** ✅ **Done (C-parse).** The
+      inverse of the repo's `tex2docx.py`: renders the generated résumé Markdown + cover letter into `.tex`
+      driving the awesome-cv macros (`\cvsection`/`\cvitems`/`\cvskills`/`\lettersection`/`\position` + entry
+      title/date styles), reusing `MarkdownBlockParser`/`MarkdownInline`, with char-by-char LaTeX escaping and
+      only the classes' existing FontAwesome icons. Best-effort structural map (**C-parse**, no generation-seam
+      change); C-structured remains the flagged fast-follow. Verified by a real end-to-end compile of the
+      emitted `.tex` under the bundled classes. Seam: `Infrastructure/Tex` (new, pure). On-device: yes.
 - [ ] **Milestone D — Wire the awesome-cv PDF route through export + the Application sheet.** Because
       `DocumentExporter` is synchronous and `lualatex` is async, add an **async** route: an
       `ExportApplicationUseCase.latex(_:)` overload → builder → compiler, injected in `Composition`, exposed via
