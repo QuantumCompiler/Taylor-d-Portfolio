@@ -16,16 +16,16 @@ doing.
 > producing résumé + cover letter PDFs that match the ones he builds by hand in his `Resume-And-Cover-Letter`
 > repo. Milestones **restart at A**; commits are `v0.5.1 : Milestone X Completed`.
 >
-> **✅ Done so far (F, G, H, I — the independent refinements; see `MILESTONES.md`):** **F** — Markdown `---`
-> now renders as a real rule (not literal dashes) in the PDF / DOCX / in-app preview; **G** — résumé & cover
-> letter export as **separate** documents (per-document menu + filenames); **H** — a live **sort control** in
-> the Tracker (mirroring the Results filter); **I** — an **additional-context** box on the generate/regenerate
-> flow that steers emphasis/framing (rides `GenerationSettings`, excluded from presets). Full suite green
-> (442 tests).
+> **✅ Done so far (see `MILESTONES.md`):** the four independent refinements — **F** (Markdown `---` renders as
+> a real rule), **G** (résumé & cover letter export as separate documents), **H** (a Tracker sort control),
+> **I** (an additional-context box on generate/regenerate) — and **A** (the awesome-cv LaTeX assets now ship
+> in the app bundle as `lib/tex/` → `…app/Contents/Resources/tex/`, resolved by `TexAssets`). Full suite green
+> (446 tests).
 >
-> **Remaining:** only **A–E** — the LaTeX output path (the release's core). Start at **Milestone A**. These
-> are the larger effort and need a local TeX install (`lualatex`, already present on this machine) plus an
-> Xcode resource-bundling step (Milestone A open call).
+> **Remaining: the LaTeX output path, B–E.** Start at **Milestone B** (`LaTeXCompiling` port +
+> `LaTeXProcessClient` — shell `lualatex`, already installed at `/Library/TeX/texbin`), then **C**
+> (`TexDocumentBuilder`), **D** (wire the export route + Application-sheet menu), **E** (availability
+> surfacing + the deferred `CLAUDE.md`/`SPEC.md` docs + release hygiene).
 >
 > **Release type (noted).** This is feature-sized work carried as a **patch (`v0.5.1`)** at Taylor's
 > choice; the number and branch are fixed. Kickoff hygiene (below) is done: `MARKETING_VERSION` bumped to
@@ -69,48 +69,6 @@ are standalone fixes to the *existing* native export path; **Milestone H** adds 
 (Presentation-only, mirroring the Results filter); **Milestone I** adds a free-text additional-context box to
 the generate/regenerate flow. **DOCX-from-LaTeX** (the repo's `tex2docx.py` → pandoc path) is **out of scope**
 — the app already has native DOCX; a LaTeX-driven DOCX is a later idea.
-
-## Milestone A — Bundle the awesome-cv LaTeX assets in the app
-
-**What / why.** For `lualatex` to compile an app-generated `.tex`, the presentation assets it `\input`s /
-references must be available on disk at build time: the three classes (`Resume.cls`, `CoverLetter.cls`,
-`Portfolio.cls`), the `fonts/` (Roboto / Source Sans), `Images/` (`Signature.png`, `TJL Logo.png`), and the
-`fontawesome.sty` / `fontawesome5.sty` shims. Ship them **inside the app bundle** so a scratch build directory
-(Milestone B) can reference or stage them. Only **presentation** assets are bundled — never Taylor's curated
-*content* sections; the app supplies content per job.
-
-**Seam + files.**
-- New asset tree under **`lib/src/Infrastructure/Tex/Resources/`** (`Class/`, `fonts/`, `Images/`, `*.sty`),
-  copied from the `Resume-And-Cover-Letter` repo. (Placing it under the synced `lib/src` root is the
-  file-system-synchronized-group way to get it into the app target — see the open call on how Xcode treats
-  non-source files.)
-- New `Infrastructure/Tex/TexAssets.swift` — a small accessor that resolves the bundled assets directory
-  (`Bundle.main` resource URL) and exposes the class/fonts/images/sty paths for the process client to stage.
-
-**Sub-tasks.**
-- [ ] Copy `Class/{Resume,CoverLetter,Portfolio}.cls`, `fonts/`, `Images/`, `fontawesome.sty`,
-      `fontawesome5.sty` into `lib/src/Infrastructure/Tex/Resources/`.
-- [ ] Add `TexAssets` resolving the bundled resources dir + typed accessors (classes dir, fonts dir, images
-      dir); return nil/throw cleanly if the resources are missing from the bundle.
-- [ ] **(open call)** *How the non-Swift assets enter the app target.* The app target synchronizes `lib/src`
-      via file-system-synchronized groups (`CLAUDE.md` → Xcode project structure), but `.cls`/`.sty`/`.tex`
-      aren't Xcode-recognized resource types and fonts/images need to land in the bundle intact.
-      **Recommended default:** keep them under `lib/src/Infrastructure/Tex/Resources/` and add an explicit
-      **`PBXFileSystemSynchronizedBuildFileExceptionSet`** (or a folder-reference / `.copyFiles` phase) so the
-      whole `Resources/` folder is copied as a bundle resource verbatim. Verify at build time that the files
-      appear in `…/Taylor'd Portfolio.app/Contents/Resources/`. If synchronized groups fight it, fall back to
-      a plain **blue folder reference** for `Resources/`. *(This is the one milestone that isn't purely
-      additive Swift — it's an Xcode-integration step; confirm the bundle contents before moving on.)*
-- [ ] **(open call)** *Header identity.* The classes' `\pageHeader` bakes Taylor's fixed contact block (name,
-      phone, email, homepage, GitHub, LinkedIn). **Recommended default for v0.5.1:** keep the class
-      `\pageHeader` identity as-is (single-user personal app) and let the app only supply the role headline
-      (`\position{…}`) + content. Profile-driven identity (name/contact from `CandidateProfile`) is a later
-      idea, not this patch.
-
-**Tests.** Unit-test `TexAssets` resolves each expected path from a bundle whose resources are present, and
-fails gracefully when they're absent. A build-time check (manual/CI) that the assets are in the built `.app`.
-
-**On-device.** N/A — static asset packaging, no network, no model.
 
 ## Milestone B — `LaTeXCompiling` port + `LaTeXProcessClient` (shell `lualatex`)
 

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		34159C7000000000000000B2 /* tex in Resources */ = {isa = PBXBuildFile; fileRef = 34159C7000000000000000B1 /* tex */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		34159C402FFC888B00B3B6DE /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,6 +25,7 @@
 		34159C3F2FFC888B00B3B6DE /* Taylor'd PortfolioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Taylor'd PortfolioTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		34159C602FFC888C00B3B6DE /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		34159C622FFC888C00B3B6DE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		34159C7000000000000000B1 /* tex */ = {isa = PBXFileReference; lastKnownFileType = folder; path = tex; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -84,6 +89,7 @@
 				34159C422FFC888B00B3B6DE /* tests */,
 				34159C7000000000000000A2 /* secrets */,
 				34159C7000000000000000A3 /* xcode */,
+				34159C7000000000000000B1 /* tex */,
 			);
 			path = lib;
 			sourceTree = "<group>";
@@ -197,6 +203,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				34159C7000000000000000B2 /* tex in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

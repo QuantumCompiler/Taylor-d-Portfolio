@@ -1824,8 +1824,38 @@ subprocess running in a neutral directory (no spurious Photos/Music prompts). Th
 
 Theme: give the app a **second, high-fidelity PDF output path** — render the generated `ApplicationKit` into
 `.tex` against Taylor's own awesome-cv classes and compile with `lualatex` (Milestones A–E, in progress) —
-plus a batch of export/Tracker refinements (F–H). A **patch release** on shipped v0.5.0; milestones restart
-at **A**; the project version is bumped to **0.5.1**. (A–E are tracked in `TODO.md`.)
+plus a batch of export/Tracker refinements (F–I). A **patch release** on shipped v0.5.0; milestones restart
+at **A**; the project version is bumped to **0.5.1**. (Milestone A done; B–E tracked in `TODO.md`.)
+
+## Milestone A — Bundle the awesome-cv LaTeX assets in the app  ✅ done  (`Infrastructure/Tex/TexAssets` (new); `lib/tex/` bundled assets; `project.pbxproj` folder reference)
+
+Goal: ship the awesome-cv **presentation** assets inside the app bundle so the LaTeX compile (Milestone B)
+can stage them into a scratch build dir where an app-generated `.tex` resolves `\documentclass{Class/…}` and
+`\fontdir[fonts/]`. Only presentation assets are bundled — never the candidate's content sections.
+
+- [x] **Assets copied** to a new **`lib/tex/`** folder (kept OUT of the synchronized `lib/src` root to avoid a
+      sync-group conflict): `Class/{Resume,CoverLetter,Portfolio}.cls`, `fonts/` (19 Roboto / Source Sans /
+      FontAwesome faces), `Images/` (Signature + logo), and `fontawesome.sty` / `fontawesome5.sty` (~3.6 MB).
+- [x] **Xcode integration (open call resolved).** Added `lib/tex` as a **blue folder reference** in the app
+      target's (previously empty) Resources build phase, so the whole tree copies into
+      `…/Taylor'd Portfolio.app/Contents/Resources/tex/` with structure preserved (verified in the built
+      `.app`). Chose the folder-reference route over a synchronized-group membership exception because the
+      assets sit outside `lib/src` and the `.tex`/`.cls` need the directory layout intact — mirroring how
+      `lib/secrets` / `lib/xcode` are non-synchronized explicit references. Needed a new `PBXBuildFile` section
+      (the project had none — everything else is synchronized).
+- [x] **`TexAssets`** (`Infrastructure/Tex`, `nonisolated`): `init?(bundle:)` resolves the bundled `tex/`
+      folder (nil when absent — degrades gracefully), `init(root:)` for fixtures, typed `classesDirectory` /
+      `fontsDirectory` / `imagesDirectory` accessors, and `isComplete` (the three classes + fonts present).
+- [x] **Header identity (open call resolved as recommended):** the classes' `\pageHeader` keeps Taylor's fixed
+      contact block; the app supplies only the role headline + content. Profile-driven identity is a later idea.
+- [x] **Tests.** `TexAssetsTests` resolves the assets **from the running app bundle** (which doubles as the
+      "assets are in the built `.app`" check — Resume.cls / CoverLetter.cls / a Roboto face / fontawesome5.sty
+      present + `isComplete`), returns nil for the asset-free test bundle, and flags incomplete/complete
+      fixtures. Full suite green.
+
+Seam: Infrastructure/Tex (new) + the Xcode project (folder reference). On-device: n/a (static packaging).
+Note: the `CLAUDE.md` layer-map / Build-&-run update for the new `Infrastructure/Tex` seam + `lib/tex/` assets
++ the `lualatex` dependency is **deferred to Milestone E** (the docs milestone).
 
 ## Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally  ✅ done  (`Infrastructure`: `Text/MarkdownBlockParser`, `Export/MarkdownAttributedRenderer` + `Export/OOXMLDocument`; `Presentation`: `Components/MarkdownText`)
 

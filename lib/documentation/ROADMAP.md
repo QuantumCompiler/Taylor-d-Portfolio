@@ -533,12 +533,12 @@ a clear note), like the `claude` CLI. Milestones **restart at A**; commit as `v0
 **DOCX-from-LaTeX** (the repo's `tex2docx.py` → pandoc path) is out of scope. `TODO.md` has the granular
 breakdown + open calls.
 
-- [ ] **Milestone A — Bundle the awesome-cv LaTeX assets.** Ship the presentation assets `lualatex` compiles
-      against inside the app bundle — the three `Class/*.cls`, `fonts/`, `Images/`, and `fontawesome*.sty` —
-      under `lib/src/Infrastructure/Tex/Resources/`, with a `TexAssets` accessor that resolves them at
-      runtime. Content sections are **not** bundled (the app supplies content per job). Seam:
-      `Infrastructure/Tex` (new) + an Xcode bundling step for non-Swift resources (open call). On-device: n/a
-      (packaging).
+- [x] **Milestone A — Bundle the awesome-cv LaTeX assets.** ✅ **Done.** Ships the presentation assets `lualatex`
+      compiles against inside the app bundle — the three `Class/*.cls`, `fonts/`, `Images/`, and
+      `fontawesome*.sty` — as a **blue folder reference** (`lib/tex/` → `…app/Contents/Resources/tex/`, structure
+      preserved), with a `nonisolated` `TexAssets` accessor resolving/validating them at runtime. Content
+      sections are **not** bundled. Seam: `Infrastructure/Tex` (new) + a `project.pbxproj` folder reference (the
+      open call, resolved to a folder reference over a sync-group exception). On-device: n/a (packaging).
 - [ ] **Milestone B — `LaTeXCompiling` port + `LaTeXProcessClient`.** The compile engine, mirroring
       `ClaudeProcessClient`: stage the bundled assets + generated `.tex` into an app-owned temp dir, run
       `lualatex` twice (`-interaction=nonstopmode -halt-on-error`), return PDF `Data`, clean aux, surface the
