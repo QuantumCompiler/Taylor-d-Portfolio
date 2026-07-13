@@ -41,8 +41,10 @@ Four stages, run locally on the user's Mac:
    dismisses). Then, from the **Tracker**, the app generates a tailored resume and cover
    letter for a saved job, grounded strictly in the real portfolio (ROADMAP v0.3.0 Milestone
    V). The user can then **export** those materials — copy them, or save as Markdown, PDF,
-   or DOCX (see ROADMAP v0.3.0 Milestone Q). Export renders natively on-device; it never
-   alters the grounded content.
+   or DOCX (native, on-device — see ROADMAP v0.3.0 Milestone Q). A **second, high-fidelity PDF
+   path** (v0.5.1) renders the résumé and cover letter as their **own** documents through Taylor's
+   awesome-cv LaTeX classes, compiled with `lualatex` (an optional external dependency, like the
+   `claude` CLI); the raw `.tex` source can also be exported. Export never alters the grounded content.
 
 Alongside search, the user can also paste a **specific job-posting URL** (or the
 posting text, when a page can't be fetched); the app extracts it into the same

@@ -255,6 +255,11 @@ lib/src/
     Embedding/    EmbeddingClient      (roadmap)
     Store/        KeyValueStore, UserDefaultsStore,
                   PersistentRecordStore, SwiftDataRecordStore (+ StoredRecord @Model)
+    Process/      ProcessSupport        (shared PATH-widening + executable location for the
+                  external-process clients — `claude` and `lualatex`)
+    Tex/          TexAssets, LaTeXCompiling + LaTeXProcessClient, TexDocumentBuilder
+                  (v0.5.1 awesome-cv LaTeX PDF route: resolve the bundled `lib/tex/` classes/fonts,
+                  render an ApplicationKit into `.tex`, shell `lualatex` to compile it)
 ```
 
 Enforce the dependency rule at review time. Optional but recommended later: make
@@ -282,10 +287,16 @@ Because the two synchronized roots are `lib/src` and `lib/tests` (siblings), the
 picks up test files even though both sit under `lib/`. Add a new source or test file by simply
 creating it in the right folder; there's nothing to wire in `project.pbxproj`.
 
-More folders live under `lib/`. The two config folders are explicit file references (**not**
+More folders live under `lib/`. The config folders are explicit file references (**not**
 synchronized groups, so they're not compiled into any target); `documentation/` isn't in the Xcode
 project at all:
 
+- **`lib/tex/`** — the awesome-cv **LaTeX presentation assets** the `lualatex` PDF route compiles
+  against (v0.5.1): the three `Class/*.cls`, `fonts/`, `Images/`, and `fontawesome*.sty`, copied from
+  Taylor's `Resume-And-Cover-Letter` repo. Added to the app target's **Resources** build phase as a
+  **blue folder reference** (kept out of the synchronized `lib/src` root to avoid a group conflict), so
+  the whole tree ships verbatim at `…app/Contents/Resources/tex/`; `Infrastructure/Tex/TexAssets` resolves
+  it. Only **presentation** assets — never content sections.
 - **`lib/xcode/Info.plist`** — the app's base Info.plist (custom build-time keys only;
   `GENERATE_INFOPLIST_FILE` still merges Xcode's generated keys on top). Wired via the app target's
   `INFOPLIST_FILE = lib/xcode/Info.plist` build setting.
@@ -349,14 +360,19 @@ xcodebuild test -project "Taylor'd Portfolio.xcodeproj" -scheme "Taylor'd Portfo
 ## Build & run
 
 - **App Sandbox is OFF** for the app target (`ENABLE_APP_SANDBOX = NO`). This is
-  deliberate: the `claude -p` provider launches an external binary, which a sandboxed
-  app can't do (it fails with "Operation not permitted"). Unsandboxed, both the Claude
-  CLI and Adzuna HTTP work, and Foundation Models still works. Trade-off: no Mac App
-  Store distribution — fine for a personal/dev tool. (`ENABLE_OUTGOING_NETWORK_CONNECTIONS
-  = YES` is kept for when/if the sandbox is re-enabled, but is moot while unsandboxed.)
-- The `claude -p` provider needs the `claude` CLI installed and on a resolvable path.
-  GUI apps inherit a minimal `PATH`, so `ClaudeProcessClient` widens it
-  (`searchPATH`) to include `~/.local/bin`, Homebrew, and npm-global before launching.
+  deliberate: the `claude -p` provider (and, since v0.5.1, `lualatex`) launches an external
+  binary, which a sandboxed app can't do (it fails with "Operation not permitted"). Unsandboxed,
+  the Claude CLI, `lualatex`, and Adzuna HTTP all work, and Foundation Models still works.
+  Trade-off: no Mac App Store distribution — fine for a personal/dev tool.
+  (`ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES` is kept for when/if the sandbox is re-enabled, but is
+  moot while unsandboxed.)
+- **Two optional external binaries.** The `claude -p` provider needs the `claude` CLI installed on a
+  resolvable path; the v0.5.1 **awesome-cv LaTeX PDF export** needs a TeX install providing `lualatex`
+  (MacTeX / TeX Live). GUI apps inherit a minimal `PATH`, so the shared `ProcessSupport.searchPATH`
+  widens it — `~/.local/bin`, Homebrew, npm-global for `claude`; plus `/Library/TeX/texbin` and TeX Live
+  dirs for `lualatex`. **Both are optional**: absent, the app still runs — the Claude engine falls back
+  to on-device, and the LaTeX export route is disabled (Settings → About shows whether `lualatex` was
+  found; the native Core Text PDF / DOCX / Markdown exports always work).
 - **Adzuna credentials are build-time secrets, not settings.** Copy
   `lib/secrets/Secrets.example.xcconfig` → `lib/secrets/Secrets.xcconfig` (same folder;
   gitignored) and fill in `ADZUNA_APP_ID` / `ADZUNA_APP_KEY`. They flow

@@ -521,7 +521,7 @@ subprocess runs in a neutral directory (no more spurious Photos/Music privacy pr
       temperature, on-device only). On-device: yes (local presets; prompt-driven fidelity keeps both engines
       in lockstep).
 
-## v0.5.1 — LaTeX résumé & cover letter output  (in progress)
+## v0.5.1 — LaTeX résumé & cover letter output  (complete)
 
 A **patch release** on top of shipped v0.5.0 that adds a **second, high-fidelity PDF output path**: render the
 generated `ApplicationKit` into `.tex` against Taylor's own **awesome-cv LaTeX classes** and compile it with
@@ -562,11 +562,11 @@ breakdown + open calls.
       compile spinner, and an error/overflow banner. One-page gate reconciled to the compiled PDF's real page
       count. Verified by a guarded real end-to-end compile through the use case. Seam: Business + Presentation.
       On-device: yes (compile needs the local TeX install).
-- [ ] **Milestone E — Availability surfacing, docs, release hygiene.** Surface whether `lualatex` is detected
-      (Settings → About), document the new optional dependency + `Infrastructure/Tex/` seam in `CLAUDE.md`
-      (Build & run + layer map), note the LaTeX PDF path in `SPEC.md`, add the v0.5.1 summary to `README.md`
-      on ship, and confirm `MARKETING_VERSION` = `0.5.1` (bumped at kickoff). Seam: docs + a local availability
-      read. On-device: n/a.
+- [x] **Milestone E — Availability surfacing, docs, release hygiene.** ✅ **Done.** `lualatex` availability shows
+      in Settings → About (probed in `Composition`, flagged on `SettingsViewModel`); `CLAUDE.md` documents the
+      second optional binary + `Infrastructure/Process/` + `Infrastructure/Tex/` + `lib/tex/`; `SPEC.md` notes
+      the LaTeX PDF path; `README.md` has the v0.5.1 summary and a forward-pointing Next line;
+      `MARKETING_VERSION` = `0.5.1`. Seam: Presentation (read-only display) + docs. On-device: n/a.
 - [x] **Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally.** ✅ **Done.**
       An **independent bug fix** to the existing native renderer (not part of the LaTeX path): the generated
       Markdown's `---` section separators print as literal `---` in the PDF/DOCX/preview because
@@ -598,23 +598,15 @@ breakdown + open calls.
       base prompt); threaded through `GenerateToTargetUseCase` + `ApplicationViewModel` + `ApplicationSheet`.
       Steers emphasis/framing only — grounding + fidelity rules still bind. Seam: Data (`GenerationSettings`,
       `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device: yes.
-- [ ] **Milestone I — Additional-context box on the generate / regenerate flow.** Add a free-text field to the
-      Application view's "Generation options" panel for extra guidance to the model (e.g. "emphasize my EV
-      Charging leadership"), behaving like the Portfolio "Regenerate description" prompt
-      (`refineSummary(…instruction:)`) but feeding **application** generation. Threads from
-      `ApplicationSheet.generationControlsPanel` → `ApplicationViewModel.generate(...)` / `generateToTarget`
-      → `GenerateApplicationUseCase` → `LLMProvider.generateApplication(…settings:)` → `Prompts` (a grounded
-      "additional guidance" block). **Open call:** carry it on `GenerationSettings` (recommended — no new
-      overload — but excluded from preset save) vs. a separate transient param. Guardrail: steers
-      emphasis/framing, never fabrication (same grounding + fidelity rules). Seam: Presentation + Business +
-      Data (`GenerationSettings`/`Prompts`). On-device: yes (prompt text, both engines via shared `Prompts`).
 
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
-  & shell), **v0.4.1** (fixes & refinements), and **v0.5.0** (document generation fixes) are complete;
-  **v0.5.1** (LaTeX résumé & cover letter output) is **in progress** (above).
+  & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), and **v0.5.1** (LaTeX
+  résumé & cover letter output) are all complete. **The next version is unstarted** — its number and theme are
+  chosen when development on it begins (see `CLAUDE.md` → "Never pre-name the next version"); pull a theme from
+  Backlog (native `LanguageModel` provider seam, on-device embedding RAG, or optional MCP tools).
 - **C-structured résumé (v0.5.1 fast-follow).** If the Milestone C Markdown-parse fidelity proves too coarse,
   add a `@Generable` structured résumé representation (sections → entries with org/location/date, projects,
   skill buckets) that generation emits and `TexDocumentBuilder` renders faithfully — full awesome-cv fidelity.

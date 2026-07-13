@@ -166,3 +166,73 @@ context window: bound the injected source-document text (as `Prompts` already do
 existing `PortfolioGrounding` seam; no new generation seam. Sized like a milestone or two; could ride a future
 `.0` or a patch. Not part of v0.5.1. Composes with the "Richer job postings" entry above (better result data =
 more for the source documents to be tailored against).
+
+---
+
+## Regenerate result — re-rank & re-enrich a saved job against a chosen profile
+
+**What / why.** Mirror the **regenerate application** flow (Generate/Regenerate on the Application view) with a
+**regenerate result** action on a saved job. It re-runs the fit assessment — and, where available, the posting
+**enrichment** — for an existing result against a **chosen profile**, so the user can refresh a stale result.
+The motivating case: **legacy entries** carried over from the old version of the app were ranked against a
+different/older profile and lack the richer posting fields; "regenerate result" lets the user re-rank them
+against a current profile and **fill out more info about the job posting**. Like the profile-summary
+regeneration (`refineSummary`) and the application generation (v0.5.1 Milestone I), it also takes an
+**additional-context** field to steer the re-assessment (e.g. "weight my Go backend experience", "read this
+role as platform-focused").
+
+**What a "result" is.** A `RankedJob` (`Data/Models/RankedJob.swift`) = a `JobListing` + its `JobMatch`
+(`Data/Models/JobMatch.swift`: `score` / `reason` / `matchedSkills` / `missingSkills`). "Regenerate result"
+refreshes the **`JobMatch`** (re-rank) and optionally the **`JobListing`** (re-enrich — see the "Richer job
+postings" entry), then persists the updated `RankedJob`.
+
+**Seam + files.**
+- **Business — a `RegenerateResultUseCase`.** Re-rank one saved job against the chosen profile and persist.
+  Ranking today is **batch + context-free**: `JobRanker.rank(_:for:)` (`Business/Ranking/JobRanker.swift:44`)
+  → `LLMProvider.rank(jobs:against:profile:)` (`Data/LLM/LLMProvider.swift:21`) → `[JobMatch]`. Add a
+  **single-job re-rank that accepts an optional instruction**: a new
+  `rank(job:against:profile:instruction:)`-style `LLMProvider` overload (forwarding default, exactly how
+  `generateApplication` grew `grounding:`/`settings:`) + a `Prompts` "additional guidance" block, or reuse the
+  batch `rank` with a one-element array when no context is given.
+- **Data/LLM — enrichment (optional, composes).** If the "Richer job postings" entry has landed, regenerate
+  also runs the `enrichPosting` pass to backfill job type / work type / qualifications / about-role/company on
+  the legacy `JobListing`. If that entry hasn't shipped, regenerate is **re-rank only** — the two are
+  independent slices.
+- **Persistence — latest-wins upsert.** Save the refreshed `RankedJob` via
+  `SavedJobsRepository.save([RankedJob])` (`Data/Persistence/SavedJobsRepository.swift:26`, upsert by
+  `JobListing.id`) — reusing `SaveResultsUseCase`. Overwrites the old match/enrichment in place.
+- **Presentation — the action.** A **"Regenerate result"** button on `JobDetailView`
+  (`Results/View/JobDetailView.swift`, shown from Results **and** Tracker), with a **profile picker** (shared
+  with the "Select a profile at generation time" entry) + an **additional-context** text box (shared UI
+  pattern with Milestone I and `refineSummary`). On completion the row's score/reason/skills badges and the
+  detail view refresh via the existing cross-window refresh signal (`AppSession`). Wire a
+  `RegenerateResultUseCase` into `Composition` and the relevant ViewModel (`ResultsViewModel` /
+  `TrackerViewModel` / a small detail VM).
+
+**Open calls (recommendations to settle when scheduled).**
+- **What it refreshes.** Re-rank only, or re-rank **and** re-enrich? *Recommended:* re-rank always; re-enrich
+  when the "Richer job postings" fields exist (gate on that feature). Ship re-rank first if postings aren't
+  richer yet.
+- **Per-result vs. bulk.** A per-result manual "Regenerate result" (this entry) vs. a bulk "re-rank all legacy
+  entries against profile X". *Recommended:* per-result first (explicit, cheap, one LLM call); a bulk
+  backfill is a later convenience (mind Adzuna/LLM cost + the on-device context window).
+- **History vs. overwrite.** *Recommended:* latest-wins overwrite of the saved `RankedJob` (consistent with how
+  `ApplicationKit` persists), not a match history.
+- **Legacy detection.** Optionally flag results that predate the richer schema (a "needs refresh" hint).
+  *Recommended:* decode-with-defaults means legacy jobs load with empty richer fields — surface a subtle
+  "re-rank to update" affordance rather than auto-regenerating.
+
+**Guardrail.** Re-ranking **re-assesses fit honestly** against the real profile (it may raise *or lower* the
+score); enrichment **structures what the posting says**, never invents requirements or company facts. The
+additional-context steers **emphasis/interpretation**, not fabrication — same discipline as everywhere else.
+
+**On-device.** Yes — re-rank + enrich are LLM work on the chosen engine (on-device-friendly; Claude when
+selected); persistence is local. Bound the posting + profile text for the context window, as ranking/grounding
+already do. No network beyond the normal model call (plus the optional full-page fetch if enrichment pulls the
+full posting).
+
+**Scope note.** Moderate — **Presentation** (detail action + shared profile picker + context field) +
+**Business** (`RegenerateResultUseCase`) + **Data/LLM** (a single-job re-rank overload + `Prompts`; enrichment
+optional) + a persistence upsert. **Strongly composes** with the two entries above — it reuses the profile
+picker (profile-at-generation) and the enrichment pass (richer postings) and shares the additional-context
+pattern with Milestone I. Not part of v0.5.1.

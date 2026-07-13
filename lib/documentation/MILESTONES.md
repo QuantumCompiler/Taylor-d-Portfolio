@@ -1963,6 +1963,35 @@ Seam: Business + Presentation. On-device: yes for the app logic; the compile nee
 **Device check (awaiting):** actually saving a "PDF — Portfolio (LaTeX)" / ".tex" file from the running app's
 Export menu (the tests prove the compile + wiring; the file dialog is a manual step).
 
+## Milestone E — Availability surfacing, docs, and release hygiene  ✅ done  (`Presentation`: `SettingsViewModel`, `SettingsView`, `Composition`; docs)
+
+Goal: make the new `lualatex` dependency legible and bring the docs to a shipped state.
+
+- [x] **Availability in Settings → About.** `SettingsViewModel` gains a `latexAvailable` flag (probed once in
+      `Composition` via `LaTeXProcessClient().isAvailable`, per the composition-root convention); the About pane
+      shows "LaTeX output: available" or an "install a TeX distribution (MacTeX)" hint.
+- [x] **`CLAUDE.md`.** Documented `lualatex` as a **second optional external binary** (Build & run, beside the
+      `claude` CLI, sharing `ProcessSupport.searchPATH`), added `Infrastructure/Process/` + `Infrastructure/Tex/`
+      to the layer map, and described `lib/tex/` (the bundled awesome-cv assets as a blue folder reference).
+- [x] **`SPEC.md`.** Noted the awesome-cv LaTeX PDF (+ `.tex` source) as a second export path in the core flow.
+- [x] **`README.md`.** Added the v0.5.1 summary under Version history; the **Next:** line points forward
+      without a number (per "never pre-name the next version").
+- [x] **Release hygiene.** `MARKETING_VERSION` = `0.5.1` (4 copies, bumped at kickoff); About reads 0.5.1.
+
+Seam: Presentation (a read-only availability display) + docs. On-device: n/a (a local availability read).
+
+---
+
+**v0.5.1 — LaTeX résumé & cover letter output is complete** (Milestones A–I). A: the awesome-cv presentation
+assets ship in the bundle (`lib/tex/`). B: `LaTeXCompiling` + `LaTeXProcessClient` shell `lualatex`. C:
+`TexDocumentBuilder` renders an `ApplicationKit` into `.tex` matching the hand-authored layout (order, spacing,
+`cventries`/`cventry`/`cvproject`, `cvskills`). D: the async export route + "PDF — Portfolio (LaTeX)" / ".tex"
+items in the Application-sheet menu. E: availability surfacing + docs. Plus the independent refinements — F
+(Markdown `---` → real rule), G (résumé & cover letter as separate documents), H (Tracker sort), I
+(additional-context box). `lualatex` is an optional external dependency (like the `claude` CLI); the native
+exports are untouched. The project version is **0.5.1**. Carried device checks: v0.5.0's list, plus saving a
+LaTeX PDF / `.tex` from the Export menu on a machine with TeX installed.
+
 ## Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally  ✅ done  (`Infrastructure`: `Text/MarkdownBlockParser`, `Export/MarkdownAttributedRenderer` + `Export/OOXMLDocument`; `Presentation`: `Components/MarkdownText`)
 
 Goal: the generated résumé/cover-letter Markdown uses `---` as section separators, but every native renderer

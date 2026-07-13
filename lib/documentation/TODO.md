@@ -9,88 +9,36 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.5.1 — LaTeX résumé & cover letter output.** v0.1.0–v0.5.0 are all done and merged (see
-> `MILESTONES.md`). v0.5.1 is a **patch release** on top of shipped v0.5.0 that gives the app a **second,
-> high-fidelity PDF output path**: generate a `.tex` document from Taylor's own **awesome-cv LaTeX classes**
-> and compile it with **`lualatex`** (shelled as an external process, exactly like the `claude -p` provider),
-> producing résumé + cover letter PDFs that match the ones he builds by hand in his `Resume-And-Cover-Letter`
-> repo. Milestones **restart at A**; commits are `v0.5.1 : Milestone X Completed`.
+> **Current focus. v0.5.1 — LaTeX résumé & cover letter output — complete and ready to merge.** All of
+> v0.1.0–v0.5.1 are done (see `MILESTONES.md`). v0.5.1 added the awesome-cv **LaTeX PDF export** path (A–E:
+> bundled assets → `lualatex` compile engine → `TexDocumentBuilder` → wired export menu → availability + docs)
+> plus independent refinements (F: Markdown `---` renders as a rule; G: résumé & cover letter as separate
+> documents; H: Tracker sort; I: additional-context box). Full suite green (479 tests). **The next version is
+> unstarted** — its number and theme aren't decided until development on it begins (see `CLAUDE.md` → "Never
+> pre-name the next version"). At the next planning session, pick a theme from `ROADMAP.md`'s Backlog (native
+> `LanguageModel` provider seam, on-device embedding RAG, or optional MCP tools), assign the version number +
+> bump the project version, and break it into Milestone A, B, C… below.
 >
-> **✅ Done so far (see `MILESTONES.md`):** the four independent refinements — **F** (Markdown `---` renders as
-> a real rule), **G** (résumé & cover letter export as separate documents), **H** (a Tracker sort control),
-> **I** (an additional-context box on generate/regenerate) — plus **A** (awesome-cv assets ship in the bundle
-> as `lib/tex/`, resolved by `TexAssets`) and **B** (`LaTeXCompiling` + `LaTeXProcessClient` — shells
-> `lualatex`, verified with a real compile). Full suite green (457 tests).
->
-> **Remaining: only Milestone E.** A–D are done — the LaTeX pipeline is fully wired and **user-reachable**
-> (Export menu → "PDF — Portfolio (LaTeX)" / "LaTeX source (.tex)"), verified by real end-to-end compiles.
-> **Milestone E** is the finish: surface `lualatex` availability (Settings → About), land the deferred
-> `CLAUDE.md` (new `Infrastructure/Tex` + `Infrastructure/Process` seams, `lib/tex/` assets, the `lualatex`
-> optional dependency) and `SPEC.md`/`README.md` doc updates, and confirm release hygiene (`MARKETING_VERSION`
-> = 0.5.1). After E, v0.5.1 is merge-ready.
->
-> **Release type (noted).** This is feature-sized work carried as a **patch (`v0.5.1`)** at Taylor's
-> choice; the number and branch are fixed. Kickoff hygiene (below) is done: `MARKETING_VERSION` bumped to
-> `0.5.1` (4 copies).
->
-> **⚠️ Awaiting device checks (v0.5.0, carried forward)** — verify on a real run: job detail + Application
-> open as **separate windows** (B); marking status / saving / generating in a window refreshes the
-> main-window Results/Tracker lists (B-A revision token); **explicit Generate** button with the options panel
-> (no auto-generate on open); **fidelity** + **aspect** checkboxes visibly shift the output; **presets** save
-> / apply / delete; **embellished** mode shows the disclosures + "verify before sending"; the **rank-target**
-> loop converges and greys out fidelity/aspects; swipe-to-save/delete on Results and remove-from-Tracker
-> (return to Results / delete); and the Claude engine no longer triggers spurious Photos/Music privacy
-> prompts. Also confirm Settings → About now reads **0.5.1**.
+> **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
+> open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
+> Results/Tracker lists; **explicit Generate** with the options panel; **fidelity** + **aspect** checkboxes
+> shift the output; **presets** save/apply/delete; **embellished** mode shows the disclosures; the
+> **rank-target** loop converges; swipe-to-save/delete on Results and remove-from-Tracker; and no spurious
+> Photos/Music privacy prompts. **(v0.5.1)** the Export menu's **"PDF — Portfolio (LaTeX)"** and **"LaTeX
+> source (.tex)"** items produce a correct awesome-cv PDF / `.tex` on a machine with `lualatex` installed
+> (matching the hand-built layout), the LaTeX PDF item is absent when TeX isn't found, résumé & cover letter
+> export as **separate** files, the Tracker **sort** bar reorders rows, the additional-context box steers a
+> regeneration, and Settings → About shows LaTeX availability + reads **0.5.1**.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
 
 ---
 
-# v0.5.1 — LaTeX résumé & cover letter output  (in progress)
+# Next version — (unstarted; number + theme TBD)
 
-**The theme.** Taylor maintains a polished LaTeX pipeline (`~/…/Employment/Resume-And-Cover-Letter/`): a
-custom **awesome-cv** derivative where `Class/*.cls` hold the presentation, curated `.tex` sections hold the
-content, and a `PortfolioBuddy` script compiles them with **`lualatex`** (two passes) into dense, one-page
-résumé + cover-letter PDFs. The app already ported that repo's *prompt discipline* (two-stage brief → tailored
-generation) and does its own **native** export (Core Text PDF, hand-rolled OOXML DOCX — Milestones Q/X). What
-it can't do is produce the **awesome-cv look**. v0.5.1 closes that gap by **path B**: render the generated
-`ApplicationKit` into `.tex` against the bundled classes and shell `lualatex` to compile it — a second export
-route beside the existing Core Text one, not a replacement.
-
-**The new seam, end to end:** `ApplicationKit` (already generated) → **`TexDocumentBuilder`** (Markdown → `.tex`,
-Milestone C) → **`LaTeXProcessClient`** behind a **`LaTeXCompiling`** port (shell `lualatex` twice in a temp
-dir, Milestone B) → PDF `Data` surfaced through the export menu (Milestone D). The awesome-cv **assets** it
-compiles against ship in the app bundle (Milestone A). `lualatex` becomes an **optional external dependency**,
-exactly like the `claude` CLI: present → the awesome-cv PDF is offered; absent → the route is disabled with a
-clear "TeX not found" note, and every existing export (native PDF / DOCX / Markdown) is untouched.
-
-**Milestones restart at A.** Each is independently committable. A–E build the LaTeX output path; **Milestone
-F** (Markdown `---` printing literally) and **Milestone G** (résumé & cover letter as separate export files)
-are standalone fixes to the *existing* native export path; **Milestone H** adds a Tracker sort control
-(Presentation-only, mirroring the Results filter); **Milestone I** adds a free-text additional-context box to
-the generate/regenerate flow. **DOCX-from-LaTeX** (the repo's `tex2docx.py` → pandoc path) is **out of scope**
-— the app already has native DOCX; a LaTeX-driven DOCX is a later idea.
-
-## Milestone E — Availability surfacing, docs, and release hygiene
-
-**What / why.** Make the new dependency legible and bring the docs to a shipped state.
-
-**Sub-tasks.**
-- [ ] **Availability in the UI** — surface whether `lualatex` is detected (Settings → About note, or beside
-      the export menu). Reuse the Milestone B probe; **(open call)** where it lives — **recommended:** a
-      one-line status in **Settings → About** ("LaTeX output: available / install MacTeX to enable"), since
-      About already reports environment/version.
-- [ ] **`CLAUDE.md`** — document `lualatex` as a **second optional external binary** (Build & run, beside the
-      `claude` CLI + PATH note), add `Infrastructure/Tex/` to the layer map + Suggested file layout, and note
-      the bundled `Resources/` assets. *(Land with the code, per the working process.)*
-- [ ] **`SPEC.md`** — note the awesome-cv LaTeX PDF as a second export path under the core flow's "export"
-      step (Core-flow §4 / Milestone Q reference).
-- [ ] **`README.md`** — add the v0.5.1 one-paragraph summary under Version history when shipping; the
-      **Next:** line already points here (updated at kickoff).
-- [ ] **Release hygiene (done at kickoff):** `MARKETING_VERSION` → `0.5.1` (4 copies) ✅. Confirm the built
-      app's About reads **0.5.1**.
-
-**Tests.** N/A beyond the availability probe (covered in B). Docs pass is non-code.
-
-**On-device.** N/A (docs + a local availability read).
+**Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its
+**number and theme aren't chosen until development starts** — Taylor decides then, so don't pre-name it here
+(see `CLAUDE.md` → "Never pre-name the next version"). At kickoff, pick a theme from `ROADMAP.md`'s Backlog
+(native `LanguageModel` provider seam, on-device embedding RAG, optional MCP tools), assign the version
+number, bump `MARKETING_VERSION`, and break it into Milestone A, B, C… here before starting.

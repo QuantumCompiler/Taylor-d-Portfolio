@@ -212,7 +212,8 @@ struct Composition {
         )
     }
     func makeSettingsViewModel() -> SettingsViewModel {
-        .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured)
+        .init(store: settingsStore, adzunaConfigured: isAdzunaConfigured,
+              latexAvailable: LaTeXProcessClient().isAvailable)
     }
     func makeApplicationViewModel() -> ApplicationViewModel {
         .init(
