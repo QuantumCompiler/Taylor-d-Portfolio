@@ -112,9 +112,11 @@ Rounds out the tailored résumé + cover letter experience and the control the u
   subprocess runs in a neutral directory so it no longer triggers spurious Photos/Music privacy prompts.
   *(Milestones A–D + fixes.)*
 
-**Next:** the next version's number and theme are decided when development on it starts. Likely candidates
-come from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional
-MCP tool layer.
+**Next:** **v0.5.1 — LaTeX résumé & cover letter output** (in progress) — a second, high-fidelity PDF path
+that renders the generated application into `.tex` against Taylor's awesome-cv classes and compiles it with
+`lualatex` (an optional external dependency, like the `claude` CLI), matching the PDFs he builds by hand.
+Later candidates come from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or
+an optional MCP tool layer.
 
 ## Build & run
 
