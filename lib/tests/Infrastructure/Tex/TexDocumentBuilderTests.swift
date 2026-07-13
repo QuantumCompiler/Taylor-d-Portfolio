@@ -83,21 +83,75 @@ struct TexDocumentBuilderTests {
 
     // MARK: Résumé structure
 
-    @Test func resumeEmitsDriverSectionsEntriesAndSkills() {
+    @Test func resumeEmitsDriverEntriesAndSkillsInAwesomeCVMacros() {
         let tex = TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown)
         #expect(tex.contains("\\documentclass[6pt]{Class/Resume}"))
         #expect(tex.contains("\\makecvheader"))
         #expect(tex.contains("\\position{iOS Engineer — SwiftUI · MVVM · Applied AI}"))   // bold headline
         #expect(tex.contains("\\cvsection{Experience}"))
-        #expect(tex.contains("\\begin{cvskills}"))
-        #expect(tex.contains("\\cvskill{iOS Engineering}{SwiftUI, MVVM, async/await}"))
+        // Entries use \begin{cventries} + \cventry, split into position/org and location/date.
+        #expect(tex.contains("\\begin{cventries}"))
+        #expect(tex.contains("\\cventry"))
+        #expect(tex.contains("{iOS Engineer}"))
+        #expect(tex.contains("{NRG Energy / Vivint}"))
+        #expect(tex.contains("{Lehi, UT}"))
+        #expect(tex.contains("{Jun. 2025 – Present}"))          // date kept whole (split on middot, not dash)
         #expect(tex.contains("\\begin{cvitems}"))
         #expect(tex.contains("\\item {Design \\& implement"))   // bullet + escaped ampersand
-        #expect(tex.contains("\\entrytitlestyle{iOS Engineer — NRG Energy / Vivint}"))
-        #expect(tex.contains("\\entrydatestyle{Lehi, UT · Jun. 2025 – Present}"))
+        // Skills grid uses the résumé's \arraystretch + \cvskill.
+        #expect(tex.contains("\\renewcommand{\\arraystretch}{0.7}"))
+        #expect(tex.contains("\\begin{cvskills}"))
+        #expect(tex.contains("{iOS Engineering}"))
+        #expect(tex.contains("{SwiftUI, MVVM, async/await}"))
         #expect(tex.hasSuffix("\\end{document}\n"))
-        // The redundant contact line (class header owns it) isn't rendered.
-        #expect(!tex.contains("tj@example.com"))
+        #expect(!tex.contains("tj@example.com"))                // redundant contact line dropped
+        #expect(!tex.contains("\\entrytitlestyle{iOS Engineer — NRG"))   // no longer the bare-style approach
+    }
+
+    @Test func resumeReordersSectionsSpacesThemAndLeadsWithSummary() {
+        let tex = TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown)
+        // Canonical order: Experience (1) before Core Skills (3), though the Markdown had Skills first.
+        let experience = tex.range(of: "\\cvsection{Experience}")
+        let skills = tex.range(of: "\\cvsection{Core Skills}")
+        #expect(experience != nil && skills != nil && experience!.lowerBound < skills!.lowerBound)
+        // Per-section \vspace tweaks, matching the hand-authored section files.
+        #expect(tex.contains("\\vspace{-1.5em}\n\\cvsection{Experience}"))
+        #expect(tex.contains("\\vspace{-0.5em}\n\\cvsection{Core Skills}"))
+        // Summary renders as a lead paragraph, not a titled section.
+        #expect(!tex.contains("\\cvsection{Summary}"))
+        #expect(tex.contains("\\paragraphstyle Mid-level iOS engineer"))
+        // The dash-free entry helpers are injected.
+        #expect(tex.contains("\\newcommand{\\cvprojectsolo}"))
+    }
+
+    @Test func entryFieldSplittingSeparatesTitleAndLocationDate() {
+        #expect(TexDocumentBuilder.splitOnSeparator("iOS Engineer — NRG Energy")! == ("iOS Engineer", "NRG Energy"))
+        #expect(TexDocumentBuilder.splitOnSeparator("no separator here") == nil)
+        // Location/date splits on the middot — NOT the date range's dash.
+        let split = TexDocumentBuilder.splitLocationDate("Lehi, UT · Jun. 2025 – Present")
+        #expect(split.location == "Lehi, UT")
+        #expect(split.date == "Jun. 2025 – Present")
+        #expect(TexDocumentBuilder.looksDated("Jun. 2025 – Present"))
+        #expect(TexDocumentBuilder.looksDated("Creator & Lead Developer") == false)
+    }
+
+    @Test func canonicalOrderAndSpacingMatchTheManual() {
+        #expect(TexDocumentBuilder.canonicalOrder("Education") == 0)
+        #expect(TexDocumentBuilder.canonicalOrder("Work Experience") == 1)
+        #expect(TexDocumentBuilder.canonicalOrder("Projects") == 2)
+        #expect(TexDocumentBuilder.canonicalOrder("Core Skills") == 3)
+        #expect(TexDocumentBuilder.canonicalOrder("Awards") == 4)
+        #expect(TexDocumentBuilder.sectionVSpace("Education") == "-1em")
+        #expect(TexDocumentBuilder.sectionVSpace("Experience") == "-1.5em")
+        #expect(TexDocumentBuilder.sectionVSpace("Qualifications") == "-0.5em")
+    }
+
+    @Test func projectsWithoutDatesUseCvproject() {
+        // A projects section (no dated subtitles) → \cvproject / \cvprojectsolo, not \cventry.
+        let md = "## Projects\n### Formulator Pro\n- Cross-platform Electron app.\n\n### Ommi\nCreator & Lead Developer\n- Go AI platform."
+        let tex = TexDocumentBuilder.resume(fromMarkdown: md)
+        #expect(tex.contains("\\cvprojectsolo\n    {Formulator Pro}"))     // no role → solo
+        #expect(tex.contains("\\cvproject\n    {Creator \\& Lead Developer}\n    {Ommi}"))  // role subtitle (& escaped)
     }
 
     @Test func coverLetterEmitsLetterSections() {

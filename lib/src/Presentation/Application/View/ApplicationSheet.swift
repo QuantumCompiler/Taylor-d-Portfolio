@@ -62,8 +62,19 @@ struct ApplicationSheet: View {
                                     Button("Word (.docx)") { startExport(document, .docx) }
                                     Button("Markdown (.md)") { startExport(document, .markdown) }
                                     Button("Plain Text (.txt)") { startExport(document, .plainText) }
+                                    Divider()
+                                    // The awesome-cv route (Milestone D): PDF needs a TeX install;
+                                    // the .tex source is deterministic and always offered.
+                                    if viewModel.canExportLaTeX(document) {
+                                        Button("PDF — Portfolio (LaTeX)") { startLaTeXExport(document) }
+                                    }
+                                    Button("LaTeX source (.tex)") { startTexExport(document) }
                                 }
                             }
+                        }
+                        if !viewModel.canExportLaTeX {
+                            Divider()
+                            Text("Portfolio PDF needs a TeX install (lualatex)")
                         }
                         Divider()
                         Picker("PDF template", selection: $viewModel.exportTemplate) {
@@ -77,6 +88,11 @@ struct ApplicationSheet: View {
                     .menuStyle(.borderlessButton)
                     .fixedSize()
                     .clickableCursor()
+
+                    if viewModel.isCompilingLaTeX {
+                        ProgressView().controlSize(.small)
+                            .help("Compiling the awesome-cv PDF with lualatex…")
+                    }
                 }
                 if viewModel.kit == nil {
                     Button("Generate application") { runGeneration() }
@@ -93,6 +109,7 @@ struct ApplicationSheet: View {
                     .clickableCursor()
             }
             lengthGateBanner
+            latexNotices
             generationControlsPanel
             embellishWarning
             rankOutcomeBanner
@@ -329,6 +346,50 @@ struct ApplicationSheet: View {
         exportContentType = format.contentType
         exportFilename = viewModel.exportFilename(for: document, format)
         isExporting = true
+    }
+
+    /// Compiles the awesome-cv PDF (async, via `lualatex`) then presents the save panel. On
+    /// failure the ViewModel sets `exportError`, surfaced by `latexNotices`.
+    private func startLaTeXExport(_ document: ApplicationDocument) {
+        Task {
+            guard let data = await viewModel.exportLaTeXPDF(document) else { return }
+            exportDocument = ExportFileDocument(data: data, contentType: .pdf)
+            exportContentType = .pdf
+            exportFilename = viewModel.exportFilename(for: document, .pdf)
+            isExporting = true
+        }
+    }
+
+    /// Exports the awesome-cv `.tex` **source** (no compile) for the PortfolioBuddy handoff.
+    private func startTexExport(_ document: ApplicationDocument) {
+        guard let data = viewModel.exportTexSource(document) else { return }
+        let texType = UTType(filenameExtension: "tex") ?? .plainText
+        exportDocument = ExportFileDocument(data: data, contentType: texType)
+        exportContentType = texType
+        exportFilename = viewModel.texFilename(for: document)
+        isExporting = true
+    }
+
+    /// Export-side advisories: a `lualatex` failure (with the log) and the compiled résumé's
+    /// real page count when it overflows — both distinct from the Core Text length gate.
+    @ViewBuilder private var latexNotices: some View {
+        if let error = viewModel.exportError {
+            noticeBanner(error, systemImage: "exclamationmark.triangle.fill")
+        }
+        if viewModel.latexResumeExceedsOnePage {
+            noticeBanner(
+                "The awesome-cv résumé compiled to \(viewModel.latexResumePages) pages — tighten the content to fit one page.",
+                systemImage: "doc.on.doc"
+            )
+        }
+    }
+
+    private func noticeBanner(_ text: String, systemImage: String) -> some View {
+        Label { Text(text).font(.caption).textSelection(.enabled) } icon: { Image(systemName: systemImage) }
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
     }
 
     /// Copies the assembled Markdown document to the clipboard.

@@ -31,6 +31,18 @@ private actor RecordingGenProvider: LLMProvider {
     }
 }
 
+/// A `LaTeXCompiling` stub for the awesome-cv export path (Milestone D).
+private final class VMStubCompiler: LaTeXCompiling, @unchecked Sendable {
+    let available: Bool
+    let result: Result<Data, Error>
+    init(available: Bool = true, result: Result<Data, Error> = .success(Data("%PDF".utf8))) {
+        self.available = available
+        self.result = result
+    }
+    var isAvailable: Bool { available }
+    func compile(tex: String, jobName: String) async throws -> Data { try result.get() }
+}
+
 @MainActor
 @Suite("ApplicationViewModel")
 struct ApplicationViewModelTests {
@@ -277,5 +289,66 @@ struct ApplicationViewModelTests {
                                         createdAt: Date(timeIntervalSince1970: 0)))
         #expect(vm.generationSettings.fidelity == 0.5)          // preset's controls applied
         #expect(vm.generationSettings.additionalContext == "")  // per-job free-text is not carried by presets
+    }
+
+    // MARK: Milestone D — awesome-cv LaTeX export
+
+    private func latexVM(compiler: any LaTeXCompiling) -> ApplicationViewModel {
+        ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: PresentationStubProvider(kitResume: "# Resume\nSwift dev")),
+            exportApplication: ExportApplicationUseCase(exporter: MarkdownDocumentExporter(), compiler: compiler)
+        )
+    }
+
+    @Test func laTeXExportGatingReflectsAvailabilityAndPresence() async {
+        let vm = latexVM(compiler: VMStubCompiler(available: true))
+        #expect(vm.canExportLaTeX == false)                     // no kit yet
+        await vm.generate(for: job, profile: profile)
+        #expect(vm.canExportLaTeX)                              // available + kit
+        #expect(vm.canExportLaTeX(.resume))                    // résumé present
+        #expect(vm.canExportLaTeX(.coverLetter) == false)      // stub produces no cover letter
+    }
+
+    @Test func laTeXUnavailableWhenCompilerReportsUnavailable() async {
+        let vm = latexVM(compiler: VMStubCompiler(available: false))
+        await vm.generate(for: job, profile: profile)
+        #expect(vm.canExportLaTeX == false)
+        #expect(vm.canExportLaTeX(.resume) == false)
+    }
+
+    @Test func exportLaTeXPDFReturnsBytesAndRecordsRealPageCount() async throws {
+        let realPDF = try PDFDocumentExporter().export(markdown: "# R\n\nbody", as: .pdf)   // a valid one-page PDF
+        let vm = latexVM(compiler: VMStubCompiler(result: .success(realPDF)))
+        await vm.generate(for: job, profile: profile)
+        let out = await vm.exportLaTeXPDF(.resume)
+        #expect(out == realPDF)
+        #expect(vm.latexResumePages == 1)
+        #expect(vm.latexResumeExceedsOnePage == false)
+        #expect(vm.exportError == nil)
+    }
+
+    @Test func exportLaTeXPDFSurfacesCompileErrors() async {
+        let vm = latexVM(compiler: VMStubCompiler(
+            result: .failure(LaTeXProcessError.nonZeroExit(code: 1, log: "! Undefined control sequence."))))
+        await vm.generate(for: job, profile: profile)
+        let out = await vm.exportLaTeXPDF(.resume)
+        #expect(out == nil)
+        #expect(vm.exportError?.contains("Undefined control sequence") == true)
+    }
+
+    @Test func texSourceExportsWithoutTeXButRespectsPresence() async {
+        let vm = latexVM(compiler: VMStubCompiler(available: false))   // no lualatex
+        await vm.generate(for: job, profile: profile)
+        let tex = vm.exportTexSource(.resume)
+        #expect(tex != nil)                                            // .tex source doesn't need a TeX install
+        #expect(String(decoding: tex ?? Data(), as: UTF8.self).contains("Class/Resume"))
+        #expect(vm.exportTexSource(.coverLetter) == nil)              // absent document
+        #expect(vm.texFilename(for: .resume).hasSuffix(" - Résumé.tex"))
+    }
+
+    @Test func pdfPageCountReadsRealPDFsAndDegradesToZero() throws {
+        let realPDF = try PDFDocumentExporter().export(markdown: "# R\n\nbody", as: .pdf)
+        #expect(ApplicationViewModel.pdfPageCount(realPDF) == 1)
+        #expect(ApplicationViewModel.pdfPageCount(Data("not a pdf".utf8)) == 0)
     }
 }

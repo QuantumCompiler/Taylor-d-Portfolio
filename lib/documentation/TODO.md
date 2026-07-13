@@ -22,12 +22,12 @@ doing.
 > as `lib/tex/`, resolved by `TexAssets`) and **B** (`LaTeXCompiling` + `LaTeXProcessClient` — shells
 > `lualatex`, verified with a real compile). Full suite green (457 tests).
 >
-> **Remaining: the LaTeX output path, D–E.** **C** is done (C-parse) — `TexDocumentBuilder` renders the
-> generated `ApplicationKit` into awesome-cv `.tex`, verified by a real compile. Next is **Milestone D** (wire
-> the **async** export route: `ExportApplicationUseCase.latex(...)` → builder → `LaTeXCompiling`, injected in
-> `Composition`, exposed as a "PDF — Portfolio (LaTeX)" item + a `.tex`-source export in the Application-sheet
-> menu, disabled when `lualatex` is absent; reconcile the one-page gate to the compiled PDF), then **E**
-> (availability surfacing + the deferred `CLAUDE.md`/`SPEC.md` docs + release hygiene).
+> **Remaining: only Milestone E.** A–D are done — the LaTeX pipeline is fully wired and **user-reachable**
+> (Export menu → "PDF — Portfolio (LaTeX)" / "LaTeX source (.tex)"), verified by real end-to-end compiles.
+> **Milestone E** is the finish: surface `lualatex` availability (Settings → About), land the deferred
+> `CLAUDE.md` (new `Infrastructure/Tex` + `Infrastructure/Process` seams, `lib/tex/` assets, the `lualatex`
+> optional dependency) and `SPEC.md`/`README.md` doc updates, and confirm release hygiene (`MARKETING_VERSION`
+> = 0.5.1). After E, v0.5.1 is merge-ready.
 >
 > **Release type (noted).** This is feature-sized work carried as a **patch (`v0.5.1`)** at Taylor's
 > choice; the number and branch are fixed. Kickoff hygiene (below) is done: `MARKETING_VERSION` bumped to
@@ -71,45 +71,6 @@ are standalone fixes to the *existing* native export path; **Milestone H** adds 
 (Presentation-only, mirroring the Results filter); **Milestone I** adds a free-text additional-context box to
 the generate/regenerate flow. **DOCX-from-LaTeX** (the repo's `tex2docx.py` → pandoc path) is **out of scope**
 — the app already has native DOCX; a LaTeX-driven DOCX is a later idea.
-
-## Milestone D — Wire the awesome-cv PDF route through export + the Application sheet
-
-**What / why.** Expose the new path to the user beside the existing exports. Because `DocumentExporter` is a
-**synchronous** `nonisolated` port and `lualatex` is an **async** external process, the LaTeX route can't ride
-the existing sync `export(markdown:as:template:)`; it needs its own async path.
-
-**Seam + files.**
-- **`ExportApplicationUseCase`** (Business) gains an **async** overload, e.g.
-  `func latex(_ kit:) async throws -> Data`, that calls `TexDocumentBuilder` → `LaTeXCompiling` (both injected).
-- **`Composition`** (`Composition.swift:119`) wires a `LaTeXProcessClient` + `TexDocumentBuilder` into the use
-  case; `makeApplicationViewModel()` (`Composition.swift:213`) passes an availability flag.
-- **`ApplicationViewModel`** (`ApplicationViewModel.swift`) gets an async `exportLaTeXPDF() async -> Data?`
-  beside the sync `exportData(_:)` (`:113`), plus `canExportLaTeX` (kit present **and** `lualatex` available).
-- **`ApplicationSheet`** (`ApplicationSheet.swift:57`) adds a menu item — **"PDF — Portfolio (LaTeX)"** — to
-  the existing Export `Menu`, routing through `.fileExporter` (`:107`) like the other formats; disabled with a
-  "requires a TeX install (`lualatex`)" note when unavailable (mirror the Adzuna "unavailable in this build"
-  fail-fast + `ApplicationViewModel.describe(error)` messaging).
-- **Bonus (recommended):** also offer **"LaTeX source (.tex)"** as an export — writes `TexDocumentBuilder`'s
-  output straight to a `.tex` file. Free once C exists, and it hands Taylor the exact source for his existing
-  `PortfolioBuddy` pipeline (the path-C handoff) even on machines without TeX.
-- **One-page gate.** For the LaTeX route, use the **compiled PDF's real page count** (PDFKit
-  `PDFDocument(data:).pageCount`) rather than the Core Text estimate, so `resumeExceedsOnePage`
-  (`ApplicationViewModel.swift:123`) reflects what `lualatex` actually produced. (Open call: gate the résumé
-  only, as today.)
-
-**Sub-tasks.**
-- [ ] `ExportFormat` / routing: add a LaTeX-PDF option (new `ExportFormat` case **or** a VM-level route —
-      **recommended:** a VM-level async route so the sync `RoutingDocumentExporter` stays untouched; revisit
-      if a new `ExportFormat` case reads cleaner in the menu).
-- [ ] Async `ExportApplicationUseCase.latex(_:)` + `.texSource(_:)`; inject builder + compiler in `Composition`.
-- [ ] `ApplicationViewModel`: `exportLaTeXPDF()` / `exportTexSource()` + `canExportLaTeX`; async `.fileExporter` glue.
-- [ ] `ApplicationSheet` menu items + disabled/unavailable state + error surface.
-- [ ] LaTeX-route page-count via PDFKit; reconcile `refreshLengthGate()`.
-
-**Tests.** VM unit tests for `canExportLaTeX` gating (kit × availability) and the `.tex` source export
-(deterministic, no process). The end-to-end compile→PDF is the integration/device check.
-
-**On-device.** Yes for the app logic; the compile step needs the local TeX install (Milestone B).
 
 ## Milestone E — Availability surfacing, docs, and release hygiene
 

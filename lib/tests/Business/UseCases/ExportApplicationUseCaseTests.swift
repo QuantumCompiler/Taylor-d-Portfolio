@@ -31,6 +31,26 @@ private final class RecordingExporter: DocumentExporter, @unchecked Sendable {
     }
 }
 
+/// A `LaTeXCompiling` stub that records what it was asked to compile and returns scripted bytes.
+private final class RecordingCompiler: LaTeXCompiling, @unchecked Sendable {
+    let available: Bool
+    let result: Result<Data, Error>
+    private(set) var lastTex: String?
+    private(set) var lastJobName: String?
+
+    init(available: Bool = true, result: Result<Data, Error> = .success(Data("%PDF-stub".utf8))) {
+        self.available = available
+        self.result = result
+    }
+
+    var isAvailable: Bool { available }
+    func compile(tex: String, jobName: String) async throws -> Data {
+        lastTex = tex
+        lastJobName = jobName
+        return try result.get()
+    }
+}
+
 @Suite("ExportApplicationUseCase")
 struct ExportApplicationUseCaseTests {
     private let kit = ApplicationKit(
@@ -90,6 +110,42 @@ struct ExportApplicationUseCaseTests {
     @Test func documentFilenameSuffixes() {
         #expect(ApplicationDocument.resume.filenameSuffix == "Résumé")
         #expect(ApplicationDocument.coverLetter.filenameSuffix == "Cover Letter")
+    }
+
+    // MARK: Milestone D — awesome-cv LaTeX route
+
+    @Test func texSourceEmitsPerDocumentDrivers() {
+        let useCase = ExportApplicationUseCase(exporter: RecordingExporter())
+        #expect(useCase.texSource(kit, .resume).contains("\\documentclass[6pt]{Class/Resume}"))
+        #expect(useCase.texSource(kit, .coverLetter).contains("{Class/CoverLetter}"))
+    }
+
+    @Test func latexAvailabilityReflectsTheCompiler() {
+        #expect(ExportApplicationUseCase(exporter: RecordingExporter()).isLaTeXAvailable == false)      // no compiler
+        #expect(ExportApplicationUseCase(exporter: RecordingExporter(), compiler: RecordingCompiler(available: false)).isLaTeXAvailable == false)
+        #expect(ExportApplicationUseCase(exporter: RecordingExporter(), compiler: RecordingCompiler(available: true)).isLaTeXAvailable)
+    }
+
+    @Test func latexPDFThrowsWithoutACompiler() async {
+        let useCase = ExportApplicationUseCase(exporter: RecordingExporter())
+        await #expect(throws: LaTeXProcessError.notInstalled) { _ = try await useCase.latexPDF(kit, .resume) }
+    }
+
+    @Test func latexPDFCompilesTheDocumentSourceViaTheCompiler() async throws {
+        let compiler = RecordingCompiler(result: .success(Data("%PDF-1.5".utf8)))
+        let useCase = ExportApplicationUseCase(exporter: RecordingExporter(), compiler: compiler)
+        let pdf = try await useCase.latexPDF(kit, .resume)
+        #expect(pdf == Data("%PDF-1.5".utf8))
+        #expect(compiler.lastJobName == "Résumé")
+        #expect(compiler.lastTex?.contains("\\documentclass[6pt]{Class/Resume}") == true)   // the résumé source
+    }
+
+    @Test func latexPDFCompilesEndToEndWhenAvailable() async throws {
+        let compiler = LaTeXProcessClient()
+        guard compiler.isAvailable, compiler.assets?.isComplete == true else { return }   // no TeX → skip
+        let useCase = ExportApplicationUseCase(exporter: RoutingDocumentExporter(), compiler: compiler)
+        let pdf = try await useCase.latexPDF(kit, .resume)
+        #expect(pdf.prefix(4).elementsEqual(Data("%PDF".utf8)))
     }
 
     @Test func routesFormatToTheExporterEndToEnd() throws {

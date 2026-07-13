@@ -35,9 +35,34 @@ nonisolated enum ApplicationDocument: String, CaseIterable, Sendable, Identifiab
 /// résumé+cover-letter assembly is retained for "copy everything" callers.
 nonisolated struct ExportApplicationUseCase: Sendable {
     let exporter: any DocumentExporter
+    /// The awesome-cv LaTeX compiler for the high-fidelity PDF route (Milestone D); `nil` (or an
+    /// unavailable one) means the LaTeX route isn't offered.
+    let compiler: (any LaTeXCompiling)?
 
-    init(exporter: any DocumentExporter) {
+    init(exporter: any DocumentExporter, compiler: (any LaTeXCompiling)? = nil) {
         self.exporter = exporter
+        self.compiler = compiler
+    }
+
+    // MARK: LaTeX (awesome-cv) route — Milestone D
+
+    /// Whether the awesome-cv LaTeX PDF route is available (a `lualatex` install was found).
+    var isLaTeXAvailable: Bool { compiler?.isAvailable ?? false }
+
+    /// The awesome-cv `.tex` **source** for one document — deterministic, no compile, so it works
+    /// even without a TeX install (a handoff into the manual `PortfolioBuddy` pipeline).
+    func texSource(_ kit: ApplicationKit, _ document: ApplicationDocument) -> String {
+        switch document {
+        case .resume: return TexDocumentBuilder.resume(fromMarkdown: kit.resumeMarkdown)
+        case .coverLetter: return TexDocumentBuilder.coverLetter(fromMarkdown: kit.coverLetter)
+        }
+    }
+
+    /// Compiles one document into an awesome-cv **PDF** via `lualatex`. Throws
+    /// ``LaTeXProcessError/notInstalled`` when no compiler is wired/available.
+    func latexPDF(_ kit: ApplicationKit, _ document: ApplicationDocument) async throws -> Data {
+        guard let compiler else { throw LaTeXProcessError.notInstalled }
+        return try await compiler.compile(tex: texSource(kit, document), jobName: document.displayName)
     }
 
     /// Exports a **single** document (résumé or cover letter) — the primary path. Each file

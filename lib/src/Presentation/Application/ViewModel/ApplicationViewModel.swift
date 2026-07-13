@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import PDFKit
 
 /// Drives the Application sheet: generates a tailored resume + cover letter for a job,
 /// persisting the result and reloading it on reopen (Milestone O-C) so the user isn't
@@ -29,6 +30,14 @@ final class ApplicationViewModel {
     /// How many pages the résumé occupies in `exportTemplate`'s layout — 0 when there's no
     /// kit/exporter. Recomputed by `refreshLengthGate()` when the kit or template changes.
     private(set) var resumePageCount = 0
+    /// True while a `lualatex` compile is running (drives a spinner on the LaTeX export item).
+    private(set) var isCompilingLaTeX = false
+    /// A user-facing message when a LaTeX/export step fails — surfaced as a banner, not the
+    /// content view (an export failure isn't a generation failure).
+    private(set) var exportError: String?
+    /// Pages in the last compiled awesome-cv résumé PDF (0 = none yet) — the real `lualatex`
+    /// count, distinct from the Core Text `resumePageCount` gate (Milestone D).
+    private(set) var latexResumePages = 0
 
     /// The user's saved generation presets (Milestone D-D), newest first.
     private(set) var presets: [GenerationPreset] = []
@@ -129,6 +138,75 @@ final class ApplicationViewModel {
         "\(exportFilenameBase) - \(document.filenameSuffix).\(format.fileExtension)"
     }
 
+    // MARK: LaTeX (awesome-cv) export — Milestone D
+
+    /// Whether the awesome-cv LaTeX route is available at all (a kit exists and a `lualatex`
+    /// install was found) — drives whether the Export menu shows the LaTeX items.
+    var canExportLaTeX: Bool { kit != nil && (exportApplication?.isLaTeXAvailable ?? false) }
+
+    /// Whether a document can be exported as an awesome-cv PDF (present **and** `lualatex` found).
+    func canExportLaTeX(_ document: ApplicationDocument) -> Bool {
+        guard let kit, let exportApplication, exportApplication.isLaTeXAvailable else { return false }
+        return ExportApplicationUseCase.isPresent(document, in: kit)
+    }
+
+    /// Compiles one document to an awesome-cv PDF via `lualatex` (async). Returns `nil` and sets
+    /// ``exportError`` on failure; records the real compiled page count for the résumé.
+    func exportLaTeXPDF(_ document: ApplicationDocument) async -> Data? {
+        guard let kit, let exportApplication, canExportLaTeX(document) else { return nil }
+        isCompilingLaTeX = true
+        exportError = nil
+        defer { isCompilingLaTeX = false }
+        do {
+            let pdf = try await exportApplication.latexPDF(kit, document)
+            if document == .resume { latexResumePages = Self.pdfPageCount(pdf) }
+            return pdf
+        } catch {
+            exportError = Self.describeExport(error)
+            return nil
+        }
+    }
+
+    /// The awesome-cv `.tex` **source** for one document (no compile, needs no TeX install), as
+    /// bytes for the save panel — a handoff into the manual PortfolioBuddy pipeline.
+    func exportTexSource(_ document: ApplicationDocument) -> Data? {
+        guard let kit, let exportApplication,
+              ExportApplicationUseCase.isPresent(document, in: kit) else { return nil }
+        return Data(exportApplication.texSource(kit, document).utf8)
+    }
+
+    /// The suggested `.tex` filename for one document.
+    func texFilename(for document: ApplicationDocument) -> String {
+        "\(exportFilenameBase) - \(document.filenameSuffix).tex"
+    }
+
+    /// True when the last compiled awesome-cv résumé overflowed one page — the real `lualatex`
+    /// count, surfaced as an advisory after a résumé PDF export.
+    var latexResumeExceedsOnePage: Bool { latexResumePages > 1 }
+
+    /// Pages in a compiled PDF via PDFKit (0 if it can't be read).
+    static func pdfPageCount(_ data: Data) -> Int { PDFDocument(data: data)?.pageCount ?? 0 }
+
+    /// A user-facing message for an export failure — surfaces the real `lualatex` log so a
+    /// compile error is diagnosable, not hidden behind a generic "try again".
+    private static func describeExport(_ error: Error) -> String {
+        guard let latexError = error as? LaTeXProcessError else {
+            return "Couldn't export.\n\n(\(String(describing: error)))"
+        }
+        switch latexError {
+        case .notInstalled:
+            return "No TeX install found. Install MacTeX (which provides `lualatex`) to export the awesome-cv PDF."
+        case .assetsUnavailable:
+            return "The bundled LaTeX assets are missing from this build."
+        case .launchFailed(let message):
+            return "Couldn't launch lualatex: \(message)"
+        case .nonZeroExit(_, let log):
+            return "lualatex couldn't compile the document:\n\n\(log)"
+        case .noOutput:
+            return "lualatex produced no PDF."
+        }
+    }
+
     // MARK: One-page gate (Milestone X)
 
     /// True when the current résumé overflows one page in the chosen template — a surfaced
@@ -169,6 +247,7 @@ final class ApplicationViewModel {
     func loadSaved(for job: JobListing) async {
         self.job = job
         errorMessage = nil
+        exportError = nil
         isGenerating = false
         if let loadApplication, let saved = try? await loadApplication(forJobID: job.id) {
             kit = saved

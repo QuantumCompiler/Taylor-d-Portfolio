@@ -553,15 +553,15 @@ breakdown + open calls.
       only the classes' existing FontAwesome icons. Best-effort structural map (**C-parse**, no generation-seam
       change); C-structured remains the flagged fast-follow. Verified by a real end-to-end compile of the
       emitted `.tex` under the bundled classes. Seam: `Infrastructure/Tex` (new, pure). On-device: yes.
-- [ ] **Milestone D — Wire the awesome-cv PDF route through export + the Application sheet.** Because
-      `DocumentExporter` is synchronous and `lualatex` is async, add an **async** route: an
-      `ExportApplicationUseCase.latex(_:)` overload → builder → compiler, injected in `Composition`, exposed via
-      `ApplicationViewModel` (`canExportLaTeX` + async export) and a **"PDF — Portfolio (LaTeX)"** item in the
-      `ApplicationSheet` export menu (disabled with a "requires `lualatex`" note when unavailable). Bonus:
-      also export the raw **`.tex` source** (a path-C handoff into `PortfolioBuddy`). Reconcile the one-page
-      gate to the compiled PDF's real page count (PDFKit). Seam: Business (`ExportApplicationUseCase`) +
-      Presentation (`Composition`, `ApplicationViewModel`, `ApplicationSheet`). On-device: yes (compile needs
-      the local TeX install).
+- [x] **Milestone D — Wire the awesome-cv PDF route through export + the Application sheet.** ✅ **Done.** An
+      **async** route (the sync `RoutingDocumentExporter` untouched): `ExportApplicationUseCase` gains an
+      injected `LaTeXCompiling` compiler + `texSource`/`latexPDF`, wired in `Composition`; `ApplicationViewModel`
+      exposes `canExportLaTeX` (available × present), async `exportLaTeXPDF`, `.tex`-source export, and a PDFKit
+      page count; the `ApplicationSheet` per-document submenus gain **"PDF — Portfolio (LaTeX)"** + **"LaTeX
+      source (.tex)"** (the PortfolioBuddy handoff, works without TeX), a "requires a TeX install" note, a
+      compile spinner, and an error/overflow banner. One-page gate reconciled to the compiled PDF's real page
+      count. Verified by a guarded real end-to-end compile through the use case. Seam: Business + Presentation.
+      On-device: yes (compile needs the local TeX install).
 - [ ] **Milestone E — Availability surfacing, docs, release hygiene.** Surface whether `lualatex` is detected
       (Settings → About), document the new optional dependency + `Infrastructure/Tex/` seam in `CLAUDE.md`
       (Build & run + layer map), note the LaTeX PDF path in `SPEC.md`, add the v0.5.1 summary to `README.md`

@@ -116,7 +116,11 @@ struct Composition {
     }
     private var generateApplication: GenerateApplicationUseCase { .init(provider: llmProvider) }
     private var generateToTarget: GenerateToTargetUseCase { .init(provider: llmProvider) }
-    private var exportApplication: ExportApplicationUseCase { .init(exporter: RoutingDocumentExporter()) }
+    private var exportApplication: ExportApplicationUseCase {
+        // The LaTeX compiler is wired unconditionally; it self-reports availability (a TeX
+        // install) so the export UI only offers the awesome-cv route when it can run (Milestone D).
+        .init(exporter: RoutingDocumentExporter(), compiler: LaTeXProcessClient())
+    }
     private var fetchPosting: FetchPostingUseCase {
         .init(postingSource: jobPostingSource, ranker: JobRanker(provider: llmProvider))
     }

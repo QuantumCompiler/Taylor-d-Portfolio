@@ -1910,14 +1910,58 @@ structural map, no generation-seam change) for the patch; C-structured stays the
       Markdown, matching Milestone G).
 - [x] **Split fix.** Sections are headings at *exactly* the section level, so an H1 name lands in the preamble
       (not a spurious `\cvsection`) and H3 entries fall inside their section.
-- [x] **Tests.** Pure unit tests (escaping, inline bold/italic + link, section split, skills, entries with
-      escaped `&`/`%`, driver + `\position` + `cvsection`/`cvskills`/`cvitems` shapes, dropped contact line) —
-      **and a real end-to-end `emittedTexCompilesUnderLualatex`** that renders a realistic résumé + cover letter
-      and compiles both under the bundled classes to `%PDF` (guarded on `lualatex` availability). Full suite
-      green.
+- [x] **Layout fidelity (revised after visual review).** The first pass rendered entries as loose
+      `\entrytitlestyle`+`\par` lines in Markdown order — which didn't match the hand-authored résumé's
+      spacing/ordering. Reworked to emit the **exact** awesome-cv structure: `\begin{cventries}` +
+      `\cventry`/`\cvproject` (with dash-free `\cventrysolo`/`\cvprojectsolo` helpers injected for entries
+      missing an org/role), the canonical **Education → Experience → Projects → Qualifications** order
+      (`canonicalOrder`), the per-section `\vspace` tweaks (`-1em`/`-1.5em`/`-0.5em`, `sectionVSpace`), and
+      `\renewcommand{\arraystretch}{0.7}` before `\begin{cvskills}`. Entry metadata is split from the app's own
+      "Title — Org" / "Location · Date" shapes — the location/date splits on the **middot** (never the date
+      range's dash). A "Summary" section renders as a lead paragraph. Verified by compiling a realistic résumé
+      through the app's staging and comparing to the hand-built PDF — order, spacing, entry layout, and skills
+      grid now match. (FontAwesome fonts were already byte-identical; the manual's per-entry link icons remain
+      content-specific and out of scope.)
+- [x] **Tests.** Pure unit tests (escaping, inline bold/italic + link, section split + reorder, per-section
+      vspace, `cventries`/`cventry`/`cvproject`/`cvprojectsolo` shapes, `arraystretch`+`cvskills`, title vs
+      location/date splitting, dropped contact line, summary-as-lead) — **and a real end-to-end
+      `emittedTexCompilesUnderLualatex`** that compiles a realistic résumé + cover letter under the bundled
+      classes to `%PDF` (guarded on `lualatex` availability). Full suite green.
 
-Seam: `Infrastructure/Tex` (new, pure). On-device: yes — pure local string transform. Note: fidelity is
-best-effort (loose Markdown has no explicit org/date fields); C-structured is the upgrade path if needed.
+Seam: `Infrastructure/Tex` (new, pure). On-device: yes — pure local string transform. Note: entry metadata
+fidelity is best-effort (loose Markdown has no explicit org/date fields); C-structured is the upgrade path if
+needed.
+
+## Milestone D — Wire the awesome-cv PDF route through export + the Application sheet  ✅ done  (`Business/ExportApplicationUseCase`, `Presentation`: `Composition`, `ApplicationViewModel`, `ApplicationSheet`)
+
+Goal: expose the LaTeX path to the user beside the existing exports. Because `DocumentExporter` is a
+**synchronous** port and `lualatex` is an **async** external process, the LaTeX route rides its own async path
+(the sync `RoutingDocumentExporter` is untouched — the recommended open-call resolution).
+
+- [x] **Use case.** `ExportApplicationUseCase` gains an injected `compiler: (any LaTeXCompiling)?`,
+      `isLaTeXAvailable`, a deterministic `texSource(_:_:)` (per-document `.tex`, no compile — works without a
+      TeX install), and an async `latexPDF(_:_:)` (builds via `TexDocumentBuilder` → compiles via
+      `LaTeXCompiling`; throws `notInstalled` when no compiler).
+- [x] **Composition.** Wires `LaTeXProcessClient()` into the use case unconditionally; it self-reports
+      availability so the UI only offers the route when `lualatex` is installed.
+- [x] **ViewModel.** `canExportLaTeX` / `canExportLaTeX(_:)` (available **and** document present), async
+      `exportLaTeXPDF(_:)` (sets `exportError` with the real `lualatex` log on failure; records the compiled
+      résumé's real page count), `exportTexSource(_:)` + `texFilename(for:)`, a PDFKit `pdfPageCount` helper,
+      and `latexResumeExceedsOnePage` (the real compiled count, distinct from the Core Text gate).
+- [x] **Application sheet.** Each document submenu (Milestone G) gains **"PDF — Portfolio (LaTeX)"** (when
+      available) and **"LaTeX source (.tex)"** (always — the PortfolioBuddy handoff); an "install a TeX
+      distribution" note when `lualatex` is absent; a compile spinner; and a `latexNotices` banner surfacing
+      the compile-error log + the résumé-overflow advisory. The `.tex` export uses a `tex` `UTType`.
+- [x] **One-page gate.** For the LaTeX route the compiled PDF's **real** page count (PDFKit) drives the
+      overflow advisory, not the Core Text estimate — resolved the open call to keep the résumé-only rule.
+- [x] **Tests.** Use-case: `texSource` drivers, availability reflects the compiler, `latexPDF` throws without
+      one / compiles the right source via a recording stub, **+ a guarded real end-to-end compile**. VM:
+      availability × presence gating, PDF bytes + real page count, compile-error surfacing, `.tex` export works
+      without TeX but respects presence, and `pdfPageCount`. Full suite green.
+
+Seam: Business + Presentation. On-device: yes for the app logic; the compile needs the local TeX install.
+**Device check (awaiting):** actually saving a "PDF — Portfolio (LaTeX)" / ".tex" file from the running app's
+Export menu (the tests prove the compile + wiring; the file dialog is a manual step).
 
 ## Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally  ✅ done  (`Infrastructure`: `Text/MarkdownBlockParser`, `Export/MarkdownAttributedRenderer` + `Export/OOXMLDocument`; `Presentation`: `Components/MarkdownText`)
 
