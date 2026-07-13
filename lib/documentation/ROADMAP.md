@@ -566,29 +566,39 @@ breakdown + open calls.
       (Build & run + layer map), note the LaTeX PDF path in `SPEC.md`, add the v0.5.1 summary to `README.md`
       on ship, and confirm `MARKETING_VERSION` = `0.5.1` (bumped at kickoff). Seam: docs + a local availability
       read. On-device: n/a.
-- [ ] **Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally.** An
-      **independent bug fix** to the existing native renderer (not part of the LaTeX path): the generated
+- [x] **Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally.** ✅ **Done.**
+      An **independent bug fix** to the existing native renderer (not part of the LaTeX path): the generated
       Markdown's `---` section separators print as literal `---` in the PDF/DOCX/preview because
       `MarkdownBlockParser.classify` has no thematic-break case and falls through to a paragraph. Add a
       `.thematicBreak` block (3+ `-`/`*`/`_`, whole-line, detected before the bullet rule) and render it as a
       thin rule in `MarkdownAttributedRenderer` (PDF), `OOXMLDocument` (DOCX), and a `Divider` in `MarkdownText`
       (in-app preview) — the compiler flags all three exhaustive switches. Seam: `Infrastructure/Text` +
       `Infrastructure/Export` + one Presentation component. On-device: yes (pure local rendering).
-- [ ] **Milestone G — Export the résumé and cover letter as separate documents.** An **independent export
-      refinement**: today `ExportApplicationUseCase.assembleMarkdown` merges both into one file. Split export so
+- [x] **Milestone G — Export the résumé and cover letter as separate documents.** ✅ **Done.** An **independent
+      export refinement**: `ExportApplicationUseCase.assembleMarkdown` merged both into one file. Split export so
       each is its own named deliverable (`<Company> - <Role> - Résumé.<ext>` / `… - Cover Letter.<ext>`) via an
       `ApplicationDocument` selector on the use case, per-document `exportData`/filenames/Copy in
       `ApplicationViewModel`, and Résumé / Cover Letter groups in the `ApplicationSheet` export menu — which
       also aligns the native path with the LaTeX path (C/D already emit two files). Seam: Business
       (`ExportApplicationUseCase`) + Presentation (`ApplicationViewModel`, `ApplicationSheet`). On-device: yes
       (pure local assembly + export).
-- [ ] **Milestone H — Sort control in the Tracker.** Mirror the Results tab's live `ResultsFilter` with an
+- [x] **Milestone H — Sort control in the Tracker.** ✅ **Done.** Mirror the Results tab's live `ResultsFilter` with an
       interactive **sort** in the Tracker: a pure, unit-tested `TrackerSort` (sort key + direction) the view
       holds and applies live over `TrackerViewModel.jobs(in:)`, composing with the existing per-stage tab
       filter. Folds today's load-time ordering (recent status activity) into the default sort; adds keys like
       date applied, stage, match score, company, and title. Seam: **Presentation only**
       (`Tracker/View/TrackerSort.swift` + `TrackerViewModel` + `TrackerView`), paralleling
       `Results/View/ResultsFilter.swift`. On-device: yes (pure local sort, session-only).
+- [ ] **Milestone I — Additional-context box on the generate / regenerate flow.** Add a free-text field to the
+      Application view's "Generation options" panel for extra guidance to the model (e.g. "emphasize my EV
+      Charging leadership"), behaving like the Portfolio "Regenerate description" prompt
+      (`refineSummary(…instruction:)`) but feeding **application** generation. Threads from
+      `ApplicationSheet.generationControlsPanel` → `ApplicationViewModel.generate(...)` / `generateToTarget`
+      → `GenerateApplicationUseCase` → `LLMProvider.generateApplication(…settings:)` → `Prompts` (a grounded
+      "additional guidance" block). **Open call:** carry it on `GenerationSettings` (recommended — no new
+      overload — but excluded from preset save) vs. a separate transient param. Guardrail: steers
+      emphasis/framing, never fabrication (same grounding + fidelity rules). Seam: Presentation + Business +
+      Data (`GenerationSettings`/`Prompts`). On-device: yes (prompt text, both engines via shared `Prompts`).
 
 ## Fast follow (next up)
 

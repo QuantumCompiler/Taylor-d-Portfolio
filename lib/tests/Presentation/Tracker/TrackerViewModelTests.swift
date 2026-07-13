@@ -42,7 +42,9 @@ struct TrackerViewModelTests {
             try await statuses.save(ApplicationStatus(stage: .offer, offerDate: Date(timeIntervalSince1970: 900)), forJobID: "b")
         }
         await vm.load()
-        #expect(vm.trackedJobs.map(\.id) == ["b", "a"])   // b's date is later → first
+        // The default sort (most-recent activity) is applied on read by jobs(in:); the raw
+        // trackedJobs store is order-agnostic (Milestone H).
+        #expect(vm.jobs(in: .all).map(\.id) == ["b", "a"])   // b's date is later → first
         #expect(vm.isEmpty == false)
     }
 

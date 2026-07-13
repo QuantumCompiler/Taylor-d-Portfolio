@@ -29,6 +29,26 @@ struct MarkdownBlockParserTests {
         let blocks = MarkdownBlockParser.blocks(from: "# H\n\nbody\n- b")
         #expect(blocks == [.heading(level: 1, text: "H"), .blank, .paragraph(text: "body"), .bullet(text: "b")])
     }
+
+    @Test func classifiesThematicBreaks() {
+        #expect(MarkdownBlockParser.classify("---") == .thematicBreak)
+        #expect(MarkdownBlockParser.classify("***") == .thematicBreak)
+        #expect(MarkdownBlockParser.classify("___") == .thematicBreak)
+        #expect(MarkdownBlockParser.classify("-----") == .thematicBreak)
+        #expect(MarkdownBlockParser.classify("- - -") == .thematicBreak)
+        #expect(MarkdownBlockParser.classify("* * *") == .thematicBreak)
+        #expect(MarkdownBlockParser.classify("  ---  ") == .thematicBreak)   // surrounding space
+    }
+
+    @Test func thematicBreakDoesNotSwallowBulletsOrShortRuns() {
+        // A genuine bullet still parses as a bullet, not a break.
+        #expect(MarkdownBlockParser.classify("- item") == .bullet(text: "item"))
+        // Fewer than three markers, or a marker followed by text, stays a paragraph.
+        #expect(MarkdownBlockParser.classify("--") == .paragraph(text: "--"))
+        #expect(MarkdownBlockParser.classify("**") == .paragraph(text: "**"))
+        #expect(MarkdownBlockParser.classify("-nospace") == .paragraph(text: "-nospace"))
+        #expect(MarkdownBlockParser.classify("mix-of---dashes") == .paragraph(text: "mix-of---dashes"))
+    }
 }
 
 @Suite("MarkdownInline")

@@ -55,10 +55,16 @@ struct ApplicationSheet: View {
                     .clickableCursor()
 
                     Menu {
-                        Button("PDF (.pdf)") { startExport(.pdf) }
-                        Button("Word (.docx)") { startExport(.docx) }
-                        Button("Markdown (.md)") { startExport(.markdown) }
-                        Button("Plain Text (.txt)") { startExport(.plainText) }
+                        ForEach(ApplicationDocument.allCases) { document in
+                            if viewModel.canExport(document) {
+                                Menu(document.displayName) {
+                                    Button("PDF (.pdf)") { startExport(document, .pdf) }
+                                    Button("Word (.docx)") { startExport(document, .docx) }
+                                    Button("Markdown (.md)") { startExport(document, .markdown) }
+                                    Button("Plain Text (.txt)") { startExport(document, .plainText) }
+                                }
+                            }
+                        }
                         Divider()
                         Picker("PDF template", selection: $viewModel.exportTemplate) {
                             ForEach(ExportTemplate.allCases) { template in
@@ -306,12 +312,12 @@ struct ApplicationSheet: View {
         }
     }
 
-    /// Renders the kit to `format` and presents the save panel.
-    private func startExport(_ format: ExportFormat) {
-        guard let data = viewModel.exportData(format) else { return }
+    /// Renders one document (résumé / cover letter) to `format` and presents the save panel.
+    private func startExport(_ document: ApplicationDocument, _ format: ExportFormat) {
+        guard let data = viewModel.exportData(document, format) else { return }
         exportDocument = ExportFileDocument(data: data, contentType: format.contentType)
         exportContentType = format.contentType
-        exportFilename = "\(viewModel.exportFilenameBase).\(format.fileExtension)"
+        exportFilename = viewModel.exportFilename(for: document, format)
         isExporting = true
     }
 

@@ -9,15 +9,22 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.5.1 — LaTeX résumé & cover letter output — Milestone A.** v0.1.0–v0.5.0 are all
-> done and merged (see `MILESTONES.md`). v0.5.1 is a **patch release** on top of shipped v0.5.0 that gives
-> the app a **second, high-fidelity PDF output path**: generate a `.tex` document from Taylor's own
-> **awesome-cv LaTeX classes** and compile it with **`lualatex`** (shelled as an external process, exactly
-> like the `claude -p` provider), producing résumé + cover letter PDFs that match the ones he builds by hand
-> in his `Resume-And-Cover-Letter` repo. Milestones **restart at A**; commits are `v0.5.1 : Milestone X
-> Completed`. Work top-down through A–H below: A–E build the LaTeX output path; **F** (Markdown `---`
-> rendering), **G** (résumé & cover letter as separate documents), and **H** (a Tracker sort control) are
-> independent refinements that can be picked up on their own.
+> **Current focus. v0.5.1 — LaTeX résumé & cover letter output.** v0.1.0–v0.5.0 are all done and merged (see
+> `MILESTONES.md`). v0.5.1 is a **patch release** on top of shipped v0.5.0 that gives the app a **second,
+> high-fidelity PDF output path**: generate a `.tex` document from Taylor's own **awesome-cv LaTeX classes**
+> and compile it with **`lualatex`** (shelled as an external process, exactly like the `claude -p` provider),
+> producing résumé + cover letter PDFs that match the ones he builds by hand in his `Resume-And-Cover-Letter`
+> repo. Milestones **restart at A**; commits are `v0.5.1 : Milestone X Completed`.
+>
+> **✅ Done so far (F, G, H — the independent refinements; see `MILESTONES.md`):** **F** — Markdown `---`
+> now renders as a real rule (not literal dashes) in the PDF / DOCX / in-app preview; **G** — résumé & cover
+> letter export as **separate** documents (per-document menu + filenames); **H** — a live **sort control** in
+> the Tracker (mirroring the Results filter). Full suite green (434 tests).
+>
+> **Remaining:** **A–E** build the LaTeX output path (the release's core — start at **Milestone A**), and
+> **I** adds an additional-context box on the generate/regenerate flow. These are independent; A–E are the
+> larger effort and need a local TeX install (`lualatex`, already present on this machine) plus an Xcode
+> resource-bundling step (Milestone A open call).
 >
 > **Release type (noted).** This is feature-sized work carried as a **patch (`v0.5.1`)** at Taylor's
 > choice; the number and branch are fixed. Kickoff hygiene (below) is done: `MARKETING_VERSION` bumped to
@@ -58,8 +65,9 @@ clear "TeX not found" note, and every existing export (native PDF / DOCX / Markd
 **Milestones restart at A.** Each is independently committable. A–E build the LaTeX output path; **Milestone
 F** (Markdown `---` printing literally) and **Milestone G** (résumé & cover letter as separate export files)
 are standalone fixes to the *existing* native export path; **Milestone H** adds a Tracker sort control
-(Presentation-only, mirroring the Results filter). **DOCX-from-LaTeX** (the repo's `tex2docx.py` → pandoc path)
-is **out of scope** — the app already has native DOCX; a LaTeX-driven DOCX is a later idea.
+(Presentation-only, mirroring the Results filter); **Milestone I** adds a free-text additional-context box to
+the generate/regenerate flow. **DOCX-from-LaTeX** (the repo's `tex2docx.py` → pandoc path) is **out of scope**
+— the app already has native DOCX; a LaTeX-driven DOCX is a later idea.
 
 ## Milestone A — Bundle the awesome-cv LaTeX assets in the app
 
@@ -251,134 +259,55 @@ the existing sync `export(markdown:as:template:)`; it needs its own async path.
 
 **On-device.** N/A (docs + a local availability read).
 
-## Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally
+## Milestone I — Additional-context text box on the generate / regenerate flow
 
-**What's wrong.** The generated résumé/cover-letter Markdown uses `---` as section separators, but the native
-renderers print the literal characters `---` on the page (see `~/Downloads/Taylor Larrechea.pdf` — a stray
-`---` sits under the header, Summary, and Core Skills). Root cause is in the **shared block parser**:
-`MarkdownBlockParser.classify` (`MarkdownBlockParser.swift:27`) has no thematic-break case — a `---` line
-isn't blank, isn't a heading, and fails the bullet test (which requires `- ` with a trailing space), so it
-falls through to `.paragraph(text: "---")` (`:45`) and every renderer prints it verbatim. `***` and `___`
-breaks hit the same path. **This is a bug in the existing native export path (Milestones Q/S-A), independent of
-the LaTeX work A–E** — it can be picked up on its own.
+**What / why.** In the **Application** view (where the user generates/regenerates the tailored materials), add
+a free-text box for **extra context to steer generation** — e.g. "emphasize my leadership on EV Charging",
+"lean into the API-gateway angle for this role". It should behave like the existing **"Regenerate
+description"** prompt on the Portfolio tab (`RefineSummaryUseCase` →
+`LLMProvider.refineSummary(profile:portfolio:instruction:)`, a free-text `instruction` field + Submit): a
+plain instruction the user types that the model honours on the next generate/regenerate. Here it feeds the
+**application** generation instead of the profile summary.
 
-**Seam + files.** Add a block type at the single source of truth and let the compiler flag every consumer (all
-three switch exhaustively over `MarkdownBlock`):
-- `Infrastructure/Text/MarkdownBlockParser.swift` — new `case thematicBreak` on `MarkdownBlock`; detect a line
-  of **3+** `-`, `*`, or `_` (optionally space-separated, whole-line) in `classify`, ordered **before** the
-  bullet check so `---` isn't misread. (Guard the bullet rule too: a lone `-`/`*`/`+` run with no text is a
-  break, not an empty bullet.)
-- `Infrastructure/Export/MarkdownAttributedRenderer.swift` (`:42` switch, PDF) — render a thin horizontal rule
-  (a full-width hairline / bottom-bordered blank line) with modest spacing above/below.
-- `Infrastructure/Export/OOXMLDocument.swift` (`:22` switch, DOCX) — emit a bottom-border paragraph (Word's
-  standard `<hr>` equivalent) or, at minimum, drop the literal text.
-- `Presentation/Components/MarkdownText.swift` (`:32` switch, in-app preview) — render a SwiftUI `Divider()`
-  so the on-screen résumé/cover-letter preview matches the exports.
-- `Infrastructure/Text/MarkdownPlainText.swift` — plain-text/Markdown export: keep `---` as a real thematic
-  break line (it's already valid Markdown/plain text there) — just make sure it isn't doubled or dropped.
-
-**Sub-tasks.**
-- [ ] Add `.thematicBreak` + detection to `MarkdownBlockParser` (3+ `-`/`*`/`_`, whole-line, before the bullet
-      check).
-- [ ] Render it in `MarkdownAttributedRenderer` (PDF rule), `OOXMLDocument` (DOCX border), and `MarkdownText`
-      (`Divider`); confirm `MarkdownPlainText` still round-trips it.
-- [ ] **(open call)** *Rule vs. whitespace.* **Recommended default:** render an actual thin rule in
-      PDF/DOCX/preview (it's a real section divider the generator intends), not just blank space — but keep it
-      subtle so it doesn't fight the résumé's density.
-
-**Tests.** Unit-test `MarkdownBlockParser.classify` for `---`, `***`, `___`, spaced variants (`- - -`), and
-that a genuine `- item` bullet and a `-` -prefixed paragraph are **not** misclassified. A golden-string check
-that the PDF/DOCX renderers no longer emit the literal `---`.
-
-**On-device.** Yes — pure local rendering, no network, no model.
-
-## Milestone G — Export the résumé and cover letter as separate documents
-
-**What / why.** Today export merges both into **one** file: `ExportApplicationUseCase.assembleMarkdown(from:)`
-(`ExportApplicationUseCase.swift:37`) joins `# Résumé` + `# Cover Letter` into a single Markdown document, and
-the Application sheet exports that one blob through a single `.fileExporter` (`ApplicationSheet.swift:107`,
-menu at `:57`; Copy at `:51` copies both). A résumé and a cover letter are **separate deliverables** — you send
-two files, name them differently, and often want only one. Split export so each is its own document. This also
-**aligns the native path with the LaTeX path** (Milestones C/D already produce separate `Resume.tex` /
-`Cover Letter.tex` → two PDFs), so both routes share the same two-document model.
-
-**Seam + files.**
-- **`ExportApplicationUseCase`** (Business) — introduce an `ApplicationDocument` selector (`.resume` /
-  `.coverLetter`) and assemble/export **one** document at a time: e.g.
-  `callAsFunction(_ kit:, _ document:, as:, template:)` building only that section's Markdown (drop the
-  combined `# Résumé`/`# Cover Letter` headings — each file is just that document). Keep `resumePageCount`
-  (already résumé-only, `:29`) as-is. The LaTeX overload (Milestone D) takes the same `ApplicationDocument`.
-- **`ApplicationViewModel`** — `exportData(_ document:, _ format:)` and per-document filenames:
-  `exportFilename(for:)` → `"<Company> - <Role> - Résumé.<ext>"` / `"… - Cover Letter.<ext>"` (extend
-  `exportFilenameBase`, `:138`). `canExport` becomes per-document (a kit may have only one populated section —
-  `assembleMarkdown` already omits empty ones); Copy likewise per-document.
-- **`ApplicationSheet`** — restructure the Export `Menu` (`:57`) into two groups — **Résumé** → {PDF, Word,
-  Markdown, Plain Text (+ LaTeX PDF / .tex from D)} and **Cover Letter** → same — each `startExport` carrying
-  the document; the `.fileExporter` uses the per-document default filename. Split **Copy** (`:51`) into
-  "Copy résumé" / "Copy cover letter" (the content area already has per-document copy buttons from S-A —
-  reuse that split).
+**Seam + files.** Threads through the existing generation seam (fidelity/aspects already ride
+`GenerationSettings` → `Prompts`):
+- **UI** — add the text box to `ApplicationSheet.generationControlsPanel` (`ApplicationSheet.swift:119`, the
+  "Generation options" `DisclosureGroup`), bound to the VM and applied on Generate/Regenerate exactly like the
+  other controls ("Changes apply when you Generate / Regenerate.", `:156`). A multiline
+  `TextField(…, axis: .vertical)` / `TextEditor`, labelled "Additional context (optional)".
+- **`ApplicationViewModel`** — hold the field and include it in `generate(for:profile:grounding:)`
+  (`ApplicationViewModel.swift:169`) and the rank-target path (`generateToTarget`), so both single-pass and
+  outcome-driven regeneration receive it.
+- **Business/Data** — carry the instruction into `GenerateApplicationUseCase`
+  (`GenerateApplicationUseCase.swift`) → `LLMProvider.generateApplication(…settings:)`
+  (`LLMProvider.swift:54`) → `Prompts` (inject as an "additional user guidance" block in the tailoring
+  prompt). `GenerateToTargetUseCase` takes it too.
+- **Guardrail.** The extra context steers **emphasis/framing**, not invention: the same grounding + fidelity
+  rules apply (SPEC "Grounded generation" / CLAUDE "Hard rules") — at the default fidelity it can't introduce
+  fabricated facts, and anything beyond the profile stays gated behind the fidelity band + disclosure.
 
 **Sub-tasks.**
-- [ ] Add `ApplicationDocument` (`.resume` / `.coverLetter`) + per-document assembly in `ExportApplicationUseCase`
-      (each file contains only its document, no combined wrapper headings).
-- [ ] `ApplicationViewModel`: per-document `exportData` + filenames ("… - Résumé" / "… - Cover Letter") +
-      per-document `canExport`/Copy.
-- [ ] `ApplicationSheet`: Résumé / Cover Letter export groups + split Copy; thread `ApplicationDocument`
-      through `startExport` and the LaTeX route (Milestone D).
-- [ ] **(open call)** *Menu shape.* macOS `.fileExporter` saves one file at a time. **Recommended default:**
-      per-document submenus (each writes a single, correctly-named file), matching how the deliverables are
-      actually sent and how the LaTeX path already works — rather than an "export both" that fires two save
-      dialogs or writes a folder. (An "Export both…" convenience can be a later idea.)
-- [ ] **(open call)** *Combined export retirement.* **Recommended default:** drop the combined
-      `assembleMarkdown` one-file path from the UI once per-document export lands (keep the function only if a
-      test or the clipboard "copy all" still wants it).
+- [ ] Add the additional-context field (state + binding) to `ApplicationViewModel` and the
+      `generationControlsPanel` text box.
+- [ ] Thread it into `generate(...)` + `generateToTarget(...)`, the use case(s), the provider
+      `generateApplication(…settings:)`, and `Prompts` (grounded "additional guidance" block).
+- [ ] **(open call — where the field lives).** Two ways to carry it:
+      - **On `GenerationSettings`** (`GenerationSettings.swift`) as `var additionalContext: String = ""` — rides
+        the existing `settings:` thread with **no new provider overload**. But `GenerationSettings` is saved in
+        **presets** (`GenerationPreset`) and drives `isDefault`; free-text per-job context shouldn't persist
+        into a reusable preset. **Recommended:** put it here **but exclude it from preset save/apply** (reset to
+        "" when saving/applying a preset) so presets stay about fidelity/aspects/target; keep it factored into
+        `isDefault` (non-empty context ⇒ not the byte-for-byte grounded default).
+      - **As a separate transient param** on the generate call (mirroring `refineSummary`'s `instruction`) —
+        cleaner semantics, but adds another `generateApplication` overload + router + `SettingsBacked` adapter +
+        stub forwarding. Fall back to this if mixing it into `GenerationSettings`/presets proves awkward.
+- [ ] **(open call — apply vs. Submit).** **Recommended:** no separate Submit — the box feeds the existing
+      Generate / Regenerate buttons (consistent with the rest of the options panel), not its own action.
 
-**Tests.** Unit-test per-document assembly (résumé file has no cover-letter content and vice-versa; empty
-section → that document isn't offered), and `exportFilename(for:)` suffixes. VM tests for per-document
-`canExport`.
+**Tests.** VM test that the entered context reaches the generate call; use-case/provider-stub test that a
+non-empty context alters the prompt (and that empty context leaves the default grounded prompt byte-for-byte
+unchanged); preset test that saving/applying a preset does **not** capture the free-text context (if it lives
+on `GenerationSettings`).
 
-**On-device.** Yes — pure local assembly + export, no network, no model.
-
-## Milestone H — Sort control in the Tracker (mirroring the Results filter)
-
-**What / why.** The **Results** tab has an interactive, non-destructive `ResultsFilter`
-(`Results/View/ResultsFilter.swift`) — a pure value type the view holds and applies live over the loaded
-rows. The **Tracker** has no equivalent control: it sorts **once at load** — most-recent status activity,
-undated last, then title (`TrackerViewModel.load()`, `TrackerViewModel.swift:92`) — and the user can't
-re-order. Add an interactive **sort** control to the Tracker, built the same way as the Results filter: a
-pure, unit-tested sort value the view holds and applies live, composing with the existing per-tab stage
-filter (`jobs(in:)`, `:69`).
-
-**Seam + files.** Presentation-only, mirroring the `ResultsFilter` shape:
-- New **`Presentation/Tracker/View/TrackerSort.swift`** — a pure `TrackerSort` (`Equatable`, `Sendable`): a
-  `key` enum + a `direction` (ascending/descending), with `apply(to: [TrackedJob]) -> [TrackedJob]` and an
-  `isDefault`/`isActive` flag (drives a "reset to default" affordance), exactly paralleling
-  `ResultsFilter.apply(to:)`/`isActive`.
-- **`TrackerViewModel`** (`TrackerViewModel.swift`) — hold `var sort: TrackerSort = .default`; make the
-  existing load-time ordering the **default** `TrackerSort` (so initial order is unchanged but now
-  user-overridable) and apply `sort` inside `jobs(in:)` (`:69`) — or a new `sortedJobs(in:)` — so each stage
-  tab honours the chosen order. Remove the hard-coded `.sorted { … }` from `load()` in favour of the value.
-- **`TrackerView`** (`TrackerView.swift`) — a compact sort bar at the top of the list (a `Menu`/`Picker` for
-  the key + a direction toggle + reset), following the Results filter bar's collapsible presentation so the
-  two tabs feel consistent. Applies within the currently-selected `TrackerSection` tab.
-
-**Sub-tasks.**
-- [ ] Add `TrackerSort` (key + direction + `apply(to:)` + `isDefault`), unit-tested.
-- [ ] `TrackerViewModel`: `sort` state; fold the load-time ordering into `TrackerSort.default`; apply in
-      `jobs(in:)` / `sortedJobs(in:)`.
-- [ ] `TrackerView`: sort bar (key picker + direction toggle + reset), consistent with the Results filter bar.
-- [ ] **(open call)** *Which sort keys.* **Recommended default set:** **recent status activity** (the current
-      default), **date applied**, **application stage** (saved → applied → interviewing → offer → …), **match
-      score** (`RankedJob.score`), **company** (A–Z), and **role/title** (A–Z); **salary** optional. Each with
-      an ascending/descending toggle.
-- [ ] **(open call)** *Persistence.* **Recommended default:** session-only, like `ResultsFilter` (no
-      persistence) — a saved default sort is a later idea.
-- [ ] **(open call)** *Filter too?* The ask is **sort only**. A full Tracker *filter* (keyword/company/score
-      like Results) is a natural sibling but **out of scope here** — note it as a candidate follow-up rather
-      than expanding this milestone.
-
-**Tests.** Unit-test `TrackerSort.apply(to:)` for each key + direction (including stable tie-breaking and
-undated-last behaviour matching today's default), and that `.default` reproduces the current load order. A VM
-test that switching `sort` re-orders `jobs(in:)` within a section.
-
-**On-device.** Yes — pure local sorting, no network, no persistence, no model.
+**On-device.** Yes — the field is prompt text; both engines honour it through the shared `Prompts` (no
+network beyond the normal generation call).

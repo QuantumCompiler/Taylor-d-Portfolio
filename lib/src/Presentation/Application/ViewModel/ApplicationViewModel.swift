@@ -103,16 +103,30 @@ final class ApplicationViewModel {
         await loadPresets()
     }
 
-    // MARK: Export (Q-A)
+    // MARK: Export (Q-A; per-document since Milestone G)
 
     /// Whether there's a generated kit and an exporter wired to save/copy it.
     var canExport: Bool { kit != nil && exportApplication != nil }
 
-    /// The exported bytes for `format` (styled with the chosen template for PDF), or `nil`
-    /// if unavailable / the format is unsupported.
-    func exportData(_ format: ExportFormat) -> Data? {
-        guard let kit, let exportApplication else { return nil }
-        return try? exportApplication(kit, as: format, template: exportTemplate)
+    /// Whether a specific document (résumé / cover letter) can be exported — it exists, is
+    /// non-empty, and an exporter is wired. The Application sheet offers only present documents.
+    func canExport(_ document: ApplicationDocument) -> Bool {
+        guard let kit, exportApplication != nil else { return false }
+        return ExportApplicationUseCase.isPresent(document, in: kit)
+    }
+
+    /// The exported bytes for one `document` in `format` (styled with the chosen template for
+    /// PDF), or `nil` if the document is absent/empty, unavailable, or the format is
+    /// unsupported. Guards on presence so an empty section never exports an empty file.
+    func exportData(_ document: ApplicationDocument, _ format: ExportFormat) -> Data? {
+        guard let kit, let exportApplication,
+              ExportApplicationUseCase.isPresent(document, in: kit) else { return nil }
+        return try? exportApplication(kit, document, as: format, template: exportTemplate)
+    }
+
+    /// The suggested save filename for one `document` + `format`, e.g. `Acme - iOS Engineer - Résumé.pdf`.
+    func exportFilename(for document: ApplicationDocument, _ format: ExportFormat) -> String {
+        "\(exportFilenameBase) - \(document.filenameSuffix).\(format.fileExtension)"
     }
 
     // MARK: One-page gate (Milestone X)
@@ -129,9 +143,12 @@ final class ApplicationViewModel {
         resumePageCount = (try? exportApplication.resumePageCount(kit, template: exportTemplate)) ?? 0
     }
 
-    /// The exported document as text (for copy-to-clipboard). Defaults to Markdown.
+    /// The **combined** résumé + cover letter as text (for the "copy everything" affordance).
+    /// Defaults to Markdown.
     func exportedText(_ format: ExportFormat = .markdown) -> String? {
-        exportData(format).map { String(decoding: $0, as: UTF8.self) }
+        guard let kit, let exportApplication else { return nil }
+        return (try? exportApplication(kit, as: format, template: exportTemplate))
+            .map { String(decoding: $0, as: UTF8.self) }
     }
 
     /// A filesystem-safe base name for exports, derived from the job (company · role).

@@ -43,12 +43,51 @@ struct TrackerView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(jobs) { tracked in
-                    trackerRow(tracked)
+                VStack(spacing: 0) {
+                    sortBar
+                    List(jobs) { tracked in
+                        trackerRow(tracked)
+                    }
                 }
             }
         }
         .task { await viewModel.load() }
+    }
+
+    /// A compact, live sort control above the list (Milestone H) — the Tracker analogue of the
+    /// Results filter bar. Reorders the shown rows without reloading; only appears when there
+    /// are rows to sort. A "Reset" restores the default (most-recent-activity) order.
+    @ViewBuilder
+    private var sortBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.up.arrow.down").font(.caption).foregroundStyle(.secondary)
+            Picker("Sort", selection: $viewModel.sort.key) {
+                ForEach(TrackerSort.Key.allCases) { key in
+                    Text(key.displayName).tag(key)
+                }
+            }
+            .labelsHidden()
+            .fixedSize()
+            .help("Sort the tracked applications")
+
+            Button {
+                viewModel.sort.direction = viewModel.sort.direction == .ascending ? .descending : .ascending
+            } label: {
+                Image(systemName: viewModel.sort.direction == .ascending ? "arrow.up" : "arrow.down")
+            }
+            .buttonStyle(.borderless)
+            .help(viewModel.sort.direction.displayName)
+            .clickableCursor()
+
+            if !viewModel.sort.isDefault {
+                Button("Reset") { viewModel.sort = .default }
+                    .buttonStyle(.borderless)
+                    .clickableCursor()
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
     }
 
     /// One tracked-job row with **swipe-to-Results** (leading / swipe right — clears the

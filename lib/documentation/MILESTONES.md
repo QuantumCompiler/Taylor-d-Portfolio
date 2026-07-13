@@ -1817,3 +1817,80 @@ hard-rules revised accordingly). Plus fixes: explicit user-initiated generation,
 Results, remove-from-Tracker, the runtime provider forwarding the D settings/score methods, and the Claude
 subprocess running in a neutral directory (no spurious Photos/Music prompts). The project version is
 **0.5.0**. The next version — number and theme chosen when it's started — restarts at Milestone A.
+
+---
+
+# v0.5.1 — LaTeX résumé & cover letter output
+
+Theme: give the app a **second, high-fidelity PDF output path** — render the generated `ApplicationKit` into
+`.tex` against Taylor's own awesome-cv classes and compile with `lualatex` (Milestones A–E, in progress) —
+plus a batch of export/Tracker refinements (F–H). A **patch release** on shipped v0.5.0; milestones restart
+at **A**; the project version is bumped to **0.5.1**. (A–E are tracked in `TODO.md`.)
+
+## Milestone F — Render Markdown thematic breaks (`---`) instead of printing them literally  ✅ done  (`Infrastructure`: `Text/MarkdownBlockParser`, `Export/MarkdownAttributedRenderer` + `Export/OOXMLDocument`; `Presentation`: `Components/MarkdownText`)
+
+Goal: the generated résumé/cover-letter Markdown uses `---` as section separators, but every native renderer
+printed the literal characters `---` on the page (visible in an exported PDF). Root cause: the shared
+`MarkdownBlockParser.classify` had no thematic-break case — a `---` line isn't blank, isn't a heading, and
+fails the bullet test — so it fell through to `.paragraph(text: "---")` and each renderer drew it verbatim.
+
+- [x] **Parser.** Added `case thematicBreak` to `MarkdownBlock` and an `isThematicBreak(_:)` detector (3+ of
+      a single `-`/`*`/`_`, spaces allowed between, whole-line), classified **before** the bullet rule so
+      `- - -` / `***` aren't misread as bullets.
+- [x] **PDF** (`MarkdownAttributedRenderer`): draws a subtle rule as an **underlined tab** filling the
+      US-Letter text column (Core Text has no paragraph border) — never literal dashes.
+- [x] **DOCX** (`OOXMLDocument`): emits an empty paragraph with a bottom border (`<w:pBdr>`), Word's standard
+      horizontal rule.
+- [x] **In-app preview** (`MarkdownText`): renders a SwiftUI `Divider()`. The new enum case is
+      compiler-enforced across all three exhaustive switches.
+- [x] **Tests.** Parser classification (`---`/`***`/`___`/`- - -`/spaced) + the misclassification traps (a
+      real `- item` bullet, `--`, `-nospace`, `mix-of---dashes` stay correct); golden-string checks that the
+      PDF renderer emits an underline rule (no `---` in the text) and the DOCX emits a border (no literal
+      dashes). Full suite green.
+
+On-device: yes — pure local rendering, no network, no model.
+
+## Milestone G — Export the résumé and cover letter as separate documents  ✅ done  (`Business`: `ExportApplicationUseCase`; `Presentation`: `ApplicationViewModel`, `ApplicationSheet`)
+
+Goal: export merged both deliverables into one file (`assembleMarkdown` joined `# Résumé` + `# Cover Letter`).
+A résumé and a cover letter are separate deliverables — sent as two files, named differently, often only one
+wanted — so export is now per-document. Also aligns the native path with the LaTeX path (A–E), which emits two
+files.
+
+- [x] **Use case.** New `ApplicationDocument` selector (`.resume` / `.coverLetter`, with `displayName` /
+      `filenameSuffix`); `callAsFunction(_:_:as:template:)` exports one document (no combined wrapper
+      heading), plus `markdown(for:from:)` / `isPresent(_:in:)`. The combined `assembleMarkdown` path is
+      retained for the "copy everything" affordance.
+- [x] **ViewModel.** Per-document `exportData(_:_:)` (guarded on presence so an empty section never exports
+      an empty file), `canExport(_:)`, and `exportFilename(for:_:)` → `Company - Role - Résumé.pdf` /
+      `… - Cover Letter.pdf`. `exportedText` still yields the combined document for clipboard.
+- [x] **UI.** The `ApplicationSheet` export menu is now **Résumé** / **Cover Letter** submenus (each with
+      PDF / Word / Markdown / Plain Text), showing only present documents; `startExport(_:_:)` carries the
+      document and per-document filename.
+- [x] **Tests.** Per-document assembly (résumé file has no cover-letter content and vice-versa; no wrapper
+      heading), presence reflects empty sections, filename suffixes, and VM availability/filenames + the
+      empty-document guard (which caught a real defect: it had been exporting empty bytes). Full suite green.
+
+On-device: yes — pure local assembly + export, no network, no model.
+
+## Milestone H — Sort control in the Tracker  ✅ done  (`Presentation`: `Tracker/View/TrackerSort` (new), `Tracker/ViewModel/TrackerViewModel`, `Tracker/View/TrackerView`)
+
+Goal: the Results tab has a live `ResultsFilter`; the Tracker had a fixed load-time order and no interactive
+control. Added an interactive **sort**, built the same way — a pure value the view holds and applies live over
+each stage tab's rows.
+
+- [x] **`TrackerSort`** (pure, `Equatable`/`Sendable`): a `Key` (recent activity / date applied / stage /
+      match score / company / role title) + a `Direction`, with `apply(to:)` and `isDefault`. Dated keys keep
+      **undated jobs last** in both directions; equal keys break ties on title for stable ordering. `.default`
+      (recent activity, descending) reproduces the historic load order.
+- [x] **ViewModel.** Holds `var sort` and applies it in `jobs(in:)`; the load-time `.sorted { … }` block is
+      retired in favour of `TrackerSort.default` (rows are ordered on read, so the raw `trackedJobs` store is
+      order-agnostic).
+- [x] **View.** A compact sort bar above the list (key picker + direction toggle + a Reset that appears once
+      off-default), mirroring the Results filter bar; shown only when there are rows.
+- [x] **Tests.** New `TrackerSortTests` covers every key + direction (incl. undated-last, stage progression,
+      case-insensitive company/title, `dateApplied` vs current-stage date, and title tie-breaking) and that
+      `.default` reproduces most-recent-first; the existing `listsTrackedJobsMostRecentFirst` now asserts via
+      `jobs(in:)`. Full suite green (434 tests).
+
+On-device: yes — pure local sort, no network, no persistence, no model.

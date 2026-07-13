@@ -147,7 +147,7 @@ struct ApplicationViewModelTests {
     @Test func cannotExportBeforeAKitExists() {
         let vm = exportVM()
         #expect(vm.canExport == false)
-        #expect(vm.exportData(.markdown) == nil)
+        #expect(vm.exportData(.resume, .markdown) == nil)
         #expect(vm.exportedText() == nil)
     }
 
@@ -164,7 +164,7 @@ struct ApplicationViewModelTests {
         #expect(plain?.contains("#") == false)
         #expect(plain?.contains("Swift dev") == true)
 
-        #expect(vm.exportData(.pdf) == nil)   // unsupported format degrades to nil, no crash
+        #expect(vm.exportData(.resume, .pdf) == nil)   // unsupported format degrades to nil, no crash
     }
 
     @Test func exportWithoutAnExporterIsUnavailable() async {
@@ -174,7 +174,7 @@ struct ApplicationViewModelTests {
         await vm.generate(for: job, profile: profile)
         #expect(vm.kit != nil)
         #expect(vm.canExport == false)        // no exporter wired
-        #expect(vm.exportData(.markdown) == nil)
+        #expect(vm.exportData(.resume, .markdown) == nil)
     }
 
     @Test func filenameBaseComesFromTheJob() async {
@@ -243,7 +243,27 @@ struct ApplicationViewModelTests {
         let vm = gateVM(exporter)
         await vm.generate(for: job, profile: profile)
         vm.exportTemplate = .modern
-        _ = vm.exportData(.pdf)
+        _ = vm.exportData(.resume, .pdf)
         #expect(exporter.lastExportTemplate == .modern)
+    }
+
+    // MARK: Milestone G — résumé + cover letter export as separate documents
+
+    @Test func perDocumentExportAvailabilityAndFilenames() async {
+        let vm = exportVM()
+        await vm.generate(for: JobListing(id: "x", title: "iOS Engineer", company: "Acme", location: "l", description: "d"),
+                          profile: profile)
+        #expect(vm.canExport(.resume))                     // the stub generates a résumé
+        #expect(vm.exportData(.resume, .markdown) != nil)
+        #expect(vm.exportFilename(for: .resume, .pdf) == "Acme - iOS Engineer - Résumé.pdf")
+        #expect(vm.exportFilename(for: .coverLetter, .docx) == "Acme - iOS Engineer - Cover Letter.docx")
+    }
+
+    @Test func absentDocumentIsNotExportable() async {
+        // The stub produces a résumé but no cover letter → cover letter isn't offered.
+        let vm = exportVM()
+        await vm.generate(for: job, profile: profile)
+        #expect(vm.canExport(.coverLetter) == false)
+        #expect(vm.exportData(.coverLetter, .markdown) == nil)
     }
 }

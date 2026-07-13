@@ -27,6 +27,8 @@ nonisolated enum OOXMLDocument {
                 body += paragraph(text: text, headingBold: true, sizeHalfPoints: size, bullet: false)
             case .bullet(let text):
                 body += paragraph(text: text, headingBold: false, sizeHalfPoints: bodyHalfPoints, bullet: true)
+            case .thematicBreak:
+                body += thematicBreak
             case .paragraph(let text):
                 body += paragraph(text: text, headingBold: false, sizeHalfPoints: bodyHalfPoints, bullet: false)
             }
@@ -65,6 +67,13 @@ nonisolated enum OOXMLDocument {
     }
 
     // MARK: Static fragments
+
+    /// A Markdown thematic break (`---`): an empty paragraph carrying a bottom border — the
+    /// standard Word "horizontal rule" (no literal dashes, no `numbering.xml`).
+    private static let thematicBreak =
+        "<w:p><w:pPr><w:pBdr>"
+        + "<w:bottom w:val=\"single\" w:sz=\"6\" w:space=\"1\" w:color=\"999999\"/>"
+        + "</w:pBdr></w:pPr></w:p>"
 
     private static let xmlDeclaration = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
     private static let documentOpen =

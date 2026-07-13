@@ -46,6 +46,9 @@ struct MarkdownText: View {
             }
             .font(.callout)
 
+        case .thematicBreak:
+            Divider()
+
         case .paragraph(let text):
             Text(inline(text))
                 .font(.callout)

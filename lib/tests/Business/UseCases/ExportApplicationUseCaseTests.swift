@@ -60,6 +60,38 @@ struct ExportApplicationUseCaseTests {
         #expect(!assembled.contains("# Cover Letter"))
     }
 
+    // MARK: Milestone G — per-document export
+
+    @Test func exportsResumeDocumentAloneWithoutCoverLetterOrWrapperHeading() throws {
+        let exporter = RecordingExporter()
+        let useCase = ExportApplicationUseCase(exporter: exporter)
+        _ = try useCase(kit, .resume, as: .markdown)
+        let md = try #require(exporter.lastMarkdown)
+        #expect(md.contains("Senior iOS Engineer"))
+        #expect(!md.contains("I build apps."))      // no cover-letter content
+        #expect(!md.contains("# Résumé"))           // no combined-wrapper heading — the file IS the résumé
+    }
+
+    @Test func exportsCoverLetterDocumentAloneWithoutResume() throws {
+        let exporter = RecordingExporter()
+        let useCase = ExportApplicationUseCase(exporter: exporter)
+        _ = try useCase(kit, .coverLetter, as: .markdown)
+        let md = try #require(exporter.lastMarkdown)
+        #expect(md.contains("I build apps."))
+        #expect(!md.contains("Senior iOS Engineer"))
+    }
+
+    @Test func documentPresenceReflectsEmptySections() {
+        let resumeOnly = ApplicationKit(resumeMarkdown: "Just a résumé.", coverLetter: "   ", gapNote: "")
+        #expect(ExportApplicationUseCase.isPresent(.resume, in: resumeOnly))
+        #expect(!ExportApplicationUseCase.isPresent(.coverLetter, in: resumeOnly))
+    }
+
+    @Test func documentFilenameSuffixes() {
+        #expect(ApplicationDocument.resume.filenameSuffix == "Résumé")
+        #expect(ApplicationDocument.coverLetter.filenameSuffix == "Cover Letter")
+    }
+
     @Test func routesFormatToTheExporterEndToEnd() throws {
         let useCase = ExportApplicationUseCase(exporter: MarkdownDocumentExporter())
         let text = String(decoding: try useCase(kit, as: .plainText), as: UTF8.self)

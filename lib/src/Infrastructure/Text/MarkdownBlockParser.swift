@@ -12,6 +12,8 @@ nonisolated enum MarkdownBlock: Equatable, Sendable {
     case heading(level: Int, text: String)
     case bullet(text: String)
     case paragraph(text: String)
+    /// A horizontal rule / section separator — a whole line of 3+ `-`, `*`, or `_`.
+    case thematicBreak
     case blank
 }
 
@@ -25,7 +27,8 @@ nonisolated enum MarkdownBlockParser {
     }
 
     static func classify(_ line: String) -> MarkdownBlock {
-        guard !line.trimmingCharacters(in: .whitespaces).isEmpty else { return .blank }
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return .blank }
 
         let unindented = line.drop { $0 == " " }
 
@@ -37,11 +40,25 @@ nonisolated enum MarkdownBlockParser {
             return .heading(level: level, text: rest.trimmingCharacters(in: .whitespaces))
         }
 
+        // Thematic break: a whole line of 3+ of the same marker ('-', '*', '_'), with
+        // optional spaces between. Checked *before* the bullet rule so "- - -" / "***"
+        // aren't misread as bullets (a bullet needs a marker + space + text).
+        if isThematicBreak(trimmed) { return .thematicBreak }
+
         // Bullet: '-', '*', or '+' followed by a space.
         if let marker = unindented.first, "-*+".contains(marker), unindented.dropFirst().first == " " {
             return .bullet(text: unindented.dropFirst().trimmingCharacters(in: .whitespaces))
         }
 
         return .paragraph(text: line)
+    }
+
+    /// Whether `trimmed` (already whitespace-trimmed, non-empty) is a Markdown thematic break:
+    /// 3+ of a single marker character (`-`, `*`, or `_`), spaces/tabs allowed between them and
+    /// nothing else. e.g. `---`, `***`, `___`, `- - -`.
+    static func isThematicBreak(_ trimmed: String) -> Bool {
+        let compact = trimmed.filter { $0 != " " && $0 != "\t" }
+        guard compact.count >= 3, let marker = compact.first, "-*_".contains(marker) else { return false }
+        return compact.allSatisfy { $0 == marker }
     }
 }
