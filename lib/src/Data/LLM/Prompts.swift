@@ -22,6 +22,8 @@ nonisolated enum Prompts {
     static let maxPageCharacters = 12_000
     /// Cap on the cover-letter voice exemplar injected into generation grounding.
     static let maxCoverLetterCharacters = 3_000
+    /// Cap on the user's free-text steering guidance injected into generation (Milestone I).
+    static let maxAdditionalContextCharacters = 1_000
 
     // MARK: Build profile
 
@@ -292,7 +294,25 @@ nonisolated enum Prompts {
         - gapNote: an honest, short note listing the notable must-have requirements the candidate
           does NOT clearly meet (the gaps from step 1). Never disguise a gap as a strength.
         """
-        return base + generationControls(settings)
+        return base + generationControls(settings) + additionalContextSection(settings.additionalContext)
+    }
+
+    /// The user's free-text steering guidance (Milestone I), appended when non-empty. Empty
+    /// context returns "", so the default path stays byte-for-byte the base prompt. It directs
+    /// **emphasis/framing** only — the grounding + latitude rules above still bind, so it can't
+    /// introduce fabricated facts at the grounded default.
+    static func additionalContextSection(_ context: String) -> String {
+        let trimmed = context.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        return """
+
+
+        ADDITIONAL USER GUIDANCE (steer emphasis and framing, NOT facts):
+        The candidate asked you to keep the following in mind — use it to choose which TRUE
+        experience to foreground and how to frame it. It does NOT permit inventing anything; the
+        grounding and latitude rules above still apply.
+        "\(truncate(trimmed, to: maxAdditionalContextCharacters))"
+        """
     }
 
     /// The generation-controls addendum (Milestone D). Empty for `.default`, so the grounded
@@ -300,7 +320,10 @@ nonisolated enum Prompts {
     /// scope (D-C), and — in the embellished band — a mandatory disclosure clause (D-E) that
     /// **override** the base instructions where they conflict.
     static func generationControls(_ settings: GenerationSettings) -> String {
-        guard !settings.isDefault else { return "" }
+        // Guard on the fidelity/aspect/target controls only — free-text `additionalContext`
+        // is appended separately (see `additionalContextSection`) and must not trigger the
+        // latitude/scope block on its own.
+        guard !settings.hasDefaultControls else { return "" }
         var lines: [String] = []
 
         switch settings.band {

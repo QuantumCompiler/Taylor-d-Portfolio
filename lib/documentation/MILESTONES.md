@@ -1894,3 +1894,38 @@ each stage tab's rows.
       `jobs(in:)`. Full suite green (434 tests).
 
 On-device: yes — pure local sort, no network, no persistence, no model.
+
+## Milestone I — Additional-context text box on the generate / regenerate flow  ✅ done  (`Data`: `GenerationSettings`, `LLM/Prompts`; `Business`: `GenerateToTargetUseCase`; `Presentation`: `ApplicationViewModel`, `ApplicationSheet`)
+
+Goal: give the Application view a free-text box for **extra guidance to steer generation** ("lean into the
+API-gateway angle for this role"), behaving like the Portfolio tab's "Regenerate description" prompt but
+feeding the **application** generation. It rides the existing `settings:` thread — no new provider overload.
+
+- [x] **`GenerationSettings.additionalContext`** — a `String` on the settings struct. **Excluded from
+      `Codable`** (custom `CodingKeys`) so it's per-job and never captured into a reusable `GenerationPreset`,
+      and so legacy preset blobs still decode; **included in `Equatable`**, so non-empty context makes
+      `isDefault` false. A new `hasDefaultControls` (fidelity/aspect/target only, ignoring context) drives the
+      prompt's controls block.
+- [x] **`Prompts`.** New `additionalContextSection(_:)` appends an "ADDITIONAL USER GUIDANCE (steer emphasis
+      and framing, NOT facts)" block when non-empty (bounded to `maxAdditionalContextCharacters`); empty
+      context is byte-for-byte the base prompt. `generationControls` now guards on `hasDefaultControls`, so
+      context-only generation adds the guidance without the fidelity/scope block.
+- [x] **Threading.** Single-pass generation already carried it inside `settings`; the outcome-driven
+      `GenerateToTargetUseCase` gained an `additionalContext` parameter folded into each round's settings, and
+      `ApplicationViewModel.generate` passes `generationSettings.additionalContext` into that path.
+- [x] **UI.** A multiline "Additional context (optional)" `TextField` in `ApplicationSheet`'s generation-options
+      panel, bound to `generationSettings.additionalContext`, applied on Generate/Regenerate (no separate
+      Submit). Stays enabled under a rank target (context steers both paths). Applying a preset clears the
+      typed context (presets are about fidelity/aspects/target).
+- [x] **Guardrail.** The guidance steers emphasis/framing only — the grounding + fidelity rules still bind, so
+      at the default fidelity it can't introduce fabricated facts (SPEC "Grounded generation" / CLAUDE hard
+      rules unchanged).
+- [x] **Tests.** Prompt injection (present when set, byte-for-byte base when empty, no fidelity block for
+      context-only, bounded); `GenerationSettings` (context counts against `isDefault` not `hasDefaultControls`,
+      and is not persisted); the rank-target loop forwards context each round; and applying a preset clears the
+      typed context. Full suite green.
+
+On-device: yes — the field is prompt text; both engines honour it through the shared `Prompts`.
+
+*(Open calls resolved as recommended: the field lives on `GenerationSettings` but is excluded from presets;
+no separate Submit — it feeds the existing Generate/Regenerate.)*

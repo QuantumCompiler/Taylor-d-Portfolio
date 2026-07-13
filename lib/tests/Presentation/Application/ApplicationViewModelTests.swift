@@ -266,4 +266,16 @@ struct ApplicationViewModelTests {
         #expect(vm.canExport(.coverLetter) == false)
         #expect(vm.exportData(.coverLetter, .markdown) == nil)
     }
+
+    // MARK: Milestone I — additional-context box
+
+    @Test func applyingAPresetClearsTypedAdditionalContext() {
+        let vm = exportVM()
+        vm.generationSettings.additionalContext = "steer this specific job"
+        vm.applyPreset(GenerationPreset(id: "p", name: "Curated",
+                                        settings: GenerationSettings(fidelity: 0.5),
+                                        createdAt: Date(timeIntervalSince1970: 0)))
+        #expect(vm.generationSettings.fidelity == 0.5)          // preset's controls applied
+        #expect(vm.generationSettings.additionalContext == "")  // per-job free-text is not carried by presets
+    }
 }

@@ -194,7 +194,9 @@ final class ApplicationViewModel {
         do {
             let produced: ApplicationKit
             if let target = generationSettings.desiredRankMatch, let generateToTarget {
-                let outcome = try await generateToTarget(job: job, profile: profile, grounding: grounding, target: target)
+                let outcome = try await generateToTarget(job: job, profile: profile, grounding: grounding,
+                                                         target: target,
+                                                         additionalContext: generationSettings.additionalContext)
                 produced = outcome.kit
                 rankOutcome = outcome
             } else {

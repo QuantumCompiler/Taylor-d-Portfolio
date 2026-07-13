@@ -589,6 +589,14 @@ breakdown + open calls.
       date applied, stage, match score, company, and title. Seam: **Presentation only**
       (`Tracker/View/TrackerSort.swift` + `TrackerViewModel` + `TrackerView`), paralleling
       `Results/View/ResultsFilter.swift`. On-device: yes (pure local sort, session-only).
+- [x] **Milestone I — Additional-context text box on the generate / regenerate flow.** ✅ **Done.** A free-text
+      box in the Application view's generation-options panel to **steer generation** ("lean into the API-gateway
+      angle"), behaving like the Portfolio "Regenerate description" prompt but feeding the application. Rides the
+      existing `settings:` thread as `GenerationSettings.additionalContext` (excluded from `Codable`/presets,
+      counted in `isDefault`); `Prompts` appends an "additional user guidance" block (empty = byte-for-byte the
+      base prompt); threaded through `GenerateToTargetUseCase` + `ApplicationViewModel` + `ApplicationSheet`.
+      Steers emphasis/framing only — grounding + fidelity rules still bind. Seam: Data (`GenerationSettings`,
+      `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device: yes.
 - [ ] **Milestone I — Additional-context box on the generate / regenerate flow.** Add a free-text field to the
       Application view's "Generation options" panel for extra guidance to the model (e.g. "emphasize my EV
       Charging leadership"), behaving like the Portfolio "Regenerate description" prompt

@@ -271,4 +271,48 @@ struct PromptsTests {
         #expect(!cases.contains("education"))
         #expect(!cases.contains("coverLetter"))
     }
+
+    // MARK: I — additional user guidance (free-text steering)
+
+    @Test func additionalContextIsInjectedAsSteeringGuidance() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(additionalContext: "lean into the API-gateway angle")
+        )
+        #expect(prompt.contains("ADDITIONAL USER GUIDANCE"))
+        #expect(prompt.contains("lean into the API-gateway angle"))
+        #expect(prompt.contains("does NOT permit inventing"))   // the framing-not-facts guardrail
+    }
+
+    @Test func emptyAdditionalContextLeavesThePromptUnchanged() {
+        let base = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief)
+        let blank = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(additionalContext: "   ")
+        )
+        #expect(base == blank)   // blank/whitespace guidance is byte-for-byte the base prompt
+        #expect(!blank.contains("ADDITIONAL USER GUIDANCE"))
+    }
+
+    @Test func contextOnlyAddsGuidanceButNotTheFidelityControls() {
+        // Context set but fidelity/aspects/target at default → the guidance appears, but the
+        // GENERATION CONTROLS latitude/scope block does not.
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(additionalContext: "focus on leadership")
+        )
+        #expect(prompt.contains("ADDITIONAL USER GUIDANCE"))
+        #expect(prompt.contains("focus on leadership"))
+        #expect(!prompt.contains("GENERATION CONTROLS"))
+    }
+
+    @Test func additionalContextIsBounded() {
+        let long = String(repeating: "C", count: Prompts.maxAdditionalContextCharacters + 500)
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(additionalContext: long)
+        )
+        #expect(!prompt.contains(long))
+        #expect(prompt.contains("…"))
+    }
 }

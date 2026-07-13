@@ -39,7 +39,8 @@ nonisolated struct GenerateToTargetUseCase: Sendable {
         job: JobListing,
         profile: CandidateProfile,
         grounding: PortfolioGrounding? = nil,
-        target: Int
+        target: Int,
+        additionalContext: String = ""
     ) async throws -> Outcome {
         let brief = try await provider.buildTargetBrief(for: job)
         var bestKit: ApplicationKit?
@@ -49,8 +50,10 @@ nonisolated struct GenerateToTargetUseCase: Sendable {
 
         for round in 0..<maxRounds {
             rounds = round + 1
-            // Target overrides fidelity + aspects: climb latitude, tailor all sections.
-            let settings = GenerationSettings(fidelity: escalatedFidelity(round: round))
+            // Target overrides fidelity + aspects: climb latitude, tailor all sections. The
+            // user's free-text guidance (Milestone I) still rides along each round.
+            let settings = GenerationSettings(fidelity: escalatedFidelity(round: round),
+                                              additionalContext: additionalContext)
             do {
                 let kit = try await provider.generateApplication(
                     for: job, profile: profile, brief: brief, grounding: grounding, settings: settings

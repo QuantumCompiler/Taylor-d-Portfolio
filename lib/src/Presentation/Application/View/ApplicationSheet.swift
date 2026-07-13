@@ -155,6 +155,16 @@ struct ApplicationSheet: View {
                 }
                 .disabled(rankTargetOn)
                 .opacity(rankTargetOn ? 0.5 : 1)
+                // Free-text steering (Milestone I). Stays enabled under a rank target — the
+                // guidance is honoured on both the single-pass and outcome-driven paths.
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Additional context (optional)").font(.caption).foregroundStyle(.secondary)
+                    TextField("e.g. lean into the API-gateway angle for this role",
+                              text: $viewModel.generationSettings.additionalContext, axis: .vertical)
+                        .textFieldStyle(.roundedBorder)
+                        .lineLimit(2...4)
+                        .clickableCursor()
+                }
                 if viewModel.canManagePresets {
                     Divider()
                     presetsRow

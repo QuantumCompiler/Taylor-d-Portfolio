@@ -44,4 +44,24 @@ struct GenerationSettingsTests {
         let back = try JSONDecoder().decode(GenerationSettings.self, from: data)
         #expect(back == s)
     }
+
+    // MARK: Milestone I — free-text additional context
+
+    @Test func additionalContextCountsAgainstDefaultButNotControls() {
+        let s = GenerationSettings(additionalContext: "focus on leadership")
+        #expect(s.isDefault == false)      // non-empty context ⇒ not the byte-for-byte grounded default
+        #expect(s.hasDefaultControls)      // …but the fidelity/aspect/target controls are still default
+        #expect(GenerationSettings().hasDefaultControls)
+        #expect(GenerationSettings(fidelity: 0.5).hasDefaultControls == false)
+        #expect(GenerationSettings(desiredRankMatch: 80).hasDefaultControls == false)
+    }
+
+    @Test func additionalContextIsNotPersisted() throws {
+        // Excluded from Codable so it never lands in a saved preset; decodes back to "".
+        let s = GenerationSettings(fidelity: 0.5, additionalContext: "per-job note")
+        let back = try JSONDecoder().decode(GenerationSettings.self, from: try JSONEncoder().encode(s))
+        #expect(back.additionalContext == "")   // context dropped on encode
+        #expect(back.fidelity == 0.5)            // the real controls still round-trip
+        #expect(back != s)                       // and the context difference shows in Equatable
+    }
 }

@@ -16,15 +16,16 @@ doing.
 > producing résumé + cover letter PDFs that match the ones he builds by hand in his `Resume-And-Cover-Letter`
 > repo. Milestones **restart at A**; commits are `v0.5.1 : Milestone X Completed`.
 >
-> **✅ Done so far (F, G, H — the independent refinements; see `MILESTONES.md`):** **F** — Markdown `---`
+> **✅ Done so far (F, G, H, I — the independent refinements; see `MILESTONES.md`):** **F** — Markdown `---`
 > now renders as a real rule (not literal dashes) in the PDF / DOCX / in-app preview; **G** — résumé & cover
 > letter export as **separate** documents (per-document menu + filenames); **H** — a live **sort control** in
-> the Tracker (mirroring the Results filter). Full suite green (434 tests).
+> the Tracker (mirroring the Results filter); **I** — an **additional-context** box on the generate/regenerate
+> flow that steers emphasis/framing (rides `GenerationSettings`, excluded from presets). Full suite green
+> (442 tests).
 >
-> **Remaining:** **A–E** build the LaTeX output path (the release's core — start at **Milestone A**), and
-> **I** adds an additional-context box on the generate/regenerate flow. These are independent; A–E are the
-> larger effort and need a local TeX install (`lualatex`, already present on this machine) plus an Xcode
-> resource-bundling step (Milestone A open call).
+> **Remaining:** only **A–E** — the LaTeX output path (the release's core). Start at **Milestone A**. These
+> are the larger effort and need a local TeX install (`lualatex`, already present on this machine) plus an
+> Xcode resource-bundling step (Milestone A open call).
 >
 > **Release type (noted).** This is feature-sized work carried as a **patch (`v0.5.1`)** at Taylor's
 > choice; the number and branch are fixed. Kickoff hygiene (below) is done: `MARKETING_VERSION` bumped to
@@ -258,56 +259,3 @@ the existing sync `export(markdown:as:template:)`; it needs its own async path.
 **Tests.** N/A beyond the availability probe (covered in B). Docs pass is non-code.
 
 **On-device.** N/A (docs + a local availability read).
-
-## Milestone I — Additional-context text box on the generate / regenerate flow
-
-**What / why.** In the **Application** view (where the user generates/regenerates the tailored materials), add
-a free-text box for **extra context to steer generation** — e.g. "emphasize my leadership on EV Charging",
-"lean into the API-gateway angle for this role". It should behave like the existing **"Regenerate
-description"** prompt on the Portfolio tab (`RefineSummaryUseCase` →
-`LLMProvider.refineSummary(profile:portfolio:instruction:)`, a free-text `instruction` field + Submit): a
-plain instruction the user types that the model honours on the next generate/regenerate. Here it feeds the
-**application** generation instead of the profile summary.
-
-**Seam + files.** Threads through the existing generation seam (fidelity/aspects already ride
-`GenerationSettings` → `Prompts`):
-- **UI** — add the text box to `ApplicationSheet.generationControlsPanel` (`ApplicationSheet.swift:119`, the
-  "Generation options" `DisclosureGroup`), bound to the VM and applied on Generate/Regenerate exactly like the
-  other controls ("Changes apply when you Generate / Regenerate.", `:156`). A multiline
-  `TextField(…, axis: .vertical)` / `TextEditor`, labelled "Additional context (optional)".
-- **`ApplicationViewModel`** — hold the field and include it in `generate(for:profile:grounding:)`
-  (`ApplicationViewModel.swift:169`) and the rank-target path (`generateToTarget`), so both single-pass and
-  outcome-driven regeneration receive it.
-- **Business/Data** — carry the instruction into `GenerateApplicationUseCase`
-  (`GenerateApplicationUseCase.swift`) → `LLMProvider.generateApplication(…settings:)`
-  (`LLMProvider.swift:54`) → `Prompts` (inject as an "additional user guidance" block in the tailoring
-  prompt). `GenerateToTargetUseCase` takes it too.
-- **Guardrail.** The extra context steers **emphasis/framing**, not invention: the same grounding + fidelity
-  rules apply (SPEC "Grounded generation" / CLAUDE "Hard rules") — at the default fidelity it can't introduce
-  fabricated facts, and anything beyond the profile stays gated behind the fidelity band + disclosure.
-
-**Sub-tasks.**
-- [ ] Add the additional-context field (state + binding) to `ApplicationViewModel` and the
-      `generationControlsPanel` text box.
-- [ ] Thread it into `generate(...)` + `generateToTarget(...)`, the use case(s), the provider
-      `generateApplication(…settings:)`, and `Prompts` (grounded "additional guidance" block).
-- [ ] **(open call — where the field lives).** Two ways to carry it:
-      - **On `GenerationSettings`** (`GenerationSettings.swift`) as `var additionalContext: String = ""` — rides
-        the existing `settings:` thread with **no new provider overload**. But `GenerationSettings` is saved in
-        **presets** (`GenerationPreset`) and drives `isDefault`; free-text per-job context shouldn't persist
-        into a reusable preset. **Recommended:** put it here **but exclude it from preset save/apply** (reset to
-        "" when saving/applying a preset) so presets stay about fidelity/aspects/target; keep it factored into
-        `isDefault` (non-empty context ⇒ not the byte-for-byte grounded default).
-      - **As a separate transient param** on the generate call (mirroring `refineSummary`'s `instruction`) —
-        cleaner semantics, but adds another `generateApplication` overload + router + `SettingsBacked` adapter +
-        stub forwarding. Fall back to this if mixing it into `GenerationSettings`/presets proves awkward.
-- [ ] **(open call — apply vs. Submit).** **Recommended:** no separate Submit — the box feeds the existing
-      Generate / Regenerate buttons (consistent with the rest of the options panel), not its own action.
-
-**Tests.** VM test that the entered context reaches the generate call; use-case/provider-stub test that a
-non-empty context alters the prompt (and that empty context leaves the default grounded prompt byte-for-byte
-unchanged); preset test that saving/applying a preset does **not** capture the free-text context (if it lives
-on `GenerationSettings`).
-
-**On-device.** Yes — the field is prompt text; both engines honour it through the shared `Prompts` (no
-network beyond the normal generation call).

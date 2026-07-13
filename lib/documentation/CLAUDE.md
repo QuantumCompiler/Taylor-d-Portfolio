@@ -4,8 +4,9 @@ Project context for Claude Code. Read this before making changes. The root
 [`README.md`](../../README.md) is the public-facing overview (what the app is + a per-version
 summary); this file and the rest of `lib/documentation/` are the contributor-facing detail. See
 `SPEC.md` for what we're building, `ROADMAP.md` for the high-level plan, `TODO.md` for the
-granular checklist of **remaining** work, and `MILESTONES.md` for the record of
-**completed** milestones. **Starting a fresh session? First ask the user what the current
+granular checklist of **remaining** work in the *in-progress* version, `MILESTONES.md` for the record of
+**completed** milestones, and `PLANNED.md` for specced-but-**not-yet-versioned** features/fixes (a staging
+area between `ROADMAP.md`'s Backlog and `TODO.md`). **Starting a fresh session? First ask the user what the current
 version is** (form `v0.x.0` / `v0.x.y`, e.g. `v0.3.0` or `v0.4.1`) so commits/labels track correctly,
 **then read `TODO.md`** — its "Current focus" line tells you exactly where to pick up. **If Taylor says
 he wants to _plan_ a release (rather than build), follow "Working process → Planning sessions" below** —
@@ -383,6 +384,10 @@ Four contributor docs, from broadest to most granular:
   "Current focus" line marking the next task. It should *only* contain remaining work.
 - **`MILESTONES.md`** — the record of **completed** milestones (the detailed write-ups,
   moved here out of `TODO.md`). History and reference: what shipped and how.
+- **`PLANNED.md`** — specced features/fixes that are **not yet assigned to a version** (a staging area
+  between `ROADMAP.md`'s loose Backlog and `TODO.md`'s in-progress milestones). Entries name real seams/files
+  so a scheduled item lifts straight into a version's `TODO.md`/`ROADMAP.md` as lettered milestones; **remove
+  it from `PLANNED.md` when it's scheduled** (this file holds only *unscheduled* work).
 
 The loop, so any session can pick up where the last left off:
 
@@ -449,8 +454,19 @@ and say it's partial). Ad-hoc user-requested tweaks have no milestone letter —
 
 When Taylor opens a session by asking to **plan** a release (or says something like "let's plan
 v0.x.y", "I want to plan the next version"), the job is to turn the features / fixes / bugs he
-describes into **properly structured milestones in the docs** — **no implementation code**. This is a
-docs-and-design pass, not a build pass. Run it like this:
+describes — **together with the relevant entries already specced in `PLANNED.md`** — into **properly
+structured milestones in the docs** — **no implementation code**. This is a docs-and-design pass, not a
+build pass. Run it like this:
+
+0. **Read `PLANNED.md` first — it's the standing backlog to pull from.** `PLANNED.md` holds features/fixes
+   that were specced in earlier sessions (with real seams/files named) but **not yet assigned to a version**.
+   At the start of every planning session, read it and decide **which entries belong in the version being
+   planned**. Treat each selected entry exactly like an item Taylor described in chat: convert it into lettered
+   milestone(s) in `TODO.md` + `ROADMAP.md` (steps 3–4 below) — reusing the seams/files/open-calls it already
+   documents — and then **delete that entry from `PLANNED.md`** so the file only ever holds *unscheduled* work.
+   Confirm the selection with Taylor (its scope may make it a `.0` vs. a patch — see step 1). Conversely, any
+   new feature Taylor raises this session that he **doesn't** want in the current version goes the other way:
+   capture it as a fresh `PLANNED.md` entry (same rigor — real seam + files) rather than a version milestone.
 
 1. **Confirm the version & release type.** Ask/confirm the working version (per **Versioning** above).
    Decide **feature release (`v0.x.0`)** vs. **patch release (`v0.x.y`)**: a batch of bug fixes / small
@@ -490,8 +506,10 @@ docs-and-design pass, not a build pass. Run it like this:
 
 The output of a good planning session: `TODO.md` + `ROADMAP.md` (and `README.md` / `SPEC.md` /
 `CLAUDE.md` where a new pattern or whole feature warrants it) fully describe the release's milestones,
-every seam is named from the real code, open decisions are flagged with recommendations, and the
-project version matches the new number — so implementation can start straight from the docs.
+every seam is named from the real code, open decisions are flagged with recommendations, the
+project version matches the new number, and any `PLANNED.md` entries pulled into the version have been
+**moved out of `PLANNED.md`** (it's left holding only still-unscheduled work) — so implementation can start
+straight from the docs.
 
 ### Making a branch merge-ready (shipping a version)
 
