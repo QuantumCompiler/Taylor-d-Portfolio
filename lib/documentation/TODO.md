@@ -10,7 +10,7 @@ line in `ROADMAP.md`, in the same change. This file should only ever contain wor
 doing.
 
 > **Current focus. v0.6.0 — richer grounding, job detail & sources — Milestone D (User-editable API
-> credentials); D-A + D-B done, next D-C (rewire `SettingsBackedJobSource`).** Milestones **A–C are done** (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A**
+> credentials); D-A…D-C done, next D-D (Settings UI).** Milestones **A–C are done** (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A**
 > richer job postings; **B** per-generation **profile picker** grounding on the chosen saved profile's source
 > documents; **C** **regenerate result** (single-job re-rank + re-enrich against a chosen profile). Three more
 > milestones — pulled from `PLANNED.md` — now extend the release: **D** user-editable API credentials, **E**
@@ -110,10 +110,24 @@ JSearch/RapidAPI, etc. — needs a key field).
       a blank value (revert to fallback, keeps the keychain clean); `hasCredentials(for:)` generalises
       `AppConfig.hasAdzunaCredentials` to "resolved from either source." 14 tests (resolution order, clear-reverts,
       blank-as-absent, mixed user/build-time, namespacing); full suite green.
-- [ ] **D-C — Rewire `SettingsBackedJobSource`** (`Composition.swift`) to resolve id/key live from the store
-      with the `AppConfig` fallback; generalise `hasAdzunaCredentials`.
+- [x] **D-C — Rewire `SettingsBackedJobSource`** (`Composition.swift`) to resolve id/key live from the store
+      with the `AppConfig` fallback; generalise `hasAdzunaCredentials`. ✅ `Composition` now owns a
+      `JobSourceCredentialsStore(store: KeychainStore(), config: appConfig)`; `SettingsBackedJobSource` resolves
+      `appID`/`appKey` via `credentials.value(for:)` (user → build-time fallback) on each search; `isAdzunaConfigured`
+      is now `credentialsStore.hasCredentials(for: .adzuna)` (feeds the Search/Settings VMs + the DEBUG console
+      hint, reworded to cover both sources). Composition-root glue (untested like `SettingsBackedLLMProvider`);
+      resolution covered by D-B's tests; full suite green.
 - [ ] **D-D — Settings UI**: editable `SecureField` id/key persisting to the store; banner derives from
       resolution. Flip the two "secrets are build-time" doc comments (`AppSettings.swift:14`, `AppConfig.swift`).
+      - [ ] **Refresh the availability snapshot after save (surfaced by D-C).** `SearchViewModel.adzunaConfigured`
+            and `SettingsViewModel.adzunaConfigured` are **Bool snapshots** taken at VM construction
+            (`Composition.makeSearchViewModel` / `makeSettingsViewModel`, seeded from `isAdzunaConfigured`). That
+            was fine when creds were build-time-only; now that the user can enter them, saving a key must
+            re-resolve availability so the Search banner/Generate gate update without a relaunch. Wire the
+            Settings save to re-read `credentialsStore.hasCredentials(for:)` and propagate (e.g. via `AppSession`
+            / a refreshed VM), or make `adzunaConfigured` a computed read rather than a snapshot.
+      - [ ] **Consider folding in the `PLANNED.md` "per-provider credential setup help" entry** — a "How to get a
+            key" `Link` beside each field — while building these fields (it's flagged there as a natural D fold-in).
 - [ ] **(open call) Migration.** Seed the keychain once from `AppConfig` (mirror `LegacyKeyMigration`) vs. pure
       fallback (no copy). *Recommended:* **pure fallback** — simpler, keeps the secret out of the keychain
       unless the user enters one.

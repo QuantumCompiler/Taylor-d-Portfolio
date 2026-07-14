@@ -20,6 +20,9 @@ struct Composition {
     private let documentExtractor: any DocumentTextExtractor
     /// Persistence for saved jobs — nil if the SwiftData store couldn't be created.
     private let recordStore: (any PersistentRecordStore)?
+    /// Resolves job-source API credentials — user-entered (keychain) → build-time
+    /// `AppConfig` → absent (Milestone D). Read live so Settings edits take effect.
+    private let credentialsStore: JobSourceCredentialsStore
 
     init(appConfig: any AppConfig = BundleAppConfig()) {
         self.appConfig = appConfig
@@ -31,21 +34,26 @@ struct Composition {
         onDeviceClient = FoundationModelsClient()
         documentExtractor = PlatformDocumentTextExtractor()
         recordStore = Composition.makeRecordStore()
+        // Secrets go to the keychain, not the UserDefaults plist; the build-time `AppConfig`
+        // stays a fallback so dev/CI builds with baked keys keep working (Milestone D).
+        credentialsStore = JobSourceCredentialsStore(store: KeychainStore(), config: appConfig)
 
         #if DEBUG
-        // Fail-fast signal for developers: a build without baked Adzuna credentials
-        // can't search. Surfaced to the user as a banner (see SearchViewModel); this
-        // is the developer-facing console counterpart.
-        if !appConfig.hasAdzunaCredentials {
-            print("⚠️ [Taylor'd Portfolio] Adzuna credentials missing from this build. "
-                + "Copy Secrets.example.xcconfig to Secrets.xcconfig and fill in "
-                + "ADZUNA_APP_ID / ADZUNA_APP_KEY. Search will be unavailable.")
+        // Fail-fast signal for developers: search needs Adzuna credentials from *either*
+        // source. Surfaced to the user as a banner (see SearchViewModel); this is the
+        // developer-facing console counterpart.
+        if !credentialsStore.hasCredentials(for: .adzuna) {
+            print("⚠️ [Taylor'd Portfolio] No Adzuna credentials resolved — none baked into "
+                + "this build (copy Secrets.example.xcconfig → Secrets.xcconfig with "
+                + "ADZUNA_APP_ID / ADZUNA_APP_KEY) and none entered in Settings → Adzuna. "
+                + "Search will be unavailable until credentials are provided.")
         }
         #endif
     }
 
-    /// Whether this build has the baked Adzuna credentials required to search.
-    var isAdzunaConfigured: Bool { appConfig.hasAdzunaCredentials }
+    /// Whether Adzuna credentials are available to search — resolved from the user's entries
+    /// or the build-time fallback (Milestone D).
+    var isAdzunaConfigured: Bool { credentialsStore.hasCredentials(for: .adzuna) }
 
     /// Builds the SwiftData-backed record store, or `nil` if the container can't be
     /// created — persistence then degrades to off rather than crashing the app.
@@ -98,7 +106,7 @@ struct Composition {
     }
 
     private var jobSource: any JobSource {
-        SettingsBackedJobSource(config: appConfig, store: settingsStore, http: httpClient)
+        SettingsBackedJobSource(credentials: credentialsStore, store: settingsStore, http: httpClient)
     }
 
     private var jobPostingSource: any JobPostingSource {
@@ -298,20 +306,21 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     }
 }
 
-/// A `JobSource` that assembles Adzuna credentials from build-time `AppConfig`
-/// (id/key) plus the user's chosen country from settings, read live on each search.
+/// A `JobSource` that assembles Adzuna credentials from the `JobSourceCredentialsStore`
+/// (user-entered id/key, falling back to build-time `AppConfig`) plus the user's chosen
+/// country from settings — all read live on each search (Milestone D).
 private nonisolated struct SettingsBackedJobSource: JobSource {
-    let config: any AppConfig
+    let credentials: JobSourceCredentialsStore
     let store: SettingsStore
     let http: any HTTPClient
 
     func search(_ query: JobQuery) async throws -> [JobListing] {
-        let credentials = AdzunaJobSource.Credentials(
-            appID: config.adzunaAppID ?? "",
-            appKey: config.adzunaAppKey ?? "",
+        let creds = AdzunaJobSource.Credentials(
+            appID: credentials.value(for: .adzunaAppID) ?? "",
+            appKey: credentials.value(for: .adzunaAppKey) ?? "",
             country: store.load().adzunaCountry
         )
-        let source = AdzunaJobSource(credentials: credentials, http: http)
+        let source = AdzunaJobSource(credentials: creds, http: http)
         return try await source.search(query)
     }
 }
