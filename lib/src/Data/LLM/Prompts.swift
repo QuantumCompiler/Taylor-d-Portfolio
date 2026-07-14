@@ -210,7 +210,11 @@ nonisolated enum Prompts {
         "You distil a job posting into a structured target brief that a writer will use to tailor an " +
         "application. Extract only what the posting states; do not infer requirements it doesn't mention."
 
-    /// Stage 1: distil a posting into a ``TargetBrief`` (AGENT.md §5, Step 1).
+    /// Stage 1: distil a posting into a ``TargetBrief`` (AGENT.md §5, Step 1). When the posting
+    /// has been enriched (v0.6.0 Milestone A), the structured detail is appended as additional
+    /// true signal so the brief captures more must-haves, a real domain, and stated
+    /// mission/values than the (often truncated) description snippet alone carries. Enriching
+    /// stage 1 keeps the two-stage discipline: stage 2 tailors against the richer brief.
     static func buildTargetBrief(job: JobListing) -> String {
         """
         Read the job posting below and distil a structured target brief with these fields:
@@ -226,8 +230,37 @@ nonisolated enum Prompts {
         - title: \(job.title)
         - company: \(job.company)
         - location: \(job.location)
-        - description: \(truncate(job.description, to: maxDescriptionCharacters))
+        - description: \(truncate(job.description, to: maxDescriptionCharacters))\(postingDetailSection(job.details))
         """
+    }
+
+    /// The enriched ``PostingDetails`` rendered as extra brief-building signal (v0.6.0 Milestone
+    /// A-E). Only non-empty fields appear, and absent/empty details return "" so an un-enriched
+    /// posting produces the exact pre-A-E prompt (byte-for-byte). This is signal about the
+    /// **role**, not the candidate — it never loosens the never-fabricate rule on the résumé.
+    static func postingDetailSection(_ details: PostingDetails?) -> String {
+        guard let details, details.hasContent else { return "" }
+        var lines: [String] = []
+        if let work = details.workType { lines.append("- workType: \(work.label)") }
+        if !details.qualifications.isEmpty {
+            lines.append("- qualifications: \(details.qualifications.joined(separator: "; "))")
+        }
+        if !details.responsibilities.isEmpty {
+            lines.append("- responsibilities: \(details.responsibilities.joined(separator: "; "))")
+        }
+        if !details.niceToHaves.isEmpty {
+            lines.append("- niceToHaves: \(details.niceToHaves.joined(separator: "; "))")
+        }
+        let aboutRole = details.aboutRole.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !aboutRole.isEmpty { lines.append("- aboutRole: \(truncate(aboutRole, to: maxDescriptionCharacters))") }
+        let aboutCompany = details.aboutCompany.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !aboutCompany.isEmpty { lines.append("- aboutCompany: \(truncate(aboutCompany, to: maxDescriptionCharacters))") }
+        if !details.benefits.isEmpty {
+            lines.append("- benefits: \(details.benefits.joined(separator: "; "))")
+        }
+        guard !lines.isEmpty else { return "" }
+        return "\n\nStructured posting detail (already extracted from this posting — use it as additional "
+            + "true signal about the role, company, and requirements):\n" + lines.joined(separator: "\n")
     }
 
     // MARK: Generate application (stage 2 of generation)

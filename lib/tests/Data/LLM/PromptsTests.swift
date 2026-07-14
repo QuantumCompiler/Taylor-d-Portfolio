@@ -123,6 +123,46 @@ struct PromptsTests {
         #expect(prompt.contains("…"))
     }
 
+    // MARK: Enriched posting detail in the brief (v0.6.0 Milestone A-E)
+
+    @Test func briefPromptIncludesEnrichedPostingDetailWhenPresent() {
+        let details = PostingDetails(
+            workTypeRaw: "remote",
+            qualifications: ["5+ years Swift"],
+            responsibilities: ["Ship features"],
+            niceToHaves: ["Kotlin"],
+            aboutRole: "Own the iOS app.",
+            aboutCompany: "We build fintech.",
+            benefits: ["Health"]
+        )
+        let job = JobListing(id: "a", title: "iOS", company: "Acme", location: "Remote", description: "SEED_DESC", details: details)
+        let prompt = Prompts.buildTargetBrief(job: job)
+        #expect(prompt.contains("Structured posting detail"))
+        #expect(prompt.contains("Remote"))              // workType label
+        #expect(prompt.contains("5+ years Swift"))       // qualifications
+        #expect(prompt.contains("We build fintech."))    // aboutCompany
+        #expect(prompt.contains("Health"))               // benefits
+    }
+
+    @Test func briefPromptIsUnchangedWithoutDetails() {
+        // The pre-A-E path stays byte-for-byte: no detail block when details is nil.
+        let job = JobListing(id: "a", title: "iOS", company: "Acme", location: "Remote", description: "SEED_DESC")
+        let prompt = Prompts.buildTargetBrief(job: job)
+        #expect(!prompt.contains("Structured posting detail"))
+    }
+
+    @Test func postingDetailSectionOmitsEmptyFieldsAndEmptyDetails() {
+        // Empty details → "", so the brief prompt is unchanged.
+        #expect(Prompts.postingDetailSection(nil).isEmpty)
+        #expect(Prompts.postingDetailSection(PostingDetails()).isEmpty)
+        // Only the present fields are rendered — a work-type-only detail lists just that.
+        let onlyWork = PostingDetails(workTypeRaw: "hybrid")
+        let section = Prompts.postingDetailSection(onlyWork)
+        #expect(section.contains("workType: Hybrid"))
+        #expect(!section.contains("qualifications"))
+        #expect(!section.contains("aboutCompany"))
+    }
+
     // MARK: Generate application (stage 2)
 
     private var sampleProfile: CandidateProfile {

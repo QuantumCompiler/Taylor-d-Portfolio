@@ -17,9 +17,10 @@ doing.
 > `JobListing`; the `WorkType` / `@Generable` `PostingDetails` enrichment model + `enrichPosting` LLM step; and
 > `EnrichPostingUseCase` — full-page-fetch-preferred, snippet-fallback — plus the `JobPostingSource.readableText`
 > seam; and **A-D** — enrich-on-save-to-Tracker wired through `Composition` → `ResultsViewModel`, re-persisting
-> the enriched `RankedJob`). Next is **Milestone A-E** — thread the enriched `PostingDetails` into
-> `buildTargetBrief` / `generateApplication` + `Prompts` so tailoring uses the richer signal (the payoff).
-> `MARKETING_VERSION` bumped to `0.6.0`.
+> the enriched `RankedJob`; and **A-E** — enriched `PostingDetails` threaded into the `buildTargetBrief` prompt
+> so tailoring uses the richer signal). Next is the **last slice, Milestone A-F** — surface the enriched fields
+> in the UI: `JobDetailView` (job-type + work-type badges, collapsible Qualifications / About-role / About-company
+> sections) and optional `RankedRow` chips. `MARKETING_VERSION` bumped to `0.6.0`.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
 > open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
@@ -135,7 +136,15 @@ free today:
       decode-with-default keeps legacy jobs loading (`details == nil`). Tests: saving enriches + persists +
       reflects in the in-memory list; saving without enrichment wiring still works and leaves `details` nil.
       Full suite green.
-- [ ] **A-E — Thread enriched fields into `TargetBrief` / generation `Prompts`.**
+- [x] **A-E — Thread enriched fields into `TargetBrief` / generation `Prompts`.** ✅ **Done.** No seam change
+      needed: `buildTargetBrief(for job:)` already receives the full `JobListing`, which carries `details` (A-B)
+      populated on save (A-D) and persisted with the tracked job — so the richer signal reaches **stage 1** and
+      stage 2 tailors against the fuller brief (two-stage discipline preserved). Added `Prompts.postingDetailSection`
+      (renders only non-empty enriched fields — work type / qualifications / responsibilities / niceToHaves /
+      aboutRole / aboutCompany / benefits) and appended it to the `buildTargetBrief` prompt; absent/empty details
+      return "" so the un-enriched path is **byte-for-byte** the pre-A-E prompt. `GenerateApplicationUseCase` +
+      `GenerateToTargetUseCase` benefit automatically (unchanged). Tests: detail-present injects the fields;
+      details-nil unchanged; empty-fields/empty-details omitted. Full suite green.
 - [ ] **A-F — `JobDetailView` verbose layout + `RankedRow` chips.**
 - [ ] **(open call) Enrichment timing.** Enrich **every** Adzuna result (an LLM call per result — heavy on a
       big search) vs. **on demand** at detail-open vs. only for **saved** jobs. *Recommended:* **enrich on
