@@ -2094,3 +2094,74 @@ On-device: yes — the field is prompt text; both engines honour it through the 
 
 *(Open calls resolved as recommended: the field lives on `GenerationSettings` but is excluded from presets;
 no separate Submit — it feeds the existing Generate/Regenerate.)*
+
+---
+
+# v0.6.0 — richer grounding & job detail  (in progress)
+
+The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal to work
+from**. Three composed milestones drawn from `PLANNED.md`: capture and surface much more of a job posting
+(Milestone A), choose a profile to ground on (Milestone B), and regenerate a saved result (Milestone C).
+Grounded-by-default and never-fabricate hold throughout — enrichment *structures* what a posting says, it never
+invents. Milestones restart at **A**; commit as `v0.6.0 : Milestone X Completed`.
+
+## Milestone A — Richer job postings (capture & surface full posting detail)  ✅ done
+
+A search result used to keep very little about a job — `JobListing` was only `id/title/company/location/
+description/url/salary`, and Adzuna's `description` is often a truncated snippet. Milestone A captures and
+surfaces **much more** — job/work type, posted date, category, qualifications, responsibilities, about-the-role/
+company, benefits — and feeds it into generation. Six sub-parts:
+
+- [x] **A-A — Adzuna decode (no LLM).** `JobListing` gained `positionTypes: [PositionType]` + `postedDate: Date?`
+      + `category: String?`, with a custom `init(from:)` that decodes-with-defaults so legacy `RankedJob` blobs
+      still load (else `SavedJobsRepository` would silently drop the row). `AdzunaJobSource.Job` decodes
+      `contract_type` / `contract_time` / `category` / `created` and maps them in `toDomain()` — both contract
+      fields → the `PositionType` flag list, ISO-8601 `created` → `postedDate`, category label. *(Employment type
+      is a list because Adzuna splits it across two orthogonal fields.)*
+- [x] **A-B — Enrichment model + step.** New `WorkType` enum (`on_site`/`remote`/`hybrid`, lenient `init(loose:)`)
+      and a `@Generable` `PostingDetails` (workTypeRaw + qualifications / responsibilities / niceToHaves /
+      aboutRole / aboutCompany / benefits, with `workType`/`hasContent` accessors); `JobListing` gained
+      `details: PostingDetails?`. The `enrichPosting(fromPostingText:)` step threaded through the whole seam —
+      `LLMProvider` requirement + throwing default, both providers (FM constrained-decode / Claude JSON),
+      `LLMRouter` (routed through `.extraction`), and `Prompts.enrichPosting` + `enrichInstructions` (extract-only,
+      "never invent"). `WorkType` stays a plain enum mapped from a raw string so `PostingDetails` is all
+      `String`/`[String]` and both engines produce it reliably.
+- [x] **A-C — Full-page fetch feeding enrichment.** Extended `JobPostingSource` with `readableText(from:)`
+      (default throws `.unreadable`; `LinkJobPostingSource` implements it by refactoring the fetch→decode→strip→
+      min-length half of `fetchPosting` into a shared method — URL path behaviour unchanged). New Business
+      `EnrichPostingUseCase` prefers the full posting page (when richer than the snippet) and **falls back to the
+      description snippet** on any fetch failure / no url / no source; attaches `PostingDetails` only when
+      `hasContent` (never overwrites with emptiness).
+- [x] **A-D — Trigger + persist.** Enrichment-timing open call resolved as recommended: **enrich on save to
+      Tracker**. `EnrichPostingUseCase` wired in `Composition` (over the shared `jobPostingSource`) and injected
+      into `ResultsViewModel`; `saveToTracker` marks `.saved` + refreshes history first (the row drops out of
+      Results immediately), then best-effort enriches and re-persists the `RankedJob`. Persistence needed **no
+      repository change** — `details` rides along in the `RankedJob` JSON, and A-B's decode-with-default keeps
+      legacy jobs loading (`details == nil`).
+- [x] **A-E — Into generation (the payoff).** No seam change: `buildTargetBrief(for job:)` already receives the
+      full `JobListing`, which carries `details` — so the richer signal reaches **stage 1** and stage 2 tailors
+      against the fuller brief (two-stage discipline preserved). `Prompts.postingDetailSection` renders only the
+      non-empty enriched fields into the brief prompt; absent/empty details return "" so the un-enriched path is
+      byte-for-byte the pre-A-E prompt. `GenerateApplicationUseCase` / `GenerateToTargetUseCase` benefit
+      automatically.
+- [x] **A-F — Surface in the UI.** Pure, SwiftUI-free `PostingMetaBadge.badges(for:)` derives at-a-glance chips
+      (work type, employment type(s), posted date, category). `JobDetailView` shows the chips near the top plus a
+      collapsible "Posting details" section (About the role / company + Qualifications / Responsibilities /
+      Nice-to-have / Benefits via `ExpandableRow`); `RankedRow` shows compact work/employment chips (so enriched
+      jobs read richer in the Tracker list). All gated on presence — un-enriched rows/detail look exactly as
+      before.
+
+**Guardrail.** Enrichment extracts and organizes what the posting states — it never invents requirements or
+company facts (same discipline as `ExtractedPosting`), and it's signal about the *role*, never about the
+candidate, so the never-fabricate rule on the résumé is untouched.
+
+**Tests.** Adzuna decode + legacy-blob decode; `PostingDetails`/`WorkType` round-trip + loose-parse + empty;
+`enrichPosting` provider decode + router routing + prompt fields/bounds/guardrail; `readableText` +
+`EnrichPostingUseCase` full-page/snippet/empty paths; enrich-on-save persists + reflects; brief prompt
+injects/omits detail; `PostingMetaBadge` derivation + relative posted text. Full suite green.
+
+**On-device.** Adzuna decode is pure/local; enrichment is `.extraction` LLM work (on-device-friendly; Claude
+when chosen); the optional full-page fetch needs network. Posting text is bounded before extraction.
+
+*(Open calls resolved as recommended: enrich **on save**; `JobListing` optionals for Adzuna fields **plus** a
+separate `@Generable` `PostingDetails` for the LLM structure.)*

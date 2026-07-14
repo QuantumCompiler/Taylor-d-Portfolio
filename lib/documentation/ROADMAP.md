@@ -611,7 +611,7 @@ and never-fabricate hold throughout: enrichment *structures* what a posting says
 fit honestly*, and neither invents facts. Milestones restart at **A** and commit as `v0.6.0 : Milestone X
 Completed`. `TODO.md` has the granular breakdown + open calls.
 
-- [ ] **Milestone A — Richer job postings (capture & surface full posting detail).** A search result keeps
+- [x] **Milestone A — Richer job postings (capture & surface full posting detail).** ✅ **Done (A-A…A-F).** A search result keeps
       very little today — `JobListing` is only `id/title/company/location/description/url/salary`, and the
       Adzuna `description` is often a truncated snippet. Capture **job type** (full/part-time, contract,
       permanent) and **posted date** cheaply by decoding Adzuna's `contract_type` / `contract_time` /

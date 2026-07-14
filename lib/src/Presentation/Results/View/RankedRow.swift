@@ -26,11 +26,27 @@ struct RankedRow: View {
                 }
                 Text("\(ranked.listing.company) · \(ranked.listing.location)")
                     .font(.subheadline).foregroundStyle(.secondary)
+                metaChips
                 Text(ranked.match.reason)
                     .font(.caption).foregroundStyle(.secondary).lineLimit(2)
             }
         }
         .padding(.vertical, 4)
+    }
+
+    /// Work-type / employment-type chips for an enriched listing (v0.6.0 Milestone A-F).
+    /// Omitted entirely when the listing has no such detail, so un-enriched rows are unchanged.
+    @ViewBuilder private var metaChips: some View {
+        let chips = PostingMetaBadge.badges(for: ranked.listing).filter {
+            $0.kind == .workType || $0.kind == .employment
+        }
+        if !chips.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(Array(chips.enumerated()), id: \.offset) { _, chip in
+                    FacetBadge(text: chip.text, systemImage: chip.systemImage, tint: .blue)
+                }
+            }
+        }
     }
 
     @ViewBuilder private func facetBadge(_ facet: JobHistory.Facet) -> some View {

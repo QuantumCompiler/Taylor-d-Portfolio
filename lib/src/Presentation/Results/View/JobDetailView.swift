@@ -94,11 +94,13 @@ struct JobDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     if markStatus != nil { statusSection }
+                    metaBadges
                     matchSection
                     if let salary = listing.salary, let text = SalaryFormatter.text(salary) {
                         labeledSection("Salary") { Text(text).font(.callout) }
                     }
                     descriptionSection
+                    postingDetailSection
                 }
             }
             Divider()
@@ -213,6 +215,80 @@ struct JobDetailView: View {
                             .font(.caption)
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(tint.opacity(0.18), in: Capsule())
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: Richer posting detail (v0.6.0 Milestone A-F)
+
+    /// At-a-glance chips (work type, employment type, posted date, category) — shown only when
+    /// the listing carries them, so an un-enriched posting looks exactly as before.
+    @ViewBuilder private var metaBadges: some View {
+        let badges = PostingMetaBadge.badges(for: listing)
+        if !badges.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(Array(badges.enumerated()), id: \.offset) { _, badge in
+                        FacetBadge(text: badge.text, systemImage: badge.systemImage, tint: tint(for: badge.kind))
+                    }
+                }
+            }
+        }
+    }
+
+    private func tint(for kind: PostingMetaBadge.Kind) -> Color {
+        switch kind {
+        case .workType:   return .blue
+        case .employment: return .indigo
+        case .posted:     return .secondary
+        case .category:   return .secondary
+        }
+    }
+
+    /// The enriched posting structure as collapsible sections — only the non-empty ones,
+    /// and the whole block is omitted when there's nothing enriched.
+    @ViewBuilder private var postingDetailSection: some View {
+        if let details = listing.details, details.hasContent {
+            labeledSection("Posting details") {
+                VStack(alignment: .leading, spacing: 12) {
+                    detailDisclosure("About the role", text: details.aboutRole)
+                    detailDisclosure("About the company", text: details.aboutCompany)
+                    detailDisclosure("Qualifications", list: details.qualifications)
+                    detailDisclosure("Responsibilities", list: details.responsibilities)
+                    detailDisclosure("Nice to have", list: details.niceToHaves)
+                    detailDisclosure("Benefits", list: details.benefits)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func detailDisclosure(_ title: String, text: String) -> some View {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            ExpandableRow {
+                Text(title).font(.subheadline.weight(.semibold))
+            } content: {
+                Text(trimmed)
+                    .font(.callout)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    @ViewBuilder private func detailDisclosure(_ title: String, list: [String]) -> some View {
+        if !list.isEmpty {
+            ExpandableRow {
+                Text(title).font(.subheadline.weight(.semibold))
+            } content: {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(Array(list.enumerated()), id: \.offset) { _, item in
+                        Text("• \(item)")
+                            .font(.callout)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }
