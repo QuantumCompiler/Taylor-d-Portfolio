@@ -72,6 +72,12 @@ struct RootView: View {
         // A detached window mutated persistence (status/generation/save) — reload the lists.
         .onChange(of: session.revision) { _, _ in
             Task {
+                // A "Regenerate result" (v0.6.0 C) overwrote one job's score — replace that row
+                // in the in-memory Results list (the Tracker re-reads wholesale below).
+                if let refreshed = session.refreshedResult {
+                    results.applyRefreshed(refreshed)
+                    session.refreshedResult = nil
+                }
                 await tracker.load()
                 await results.refreshHistory()
             }

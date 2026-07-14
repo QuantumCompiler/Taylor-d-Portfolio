@@ -37,12 +37,19 @@ struct JobDetailWindow: View {
                     regenerateResult: composition.regenerateResult,
                     loadProfiles: composition.loadProfiles,
                     onMutate: { session.dataChanged() },
+                    onRegenerated: { session.refreshedResult = $0 },
                     onOpenApplication: {
                         session.showApplication(ranked.listing)
                         openWindow(id: ApplicationWindow.id)
                     },
                     refreshSignal: session.revision
                 )
+                // This is a single-instance window reused for every job. Key the detail view by
+                // the job id so opening a different result gives it a **fresh** identity — its
+                // per-job `@State` (status, generated-materials flag, and the regenerate-result
+                // holder `displayRanked`) resets and `.task` re-runs. Without this the window
+                // keeps showing the first/regenerated job no matter which row was clicked.
+                .id(ranked.id)
             } else {
                 ContentUnavailableView("No job selected", systemImage: "doc.text")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -40,6 +40,10 @@ struct JobDetailView: View {
     /// Called after this view mutates shared persistence (status set, materials generated,
     /// saved), so a hosting window can signal the lists to reload (v0.5.0 Milestone B).
     var onMutate: (() -> Void)? = nil
+    /// Called with the re-ranked result after "Regenerate result" (v0.6.0 Milestone C), so a
+    /// hosting window can replace the matching row in the main-window Results list (which isn't
+    /// re-read wholesale). `onMutate` still fires for the generic reload.
+    var onRegenerated: ((RankedJob) -> Void)? = nil
     /// Opens the Application window (v0.5.0 Milestone B-C). Supplied by the hosting window;
     /// when nil (e.g. previews) the View/Generate buttons do nothing.
     var onOpenApplication: (() -> Void)? = nil
@@ -281,7 +285,8 @@ struct JobDetailView: View {
             do {
                 let refreshed = try await useCase(shown, profile: chosen, instruction: regenContext)
                 displayRanked = refreshed
-                onMutate?()   // refresh the lists + main window (score/badges changed)
+                onRegenerated?(refreshed)   // replace the matching Results row with the new score
+                onMutate?()                 // refresh the lists + main window (score/badges changed)
             } catch {
                 regenError = "Couldn't re-rank this result. Try again.\n\n(\(String(describing: error)))"
             }

@@ -166,6 +166,16 @@ final class ResultsViewModel {
         await refreshHistory()
     }
 
+    /// Replaces the in-memory result for `job.id` with `job` — e.g. after a "Regenerate result"
+    /// in a detail window overwrote the store (v0.6.0 Milestone C) — so the list shows the
+    /// refreshed score/reason without re-reading the whole set (which would clobber fresh,
+    /// unsaved search results, per Milestone S-C). No-op if the job isn't currently listed.
+    func applyRefreshed(_ job: RankedJob) {
+        if let index = results.firstIndex(where: { $0.id == job.id }) {
+            results[index] = job
+        }
+    }
+
     /// Reloads the per-job history map (e.g. after the detail sheet closes). Prefers the
     /// full three-source join; falls back to statuses only when history isn't wired.
     func refreshHistory() async {

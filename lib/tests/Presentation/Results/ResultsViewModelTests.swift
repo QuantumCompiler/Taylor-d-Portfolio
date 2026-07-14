@@ -295,6 +295,27 @@ struct ResultsViewModelTests {
         #expect(vm.results.first { $0.id == "a" }?.listing.details != nil)
     }
 
+    // MARK: Regenerate result reflected in the list (v0.6.0 Milestone C)
+
+    @Test func applyRefreshedReplacesTheMatchingRow() {
+        let vm = ResultsViewModel(results: [ranked("a"), ranked("b")])
+        let refreshed = RankedJob(
+            listing: JobListing(id: "a", title: "t", company: "c", location: "l", description: "d"),
+            match: JobMatch(jobId: "a", score: 99, reason: "re-ranked", matchedSkills: ["Swift"], missingSkills: [])
+        )
+        vm.applyRefreshed(refreshed)
+        #expect(vm.results.first { $0.id == "a" }?.score == 99)            // new score shows
+        #expect(vm.results.first { $0.id == "a" }?.match.reason == "re-ranked")
+        #expect(vm.results.first { $0.id == "b" }?.score == 50)            // others untouched
+    }
+
+    @Test func applyRefreshedIgnoresAJobNotInTheList() {
+        let vm = ResultsViewModel(results: [ranked("a")])
+        vm.applyRefreshed(ranked("not-listed"))
+        #expect(vm.results.count == 1)
+        #expect(vm.results.first?.id == "a")
+    }
+
     @Test func savingWithoutEnrichmentWiringLeavesDetailsNil() async throws {
         let (vm, jobs, _, _) = makeRowActionVM(results: [ranked("a")])   // no enrichPosting wired
         await vm.saveToTracker(ranked("a"))
