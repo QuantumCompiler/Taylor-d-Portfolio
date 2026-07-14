@@ -59,6 +59,34 @@ struct DomainModelTests {
         #expect(decoded == listing)
     }
 
+    @Test func jobListingRoundTripsWithRicherPostingFields() throws {
+        // v0.6.0 Milestone A-A — positionTypes / postedDate / category survive a round-trip.
+        let listing = JobListing(
+            id: "adzuna-123",
+            title: "iOS Engineer",
+            company: "Acme",
+            location: "Remote",
+            description: "Build apps.",
+            positionTypes: [.permanent, .fullTime],
+            postedDate: Date(timeIntervalSince1970: 1_705_309_200),
+            category: "IT Jobs"
+        )
+        let decoded = try roundTrip(listing)
+        #expect(decoded == listing)
+    }
+
+    @Test func jobListingDecodesLegacyBlobWithoutRicherFields() throws {
+        // A listing persisted before Milestone A-A lacks the new keys; it must still decode,
+        // with the richer fields defaulting to empty/nil (SavedJobsRepository drops undecodable
+        // rows, so a throw here would silently lose legacy saved jobs).
+        let legacy = #"{"id":"old-1","title":"Engineer","company":"Beta","location":"NYC","description":"A role."}"#
+        let decoded = try JSONDecoder().decode(JobListing.self, from: Data(legacy.utf8))
+        #expect(decoded.id == "old-1")
+        #expect(decoded.positionTypes.isEmpty)
+        #expect(decoded.postedDate == nil)
+        #expect(decoded.category == nil)
+    }
+
     @Test func jobQueryAppliesDefaultsAndRoundTrips() throws {
         let query = JobQuery(keywords: "swift developer")
         #expect(query.page == 1)

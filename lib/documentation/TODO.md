@@ -13,8 +13,9 @@ doing.
 > v0.1.0–v0.5.1 are done (see `MILESTONES.md`). v0.6.0 is now in progress: three composed milestones pulled
 > from `PLANNED.md` — **A** richer job postings, **B** select-a-profile-at-generation + ground on its source
 > documents, **C** regenerate result (re-rank/re-enrich a saved job). Build in order (B adds the shared profile
-> picker; C reuses it and A's enrichment). Start at **Milestone A-A** (the pure Adzuna-decode slice — smallest,
-> ships value on its own). `MARKETING_VERSION` bumped to `0.6.0`.
+> picker; C reuses it and A's enrichment). **A-A is done** (Adzuna-decoded posting fields on `JobListing`);
+> next is **Milestone A-B** — the `WorkType` enum + `@Generable` `PostingDetails` + `enrichPosting` LLM step +
+> `Prompts`. `MARKETING_VERSION` bumped to `0.6.0`.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
 > open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
@@ -94,9 +95,12 @@ free today:
   Qualifications / About the role / About the company sections); a compact `RankedRow` may surface chips.
 
 **Sub-tasks (the sub-parts letter as A-A…A-F for commits):**
-- [ ] **A-A — Adzuna decode (no LLM).** Decode `contract_type` / `contract_time` / `category` / `created` →
-      new optional `JobListing` job-type + posted-date + category fields; map in `toDomain()`. *(Smallest
-      slice; ships value on its own — start here.)*
+- [x] **A-A — Adzuna decode (no LLM).** ✅ **Done.** `JobListing` gained `positionTypes: [PositionType]` +
+      `postedDate: Date?` + `category: String?` (custom `init(from:)` decodes-with-defaults so legacy
+      `RankedJob` blobs still load). `AdzunaJobSource.Job` now decodes `contract_type` / `contract_time` /
+      `category` / `created` and maps them in `toDomain()` (both contract fields → the `PositionType` flag
+      list; ISO-8601 `created` → `postedDate`; category label). Tests: Adzuna decode of the richer fields +
+      absent-fields default + a `JobListing` round-trip + a legacy-blob decode. Suites green.
 - [ ] **A-B — Enrichment model + step.** `WorkType` enum + `@Generable` `PostingDetails` + the `enrichPosting`
       `LLMProvider` step (forwarding/throwing default like the other optional methods) + a `Prompts` entry,
       routed through `.extraction`.

@@ -86,23 +86,42 @@ nonisolated struct AdzunaJobSource: JobSource {
         var redirectURL: String?
         var salaryMin: Double?
         var salaryMax: Double?
+        // Richer posting detail (v0.6.0 Milestone A-A) — structured fields Adzuna already
+        // returns but we previously discarded.
+        var contractType: String?   // "permanent" | "contract"
+        var contractTime: String?   // "full_time" | "part_time"
+        var category: Category?
+        var created: String?        // ISO-8601 timestamp, e.g. "2024-01-15T09:00:00Z"
 
         struct Named: Decodable {
             var displayName: String?
             enum CodingKeys: String, CodingKey { case displayName = "display_name" }
         }
 
+        /// Adzuna returns `category` as an object; we keep only its human label.
+        struct Category: Decodable {
+            var label: String?
+        }
+
         enum CodingKeys: String, CodingKey {
-            case id, title, company, location, description
+            case id, title, company, location, description, category, created
             case redirectURL = "redirect_url"
             case salaryMin = "salary_min"
             case salaryMax = "salary_max"
+            case contractType = "contract_type"
+            case contractTime = "contract_time"
         }
 
         func toDomain() -> JobListing {
             let salary: SalaryRange? = (salaryMin != nil || salaryMax != nil)
                 ? SalaryRange(min: salaryMin, max: salaryMax, currency: nil)
                 : nil
+            // Adzuna splits employment type across two orthogonal fields (contract_type =
+            // permanent/contract, contract_time = full_time/part_time); both raw values are
+            // exactly `PositionType` cases, so map whichever are present into the flag list.
+            let positionTypes = [contractType, contractTime]
+                .compactMap { $0 }
+                .compactMap(PositionType.init(rawValue:))
             return JobListing(
                 id: id,
                 title: title,
@@ -110,8 +129,22 @@ nonisolated struct AdzunaJobSource: JobSource {
                 location: location?.displayName ?? "",
                 description: description,
                 url: redirectURL.flatMap { URL(string: $0) },
-                salary: salary
+                salary: salary,
+                positionTypes: positionTypes,
+                postedDate: created.flatMap(Self.parseTimestamp),
+                category: category?.label
             )
+        }
+
+        /// Parses Adzuna's ISO-8601 `created` timestamp (with or without fractional
+        /// seconds). Returns nil for an absent/unparseable value — a missing posted date is
+        /// not an error.
+        static func parseTimestamp(_ string: String) -> Date? {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = formatter.date(from: string) { return date }
+            formatter.formatOptions = [.withInternetDateTime]
+            return formatter.date(from: string)
         }
     }
 }

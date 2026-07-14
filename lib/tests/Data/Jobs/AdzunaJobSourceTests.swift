@@ -111,6 +111,42 @@ struct AdzunaJobSourceTests {
         #expect(second.salary == nil)
     }
 
+    @Test func searchDecodesRicherPostingFields() async throws {
+        // v0.6.0 Milestone A-A: contract_type / contract_time / category / created are now mapped.
+        let json = """
+        {"results":[
+          {"id":"111","title":"iOS Engineer","company":{"display_name":"Acme"},
+           "location":{"display_name":"Remote"},"description":"Build apps.",
+           "contract_type":"permanent","contract_time":"full_time",
+           "category":{"label":"IT Jobs","tag":"it-jobs"},"created":"2024-01-15T09:00:00Z"},
+          {"id":"222","title":"Backend Dev","description":"APIs.","contract_time":"part_time"}
+        ]}
+        """
+        let source = AdzunaJobSource(credentials: creds, http: StubHTTPClient(data: Data(json.utf8)))
+        let listings = try await source.search(JobQuery(keywords: "dev"))
+
+        let first = listings[0]
+        #expect(first.positionTypes == [.permanent, .fullTime])
+        #expect(first.category == "IT Jobs")
+        #expect(first.postedDate == ISO8601DateFormatter().date(from: "2024-01-15T09:00:00Z"))
+
+        // Only one of the two contract fields present, and no category/created → partial map.
+        let second = listings[1]
+        #expect(second.positionTypes == [.partTime])
+        #expect(second.category == nil)
+        #expect(second.postedDate == nil)
+    }
+
+    @Test func searchLeavesRicherFieldsEmptyWhenAbsent() async throws {
+        // A posting with none of the richer fields maps to empty/nil defaults (back-compat).
+        let json = #"{"results":[{"id":"1","title":"Dev","description":"x"}]}"#
+        let source = AdzunaJobSource(credentials: creds, http: StubHTTPClient(data: Data(json.utf8)))
+        let listing = try await source.search(JobQuery(keywords: "dev"))[0]
+        #expect(listing.positionTypes.isEmpty)
+        #expect(listing.postedDate == nil)
+        #expect(listing.category == nil)
+    }
+
     @Test func searchPropagatesHTTPErrors() async {
         let source = AdzunaJobSource(
             credentials: creds,
