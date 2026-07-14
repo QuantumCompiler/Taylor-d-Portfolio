@@ -599,17 +599,21 @@ breakdown + open calls.
       Steers emphasis/framing only — grounding + fidelity rules still bind. Seam: Data (`GenerationSettings`,
       `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device: yes.
 
-## v0.6.0 — richer grounding & job detail  (complete)
+## v0.6.0 — richer grounding, job detail & sources  (in progress)
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal
-to work from**. Three composed milestones, drawn from `PLANNED.md`: capture and surface **much more of a
-job posting** (Milestone A), let the user **choose which profile to ground on** and generate against its
-real source documents (Milestone B), and **regenerate a saved result** — re-rank (and, where available,
-re-enrich) it against a chosen profile so stale/legacy entries can be refreshed (Milestone C). They build
-in order — B adds a shared **profile picker**, C reuses that picker and A's enrichment. Grounded-by-default
-and never-fabricate hold throughout: enrichment *structures* what a posting says, re-ranking *re-assesses
-fit honestly*, and neither invents facts. Milestones restart at **A** and commit as `v0.6.0 : Milestone X
-Completed`. `TODO.md` has the granular breakdown + open calls.
+to work from**, and **more (and better-fed) sources to get it from**. Six milestones. The first three
+(**A–C, complete**) improve grounding: capture and surface **much more of a job posting** (Milestone A),
+let the user **choose which profile to ground on** and generate against its real source documents
+(Milestone B), and **regenerate a saved result** against a chosen profile so stale/legacy entries can be
+refreshed (Milestone C). The next three (**D–F, planned**) widen the pipe: make API keys **user-editable
+in Settings** (Milestone D — the foundation the rest lean on), capture the **full posting text** instead of
+Adzuna's truncated snippet (Milestone E), and **aggregate multiple job providers** behind `JobSource`
+(Milestone F). **Build order for D–F: D first** (it stands up the per-provider credential seam E and F
+both need), then E, then F. Grounded-by-default and never-fabricate hold throughout: enrichment
+*structures* what a posting says, re-ranking *re-assesses fit honestly*, and neither invents facts.
+Milestones restart at **A** and commit as `v0.6.0 : Milestone X Completed`. `TODO.md` has the granular
+breakdown + open calls.
 
 - [x] **Milestone A — Richer job postings (capture & surface full posting detail).** ✅ **Done (A-A…A-F).** A search result keeps
       very little today — `JobListing` is only `id/title/company/location/description/url/salary`, and the
@@ -654,17 +658,54 @@ Completed`. `TODO.md` has the granular breakdown + open calls.
       + persistence. On-device: yes (LLM re-rank on the chosen engine; local persist). Guardrail: re-rank
       re-assesses fit honestly (may raise *or lower* the score); context steers emphasis, not fabrication.
 
+- [ ] **Milestone D — User-editable API credentials (build first).** Adzuna's `app_id` / `app_key` are baked
+      in at build time (`Secrets.xcconfig` → Info.plist → `BundleAppConfig` → `AppConfig`), so only a build with
+      the secret file can search and there's no in-app fix. Re-integrate credentials as **user-entered
+      settings**: add a `KeychainStore: KeyValueStore` (Infrastructure/Store) so secrets stay out of the
+      `UserDefaults` plist; a provider-keyed `JobSourceCredentialsStore` (Data/Settings) so Adzuna and future
+      providers share one mechanism; resolve **user value → build-time `AppConfig` fallback → absent** live in
+      `SettingsBackedJobSource` (`Composition.swift:303`); and replace the read-only `adzunaConfigured` status
+      with editable `SecureField` id/key in `SettingsViewModel`. **This is the foundation** the multi-source
+      work (F) needs — each provider gets a key field. Seam: Infrastructure (`KeychainStore`) + Data (credentials
+      port) + Presentation (Settings) + composition-root rewire; flips the "credentials are build-time" doc
+      comments (`AppSettings.swift:14`, `AppConfig.swift`). On-device: n/a (local storage). Safety: the app
+      builds the *field*; the user enters keys — the agent never pastes real keys.
+
+- [ ] **Milestone E — Full job-posting text (not Adzuna's snippet).** The Adzuna `/search` `description` is
+      truncated (~500 chars, ends in `…`); the full body isn't in the API response, so no decode recovers it.
+      Recover it via a **full-page fetch behind the redirect URL** — reuse `JobPostingSource.readableText(from:)`
+      (`LinkJobPostingSource`) against `JobListing.url`, snippet fallback on `.unreadable` — store it as a
+      first-class `JobListing.fullDescription`, persist it (decode-with-defaults), and feed it into
+      `buildTargetBrief` / `generateApplication` + `Prompts` so tailoring works from the whole posting.
+      **Sharpens Milestone A** (which structures a posting via LLM but under-specifies capturing the full raw
+      text). Seam: Data (`JobListing`) + reuse Jobs fetch + persistence + generation `Prompts` + `JobDetailView`.
+      On-device: page-fetch needs network; storage/display local. Guardrail: full text is captured verbatim;
+      any structuring organizes, never invents.
+
+- [ ] **Milestone F — Multi-source job search (aggregate providers behind `JobSource`).** Too-few-results
+      means we've hit Adzuna's index ceiling for a query, not a paging bug — the fix is **more sources**. Add
+      provider conformers in `Data/Jobs/` (each keeping its API types private, per the Adzuna pattern) — **JSearch
+      via RapidAPI first** (a Google-for-Jobs aggregator whose rich structured response also feeds A/E), then The
+      Muse / remote feeds as drop-ins — behind a new `CompositeJobSource: JobSource` that fans out over providers
+      with bounded concurrency and merges, wired at `SettingsBackedJobSource` (`Composition.swift:303`). The one
+      real wrinkle: **cross-source de-dup** — `JobListing.id` is source-specific, so add a normalized
+      `JobListing.fingerprint` (title+company+location, or redirect host+path) for the merge, keeping the source
+      id for persistence. Depends on **D** for per-provider keys. Seam: Data (provider gateways + `CompositeJobSource`
+      + fingerprint) + composition-root wiring. On-device: search needs network (mind metered RapidAPI free tier).
+      Guardrail: n/a (data plumbing).
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
-  & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), **v0.5.1** (LaTeX
-  résumé & cover letter output), and **v0.6.0 (richer grounding & job detail)** are all complete.
-  **The next version is unstarted** — its number and theme are chosen when development on it begins (see
-  `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv fidelity
-  (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result" shipped in
-  v0.6.0 Milestone C); and the deeper Backlog themes (native `LanguageModel` provider seam, on-device
-  embedding RAG, optional MCP tools).
+  & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), and **v0.5.1** (LaTeX
+  résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **in
+  progress** — A–C done, **D–F planned** (user-editable credentials → full posting text → multi-source
+  search). **The next version is unstarted** — its number and theme are chosen when development on it begins
+  (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv
+  fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"
+  shipped in v0.6.0 Milestone C); further providers for the multi-source seam (The Muse / remote feeds); and
+  the deeper Backlog themes (native `LanguageModel` provider seam, on-device embedding RAG, optional MCP tools).
 - **C-structured résumé (v0.5.1 fast-follow).** If the Milestone C Markdown-parse fidelity proves too coarse,
   add a `@Generable` structured résumé representation (sections → entries with org/location/date, projects,
   skill buckets) that generation emits and `TexDocumentBuilder` renders faithfully — full awesome-cv fidelity.
