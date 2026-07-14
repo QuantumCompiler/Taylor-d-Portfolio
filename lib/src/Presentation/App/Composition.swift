@@ -162,8 +162,13 @@ struct Composition {
     private var saveProfile: SaveProfileUseCase? {
         savedProfilesRepository.map { SaveProfileUseCase(repository: $0) }
     }
-    private var loadProfiles: LoadProfilesUseCase? {
+    var loadProfiles: LoadProfilesUseCase? {
         savedProfilesRepository.map(LoadProfilesUseCase.init(repository:))
+    }
+    /// Re-rank (and optionally re-enrich) one saved result against a chosen profile (v0.6.0 C).
+    /// Nil when persistence isn't available (no store → nowhere to persist the refreshed result).
+    var regenerateResult: RegenerateResultUseCase? {
+        saveResults.map { RegenerateResultUseCase(provider: llmProvider, saveResults: $0, enrichPosting: enrichPosting) }
     }
     private var deleteProfile: DeleteProfileUseCase? {
         savedProfilesRepository.map(DeleteProfileUseCase.init(repository:))

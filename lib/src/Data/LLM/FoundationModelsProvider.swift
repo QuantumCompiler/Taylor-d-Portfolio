@@ -33,6 +33,14 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         return batch.matches
     }
 
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        try await client.respond(
+            to: Prompts.rankOne(job: job, profile: profile, instruction: instruction),
+            generating: JobMatch.self,
+            instructions: Prompts.rankInstructions
+        )
+    }
+
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         try await client.respond(
             to: Prompts.extractPosting(pageText: pageText),

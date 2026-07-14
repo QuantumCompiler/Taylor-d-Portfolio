@@ -152,6 +152,54 @@ nonisolated enum Prompts {
         """
     }
 
+    /// Re-ranks a SINGLE job (v0.6.0 Milestone C), asking for one `JobMatch`. Carries the
+    /// enriched posting detail (A-E) so a re-rank sees the richer signal, and appends the
+    /// user's optional steering `instruction` as guidance (emphasis/interpretation, never
+    /// fabrication). Empty instruction ⇒ no guidance block.
+    static func rankOne(job: JobListing, profile: CandidateProfile, instruction: String) -> String {
+        """
+        Score how well this ONE job fits the candidate, and return a single JobMatch.
+
+        Candidate profile:
+        - seniority: \(profile.seniority)
+        - yearsExperience: \(profile.yearsExperience)
+        - coreSkills: \(profile.coreSkills.joined(separator: ", "))
+        - domains: \(profile.domains.joined(separator: ", "))
+        - targetTitles: \(profile.targetTitles.joined(separator: ", "))
+
+        Job:
+        - jobId: \(job.id)
+          title: \(job.title)
+          company: \(job.company)
+          location: \(job.location)
+          description: \(truncate(job.description, to: maxDescriptionCharacters))\(postingDetailSection(job.details))
+
+        Produce a JobMatch:
+        - jobId: the job's id (\(job.id))
+        - score: fit from 0 (no fit) to 100 (perfect fit)
+        - reason: one or two sentences explaining the score
+        - matchedSkills: candidate skills the job asks for
+        - missingSkills: job requirements the candidate appears to lack
+        \(rankGuidanceSection(instruction))
+        """
+    }
+
+    /// The user's free-text steering guidance for a re-rank, appended when non-empty. Empty ⇒
+    /// "" so the re-rank prompt is the plain single-job assessment. Steers how to *read* the
+    /// fit (which experience to weight), never permission to credit skills the candidate lacks.
+    static func rankGuidanceSection(_ instruction: String) -> String {
+        let trimmed = instruction.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        return """
+
+
+        ADDITIONAL USER GUIDANCE (steer how you weigh the fit, NOT the facts):
+        The candidate asked you to keep the following in mind when assessing this role. Use it to
+        decide which TRUE experience to weight — it does NOT permit crediting skills they don't have.
+        "\(truncate(trimmed, to: maxAdditionalContextCharacters))"
+        """
+    }
+
     // MARK: Extract posting (from a URL / pasted text)
 
     static let extractInstructions =

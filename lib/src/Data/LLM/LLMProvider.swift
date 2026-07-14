@@ -20,6 +20,13 @@ protocol LLMProvider: Sendable {
     /// Scores each job against the profile. Returns one ``JobMatch`` per input job.
     func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch]
 
+    /// Re-ranks a SINGLE job against the profile, honouring optional free-text `instruction`
+    /// that steers emphasis/interpretation (v0.6.0 Milestone C — "regenerate result"). Has a
+    /// forwarding default that ignores the instruction and reuses the batch `rank`, so stubs
+    /// and engines that don't support it need no change; the real engines and the router
+    /// override it to honour the guidance.
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch
+
     /// Extracts a single job posting from the (stripped) text of a page or pasted text.
     /// Has a default that reports unavailability, so only engines that support it need
     /// implement it (the router forwards to a real engine).
@@ -77,6 +84,14 @@ extension LLMProvider {
     /// forwards to one.
     func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
         throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: re-rank a single job by reusing the batch `rank` (ignoring the instruction), so
+    /// stubs work unchanged. Real engines override this to honour the guidance; the router
+    /// forwards to one. Falls back to a neutral, jobId-keyed match when the batch returns none.
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        let matches = try await rank(jobs: [job], against: profile)
+        return matches.first ?? JobMatch(jobId: job.id, score: 0, reason: "Not scored.", matchedSkills: [], missingSkills: [])
     }
 
     /// Default: document tidying isn't supported. Real engines override this.

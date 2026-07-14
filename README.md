@@ -125,11 +125,21 @@ Adds a **second, high-fidelity PDF export path** plus a batch of export/Tracker 
   and an **additional-context** box that steers generation without changing the grounded default (I).
   *(Milestones A–I.)*
 
-**In progress — v0.6.0 (richer grounding & job detail):** give ranking and tailored generation more real signal
-to work from — capture and surface much more of a job posting (job/work type, posted date, qualifications,
-about-the-role/company), let the user choose which profile to ground on and generate against its real source
-documents, and regenerate a saved result (re-rank / re-enrich against a chosen profile). Three composed
-milestones (A–C); its summary lands here when it ships.
+### v0.6.0 — richer grounding & job detail
+Gave ranking and tailored generation **more real signal to work from**, in three composed milestones:
+- **Richer job postings (A):** decode Adzuna's job/work type, posted date, and category; **LLM-enrich** a saved
+  posting into a structured `PostingDetails` (qualifications, responsibilities, about-the-role/company,
+  benefits) — over the full posting page when fetchable, else the snippet — and feed it into the two-stage
+  generation so tailoring is better-grounded. Surfaced as badges + a collapsible **Posting details** section.
+- **Profile at generation time (B):** a per-generation **profile picker** so the user chooses which saved
+  profile to generate against, grounded on *that* profile's real source documents (defaults to the loaded one).
+- **Regenerate result (C):** a **re-rank** action on a saved job — re-assess fit (and backfill posting detail)
+  against a chosen profile with an optional steering note, persisted latest-wins — to refresh stale / legacy
+  entries. *(Milestones A–C.)*
+
+**Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
+from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
+layer — or a v0.6.0 fast-follow (full awesome-cv fidelity, or a bulk re-rank of legacy entries).
 
 ## Build & run
 

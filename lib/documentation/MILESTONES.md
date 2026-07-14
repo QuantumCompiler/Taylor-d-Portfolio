@@ -2097,7 +2097,7 @@ no separate Submit — it feeds the existing Generate/Regenerate.)*
 
 ---
 
-# v0.6.0 — richer grounding & job detail  (in progress)
+# v0.6.0 — richer grounding & job detail  (complete)
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal to work
 from**. Three composed milestones drawn from `PLANNED.md`: capture and surface much more of a job posting
@@ -2201,3 +2201,41 @@ uses the picked profile + its grounding, and falls back safely when the pick is 
 
 *(Open calls resolved as recommended: **session-only** selection defaulting to Current; picker in the
 **options panel**; **saved profiles only** — a just-built unsaved profile appears after Save.)*
+
+## Milestone C — Regenerate result (re-rank & re-enrich a saved job against a chosen profile)  ✅ done
+
+Mirrors the regenerate-application flow with a **"Regenerate result"** action on a saved job: re-run the fit
+assessment (and, where enrichment is wired, backfill the posting detail) against a **chosen profile**, with an
+optional steering context. The motivating case is **legacy entries** ranked against an older profile and
+lacking the richer posting fields.
+
+- [x] **C-A — Single-job re-rank seam (Data/LLM).** New `LLMProvider.rank(job:against:instruction:)` returning
+      one `JobMatch`, with a forwarding default that reuses the batch `rank` (ignoring the instruction) so stubs
+      are unchanged; real engines (FM constrained-decode / Claude JSON) and `LLMRouter` (routed `.ranking`)
+      override it. `Prompts.rankOne` asks for a single match, carries the enriched posting detail (A-E), and
+      appends the user's guidance via `rankGuidanceSection` (empty ⇒ plain assessment; steers *how to weigh*
+      fit, never permission to credit absent skills).
+- [x] **C-B — `RegenerateResultUseCase` (Business).** Best-effort re-enriches the listing (via the optional
+      `EnrichPostingUseCase` — backfills legacy postings; no-ops if already enriched), re-ranks the single job
+      against the chosen profile honouring the instruction, and persists the refreshed `RankedJob` latest-wins
+      via `SaveResultsUseCase` (`SavedJobsRepository` upsert). A re-enrich failure is swallowed; a re-rank
+      failure propagates.
+- [x] **C-C — "Regenerate result" action (Presentation).** `JobDetailView` gained a compact re-rank control in
+      the match section: an optional **profile picker** (default "Current profile" — the ambient one; reuses
+      Milestone B's pattern) + a steering **context** box + the button, with a spinner and error line. A
+      re-ranked result is held in `displayRanked` and shown in place (score / reason / skills / detail update
+      live via a new `shown` accessor), and `onMutate` refreshes the main-window lists. Wired through
+      `Composition.regenerateResult` / `loadProfiles` → `JobDetailWindow` → `JobDetailView`.
+
+**Guardrail.** Re-ranking re-assesses fit **honestly** (the score may rise *or* fall); enrichment structures
+what the posting says; the context steers emphasis/interpretation, never fabrication.
+
+**Tests.** `Prompts.rankOne` (asks for one match, carries detail + guidance, omits guidance when blank);
+`ClaudeCodeProvider.rank(job:instruction:)` decode + guidance in the prompt; router routes the single-job
+re-rank; `RegenerateResultUseCase` re-ranks with the instruction + persists latest-wins, and re-enriches when
+wired. Full suite green.
+
+**On-device.** Yes — re-rank + enrich run on the chosen engine; persistence is local.
+
+*(Open calls resolved as recommended: re-rank always + re-enrich when wired; **per-result** (not bulk);
+latest-wins **overwrite**.)*

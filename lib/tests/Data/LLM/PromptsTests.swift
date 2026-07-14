@@ -123,6 +123,25 @@ struct PromptsTests {
         #expect(prompt.contains("…"))
     }
 
+    // MARK: Single-job re-rank (v0.6.0 Milestone C)
+
+    @Test func rankOnePromptAsksForOneMatchAndCarriesGuidanceAndDetail() {
+        let details = PostingDetails(workTypeRaw: "remote", qualifications: ["Swift"])
+        let job = JobListing(id: "j9", title: "iOS", company: "Acme", location: "Remote", description: "SEED_DESC", details: details)
+        let prompt = Prompts.rankOne(job: job, profile: sampleProfile, instruction: "WEIGHT_GO")
+        #expect(prompt.contains("j9"))
+        #expect(prompt.contains("SEED_DESC"))
+        #expect(prompt.contains("Structured posting detail"))   // A-E enriched detail carried into re-rank
+        #expect(prompt.contains("WEIGHT_GO"))
+        #expect(prompt.contains("ADDITIONAL USER GUIDANCE"))
+    }
+
+    @Test func rankOnePromptWithoutInstructionOmitsGuidance() {
+        let job = JobListing(id: "j9", title: "iOS", company: "Acme", location: "Remote", description: "d")
+        let prompt = Prompts.rankOne(job: job, profile: sampleProfile, instruction: "   ")
+        #expect(!prompt.contains("ADDITIONAL USER GUIDANCE"))
+    }
+
     // MARK: Enriched posting detail in the brief (v0.6.0 Milestone A-E)
 
     @Test func briefPromptIncludesEnrichedPostingDetailWhenPresent() {

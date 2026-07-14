@@ -34,6 +34,14 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         return batch.matches
     }
 
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        try await generateJSON(
+            prompt: Prompts.rankOne(job: job, profile: profile, instruction: instruction),
+            instructions: Prompts.rankInstructions,
+            as: JobMatch.self
+        )
+    }
+
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         try await generateJSON(
             prompt: Prompts.extractPosting(pageText: pageText),

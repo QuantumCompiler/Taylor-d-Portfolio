@@ -50,6 +50,10 @@ nonisolated struct LLMRouter: LLMProvider {
         try await run(.ranking) { try await $0.rank(jobs: jobs, against: profile) }
     }
 
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        try await run(.ranking) { try await $0.rank(job: job, against: profile, instruction: instruction) }
+    }
+
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         try await run(.extraction) { try await $0.extractPosting(fromPageText: pageText) }
     }

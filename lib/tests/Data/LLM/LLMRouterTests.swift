@@ -138,6 +138,11 @@ struct LLMRouterTests {
         // Enrichment (v0.6.0 A-B) must route too — a forwarding adapter that misses it throws.
         let details = try await router.enrichPosting(fromPostingText: "posting")
         #expect(details.aboutCompany == "claude")
+
+        // Single-job re-rank (v0.6.0 C) routes through `.ranking` — the stub uses the default,
+        // which forwards to its batch `rank` (tagged with the engine).
+        let single = try await router.rank(job: job, against: profile, instruction: "steer")
+        #expect(single.jobId == "claude")
     }
 
     // MARK: Per-task routing

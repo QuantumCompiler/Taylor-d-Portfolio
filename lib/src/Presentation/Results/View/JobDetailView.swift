@@ -32,6 +32,11 @@ struct JobDetailView: View {
     /// Whether the horizontal save/dismiss swipe is enabled. Off when hosted in a window
     /// (v0.5.0 Milestone B) — a window has no card to swipe.
     var allowsSwipe: Bool = true
+    /// Re-rank (and optionally re-enrich) this result against a chosen profile (v0.6.0 C).
+    /// When nil, the "Regenerate result" control is hidden.
+    var regenerateResult: RegenerateResultUseCase? = nil
+    /// Loads the saved profiles the re-rank profile picker offers (v0.6.0 C).
+    var loadProfiles: LoadProfilesUseCase? = nil
     /// Called after this view mutates shared persistence (status set, materials generated,
     /// saved), so a hosting window can signal the lists to reload (v0.5.0 Milestone B).
     var onMutate: (() -> Void)? = nil
@@ -47,8 +52,20 @@ struct JobDetailView: View {
     @State private var dragOffset: CGFloat = 0
     /// Whether a generated kit is already saved for this job (drives the View vs Generate footer).
     @State private var hasGeneratedMaterials = false
+    // Regenerate-result state (v0.6.0 Milestone C).
+    /// The freshly re-ranked result after "Regenerate result", if any — it overrides `ranked`
+    /// for display so the score/reason/detail update in place.
+    @State private var displayRanked: RankedJob?
+    @State private var regenProfiles: [SavedProfile] = []
+    @State private var regenProfileID: String?
+    @State private var regenContext = ""
+    @State private var isRegenerating = false
+    @State private var regenError: String?
 
-    private var listing: JobListing { ranked.listing }
+    /// The result currently shown — the re-ranked one after "Regenerate result", else the one
+    /// passed in (v0.6.0 Milestone C).
+    private var shown: RankedJob { displayRanked ?? ranked }
+    private var listing: JobListing { shown.listing }
     /// Only the Results context (where a save action is supplied) is swipeable, and only
     /// when swiping is allowed (off in a window — v0.5.0 Milestone B).
     private var isSwipeable: Bool { onSaveToTracker != nil && allowsSwipe }
@@ -77,6 +94,9 @@ struct JobDetailView: View {
     private func loadDetailState() async {
         if let loadStatus {
             status = (try? await loadStatus(forJobID: ranked.id)) ?? nil
+        }
+        if let loadProfiles {
+            regenProfiles = (try? await loadProfiles()) ?? []
         }
         await refreshHasMaterials()
     }
@@ -175,7 +195,7 @@ struct JobDetailView: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: 12) {
-            ScoreBadge(score: ranked.score)
+            ScoreBadge(score: shown.score)
             VStack(alignment: .leading, spacing: 2) {
                 Text(listing.title).font(.title2.bold())
                 Text("\(listing.company) · \(listing.location)")
@@ -190,17 +210,80 @@ struct JobDetailView: View {
     // MARK: Match
 
     private var matchSection: some View {
-        labeledSection("Why this ranked \(ranked.score)") {
+        labeledSection("Why this ranked \(shown.score)") {
             VStack(alignment: .leading, spacing: 10) {
-                if !ranked.match.reason.isEmpty {
-                    Text(ranked.match.reason).font(.callout)
+                if !shown.match.reason.isEmpty {
+                    Text(shown.match.reason).font(.callout)
                 }
-                if !ranked.match.matchedSkills.isEmpty {
-                    skillRow("Matched", ranked.match.matchedSkills, tint: .green)
+                if !shown.match.matchedSkills.isEmpty {
+                    skillRow("Matched", shown.match.matchedSkills, tint: .green)
                 }
-                if !ranked.match.missingSkills.isEmpty {
-                    skillRow("Missing", ranked.match.missingSkills, tint: .orange)
+                if !shown.match.missingSkills.isEmpty {
+                    skillRow("Missing", shown.match.missingSkills, tint: .orange)
                 }
+                regenerateControl
+            }
+        }
+    }
+
+    // MARK: Regenerate result (v0.6.0 Milestone C)
+
+    /// A compact "re-rank this result" control: an optional profile picker + a steering context
+    /// box + the Regenerate button. Hidden unless the use case is wired. Re-assessing fit is
+    /// honest — the score may rise or fall — and it backfills posting detail on legacy entries.
+    @ViewBuilder private var regenerateControl: some View {
+        if let regenerateResult {
+            Divider()
+            VStack(alignment: .leading, spacing: 8) {
+                if !regenProfiles.isEmpty {
+                    Picker("Profile", selection: $regenProfileID) {
+                        Text("Current profile").tag(String?.none)
+                        ForEach(regenProfiles) { saved in Text(saved.name).tag(Optional(saved.id)) }
+                    }
+                    .labelsHidden()
+                    .clickableCursor()
+                }
+                TextField("Optional: steer the re-rank (e.g. weight my Go backend experience)",
+                          text: $regenContext, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .lineLimit(1...3)
+                    .clickableCursor()
+                HStack(spacing: 8) {
+                    Button("Regenerate result") { regenerate(using: regenerateResult) }
+                        .disabled(isRegenerating || chosenRegenProfile == nil)
+                        .clickableCursor()
+                    if isRegenerating { ProgressView().controlSize(.small) }
+                }
+                if let regenError {
+                    Text(regenError).font(.caption).foregroundStyle(.orange).textSelection(.enabled)
+                }
+                Text("Re-assesses fit honestly (may raise or lower the score) and backfills posting "
+                     + "detail. Steers emphasis, never facts.")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// The profile to re-rank against: the picked saved profile, or the ambient loaded one.
+    private var chosenRegenProfile: CandidateProfile? {
+        if let id = regenProfileID, let picked = regenProfiles.first(where: { $0.id == id }) {
+            return picked.profile
+        }
+        return profile
+    }
+
+    private func regenerate(using useCase: RegenerateResultUseCase) {
+        guard let chosen = chosenRegenProfile else { return }
+        isRegenerating = true
+        regenError = nil
+        Task {
+            defer { isRegenerating = false }
+            do {
+                let refreshed = try await useCase(shown, profile: chosen, instruction: regenContext)
+                displayRanked = refreshed
+                onMutate?()   // refresh the lists + main window (score/badges changed)
+            } catch {
+                regenError = "Couldn't re-rank this result. Try again.\n\n(\(String(describing: error)))"
             }
         }
     }

@@ -255,6 +255,40 @@ struct UseCaseTests {
         }
     }
 
+    // MARK: RegenerateResultUseCase (v0.6.0 Milestone C)
+
+    private func rankedFor(_ id: String, score: Int, description: String = "d") -> RankedJob {
+        RankedJob(
+            listing: JobListing(id: id, title: "iOS", company: "Acme", location: "Remote", description: description),
+            match: JobMatch(jobId: id, score: score, reason: "old", matchedSkills: [], missingSkills: [])
+        )
+    }
+
+    @Test func regenerateResultReranksWithInstructionAndPersists() async throws {
+        let jobs = SavedJobsRepository(store: InMemoryRecordStore())
+        let provider = RerankRecordingProvider(match: JobMatch(jobId: "e1", score: 88, reason: "better", matchedSkills: ["Swift"], missingSkills: []))
+        let useCase = RegenerateResultUseCase(provider: provider, saveResults: SaveResultsUseCase(repository: jobs))
+
+        let refreshed = try await useCase(rankedFor("e1", score: 40), profile: profile, instruction: "WEIGHT_GO")
+        #expect(refreshed.score == 88)                          // re-assessed (may go up or down)
+        #expect(provider.lastInstruction == "WEIGHT_GO")        // guidance threaded through
+        #expect(try await jobs.savedJobs().first?.score == 88)  // persisted latest-wins
+    }
+
+    @Test func regenerateResultReEnrichesWhenWired() async throws {
+        let jobs = SavedJobsRepository(store: InMemoryRecordStore())
+        let provider = RerankRecordingProvider(
+            match: JobMatch(jobId: "e1", score: 50, reason: "", matchedSkills: [], missingSkills: []),
+            details: PostingDetails(workTypeRaw: "remote", aboutCompany: "Fintech.")
+        )
+        let enrich = EnrichPostingUseCase(provider: provider, postingSource: nil)   // snippet-only
+        let useCase = RegenerateResultUseCase(provider: provider, saveResults: SaveResultsUseCase(repository: jobs), enrichPosting: enrich)
+
+        let refreshed = try await useCase(rankedFor("e1", score: 40), profile: profile)
+        #expect(refreshed.listing.details?.workType == .remote)                              // legacy posting backfilled
+        #expect(try await jobs.savedJobs().first?.listing.details?.aboutCompany == "Fintech.")
+    }
+
     // MARK: EnrichPostingUseCase (v0.6.0 Milestone A-C)
 
     private func enrichListing(url: URL? = nil, description: String) -> JobListing {
@@ -352,4 +386,31 @@ private final class EnrichRecordingProvider: LLMProvider, @unchecked Sendable {
         lastText = postingText
         return details
     }
+}
+
+/// An `LLMProvider` that records a single-job re-rank's instruction and returns a canned match
+/// (and canned enrichment) — for `RegenerateResultUseCase` tests (v0.6.0 Milestone C).
+private final class RerankRecordingProvider: LLMProvider, @unchecked Sendable {
+    let match: JobMatch
+    let details: PostingDetails
+    private(set) var lastInstruction: String?
+    init(match: JobMatch, details: PostingDetails = PostingDetails()) {
+        self.match = match
+        self.details = details
+    }
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { [match] }
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        lastInstruction = instruction
+        return match
+    }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        .init(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        .init(resumeMarkdown: "", coverLetter: "", gapNote: "")
+    }
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails { details }
 }

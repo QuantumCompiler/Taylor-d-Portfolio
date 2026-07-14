@@ -599,7 +599,7 @@ breakdown + open calls.
       Steers emphasis/framing only — grounding + fidelity rules still bind. Seam: Data (`GenerationSettings`,
       `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device: yes.
 
-## v0.6.0 — richer grounding & job detail  (in progress)
+## v0.6.0 — richer grounding & job detail  (complete)
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal
 to work from**. Three composed milestones, drawn from `PLANNED.md`: capture and surface **much more of a
@@ -640,7 +640,7 @@ Completed`. `TODO.md` has the granular breakdown + open calls.
       seam, no new generation seam. On-device: yes (local profile load + grounding; bound the injected source
       text). Guardrail: résumé source grounds facts; cover-letter source stays a voice/tone exemplar only.
 
-- [ ] **Milestone C — Regenerate result (re-rank & re-enrich a saved job against a chosen profile).** Mirror
+- [x] **Milestone C — Regenerate result (re-rank & re-enrich a saved job against a chosen profile).** ✅ **Done (C-A…C-C).** Mirror
       the regenerate-application flow with a **"Regenerate result"** action on a saved job: re-run the fit
       assessment (`JobMatch`) — and, where A's enrichment exists, re-enrich the `JobListing` — against a
       **chosen profile**, with an **additional-context** field to steer the re-assessment. The motivating
@@ -658,10 +658,12 @@ Completed`. `TODO.md` has the granular breakdown + open calls.
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
-  & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), and **v0.5.1** (LaTeX
-  résumé & cover letter output) are all complete. **v0.6.0 (richer grounding & job detail) is now in progress**
-  — Milestones A–C above, pulled from `PLANNED.md`. Its own fast-follows: full awesome-cv fidelity
-  (C-structured, below) and the deeper Backlog themes (native `LanguageModel` provider seam, on-device
+  & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), **v0.5.1** (LaTeX
+  résumé & cover letter output), and **v0.6.0 (richer grounding & job detail)** are all complete.
+  **The next version is unstarted** — its number and theme are chosen when development on it begins (see
+  `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv fidelity
+  (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result" shipped in
+  v0.6.0 Milestone C); and the deeper Backlog themes (native `LanguageModel` provider seam, on-device
   embedding RAG, optional MCP tools).
 - **C-structured résumé (v0.5.1 fast-follow).** If the Milestone C Markdown-parse fidelity proves too coarse,
   add a `@Generable` structured résumé representation (sections → entries with org/location/date, projects,

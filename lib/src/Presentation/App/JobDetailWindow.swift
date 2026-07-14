@@ -34,6 +34,8 @@ struct JobDetailWindow: View {
                     onSaveToTracker: session.detailContext == .results ? { saveToTracker(ranked) } : nil,
                     loadApplication: composition.loadApplication,
                     allowsSwipe: false,
+                    regenerateResult: composition.regenerateResult,
+                    loadProfiles: composition.loadProfiles,
                     onMutate: { session.dataChanged() },
                     onOpenApplication: {
                         session.showApplication(ranked.listing)
