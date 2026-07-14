@@ -125,9 +125,11 @@ Adds a **second, high-fidelity PDF export path** plus a batch of export/Tracker 
   and an **additional-context** box that steers generation without changing the grounded default (I).
   *(Milestones A–I.)*
 
-**Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
-from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
-layer.
+**In progress — v0.6.0 (richer grounding & job detail):** give ranking and tailored generation more real signal
+to work from — capture and surface much more of a job posting (job/work type, posted date, qualifications,
+about-the-role/company), let the user choose which profile to ground on and generate against its real source
+documents, and regenerate a saved result (re-rank / re-enrich against a chosen profile). Three composed
+milestones (A–C); its summary lands here when it ships.
 
 ## Build & run
 

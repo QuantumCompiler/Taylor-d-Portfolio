@@ -599,14 +599,70 @@ breakdown + open calls.
       Steers emphasis/framing only — grounding + fidelity rules still bind. Seam: Data (`GenerationSettings`,
       `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device: yes.
 
+## v0.6.0 — richer grounding & job detail  (in progress)
+
+The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal
+to work from**. Three composed milestones, drawn from `PLANNED.md`: capture and surface **much more of a
+job posting** (Milestone A), let the user **choose which profile to ground on** and generate against its
+real source documents (Milestone B), and **regenerate a saved result** — re-rank (and, where available,
+re-enrich) it against a chosen profile so stale/legacy entries can be refreshed (Milestone C). They build
+in order — B adds a shared **profile picker**, C reuses that picker and A's enrichment. Grounded-by-default
+and never-fabricate hold throughout: enrichment *structures* what a posting says, re-ranking *re-assesses
+fit honestly*, and neither invents facts. Milestones restart at **A** and commit as `v0.6.0 : Milestone X
+Completed`. `TODO.md` has the granular breakdown + open calls.
+
+- [ ] **Milestone A — Richer job postings (capture & surface full posting detail).** A search result keeps
+      very little today — `JobListing` is only `id/title/company/location/description/url/salary`, and the
+      Adzuna `description` is often a truncated snippet. Capture **job type** (full/part-time, contract,
+      permanent) and **posted date** cheaply by decoding Adzuna's `contract_type` / `contract_time` /
+      `category` / `created` (`AdzunaJobSource.Job` decodes none today), and the richer **work type**
+      (on-site/remote/hybrid) + **structured sections** (qualifications, about-the-role, about-the-company,
+      responsibilities, benefits) via an **LLM enrichment pass** (grow `ExtractedPosting` or add an
+      `enrichPosting` sibling → new `@Generable` `PostingDetails`), optionally over the **full posting page**
+      (reuse `LinkJobPostingSource`, snippet fallback). Persist the new fields (back-compatible,
+      decode-with-defaults) and thread them into `buildTargetBrief` / `generateApplication` + `Prompts` — the
+      payoff — and surface them in `JobDetailView` (badges + collapsible sections) and `RankedRow` chips.
+      Seam: Data (`JobListing` / new `WorkType` + `PostingDetails`) + Jobs (`AdzunaJobSource`) + LLM
+      (`ExtractedPosting`/`enrichPosting` + `Prompts`) + Business + persistence + Presentation. On-device:
+      Adzuna decode is pure/local; enrichment is `.extraction` LLM work (on-device-friendly; Claude when
+      chosen); the optional full-page fetch needs network. Guardrail: extract/organize only, never invent.
+
+- [ ] **Milestone B — Select a profile at generation time and ground on its source documents.** Grounding is
+      tied to the single currently-loaded/default profile today (`PortfolioViewModel.grounding` →
+      `AppSession.grounding` → `ApplicationWindow` → `JobDetailView` → `ApplicationSheet`), with a silent
+      fall-back to profile-summary-only when grounding wasn't set up. Add an **explicit per-generation profile
+      picker** so the user chooses which saved profile to generate against, and guarantee the chosen profile's
+      **real source documents** ground the output. Lift `PortfolioViewModel.grounding` into a reusable
+      `SavedProfile.grounding` mapper (any saved profile → its `PortfolioGrounding`); add a picker to the
+      generation-options panel (populated via `LoadProfilesUseCase`, defaulting to the `DefaultProfileStore`
+      profile); thread the chosen profile + grounding through `ApplicationViewModel.generate(...)`. Seam:
+      mostly Presentation (picker + wiring) + a small Data mapper — reuses the existing `PortfolioGrounding`
+      seam, no new generation seam. On-device: yes (local profile load + grounding; bound the injected source
+      text). Guardrail: résumé source grounds facts; cover-letter source stays a voice/tone exemplar only.
+
+- [ ] **Milestone C — Regenerate result (re-rank & re-enrich a saved job against a chosen profile).** Mirror
+      the regenerate-application flow with a **"Regenerate result"** action on a saved job: re-run the fit
+      assessment (`JobMatch`) — and, where A's enrichment exists, re-enrich the `JobListing` — against a
+      **chosen profile**, with an **additional-context** field to steer the re-assessment. The motivating
+      case is **legacy entries** ranked against an older profile and lacking the richer posting fields.
+      Ranking is batch + context-free today (`JobRanker.rank` → `LLMProvider.rank(jobs:against:)`); add a
+      **single-job re-rank with an optional instruction** (a forwarding-default `LLMProvider` overload +
+      `Prompts` guidance block, exactly how `generateApplication` grew `grounding:`/`settings:`), persist via
+      `SavedJobsRepository.save` (latest-wins upsert), and add the action to `JobDetailView` with the shared
+      profile picker (from B) + context box (shared with v0.5.1 Milestone I). Seam: Presentation + Business
+      (new `RegenerateResultUseCase`) + Data/LLM (single-job re-rank overload + `Prompts`; enrichment optional)
+      + persistence. On-device: yes (LLM re-rank on the chosen engine; local persist). Guardrail: re-rank
+      re-assesses fit honestly (may raise *or lower* the score); context steers emphasis, not fabrication.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
   & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), and **v0.5.1** (LaTeX
-  résumé & cover letter output) are all complete. **The next version is unstarted** — its number and theme are
-  chosen when development on it begins (see `CLAUDE.md` → "Never pre-name the next version"); pull a theme from
-  Backlog (native `LanguageModel` provider seam, on-device embedding RAG, or optional MCP tools).
+  résumé & cover letter output) are all complete. **v0.6.0 (richer grounding & job detail) is now in progress**
+  — Milestones A–C above, pulled from `PLANNED.md`. Its own fast-follows: full awesome-cv fidelity
+  (C-structured, below) and the deeper Backlog themes (native `LanguageModel` provider seam, on-device
+  embedding RAG, optional MCP tools).
 - **C-structured résumé (v0.5.1 fast-follow).** If the Milestone C Markdown-parse fidelity proves too coarse,
   add a `@Generable` structured résumé representation (sections → entries with org/location/date, projects,
   skill buckets) that generation emits and `TexDocumentBuilder` renders faithfully — full awesome-cv fidelity.
