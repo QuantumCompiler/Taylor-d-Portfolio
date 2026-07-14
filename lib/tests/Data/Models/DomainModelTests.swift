@@ -87,6 +87,50 @@ struct DomainModelTests {
         #expect(decoded.category == nil)
     }
 
+    @Test func postingDetailsRoundTripsAndMapsWorkType() throws {
+        // v0.6.0 Milestone A-B — the @Generable enrichment type round-trips and parses its work type.
+        let details = PostingDetails(
+            workTypeRaw: "hybrid",
+            qualifications: ["5+ years Swift"],
+            responsibilities: ["Ship features"],
+            niceToHaves: ["Kotlin"],
+            aboutRole: "Build the app.",
+            aboutCompany: "We do fintech.",
+            benefits: ["Health"]
+        )
+        #expect(details.workType == .hybrid)
+        #expect(details.hasContent)
+        let decoded = try roundTrip(details)
+        #expect(decoded == details)
+    }
+
+    @Test func emptyPostingDetailsHasNoContent() {
+        // An enrichment that found nothing must report no content, so callers keep the snippet.
+        let empty = PostingDetails()
+        #expect(empty.workType == nil)
+        #expect(!empty.hasContent)
+    }
+
+    @Test func workTypeParsesLooseModelStrings() {
+        #expect(WorkType(loose: "On-Site") == .onSite)
+        #expect(WorkType(loose: "in office") == .onSite)
+        #expect(WorkType(loose: "Remote") == .remote)
+        #expect(WorkType(loose: "fully remote") == .remote)
+        #expect(WorkType(loose: "hybrid") == .hybrid)
+        #expect(WorkType(loose: "") == nil)
+        #expect(WorkType(loose: "whenever") == nil)
+    }
+
+    @Test func jobListingCarriesEnrichedDetailsThroughRoundTrip() throws {
+        let listing = JobListing(
+            id: "j1", title: "iOS", company: "Acme", location: "Remote", description: "d",
+            details: PostingDetails(workTypeRaw: "remote", aboutCompany: "Fintech.")
+        )
+        let decoded = try roundTrip(listing)
+        #expect(decoded == listing)
+        #expect(decoded.details?.workType == .remote)
+    }
+
     @Test func jobQueryAppliesDefaultsAndRoundTrips() throws {
         let query = JobQuery(keywords: "swift developer")
         #expect(query.page == 1)

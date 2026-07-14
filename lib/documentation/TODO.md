@@ -13,9 +13,11 @@ doing.
 > v0.1.0–v0.5.1 are done (see `MILESTONES.md`). v0.6.0 is now in progress: three composed milestones pulled
 > from `PLANNED.md` — **A** richer job postings, **B** select-a-profile-at-generation + ground on its source
 > documents, **C** regenerate result (re-rank/re-enrich a saved job). Build in order (B adds the shared profile
-> picker; C reuses it and A's enrichment). **A-A is done** (Adzuna-decoded posting fields on `JobListing`);
-> next is **Milestone A-B** — the `WorkType` enum + `@Generable` `PostingDetails` + `enrichPosting` LLM step +
-> `Prompts`. `MARKETING_VERSION` bumped to `0.6.0`.
+> picker; C reuses it and A's enrichment). **A-A + A-B are done** (Adzuna-decoded posting fields on
+> `JobListing`; the `WorkType` / `@Generable` `PostingDetails` enrichment model + `enrichPosting` LLM step
+> through the seam). Next is **Milestone A-C** — call `enrichPosting` over the full posting page (reuse
+> `LinkJobPostingSource` against `JobListing.url`), with the description snippet as fallback.
+> `MARKETING_VERSION` bumped to `0.6.0`.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
 > open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
@@ -101,9 +103,16 @@ free today:
       `category` / `created` and maps them in `toDomain()` (both contract fields → the `PositionType` flag
       list; ISO-8601 `created` → `postedDate`; category label). Tests: Adzuna decode of the richer fields +
       absent-fields default + a `JobListing` round-trip + a legacy-blob decode. Suites green.
-- [ ] **A-B — Enrichment model + step.** `WorkType` enum + `@Generable` `PostingDetails` + the `enrichPosting`
-      `LLMProvider` step (forwarding/throwing default like the other optional methods) + a `Prompts` entry,
-      routed through `.extraction`.
+- [x] **A-B — Enrichment model + step.** ✅ **Done.** New `WorkType` enum (`on_site`/`remote`/`hybrid`, with a
+      lenient `init(loose:)`) and a `@Generable` `PostingDetails` (workTypeRaw + qualifications /
+      responsibilities / niceToHaves / aboutRole / aboutCompany / benefits, with `workType`/`hasContent`
+      accessors); `JobListing` gained `details: PostingDetails?` (decode-with-default nil, so it persists +
+      threads with the listing). Added the `enrichPosting(fromPostingText:)` step across the whole seam:
+      `LLMProvider` requirement + throwing default, `FoundationModelsProvider` (constrained decode),
+      `ClaudeCodeProvider` (JSON), `LLMRouter` (routed through `.extraction`), and `Prompts.enrichPosting` +
+      `enrichInstructions` (extract-only, "never invent"). Tests: `PostingDetails` round-trip + `WorkType`
+      loose-parse + empty-has-no-content + `JobListing` carries details; provider JSON decode; router routing;
+      prompt field/bounds/guardrail. Full suite green.
 - [ ] **A-C — Full-page fetch feeding enrichment.** Reuse `LinkJobPostingSource` against `JobListing.url`;
       snippet fallback on unfetchable pages.
 - [ ] **A-D — Persist the enriched fields.** `SavedJobsRepository` + record-store mapping, back-compatible

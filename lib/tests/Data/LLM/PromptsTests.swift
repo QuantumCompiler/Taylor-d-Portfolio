@@ -80,6 +80,29 @@ struct PromptsTests {
         #expect(Prompts.extractInstructions.lowercased().contains("never invent"))
     }
 
+    // MARK: Enrich posting (v0.6.0 Milestone A-B)
+
+    @Test func enrichPostingPromptAsksForFieldsAndIncludesPostingText() {
+        let prompt = Prompts.enrichPosting(postingText: "SEED_POSTING_TEXT")
+        #expect(prompt.contains("SEED_POSTING_TEXT"))
+        #expect(prompt.contains("workTypeRaw"))
+        #expect(prompt.contains("qualifications"))
+        #expect(prompt.contains("responsibilities"))
+        #expect(prompt.contains("aboutCompany"))
+        #expect(prompt.contains("benefits"))
+    }
+
+    @Test func enrichPostingBoundsLongText() {
+        let huge = String(repeating: "z", count: Prompts.maxPageCharacters + 1_000)
+        let prompt = Prompts.enrichPosting(postingText: huge)
+        #expect(!prompt.contains(huge))
+        #expect(prompt.contains("…"))
+    }
+
+    @Test func enrichInstructionsForbidInvention() {
+        #expect(Prompts.enrichInstructions.lowercased().contains("never invent"))
+    }
+
     // MARK: Target brief (stage 1)
 
     @Test func buildTargetBriefPromptAsksForBriefFieldsAndIncludesPosting() {

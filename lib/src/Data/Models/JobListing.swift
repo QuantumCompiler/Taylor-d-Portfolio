@@ -31,6 +31,10 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
     var postedDate: Date?
     /// The source's job-category label (e.g. "IT Jobs"), when provided (Adzuna `category`).
     var category: String?
+    /// The LLM-enriched structure of the posting (work type + qualifications / responsibilities
+    /// / about-role/company / benefits), attached by the enrichment pass (A-B); nil until a
+    /// listing is enriched.
+    var details: PostingDetails?
 
     init(
         id: String,
@@ -42,7 +46,8 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
         salary: SalaryRange? = nil,
         positionTypes: [PositionType] = [],
         postedDate: Date? = nil,
-        category: String? = nil
+        category: String? = nil,
+        details: PostingDetails? = nil
     ) {
         self.id = id
         self.title = title
@@ -54,11 +59,12 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
         self.positionTypes = positionTypes
         self.postedDate = postedDate
         self.category = category
+        self.details = details
     }
 
     enum CodingKeys: String, CodingKey {
         case id, title, company, location, description, url, salary
-        case positionTypes, postedDate, category
+        case positionTypes, postedDate, category, details
     }
 
     /// Custom decoding so listings persisted before the richer fields existed still load —
@@ -76,5 +82,6 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
         positionTypes = try container.decodeIfPresent([PositionType].self, forKey: .positionTypes) ?? []
         postedDate = try container.decodeIfPresent(Date.self, forKey: .postedDate)
         category = try container.decodeIfPresent(String.self, forKey: .category)
+        details = try container.decodeIfPresent(PostingDetails.self, forKey: .details)
     }
 }

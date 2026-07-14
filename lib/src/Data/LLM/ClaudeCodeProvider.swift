@@ -42,6 +42,14 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         )
     }
 
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        try await generateJSON(
+            prompt: Prompts.enrichPosting(postingText: postingText),
+            instructions: Prompts.enrichInstructions,
+            as: PostingDetails.self
+        )
+    }
+
     /// Plain-text task (no JSON envelope): ask the engine to reflow the document and
     /// return its text directly.
     func tidyDocument(rawText: String) async throws -> String {

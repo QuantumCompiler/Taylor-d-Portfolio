@@ -54,6 +54,12 @@ nonisolated struct LLMRouter: LLMProvider {
         try await run(.extraction) { try await $0.extractPosting(fromPageText: pageText) }
     }
 
+    /// Enrichment reads a posting into structured detail — the same "reading a posting" work
+    /// as extraction — so it routes through `.extraction`.
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        try await run(.extraction) { try await $0.enrichPosting(fromPostingText: postingText) }
+    }
+
     /// Tidying the source document uses the SAME engine that builds the profile — it's
     /// the reading step for the same portfolio — so it routes through `.profile`.
     func tidyDocument(rawText: String) async throws -> String {

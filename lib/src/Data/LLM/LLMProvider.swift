@@ -25,6 +25,12 @@ protocol LLMProvider: Sendable {
     /// implement it (the router forwards to a real engine).
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting
 
+    /// Enriches a posting's text into a structured ``PostingDetails`` (v0.6.0 Milestone A-B):
+    /// work type + qualifications / responsibilities / nice-to-haves / about-role / about-company
+    /// / benefits. Extracts only what the posting states — never invents. Has a throwing
+    /// default, so only real engines implement it; the router forwards to one.
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails
+
     /// Reflows an imported document's raw extracted text into readable plain text (same
     /// facts, repaired layout). Has a throwing default, so only real engines implement it.
     func tidyDocument(rawText: String) async throws -> String
@@ -64,6 +70,12 @@ extension LLMProvider {
     /// override this; stubs that don't need it inherit the default. Because it's a
     /// protocol requirement, calls through `any LLMProvider` still dispatch to overrides.
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
+        throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: posting enrichment isn't supported. Real engines override this; the router
+    /// forwards to one.
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
         throw LLMProviderError.noProviderAvailable
     }
 

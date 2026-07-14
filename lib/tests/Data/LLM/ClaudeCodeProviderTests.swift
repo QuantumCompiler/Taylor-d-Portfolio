@@ -91,6 +91,23 @@ struct ClaudeCodeProviderTests {
         #expect(prompt.contains("## Why Acme"))
     }
 
+    @Test func enrichPostingDecodesPostingDetails() async throws {
+        let json = ##"{"workTypeRaw":"remote","qualifications":["5+ years Swift"],"responsibilities":["Ship features"],"niceToHaves":["Kotlin"],"aboutRole":"Build the app.","aboutCompany":"We do fintech.","benefits":["Health"]}"##
+        let gen = RecordingGenerator(json)
+        let provider = ClaudeCodeProvider(generator: gen)
+
+        let details = try await provider.enrichPosting(fromPostingText: "SEED_POSTING")
+        #expect(details.workType == .remote)
+        #expect(details.qualifications == ["5+ years Swift"])
+        #expect(details.aboutCompany == "We do fintech.")
+        #expect(details.hasContent)
+
+        let calls = await gen.calls
+        #expect(calls[0].instructions == Prompts.enrichInstructions)
+        #expect(calls[0].prompt.contains("SEED_POSTING"))
+        #expect(calls[0].prompt.contains(Prompts.jsonOnlySuffix))
+    }
+
     @Test func tidyDocumentReturnsRawTextWithoutJSONEnvelope() async throws {
         let gen = RecordingGenerator("Cleaned up resume text.")
         let provider = ClaudeCodeProvider(generator: gen)

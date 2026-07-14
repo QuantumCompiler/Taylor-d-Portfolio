@@ -176,6 +176,34 @@ nonisolated enum Prompts {
         """
     }
 
+    // MARK: Enrich posting (structured detail — v0.6.0 Milestone A-B)
+
+    static let enrichInstructions =
+        "You organize the details of a SINGLE job posting from its text, ignoring navigation, ads, and " +
+        "boilerplate. You extract only what the posting actually states — never invent requirements, " +
+        "responsibilities, benefits, or company facts. If a section isn't present, you leave it empty."
+
+    /// Extracts the richer structured detail of a posting into a ``PostingDetails``. Organizes
+    /// what the posting says; never embellishes (the same discipline as ``extractPosting``).
+    static func enrichPosting(postingText: String) -> String {
+        """
+        From the job-posting text below, extract this structured detail:
+        - workTypeRaw: how the role is worked — exactly one of "on_site", "remote", or "hybrid"; empty if the posting doesn't say
+        - qualifications: required qualifications / must-haves, one per entry
+        - responsibilities: the day-to-day responsibilities, one per entry
+        - niceToHaves: preferred / nice-to-have qualifications, one per entry
+        - aboutRole: a clean, readable summary of what the role is
+        - aboutCompany: a clean, readable summary of the hiring company
+        - benefits: listed benefits or perks, one per entry
+
+        Extract ONLY what the posting states. If a field isn't present, leave it empty (an empty
+        string, or an empty list) — never guess, infer, or invent.
+
+        Job-posting text:
+        \(truncate(postingText, to: maxPageCharacters))
+        """
+    }
+
     // MARK: Target brief (stage 1 of generation)
 
     static let briefInstructions =

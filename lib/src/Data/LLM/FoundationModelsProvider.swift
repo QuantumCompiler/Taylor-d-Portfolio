@@ -41,6 +41,14 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         )
     }
 
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        try await client.respond(
+            to: Prompts.enrichPosting(postingText: postingText),
+            generating: PostingDetails.self,
+            instructions: Prompts.enrichInstructions
+        )
+    }
+
     func tidyDocument(rawText: String) async throws -> String {
         try await client.generate(
             prompt: Prompts.tidyDocument(rawText: rawText),

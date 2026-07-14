@@ -49,6 +49,11 @@ private struct StubLLMProvider: LLMProvider {
         if fails { throw Boom() }
         return JobMatch(jobId: tag, score: 42, reason: "", matchedSkills: [], missingSkills: [])
     }
+
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        if fails { throw Boom() }
+        return PostingDetails(aboutCompany: tag)
+    }
 }
 
 @Suite("LLMRouter")
@@ -129,6 +134,10 @@ struct LLMRouterTests {
         #expect(tailored.resumeMarkdown == "claude")
         let score = try await router.scoreApplication(for: job, brief: brief, kit: kit)
         #expect(score.jobId == "claude")
+
+        // Enrichment (v0.6.0 A-B) must route too — a forwarding adapter that misses it throws.
+        let details = try await router.enrichPosting(fromPostingText: "posting")
+        #expect(details.aboutCompany == "claude")
     }
 
     // MARK: Per-task routing
