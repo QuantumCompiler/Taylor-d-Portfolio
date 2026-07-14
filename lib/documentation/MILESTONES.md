@@ -2165,3 +2165,39 @@ when chosen); the optional full-page fetch needs network. Posting text is bounde
 
 *(Open calls resolved as recommended: enrich **on save**; `JobListing` optionals for Adzuna fields **plus** a
 separate `@Generable` `PostingDetails` for the LLM structure.)*
+
+## Milestone B — Select a profile at generation time and ground on its source documents  ✅ done
+
+Grounding was tied to the single loaded/default profile (`PortfolioViewModel.grounding` → `AppSession.grounding`
+→ `ApplicationWindow` → `ApplicationSheet`), with a silent fall-back to profile-summary-only when grounding
+wasn't set up. Milestone B adds an **explicit per-generation profile picker** and grounds on the chosen
+profile's real source documents.
+
+- [x] **Grounding mapper (Data).** New `SavedProfile.grounding` (an extension mirroring
+      `PortfolioViewModel.grounding`) yields any saved profile's `PortfolioGrounding` — `readableText ??
+      sourceText` as factual grounding + the tidied cover letter as a voice exemplar — or `nil` for a legacy
+      profile with no source document (→ profile-only). Each `SavedProfile` also carries its `CandidateProfile`,
+      so a selection supplies **both** `profile:` and `grounding:`.
+- [x] **Picker + wiring (Presentation).** `ApplicationViewModel` gained `loadProfiles` (injected via
+      `Composition.makeApplicationViewModel`), a `savedProfiles` list, a session-only `selectedProfileID`,
+      `canPickProfile`, `loadSavedProfiles()`, and a pure `resolvedTarget(fallbackProfile:fallbackGrounding:)`
+      that returns the **picked** saved profile + its grounding, or the ambient fallback when "Current profile"
+      is selected / the pick is gone. `ApplicationSheet`'s "Generation options" panel shows a **Profile** picker
+      (default **Current profile** → byte-for-byte the old behaviour, hidden when there are no saved profiles);
+      `runGeneration` resolves the target before calling `generate`.
+- [x] **Prompt depth.** The curation prompt already receives `resumeText` and compares it against the full job
+      result (now richer via Milestone A). The résumé/cover-letter grounding stays bounded in `Prompts`
+      (`maxPortfolioCharacters` / `maxCoverLetterCharacters`) — adequate for a typical résumé; larger bounds
+      would risk the on-device context window, so left unchanged.
+
+**Guardrail.** Grounding on the source documents strengthens factual fidelity without loosening never-fabricate:
+the résumé source grounds facts; the cover-letter source stays a voice/tone exemplar only.
+
+**Tests.** `SavedProfile.grounding` (prefers tidied text, raw fallback, carries/omits cover letter, nil without
+a résumé); `ApplicationViewModel` (loads profiles + offers the picker; `resolvedTarget` defaults to ambient,
+uses the picked profile + its grounding, and falls back safely when the pick is gone). Full suite green.
+
+**On-device.** Yes — profile load + grounding are local; generation runs on the chosen engine.
+
+*(Open calls resolved as recommended: **session-only** selection defaulting to Current; picker in the
+**options panel**; **saved profiles only** — a just-built unsaved profile appears after Save.)*

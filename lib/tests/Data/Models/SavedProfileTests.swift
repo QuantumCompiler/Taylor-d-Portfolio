@@ -68,4 +68,35 @@ struct SavedProfileTests {
         #expect(decoded.coverLetterText.isEmpty)
         #expect(decoded.coverLetterReadableText.isEmpty)
     }
+
+    // MARK: Grounding mapper (v0.6.0 Milestone B)
+
+    private func saved(sourceText: String = "", readableText: String = "",
+                       coverLetterText: String = "", coverLetterReadableText: String = "") -> SavedProfile {
+        SavedProfile(
+            id: "id", name: "P", profile: profile(),
+            sourceText: sourceText, readableText: readableText,
+            coverLetterText: coverLetterText, coverLetterReadableText: coverLetterReadableText,
+            createdAt: Date(timeIntervalSince1970: 0)
+        )
+    }
+
+    @Test func groundingPrefersReadableTextAndCarriesCoverLetter() {
+        let grounding = saved(sourceText: "raw résumé", readableText: "tidy résumé",
+                              coverLetterText: "raw letter", coverLetterReadableText: "tidy letter").grounding
+        #expect(grounding?.resumeText == "tidy résumé")       // tidied form preferred
+        #expect(grounding?.coverLetterText == "tidy letter")   // exemplar carried
+    }
+
+    @Test func groundingFallsBackToRawSourceAndOmitsAbsentCoverLetter() {
+        let grounding = saved(sourceText: "raw résumé").grounding   // no tidy, no cover letter
+        #expect(grounding?.resumeText == "raw résumé")
+        #expect(grounding?.coverLetterText == nil)
+    }
+
+    @Test func groundingIsNilWhenNoResumeText() {
+        // A legacy profile saved without its source document → no grounding (profile-only).
+        #expect(saved().grounding == nil)
+        #expect(saved(sourceText: "   ").grounding == nil)   // whitespace-only doesn't count
+    }
 }

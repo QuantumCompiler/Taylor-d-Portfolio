@@ -230,7 +230,8 @@ struct Composition {
             exportApplication: exportApplication,
             saveGenerationPreset: saveGenerationPreset,
             loadGenerationPresets: loadGenerationPresets,
-            deleteGenerationPreset: deleteGenerationPreset
+            deleteGenerationPreset: deleteGenerationPreset,
+            loadProfiles: loadProfiles
         )
     }
 }

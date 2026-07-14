@@ -147,6 +147,62 @@ struct ApplicationViewModelTests {
         #expect(await provider.lastGrounding == nil)         // back-compat: profile-only
     }
 
+    // MARK: v0.6.0 Milestone B — profile selection at generation time
+
+    private func savedProfile(id: String, name: String, resume: String, cover: String = "") -> SavedProfile {
+        SavedProfile(
+            id: id, name: name,
+            profile: CandidateProfile(seniority: id, yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: ""),
+            sourceText: resume, readableText: resume,
+            coverLetterText: cover, coverLetterReadableText: cover,
+            createdAt: Date(timeIntervalSince1970: 0)
+        )
+    }
+
+    @Test func loadsSavedProfilesAndOffersPicker() async throws {
+        let repo = SavedProfilesRepository(store: InMemoryRecordStore())
+        try await repo.save(savedProfile(id: "p1", name: "One", resume: "R1"))
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: RecordingGenProvider()),
+            loadProfiles: LoadProfilesUseCase(repository: repo)
+        )
+        #expect(vm.canPickProfile == false)      // nothing loaded yet
+        await vm.loadSavedProfiles()
+        #expect(vm.canPickProfile)
+        #expect(vm.savedProfiles.map(\.id) == ["p1"])
+    }
+
+    @Test func resolvedTargetDefaultsToTheAmbientProfile() {
+        let vm = ApplicationViewModel(generateApplication: GenerateApplicationUseCase(provider: RecordingGenProvider()))
+        let ambient = PortfolioGrounding(resumeText: "ambient")
+        let target = vm.resolvedTarget(fallbackProfile: profile, fallbackGrounding: ambient)
+        #expect(target.profile.seniority == "S")   // the ambient/loaded profile, unchanged default
+        #expect(target.grounding == ambient)
+    }
+
+    @Test func resolvedTargetUsesThePickedProfileAndItsGrounding() async throws {
+        let repo = SavedProfilesRepository(store: InMemoryRecordStore())
+        try await repo.save(savedProfile(id: "p1", name: "One", resume: "R1", cover: "C1"))
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: RecordingGenProvider()),
+            loadProfiles: LoadProfilesUseCase(repository: repo)
+        )
+        await vm.loadSavedProfiles()
+        vm.selectedProfileID = "p1"
+
+        let target = vm.resolvedTarget(fallbackProfile: profile, fallbackGrounding: PortfolioGrounding(resumeText: "ambient"))
+        #expect(target.profile.seniority == "p1")             // the picked profile's CandidateProfile
+        #expect(target.grounding?.resumeText == "R1")         // grounded on ITS source documents
+        #expect(target.grounding?.coverLetterText == "C1")
+    }
+
+    @Test func resolvedTargetFallsBackWhenPickIsGone() {
+        let vm = ApplicationViewModel(generateApplication: GenerateApplicationUseCase(provider: RecordingGenProvider()))
+        vm.selectedProfileID = "missing"                      // set, but never loaded
+        let target = vm.resolvedTarget(fallbackProfile: profile, fallbackGrounding: nil)
+        #expect(target.profile.seniority == "S")              // safe fallback to the ambient profile
+    }
+
     // MARK: Q-A — export
 
     private func exportVM() -> ApplicationViewModel {

@@ -85,3 +85,22 @@ nonisolated struct SavedProfile: Identifiable, Codable, Equatable, Sendable {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
     }
 }
+
+extension SavedProfile {
+    /// The real document text for grounded generation against **this** profile (v0.6.0
+    /// Milestone B): its résumé's tidied `readableText` (falling back to the raw `sourceText`)
+    /// as factual grounding, plus the optional cover letter as a voice/tone exemplar. `nil`
+    /// when there's no usable résumé text — a legacy profile saved without its source document —
+    /// so generation falls back to profile-only, unchanged.
+    ///
+    /// Mirrors `PortfolioViewModel.grounding`, but keyed to any saved profile so the user can
+    /// pick which one to generate against and have generation ground on **its** source
+    /// documents (not just the ambient/loaded one).
+    var grounding: PortfolioGrounding? {
+        let resume = readableText.isEmpty ? sourceText : readableText
+        guard !resume.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        let rawLetter = coverLetterReadableText.isEmpty ? coverLetterText : coverLetterReadableText
+        let letter = rawLetter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : rawLetter
+        return PortfolioGrounding(resumeText: resume, coverLetterText: letter)
+    }
+}

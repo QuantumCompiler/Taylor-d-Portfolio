@@ -123,6 +123,7 @@ struct ApplicationSheet: View {
         .task {
             await viewModel.loadSaved(for: job)
             await viewModel.loadPresets()
+            await viewModel.loadSavedProfiles()
         }
         .onChange(of: requestID) { _, _ in Task { await viewModel.loadSaved(for: job) } }
         // The one-page gate is template-dependent — remeasure when the user switches template.
@@ -142,6 +143,7 @@ struct ApplicationSheet: View {
     private var generationControlsPanel: some View {
         DisclosureGroup("Generation options", isExpanded: $showOptions) {
             VStack(alignment: .leading, spacing: 12) {
+                profilePicker
                 rankTargetControl
                 Divider()
                 VStack(alignment: .leading, spacing: 4) {
@@ -229,6 +231,28 @@ struct ApplicationSheet: View {
         case .authentic: return "Authentic"
         case .curated: return "Curated"
         case .embellished: return "Embellished"
+        }
+    }
+
+    /// A saved-profile picker (v0.6.0 Milestone B): choose which profile to generate against, so
+    /// generation grounds on **that** profile's real source documents. Defaults to "Current
+    /// profile" (the loaded one passed in), so behaviour is unchanged until the user picks
+    /// another. Hidden when there are no saved profiles.
+    @ViewBuilder private var profilePicker: some View {
+        if viewModel.canPickProfile {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Profile").font(.caption).foregroundStyle(.secondary)
+                Picker("Profile", selection: $viewModel.selectedProfileID) {
+                    Text("Current profile").tag(String?.none)
+                    ForEach(viewModel.savedProfiles) { saved in
+                        Text(saved.name).tag(Optional(saved.id))
+                    }
+                }
+                .labelsHidden()
+                .clickableCursor()
+                Text("Generation grounds on the chosen profile's source documents.")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -334,7 +358,10 @@ struct ApplicationSheet: View {
     /// signals `onGenerated` so the lists + detail refresh (v0.5.0).
     private func runGeneration() {
         Task {
-            await viewModel.generate(for: job, profile: profile, grounding: grounding)
+            // Resolve which profile + grounding to use: the picked saved profile (grounding on
+            // its own source documents) or the ambient loaded profile (v0.6.0 Milestone B).
+            let target = viewModel.resolvedTarget(fallbackProfile: profile, fallbackGrounding: grounding)
+            await viewModel.generate(for: job, profile: target.profile, grounding: target.grounding)
             onGenerated?()
         }
     }

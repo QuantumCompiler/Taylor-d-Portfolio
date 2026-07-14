@@ -627,7 +627,7 @@ Completed`. `TODO.md` has the granular breakdown + open calls.
       Adzuna decode is pure/local; enrichment is `.extraction` LLM work (on-device-friendly; Claude when
       chosen); the optional full-page fetch needs network. Guardrail: extract/organize only, never invent.
 
-- [ ] **Milestone B — Select a profile at generation time and ground on its source documents.** Grounding is
+- [x] **Milestone B — Select a profile at generation time and ground on its source documents.** ✅ **Done.** Grounding is
       tied to the single currently-loaded/default profile today (`PortfolioViewModel.grounding` →
       `AppSession.grounding` → `ApplicationWindow` → `JobDetailView` → `ApplicationSheet`), with a silent
       fall-back to profile-summary-only when grounding wasn't set up. Add an **explicit per-generation profile

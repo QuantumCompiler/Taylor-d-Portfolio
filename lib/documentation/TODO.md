@@ -9,13 +9,13 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.0 — richer grounding & job detail — Milestone B (Select a profile at generation
-> time).** All of v0.1.0–v0.5.1 are done, and **v0.6.0 Milestone A (Richer job postings, A-A…A-F) is complete**
-> (write-up in `MILESTONES.md`): Adzuna-decoded fields + `@Generable` `PostingDetails` enrichment + full-page
-> fetch + enrich-on-save + into-generation + UI badges/sections. Next is **Milestone B** — a per-generation
-> **profile picker** grounding on the chosen saved profile's source documents (a small `SavedProfile.grounding`
-> mapper + wiring through `ApplicationViewModel`). Then **Milestone C** — regenerate result (reuses B's picker
-> and A's enrichment). `MARKETING_VERSION` is at `0.6.0`.
+> **Current focus. v0.6.0 — richer grounding & job detail — Milestone C (Regenerate result).** All of
+> v0.1.0–v0.5.1 are done; **v0.6.0 Milestones A and B are complete** (write-ups in `MILESTONES.md`): A —
+> richer job postings (Adzuna fields + `PostingDetails` enrichment + enrich-on-save + into-generation + UI);
+> B — per-generation **profile picker** grounding on the chosen saved profile's source documents
+> (`SavedProfile.grounding` + `ApplicationViewModel.resolvedTarget`). Next is the **last milestone, C** —
+> **regenerate result**: a single-job re-rank (with optional additional-context) against a chosen profile,
+> reusing B's picker and A's `enrichPosting`, persisted latest-wins. `MARKETING_VERSION` is at `0.6.0`.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
 > open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
@@ -34,6 +34,12 @@ doing.
 > enriched jobs show work/employment **chips** in the Tracker list (`RankedRow`) while un-enriched jobs look
 > unchanged; a blocked/paywalled posting falls back to the snippet without error; and the enriched detail visibly
 > improves a generated résumé/cover letter (it flows into the target brief). Settings → About reads **0.6.0**.
+>
+> **⚠️ Awaiting device checks (v0.6.0 Milestone B)** — with saved profiles present, the Application view's
+> **Generation options** panel shows a **Profile** picker defaulting to "Current profile"; picking another
+> profile grounds the generated résumé/cover letter on **that** profile's source documents (visibly different
+> output); the picker is absent when there are no saved profiles; and "Current profile" reproduces the prior
+> behaviour.
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
@@ -53,81 +59,6 @@ respects the layer dependency rule (Presentation → Business → Data → Infra
       Settings → About reports the real version.
 
 **✅ Milestone A — Richer job postings — complete** (A-A…A-F). Write-up moved to `MILESTONES.md`.
-
----
-
-## Milestone B — Select a profile at generation time and ground on its source documents
-
-**What / why.** When the user generates an application, curation should be grounded in a **chosen profile's
-actual source documents** (the real résumé/portfolio text + optional cover letter), not just the distilled
-`CandidateProfile` summary — and the user should be able to **pick which profile** to generate against right on
-the generation screen. Comparing the full source documents against everything in the job result yields a
-much better-tailored résumé + cover letter.
-
-**What already exists (extend, don't reinvent).** The grounding mechanism is already built (ROADMAP Milestone T):
-- `PortfolioGrounding` (`Data/Models/PortfolioGrounding.swift`) carries `resumeText` (**factual grounding**) +
-  optional `coverLetterText` (a **voice / tone exemplar**). It's injected into `generateApplication(…grounding:)`
-  and bounded in `Prompts`.
-- `SavedProfile` (`Data/Models/SavedProfile.swift`) already stores the source documents: `sourceText` /
-  `readableText` and `coverLetterText` / `coverLetterReadableText` (the LLM-tidied forms).
-- `PortfolioViewModel.grounding` already builds a `PortfolioGrounding` from those fields
-  (`PortfolioViewModel.swift:94`).
-
-**The actual gap.** Grounding today is tied to the **single currently-loaded/default profile**: it flows
-`PortfolioViewModel.grounding` → `AppSession.grounding` (`App/AppSession.swift:34`) → `ApplicationWindow`
-(`App/ApplicationWindow.swift`) → `JobDetailView.grounding` (`Results/View/JobDetailView.swift:22`) →
-`ApplicationSheet`. There is **no profile picker on the generation screen** and no per-application choice — you
-generate against whatever profile is loaded in the Portfolio tab, and if grounding wasn't set up you silently
-fall back to profile-summary-only. This milestone adds **explicit per-generation profile selection** and
-guarantees the chosen profile's **source documents** are what's grounded.
-
-**Seam + files.**
-- **`SavedProfile` → grounding mapper (Data).** Lift the `PortfolioViewModel.grounding` logic into a reusable
-  `SavedProfile.grounding` (or a small mapper) so **any** saved profile yields its `PortfolioGrounding`
-  (`readableText` ?? `sourceText` for résumé; `coverLetterReadableText` for the exemplar). Each `SavedProfile`
-  also carries its `CandidateProfile`, so a selection supplies **both** `profile:` and `grounding:`.
-- **Profile picker (Presentation).** Add a saved-profile selector to the generation screen — the
-  `ApplicationSheet` "Generation options" panel (alongside fidelity/aspects/context) — populated via the
-  existing `LoadProfilesUseCase`, defaulting to the current default/loaded profile (`DefaultProfileStore`).
-- **Wiring (Presentation).** Thread the chosen profile through generation:
-  `ApplicationViewModel.generate(for:profile:grounding:)` (`Application/ViewModel/ApplicationViewModel.swift:265`)
-  takes the selected profile + its grounding rather than only the ambient `AppSession.profile` / `grounding`.
-  Inject `LoadProfilesUseCase` into `ApplicationViewModel` via `Composition` (`makeApplicationViewModel`), and
-  have the picker load the saved profiles. Keep `AppSession`'s current profile as the **default** selection so
-  behaviour is unchanged when the user doesn't touch the picker.
-- **Prompt depth (Data/LLM).** The curation prompt already receives `resumeText`; make sure it **compares the
-  source documents against the full job result** (description — and A's richer posting fields when they land),
-  and that both résumé + cover-letter source are bounded for the on-device context window (verify `Prompts`'
-  grounding limits are generous enough to carry a real résumé).
-
-**Sub-tasks:**
-- [ ] `SavedProfile.grounding` mapper (Data) + tests.
-- [ ] Profile picker in the `ApplicationSheet` options panel, populated via `LoadProfilesUseCase`, defaulting
-      to the `DefaultProfileStore` profile.
-- [ ] Thread selected profile + grounding through `ApplicationViewModel.generate(...)`; inject
-      `LoadProfilesUseCase` in `Composition.makeApplicationViewModel`.
-- [ ] Verify `Prompts` grounding bounds carry a full résumé; compare source docs against the full job result.
-- [ ] **(open call) Persistence.** Remember the chosen profile **per job** (persist with the saved
-      job/`ApplicationKit`) vs. **session-only** (default = the default profile each open). *Recommended:*
-      session-only first; per-job persistence a later refinement.
-- [ ] **(open call) Picker location.** `ApplicationSheet` options panel vs. `JobDetailView` before opening.
-      *Recommended:* the options panel, beside fidelity/aspects (part of the same Milestone-D "how to generate"
-      controls).
-- [ ] **(open call) Unsaved just-built profile.** Only **saved** profiles have stored source documents.
-      *Recommended:* the picker lists saved profiles only; a just-built unsaved profile appears after Save
-      (consistent with v0.4.1 Milestone F's Source Documents rule).
-
-**Tests.** `SavedProfile.grounding` maps `readableText`/`sourceText` + cover-letter fields correctly (incl. a
-legacy single-document profile → résumé-only grounding); `ApplicationViewModel.generate` uses the selected
-profile's grounding over the ambient one; default selection = the `DefaultProfileStore` profile when the user
-doesn't pick.
-
-**On-device.** Yes — profile load + grounding are local; generation runs on the chosen engine. **Bound the
-injected source-document text** (as `Prompts` already does for grounding).
-
-**Guardrail.** Grounding on the source documents strengthens factual fidelity — it does **not** loosen the
-never-fabricate rule. The résumé source grounds facts; the cover-letter source stays a voice/tone exemplar only
-(no facts/metrics/dates imported), exactly as `PortfolioGrounding` already specifies.
 
 ---
 

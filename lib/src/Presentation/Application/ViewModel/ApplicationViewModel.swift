@@ -42,6 +42,12 @@ final class ApplicationViewModel {
     /// The user's saved generation presets (Milestone D-D), newest first.
     private(set) var presets: [GenerationPreset] = []
 
+    /// The saved profiles the user can generate against (v0.6.0 Milestone B), newest first.
+    private(set) var savedProfiles: [SavedProfile] = []
+    /// The picked profile's id, or `nil` for **Current profile** (the ambient/loaded one) — the
+    /// default, so generation is unchanged until the user picks another. Session-only.
+    var selectedProfileID: String?
+
     /// The outcome of the last rank-target generation (Milestone D-F), if that path was used.
     private(set) var rankOutcome: GenerateToTargetUseCase.Outcome?
 
@@ -53,6 +59,7 @@ final class ApplicationViewModel {
     private let saveGenerationPreset: SaveGenerationPresetUseCase?
     private let loadGenerationPresets: LoadGenerationPresetsUseCase?
     private let deleteGenerationPreset: DeleteGenerationPresetUseCase?
+    private let loadProfiles: LoadProfilesUseCase?
 
     init(
         generateApplication: GenerateApplicationUseCase,
@@ -62,7 +69,8 @@ final class ApplicationViewModel {
         exportApplication: ExportApplicationUseCase? = nil,
         saveGenerationPreset: SaveGenerationPresetUseCase? = nil,
         loadGenerationPresets: LoadGenerationPresetsUseCase? = nil,
-        deleteGenerationPreset: DeleteGenerationPresetUseCase? = nil
+        deleteGenerationPreset: DeleteGenerationPresetUseCase? = nil,
+        loadProfiles: LoadProfilesUseCase? = nil
     ) {
         self.generateApplication = generateApplication
         self.generateToTarget = generateToTarget
@@ -72,6 +80,31 @@ final class ApplicationViewModel {
         self.saveGenerationPreset = saveGenerationPreset
         self.loadGenerationPresets = loadGenerationPresets
         self.deleteGenerationPreset = deleteGenerationPreset
+        self.loadProfiles = loadProfiles
+    }
+
+    // MARK: Profile selection (v0.6.0 Milestone B)
+
+    /// Whether the generation screen can offer a saved-profile picker (any saved profiles exist).
+    var canPickProfile: Bool { !savedProfiles.isEmpty }
+
+    /// Loads the saved profiles the picker offers (newest first, as the repository returns them).
+    func loadSavedProfiles() async {
+        savedProfiles = (try? await loadProfiles?()) ?? []
+    }
+
+    /// Resolves which profile + grounding to generate against: the **picked** saved profile
+    /// (grounding on *its* real source documents), or the ambient fallback — the loaded profile
+    /// passed in by the window — when "Current profile" is selected or the pick no longer exists.
+    /// Pure given the loaded `savedProfiles`, so it's unit-testable without the view.
+    func resolvedTarget(
+        fallbackProfile: CandidateProfile,
+        fallbackGrounding: PortfolioGrounding?
+    ) -> (profile: CandidateProfile, grounding: PortfolioGrounding?) {
+        guard let id = selectedProfileID, let picked = savedProfiles.first(where: { $0.id == id }) else {
+            return (fallbackProfile, fallbackGrounding)
+        }
+        return (picked.profile, picked.grounding)
     }
 
     /// A user-facing note about the rank-target outcome, if used.
