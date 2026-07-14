@@ -10,7 +10,7 @@ line in `ROADMAP.md`, in the same change. This file should only ever contain wor
 doing.
 
 > **Current focus. v0.6.0 — richer grounding, job detail & sources — Milestone D (User-editable API
-> credentials); D-A done, next D-B (`JobSourceCredentialsStore`).** Milestones **A–C are done** (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A**
+> credentials); D-A + D-B done, next D-C (rewire `SettingsBackedJobSource`).** Milestones **A–C are done** (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A**
 > richer job postings; **B** per-generation **profile picker** grounding on the chosen saved profile's source
 > documents; **C** **regenerate result** (single-job re-rank + re-enrich against a chosen profile). Three more
 > milestones — pulled from `PLANNED.md` — now extend the release: **D** user-editable API credentials, **E**
@@ -103,8 +103,13 @@ JSearch/RapidAPI, etc. — needs a key field).
       `OSStatus` (`KeychainError`, with `isEnvironmentUnavailable` so round-trip tests skip on CI without
       entitlements). 8 tests (round-trip, missing-key, nil-removes, update-in-place, service isolation, port
       surface, service-wide clear, error classification); full suite green.
-- [ ] **D-B — `JobSourceCredentialsStore`** (Data/Settings), provider-keyed, on the keychain store; resolution
-      order user → `AppConfig` → absent.
+- [x] **D-B — `JobSourceCredentialsStore`** (Data/Settings), provider-keyed, on the keychain store; resolution
+      order user → `AppConfig` → absent. ✅ `JobProvider` (`.adzuna`, extensible for F) + `JobCredentialField`
+      (namespaced `storageKey`, e.g. `adzuna.appID`); `value(for:)` resolves user-entered (keychain) → build-time
+      `AppConfig` → nil, treating blank/whitespace as absent at **both** sources; `setValue` clears the entry for
+      a blank value (revert to fallback, keeps the keychain clean); `hasCredentials(for:)` generalises
+      `AppConfig.hasAdzunaCredentials` to "resolved from either source." 14 tests (resolution order, clear-reverts,
+      blank-as-absent, mixed user/build-time, namespacing); full suite green.
 - [ ] **D-C — Rewire `SettingsBackedJobSource`** (`Composition.swift`) to resolve id/key live from the store
       with the `AppConfig` fallback; generalise `hasAdzunaCredentials`.
 - [ ] **D-D — Settings UI**: editable `SecureField` id/key persisting to the store; banner derives from
