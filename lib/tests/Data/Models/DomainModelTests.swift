@@ -131,6 +131,35 @@ struct DomainModelTests {
         #expect(decoded.details?.workType == .remote)
     }
 
+    @Test func jobListingCarriesFullDescriptionThroughRoundTrip() throws {
+        // v0.6.0 Milestone E — the recovered full posting text survives a round-trip.
+        let listing = JobListing(
+            id: "j2", title: "iOS", company: "Acme", location: "Remote", description: "short snippet…",
+            fullDescription: "The entire posting body, sections and all."
+        )
+        let decoded = try roundTrip(listing)
+        #expect(decoded == listing)
+        #expect(decoded.fullDescription == "The entire posting body, sections and all.")
+    }
+
+    @Test func jobListingLegacyBlobDecodesWithoutFullDescription() throws {
+        // A listing persisted before Milestone E lacks the key; it must decode with nil, and
+        // effectiveDescription falls back to the snippet.
+        let legacy = #"{"id":"old-2","title":"Eng","company":"Beta","location":"NYC","description":"snippet"}"#
+        let decoded = try JSONDecoder().decode(JobListing.self, from: Data(legacy.utf8))
+        #expect(decoded.fullDescription == nil)
+        #expect(decoded.effectiveDescription == "snippet")
+    }
+
+    @Test func effectiveDescriptionPrefersFullText() {
+        let snippetOnly = JobListing(id: "a", title: "t", company: "c", location: "l", description: "snippet")
+        #expect(snippetOnly.effectiveDescription == "snippet")
+
+        let withFull = JobListing(id: "b", title: "t", company: "c", location: "l",
+                                  description: "snippet", fullDescription: "the full body")
+        #expect(withFull.effectiveDescription == "the full body")
+    }
+
     @Test func jobQueryAppliesDefaultsAndRoundTrips() throws {
         let query = JobQuery(keywords: "swift developer")
         #expect(query.page == 1)

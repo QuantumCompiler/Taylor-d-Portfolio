@@ -67,6 +67,14 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         )
     }
 
+    /// Plain-text task: extract the full job posting from a fetched page, de-chromed (E).
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
+        try await generator.generate(
+            prompt: Prompts.cleanPosting(pageText: pageText),
+            instructions: Prompts.cleanPostingInstructions
+        )
+    }
+
     /// Plain-text task: rewrite the summary and return it directly (no JSON envelope).
     func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) async throws -> String {
         try await generator.generate(

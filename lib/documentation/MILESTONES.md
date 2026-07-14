@@ -2280,7 +2280,14 @@ so dev/CI builds keep working. Four sub-parts:
       two "secrets are build-time" doc comments (`AppSettings`, `AppConfig`).
 
 **Guardrail (safety).** The app builds the credential *fields*; the **user** enters their own keys — the agent
-never types or pastes real API keys. Secrets live in the Keychain, never the `UserDefaults` plist.
+never types or pastes real API keys.
+
+**Storage note (post-D fix).** The credentials store is wired to **`UserDefaults`**, not `KeychainStore`: this
+unsandboxed app is **ad-hoc-signed in dev**, so the legacy keychain re-prompts for access on every rebuild (the
+signature changes each build, so "Always Allow" never sticks) — it popped a keychain dialog on every launch.
+The keys are low-value Adzuna free-tier credentials (previously baked into the bundle), so local app preferences
+are an acceptable home for a personal build. `KeychainStore` (D-A) stays available behind the same `KeyValueStore`
+port for a future stably-signed / distributed build — swap it back in `Composition` once real signing is set up.
 
 **Tests.** `KeychainStore` round-trip / missing-key / nil-removes / update-in-place / service isolation / port
 surface / service-wide clear / error classification (8, guarded for keychain-less hosts);
@@ -2292,3 +2299,54 @@ blank-leaves-unchanged / clear-reverts-to-fallback / clear-without-fallback / no
 
 *(Open calls resolved as recommended: **pure fallback**, no keychain seeding; **Keychain** for the secrets;
 **save-and-see** validation; **per-provider** Settings section.)*
+
+## Milestone E — Full job-posting text (capture the whole posting, not Adzuna's truncated snippet)  ✅ done
+
+Adzuna's `/search` `description` is truncated (~500 chars, ends in `…`); the full body isn't in the API
+response, so no decode recovers it. Milestone E recovers it from the posting page and grounds/display on it.
+Because Milestone A's enrichment already fetches that page, E rides the **same fetch** — one network call
+captures both the raw full text and the structured detail.
+
+- [x] **E-A — `JobListing.fullDescription` + `effectiveDescription`.** New optional `fullDescription: String?`
+      (the recovered full body; the snippet in `description` is never overwritten — both are kept), with
+      decode-with-default back-compat (legacy blobs decode `nil`). A computed `effectiveDescription`
+      (`fullDescription ?? description`) is the single accessor ranking, brief-building, and the detail view read.
+- [x] **E-B — Capture + de-chrome in `EnrichPostingUseCase`.** The full posting page (fetched via
+      `JobPostingSource.readableText` when richer than the snippet) is raw site text — navigation, "similar
+      jobs", footer, country lists — so storing it verbatim looked terrible. A new **`cleanPostingText`** LLM
+      step (`LLMProvider` + throwing default + both engines + `LLMRouter` `.extraction` + `Prompts.cleanPosting`
+      / `cleanPostingInstructions`) extracts **just the posting, verbatim, as clean markdown**, and that is what
+      lands on `fullDescription`, then the structuring pass runs on the clean text. Every step is best-effort:
+      an unfetchable page falls back to the snippet with no `fullDescription`; if cleaning is unavailable /
+      fails / finds no posting the **noisy raw page is not stored** (the snippet stands) though structuring
+      still runs on the raw page (its prompt already ignores chrome); and a structuring failure keeps the
+      cleaned text. `.details` is still only set when `hasContent`. Guardrail: cleaning **removes chrome and
+      preserves the posting verbatim** — it never summarizes or invents.
+      - **Fix (composition forwarding).** Building this surfaced a latent bug: `SettingsBackedLLMProvider`
+        (`Composition`) — the runtime `LLMProvider` that forwards to the `LLMRouter` — was **missing forwards
+        for `enrichPosting` and the single-job `rank(job:against:instruction:)`**, so in the real app those hit
+        the throwing / batch-fallback defaults instead of a real engine (Milestone A enrichment silently
+        no-op'd; Milestone C re-rank ignored its steering instruction). Added the missing forwards **plus**
+        `cleanPostingText`, so all three now reach the router/engine.
+- [x] **E-C — Persist (free).** `fullDescription` rides the `RankedJob` JSON like `details` — no repository
+      change. `ResultsViewModel.saveToTracker`'s enrich-on-save now persists whenever the listing changed
+      (`listing != job.listing`), so a job whose full text was captured but that structured nothing is still
+      saved; the "already captured" guard skips jobs that already have full text or details.
+- [x] **E-D — Into generation + display.** `Prompts` (batch rank / single-job re-rank / `buildTargetBrief`) read
+      `job.effectiveDescription` — at search-time ranking that equals the snippet (nothing fetched yet), and
+      after capture the brief and the Milestone-C re-rank ground on the full posting. `JobDetailView`'s
+      Description section shows `effectiveDescription`.
+
+**Guardrail.** The full text is captured **verbatim**; structuring only organizes it (Milestone A's discipline),
+never inventing requirements or company facts.
+
+**Tests.** `JobListing` full-description round-trip + legacy-blob decode + `effectiveDescription` preference;
+`EnrichPostingUseCase` captures the full page and **keeps it when structuring is empty or throws**;
+`buildTargetBrief` grounds on the full text over the snippet; `ResultsViewModel` save persists `fullDescription`.
+Full suite green; build warning-free.
+
+**On-device.** The page fetch needs network (same seam as the "generate from a link" path); storage + display
+are local. Posting text is bounded before it reaches the model, as elsewhere.
+
+*(Open calls resolved as recommended: **add** `fullDescription` (keep the snippet); **capture on save** via the
+existing enrichment fetch; **store** it — no re-fetch.)*

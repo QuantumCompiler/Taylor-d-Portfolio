@@ -131,13 +131,15 @@ final class ResultsViewModel {
         await enrichSavedJob(job)
     }
 
-    /// Best-effort enrichment of a just-saved job (v0.6.0 Milestone A-D): fetches the fuller
-    /// posting detail and re-persists the job carrying it, so the Tracker and generation have
-    /// richer signal to work from. Skipped when enrichment isn't wired or the job is already
-    /// enriched; a fetch/LLM failure leaves the plain saved job untouched.
+    /// Best-effort enrichment of a just-saved job (v0.6.0 Milestone A-D + E): fetches the full
+    /// posting page and re-persists the job carrying its **full text** (`fullDescription`, E)
+    /// and/or structured **detail** (A), so the Tracker and generation have richer signal to
+    /// work from. Skipped when enrichment isn't wired or the job is already captured; a
+    /// fetch/LLM failure leaves the plain saved job untouched.
     private func enrichSavedJob(_ job: RankedJob) async {
-        guard let enrichPosting, job.listing.details == nil else { return }
-        guard let listing = try? await enrichPosting(job.listing), listing.details != nil else { return }
+        guard let enrichPosting,
+              job.listing.details == nil, job.listing.fullDescription == nil else { return }
+        guard let listing = try? await enrichPosting(job.listing), listing != job.listing else { return }
         let enriched = RankedJob(listing: listing, match: job.match)
         try? await saveResults?([enriched])
         if let index = results.firstIndex(where: { $0.id == enriched.id }) {

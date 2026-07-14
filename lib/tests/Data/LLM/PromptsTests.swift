@@ -99,6 +99,27 @@ struct PromptsTests {
         #expect(prompt.contains("…"))
     }
 
+    @Test func cleanPostingPromptIncludesPageTextAndNamesChrome() {
+        let prompt = Prompts.cleanPosting(pageText: "SEED_PAGE_TEXT")
+        #expect(prompt.contains("SEED_PAGE_TEXT"))
+        #expect(prompt.lowercased().contains("similar jobs"))   // names chrome to strip
+        #expect(prompt.lowercased().contains("verbatim"))        // keep the posting as-is
+    }
+
+    @Test func cleanPostingBoundsLongPages() {
+        let huge = String(repeating: "x", count: Prompts.maxPageCharacters + 500)
+        let prompt = Prompts.cleanPosting(pageText: huge)
+        #expect(!prompt.contains(huge))
+        #expect(prompt.contains("…"))
+    }
+
+    @Test func cleanPostingInstructionsForbidSummarizingAndInventing() {
+        let instructions = Prompts.cleanPostingInstructions.lowercased()
+        #expect(instructions.contains("verbatim"))
+        #expect(instructions.contains("invent"))
+        #expect(instructions.contains("summarize"))
+    }
+
     @Test func enrichInstructionsForbidInvention() {
         #expect(Prompts.enrichInstructions.lowercased().contains("never invent"))
     }
@@ -121,6 +142,15 @@ struct PromptsTests {
         let prompt = Prompts.buildTargetBrief(job: job)
         #expect(!prompt.contains(huge))
         #expect(prompt.contains("…"))
+    }
+
+    @Test func briefPromptUsesFullDescriptionWhenPresent() {
+        // v0.6.0 Milestone E — the brief grounds on the recovered full text, not the snippet.
+        let job = JobListing(id: "a", title: "iOS", company: "Acme", location: "Remote",
+                             description: "SNIPPET_ONLY", fullDescription: "FULL_POSTING_BODY")
+        let prompt = Prompts.buildTargetBrief(job: job)
+        #expect(prompt.contains("FULL_POSTING_BODY"))
+        #expect(!prompt.contains("SNIPPET_ONLY"))
     }
 
     // MARK: Single-job re-rank (v0.6.0 Milestone C)

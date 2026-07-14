@@ -13,8 +13,8 @@ import Observation
 ///
 /// The engine is chosen **per task** — each ``LLMTask`` gets its own engine and Claude
 /// model — plus the Adzuna country preference. Adzuna credentials are **user-editable**
-/// (Milestone D): entered here into the keychain-backed ``JobSourceCredentialsStore``,
-/// falling back to any build-time keys, so `adzunaConfigured` reflects resolution from
+/// (Milestone D): entered here into the ``JobSourceCredentialsStore`` (stored locally on the
+/// Mac), falling back to any build-time keys, so `adzunaConfigured` reflects resolution from
 /// either source and is re-checked after a save.
 @MainActor
 @Observable

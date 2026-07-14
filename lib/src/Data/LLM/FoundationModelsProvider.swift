@@ -64,6 +64,13 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         )
     }
 
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
+        try await client.generate(
+            prompt: Prompts.cleanPosting(pageText: pageText),
+            instructions: Prompts.cleanPostingInstructions
+        )
+    }
+
     func refineSummary(profile: CandidateProfile, portfolio: String, instruction: String) async throws -> String {
         try await client.generate(
             prompt: Prompts.refineSummary(profile: profile, portfolio: portfolio, instruction: instruction),

@@ -38,10 +38,12 @@ nonisolated struct JobCredentialField: Equatable, Hashable, Sendable {
 /// Resolves job-source API credentials from **user-entered values first, then the
 /// build-time ``AppConfig`` fallback, then absent** (Milestone D).
 ///
-/// User-entered values are written to the injected `KeyValueStore` — in production the
-/// keychain-backed ``KeychainStore`` (D-A), so secrets never touch the `UserDefaults`
-/// plist. `AppConfig` stays an **optional** fallback so dev/CI builds that still bake in
-/// the Adzuna keys keep working with no user action ("pure fallback, no seeding").
+/// User-entered values are written to the injected `KeyValueStore`. The composition root
+/// backs it with `UserDefaults` for the personal dev build (the ``KeychainStore`` alternative
+/// re-prompts on every ad-hoc-signed rebuild — see `Composition`), but the store is agnostic:
+/// swap in `KeychainStore` behind the same port for a stably-signed / distributed build.
+/// `AppConfig` stays an **optional** fallback so dev/CI builds that still bake in the Adzuna
+/// keys keep working with no user action ("pure fallback, no seeding").
 ///
 /// An empty/whitespace user entry is treated as **absent** (falls back), and `setValue`
 /// clears the stored entry for an empty value — so leaving a field blank uses the baked-in

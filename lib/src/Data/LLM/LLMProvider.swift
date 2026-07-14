@@ -38,6 +38,14 @@ protocol LLMProvider: Sendable {
     /// default, so only real engines implement it; the router forwards to one.
     func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails
 
+    /// Extracts the **full job posting** verbatim from a fetched page's raw text (v0.6.0
+    /// Milestone E), stripping site chrome — navigation, search boxes, "similar jobs", ads,
+    /// cookie/footer boilerplate — while preserving the posting's own content and order.
+    /// Returns clean markdown, or empty when the page holds no real posting. Reorders/removes
+    /// nothing of the posting and invents nothing. Has a throwing default, so only real engines
+    /// implement it; the router forwards to one.
+    func cleanPostingText(fromPageText pageText: String) async throws -> String
+
     /// Reflows an imported document's raw extracted text into readable plain text (same
     /// facts, repaired layout). Has a throwing default, so only real engines implement it.
     func tidyDocument(rawText: String) async throws -> String
@@ -83,6 +91,12 @@ extension LLMProvider {
     /// Default: posting enrichment isn't supported. Real engines override this; the router
     /// forwards to one.
     func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: posting-text cleaning isn't supported. Real engines override this; the router
+    /// forwards to one.
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
         throw LLMProviderError.noProviderAvailable
     }
 

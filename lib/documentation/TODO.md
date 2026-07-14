@@ -9,12 +9,12 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.0 — richer grounding, job detail & sources — Milestone E (Full job-posting text).**
-> Milestones **A–D are done** (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A** richer job postings;
-> **B** per-generation **profile picker**; **C** **regenerate result**; **D** **user-editable API credentials**
-> (keychain-backed `JobSourceCredentialsStore`, Settings fields, live availability). Two milestones remain —
-> **E** full job-posting text, then **F** multi-source search (F depends on D's credential seam).
-> `MARKETING_VERSION` is `0.6.0`. Device checks below still stand.
+> **Current focus. v0.6.0 — richer grounding, job detail & sources — Milestone F (Multi-source job search).**
+> Milestones **A–E are done** (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A** richer job postings;
+> **B** per-generation **profile picker**; **C** **regenerate result**; **D** **user-editable API credentials**;
+> **E** **full job-posting text** (recover the full posting behind the redirect URL, ground/display on it).
+> **F is the last milestone** — multi-source search (aggregate providers behind `JobSource`), depending on D's
+> per-provider credential seam. `MARKETING_VERSION` is `0.6.0`. Device checks below still stand.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
 > open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
@@ -51,78 +51,33 @@ doing.
 > Generate without a relaunch**; **Clear saved credentials** appears only after you've saved keys, **unlocks the
 > fields** for re-entry, and reverts to Not-configured (or to build-time keys, if this build baked them); the
 > **"How to get an Adzuna API key"** link opens the browser; a build with baked keys and no user entry shows
-> Configured **with the fields still editable** (nothing to mask); and the keys **survive relaunch** (stored in
-> the Keychain, not the plist). *(Enter your own real key — the agent never does.)*
+> Configured **with the fields still editable** (nothing to mask); the keys **survive relaunch** and **no
+> keychain-access prompt appears on launch** (stored locally in the app's preferences — the credentials store is
+> wired to `UserDefaults`, not the keychain, because ad-hoc dev signing makes the legacy keychain re-prompt every
+> rebuild; `KeychainStore` stays available behind the port). *(Enter your own real key — the agent never does.)*
+>
+> **⚠️ Awaiting device checks (v0.6.0 Milestone E)** — with a live engine + network: saving a job whose Adzuna
+> **redirect URL is fetchable** captures the **full posting, de-chromed** (the Tracker detail's Description
+> shows a clean posting — overview, responsibilities, qualifications, pay, benefits — **not** the raw page with
+> nav / "similar jobs" / footer, and not the ~500-char snippet); a **blocked/JS-gated** posting silently falls
+> back to the snippet (no error); the collapsible **Posting details** section also populates now that
+> enrichment actually reaches the engine (the composition-forwarding fix); the fuller text visibly improves the
+> generated résumé/cover letter; and legacy saved jobs still load (full text simply absent). Also re-verify
+> **Milestone C**'s "Regenerate result" now honours the steering **context** box (same forwarding fix).
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
 
 ---
 
-# v0.6.0 — richer grounding, job detail & sources  (remaining: E, F)
+# v0.6.0 — richer grounding, job detail & sources  (remaining: F)
 
-Milestones **A–D are complete** (write-ups in `MILESTONES.md`). The two below extend the release — pulled
-from `PLANNED.md` (now removed from there): **E** full job-posting text (composes with A's enrichment), then
-**F** multi-source search (depends on **D**'s user-editable credential seam for per-provider keys). Each
-respects the layer dependency rule (Presentation → Business → Data → Infrastructure).
+Milestones **A–E are complete** (write-ups in `MILESTONES.md`). **F** is the last milestone — pulled from
+`PLANNED.md` (now removed from there): multi-source search, depending on **D**'s user-editable credential seam
+for per-provider keys. It respects the layer dependency rule (Presentation → Business → Data → Infrastructure).
 
 > **Safety note (F, credential UI):** building the Settings *field* where the user types a provider's API key is
 > fine; the agent must **never** enter or paste real API keys — the user fills these in.
-
----
-
-## Milestone E — Full job-posting text (capture the whole posting, not Adzuna's truncated snippet)
-
-**What / why.** A search result shows only a **truncated snippet** of the job description, and that thin text is
-all generation ever sees. The trailing `…` on an Adzuna description is the tell: **Adzuna truncates
-`description` at the API level** (~500 chars) — the full body is **not in the `/search` response**, so no decode
-(Milestone A-A) recovers it. Capture the **entire posting** (the level of detail on the source board: about the
-role / company, qualifications, tech stack, benefits, pay, work location) — to *read* in `JobDetailView` and,
-the real payoff, as **grounding for generation**, so tailoring maps real experience against the posting's
-actual requirements instead of a 500-char teaser.
-
-**Relationship to Milestone A (sharpens, doesn't duplicate).** A structures a posting into `@Generable`
-`PostingDetails` via an LLM pass but under-specifies **capturing the full raw text itself** — the input that
-structuring needs, and worth showing verbatim. E adds that first-class capture; the two compose (E's full text
-feeds A's structuring). Left separate per Taylor's call (A stays as shipped).
-
-**Seam + files.**
-- **Data model.** Add `fullDescription: String?` to `JobListing` (`Data/Models/JobListing.swift`) alongside the
-  snippet `description` — plain `Codable`, back-compatible (optional / decode-with-defaults, like
-  `SavedProfile.init(from:)`).
-- **Fetch.** `JobListing.url` is Adzuna's `redirect_url`; reuse `JobPostingSource.readableText(from:)` /
-  `fetchPosting(from:)` (`Data/Jobs/LinkJobPostingSource.swift`, the "generate from a link" path) against it to
-  recover the full text. **Best-effort:** JS-gated / paywalled / blocking boards throw `.unreadable` → fall back
-  to the snippet (the failure mode that path already handles).
-- **Persistence.** Thread `fullDescription` through `SavedJobsRepository` (`Data/Persistence/SavedJobsRepository.swift`)
-  / `PersistentRecordStore` (decode-with-defaults so existing saved jobs still load).
-- **Generation grounding — the payoff.** Feed the full posting into `buildTargetBrief` / `generateApplication` +
-  `Prompts` (bound for the on-device context window, as grounding already is).
-- **Presentation.** `Results/View/JobDetailView` shows the full description; the snippet stays fine for the
-  compact `RankedRow`.
-
-**Sub-tasks (letter as E-A…E-D):**
-- [ ] **E-A — `JobListing.fullDescription`** field + Codable back-compat.
-- [ ] **E-B — Full-page fetch** via `JobPostingSource.readableText(from:)` against `JobListing.url`; snippet
-      fallback on `.unreadable`.
-- [ ] **E-C — Persist** `fullDescription` (repository + record-store mapping, back-compatible).
-- [ ] **E-D — Thread into generation** (`buildTargetBrief` / `Prompts`) + show in `JobDetailView`.
-- [ ] **(open call) When to fetch.** Every result (an HTTP fetch each — heavy on a big search) vs. **on save /
-      on detail-open** vs. saved-only. *Recommended:* **on save / on detail-open** (matches A's enrichment
-      timing, so one fetch serves both full text and structuring).
-- [ ] **(open call) Replace `description` vs. add `fullDescription`.** *Recommended:* **add** — the snippet is a
-      fine list preview and the fallback when a page can't be fetched.
-- [ ] **(open call) Store vs. re-fetch.** *Recommended:* **store** it (survives relaunch, grounds generation
-      offline); re-fetch only on an explicit refresh (composes with Milestone C's regenerate).
-
-**Tests.** `JobListing` Codable round-trip with and without `fullDescription` (legacy blob decodes with the
-field absent); the fetch step swaps the full text in via a stub `JobPostingSource` and falls back to the snippet
-on `.unreadable`; `SavedJobsRepository` persists/loads the field; a `Prompts`/brief snapshot showing the full
-text injected when present.
-
-**On-device.** The page-fetch needs **network** (same as the link path); storage + display are local. Bound the
-posting text before it hits the model. **Guardrail:** full text is captured **verbatim** — any structuring
-(with A) organizes, never invents requirements or company facts.
 
 ---
 

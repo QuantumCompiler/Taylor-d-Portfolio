@@ -82,7 +82,7 @@ struct SettingsView: View {
         } footer: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Enter your own Adzuna API credentials to enable job search. "
-                    + "They're stored in your macOS Keychain and never leave your Mac. "
+                    + "They're stored on your Mac and never leave it. "
                     + "Saved keys are hidden — use “Clear saved credentials” to replace them.")
                 Link("How to get an Adzuna API key", destination: Self.adzunaKeyHelpURL)
                     .clickableCursor()

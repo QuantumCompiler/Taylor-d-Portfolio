@@ -127,7 +127,7 @@ nonisolated enum Prompts {
               title: \(job.title)
               company: \(job.company)
               location: \(job.location)
-              description: \(truncate(job.description, to: maxDescriptionCharacters))
+              description: \(truncate(job.effectiveDescription, to: maxDescriptionCharacters))
             """
         }.joined(separator: "\n")
 
@@ -172,7 +172,7 @@ nonisolated enum Prompts {
           title: \(job.title)
           company: \(job.company)
           location: \(job.location)
-          description: \(truncate(job.description, to: maxDescriptionCharacters))\(postingDetailSection(job.details))
+          description: \(truncate(job.effectiveDescription, to: maxDescriptionCharacters))\(postingDetailSection(job.details))
 
         Produce a JobMatch:
         - jobId: the job's id (\(job.id))
@@ -218,6 +218,43 @@ nonisolated enum Prompts {
 
         If the text does not contain a real job posting (e.g. it's a login wall, an error page,
         or a list of many jobs), return empty strings for every field.
+
+        Page text:
+        \(truncate(pageText, to: maxPageCharacters))
+        """
+    }
+
+    // MARK: Clean posting text (de-chrome a fetched page — v0.6.0 Milestone E)
+
+    static let cleanPostingInstructions =
+        "You extract the full text of a SINGLE job posting from the raw text of a web page. " +
+        "You remove everything that isn't the posting — site navigation, search boxes, " +
+        "\"apply\"/\"back\" buttons, \"similar jobs\", salary-comparison widgets, related-search and " +
+        "popular-jobs lists, cookie notices, and the site footer / country lists. You keep the " +
+        "posting's own content verbatim and in its original order — never summarize, rephrase, " +
+        "reorder, add, or invent. You output only the posting, as clean markdown."
+
+    /// Extracts just the job posting from a fetched page's noisy readable text (Milestone E),
+    /// preserving the full posting verbatim and dropping site chrome. Returns clean markdown, or
+    /// an empty string when the page has no real posting (so the caller keeps the snippet).
+    static func cleanPosting(pageText: String) -> String {
+        """
+        The text below is the readable text of a web page that contains ONE job posting mixed
+        with site chrome. Return ONLY the job posting itself.
+
+        Rules:
+        - Keep the ENTIRE posting verbatim — position overview, responsibilities, "what you'll
+          do", qualifications / requirements, pay range, benefits, and equal-opportunity notice.
+          Never summarize, shorten, rephrase, reorder, or invent any of it.
+        - Remove everything that is NOT the posting: site header / navigation, the "What? Where?
+          Search" bar, Apply / Easy-Apply / back buttons, salary-comparison and "stats" widgets,
+          "Similar jobs", "Popular searches / jobs / companies / locations", "Receive similar jobs
+          by email", cookie/consent text, and the footer + country-selection lists.
+        - Format the result as clean, readable markdown: a heading for the role, section headings,
+          and one bullet per listed item. Keep the company, location, employment type, and pay
+          when the posting states them.
+        - Output ONLY the posting markdown — no commentary, no preamble, no code fences. If the
+          page contains no real job posting, output nothing.
 
         Page text:
         \(truncate(pageText, to: maxPageCharacters))
@@ -278,7 +315,7 @@ nonisolated enum Prompts {
         - title: \(job.title)
         - company: \(job.company)
         - location: \(job.location)
-        - description: \(truncate(job.description, to: maxDescriptionCharacters))\(postingDetailSection(job.details))
+        - description: \(truncate(job.effectiveDescription, to: maxDescriptionCharacters))\(postingDetailSection(job.details))
         """
     }
 

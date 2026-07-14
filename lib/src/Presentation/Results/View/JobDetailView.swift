@@ -380,14 +380,23 @@ struct JobDetailView: View {
 
     // MARK: Description
 
+    @ViewBuilder
     private var descriptionSection: some View {
         labeledSection("Description") {
-            let text = HTMLStripper.plainText(listing.description)
-            Text(text.isEmpty ? "No description provided." : text)
-                .font(.callout)
-                .foregroundStyle(text.isEmpty ? .secondary : .primary)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if let full = listing.fullDescription,
+               !full.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                // The recovered full posting is clean markdown (v0.6.0 Milestone E) — render it
+                // styled (headings / bullets / bold), not as raw markup.
+                MarkdownText(markdown: full)
+            } else {
+                // The Adzuna snippet is HTML/plain text — strip tags and show it plainly.
+                let text = HTMLStripper.plainText(listing.description)
+                Text(text.isEmpty ? "No description provided." : text)
+                    .font(.callout)
+                    .foregroundStyle(text.isEmpty ? .secondary : .primary)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 

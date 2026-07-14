@@ -34,9 +34,14 @@ struct Composition {
         onDeviceClient = FoundationModelsClient()
         documentExtractor = PlatformDocumentTextExtractor()
         recordStore = Composition.makeRecordStore()
-        // Secrets go to the keychain, not the UserDefaults plist; the build-time `AppConfig`
-        // stays a fallback so dev/CI builds with baked keys keep working (Milestone D).
-        credentialsStore = JobSourceCredentialsStore(store: KeychainStore(), config: appConfig)
+        // Credentials store: user-entered keys resolve over the build-time `AppConfig` fallback
+        // (Milestone D). Backed by `UserDefaults`, not the keychain: this app is **unsandboxed
+        // and ad-hoc-signed in dev**, so the legacy keychain re-prompts for access on every
+        // rebuild (the signature changes each build, so "Always Allow" never sticks). The keys
+        // are low-value Adzuna free-tier credentials (previously baked into the bundle), so the
+        // plist is an acceptable home for a personal build. `KeychainStore` stays available
+        // behind the same `KeyValueStore` port for a future stably-signed / distributed build.
+        credentialsStore = JobSourceCredentialsStore(store: UserDefaultsStore(), config: appConfig)
 
         #if DEBUG
         // Fail-fast signal for developers: search needs Adzuna credentials from *either*
@@ -280,8 +285,17 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] {
         try await router().rank(jobs: jobs, against: profile)
     }
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        try await router().rank(job: job, against: profile, instruction: instruction)
+    }
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         try await router().extractPosting(fromPageText: pageText)
+    }
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        try await router().enrichPosting(fromPostingText: postingText)
+    }
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
+        try await router().cleanPostingText(fromPageText: pageText)
     }
     func tidyDocument(rawText: String) async throws -> String {
         try await router().tidyDocument(rawText: rawText)

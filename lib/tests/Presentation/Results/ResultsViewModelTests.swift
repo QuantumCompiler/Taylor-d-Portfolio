@@ -301,6 +301,45 @@ struct ResultsViewModelTests {
         let saved = try await jobs.savedJobs().first { $0.id == "a" }
         #expect(saved?.listing.details == nil)   // save still works; nothing enriched
     }
+
+    @Test func savingCapturesFullDescriptionFromThePostingPage() async throws {
+        // v0.6.0 Milestone E — a fuller posting page is captured on save, even when the
+        // structuring pass finds nothing to add.
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        let page = String(repeating: "Full posting page. ", count: 20)
+        let provider = EnrichingStubProvider(details: PostingDetails())   // no structure found
+        let job = RankedJob(
+            listing: JobListing(id: "u", title: "t", company: "c", location: "l",
+                                description: "snippet", url: URL(string: "https://ex.com/j")!),
+            match: JobMatch(jobId: "u", score: 50, reason: "", matchedSkills: [], missingSkills: [])
+        )
+        let vm = ResultsViewModel(
+            results: [job],
+            loadTrackedJobs: LoadTrackedJobsUseCase(jobs: jobs, statuses: statuses),
+            loadJobHistory: LoadJobHistoryUseCase(jobs: jobs, statuses: statuses, applications: apps),
+            markStatus: MarkStatusUseCase(repository: statuses, now: { Date(timeIntervalSince1970: 0) }),
+            saveResults: SaveResultsUseCase(repository: jobs),
+            deleteSavedJob: DeleteSavedJobUseCase(jobs: jobs, statuses: statuses, applications: apps),
+            enrichPosting: EnrichPostingUseCase(provider: provider, postingSource: ResultsReadableStub(pageText: page))
+        )
+
+        await vm.saveToTracker(job)
+
+        let saved = try await jobs.savedJobs().first { $0.id == "u" }
+        #expect(saved?.listing.fullDescription == page)   // full text persisted…
+        #expect(saved?.listing.details == nil)            // …even though structuring found nothing
+    }
+}
+
+/// A `JobPostingSource` whose `readableText` returns a canned full page.
+private struct ResultsReadableStub: JobPostingSource {
+    var pageText: String
+    func fetchPosting(from url: URL) async throws -> JobListing { throw JobPostingSourceError.unreadable }
+    func extractPosting(fromText text: String, sourceURL: URL?) async throws -> JobListing { throw JobPostingSourceError.unreadable }
+    func readableText(from url: URL) async throws -> String { pageText }
 }
 
 /// An `LLMProvider` that returns a canned `PostingDetails` (only `enrichPosting` matters here).
@@ -317,4 +356,6 @@ private struct EnrichingStubProvider: LLMProvider {
         .init(resumeMarkdown: "", coverLetter: "", gapNote: "")
     }
     func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails { details }
+    // Cleaning is a no-op here (echo the page), so the captured full text equals the fetched page.
+    func cleanPostingText(fromPageText pageText: String) async throws -> String { pageText }
 }

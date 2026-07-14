@@ -302,19 +302,62 @@ struct UseCaseTests {
         let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: page))
 
         let enriched = try await useCase(enrichListing(url: enrichURL, description: "short snippet"))
-        #expect(provider.lastText == page)                 // used the full page, not the snippet
+        #expect(provider.lastCleanInput == page)           // cleaning ran on the fetched page
+        #expect(enriched.fullDescription == "CLEANED_POSTING")   // the de-chromed posting is stored…
+        #expect(provider.lastText == "CLEANED_POSTING")    // …and structuring runs on the clean text
         #expect(enriched.details?.workType == .remote)
         #expect(enriched.details?.aboutCompany == "Fintech.")
     }
 
     @Test func enrichFallsBackToSnippetWhenPageUnfetchable() async throws {
         let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "A role."))
-        // readableText throws unreadable → fall back to the description snippet.
+        // readableText throws unreadable → nothing to clean, fall back to the description snippet.
         let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: nil))
 
         let enriched = try await useCase(enrichListing(url: enrichURL, description: "the snippet"))
+        #expect(provider.lastCleanInput == nil)            // cleaning never ran (no page)
         #expect(provider.lastText == "the snippet")
+        #expect(enriched.fullDescription == nil)           // nothing fuller fetched
         #expect(enriched.details?.aboutRole == "A role.")
+    }
+
+    @Test func enrichCapturesFullTextEvenWhenStructuringEmpty() async throws {
+        // The page fetches richer than the snippet and cleans, but structuring finds nothing —
+        // the cleaned full text must still be captured (E), even though `details` stays nil.
+        let provider = EnrichRecordingProvider(details: PostingDetails())   // hasContent == false
+        let page = String(repeating: "Full posting page text. ", count: 20)
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: page))
+
+        let enriched = try await useCase(enrichListing(url: enrichURL, description: "short snippet"))
+        #expect(enriched.fullDescription == "CLEANED_POSTING")
+        #expect(enriched.details == nil)
+    }
+
+    @Test func enrichKeepsFullTextWhenStructuringFails() async throws {
+        // A structuring (LLM) failure must not discard the cleaned full text already recovered.
+        let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "x"))
+        provider.shouldThrow = true
+        let page = String(repeating: "Full posting page text. ", count: 20)
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: page))
+
+        let enriched = try await useCase(enrichListing(url: enrichURL, description: "short snippet"))
+        #expect(enriched.fullDescription == "CLEANED_POSTING")
+        #expect(enriched.details == nil)
+    }
+
+    @Test func enrichKeepsSnippetWhenCleaningFails() async throws {
+        // The page fetches, but cleaning is unavailable/fails — the noisy raw page must NOT be
+        // stored as `fullDescription`; structuring falls back to the raw page (its prompt
+        // ignores chrome).
+        let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "R"))
+        provider.cleanedText = nil   // cleanPostingText throws
+        let page = String(repeating: "Full posting page text. ", count: 20)
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: page))
+
+        let enriched = try await useCase(enrichListing(url: enrichURL, description: "short snippet"))
+        #expect(enriched.fullDescription == nil)           // raw chrome not stored
+        #expect(provider.lastText == page)                 // structuring used the raw page
+        #expect(enriched.details?.aboutRole == "R")
     }
 
     @Test func enrichUsesSnippetWhenNoSourceWired() async throws {
@@ -370,8 +413,17 @@ private struct ReadableStubSource: JobPostingSource {
 /// An `LLMProvider` that returns a canned `PostingDetails` and records the text it enriched.
 private final class EnrichRecordingProvider: LLMProvider, @unchecked Sendable {
     let details: PostingDetails
-    private(set) var lastText: String?
+    var shouldThrow = false                       // enrichPosting throws
+    var cleanedText: String? = "CLEANED_POSTING"  // cleanPostingText returns this; nil → throws
+    private(set) var lastText: String?            // text handed to enrichPosting
+    private(set) var lastCleanInput: String?      // text handed to cleanPostingText
     init(details: PostingDetails) { self.details = details }
+    struct Boom: Error {}
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
+        lastCleanInput = pageText
+        guard let cleanedText else { throw Boom() }
+        return cleanedText
+    }
     func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
         .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
     }
@@ -384,6 +436,7 @@ private final class EnrichRecordingProvider: LLMProvider, @unchecked Sendable {
     }
     func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
         lastText = postingText
+        if shouldThrow { throw Boom() }
         return details
     }
 }

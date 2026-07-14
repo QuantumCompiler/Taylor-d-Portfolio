@@ -671,7 +671,7 @@ breakdown + open calls.
       comments (`AppSettings.swift:14`, `AppConfig.swift`). On-device: n/a (local storage). Safety: the app
       builds the *field*; the user enters keys — the agent never pastes real keys.
 
-- [ ] **Milestone E — Full job-posting text (not Adzuna's snippet).** The Adzuna `/search` `description` is
+- [x] **Milestone E — Full job-posting text (not Adzuna's snippet).** ✅ **Done (E-A…E-D).** The Adzuna `/search` `description` is
       truncated (~500 chars, ends in `…`); the full body isn't in the API response, so no decode recovers it.
       Recover it via a **full-page fetch behind the redirect URL** — reuse `JobPostingSource.readableText(from:)`
       (`LinkJobPostingSource`) against `JobListing.url`, snippet fallback on `.unreadable` — store it as a

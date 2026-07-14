@@ -36,6 +36,14 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
     /// listing is enriched.
     var details: PostingDetails?
 
+    // MARK: Full posting text (v0.6.0 Milestone E)
+
+    /// The **full** posting body, recovered from the posting page behind `url` when Adzuna's
+    /// `description` is only a truncated ~500-char snippet. `nil` until captured (or when the
+    /// page can't be fetched — JS-gated / paywalled / blocked). The snippet is never
+    /// overwritten; both are kept, and ``effectiveDescription`` prefers this when present.
+    var fullDescription: String?
+
     init(
         id: String,
         title: String,
@@ -47,7 +55,8 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
         positionTypes: [PositionType] = [],
         postedDate: Date? = nil,
         category: String? = nil,
-        details: PostingDetails? = nil
+        details: PostingDetails? = nil,
+        fullDescription: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -60,11 +69,17 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
         self.postedDate = postedDate
         self.category = category
         self.details = details
+        self.fullDescription = fullDescription
     }
+
+    /// The fullest posting text available for grounding and display — the recovered full page
+    /// when present, else the (possibly truncated) API snippet. Ranking, brief-building, and
+    /// the detail view read this so they work from the whole posting when it's been captured.
+    var effectiveDescription: String { fullDescription ?? description }
 
     enum CodingKeys: String, CodingKey {
         case id, title, company, location, description, url, salary
-        case positionTypes, postedDate, category, details
+        case positionTypes, postedDate, category, details, fullDescription
     }
 
     /// Custom decoding so listings persisted before the richer fields existed still load —
@@ -83,5 +98,6 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
         postedDate = try container.decodeIfPresent(Date.self, forKey: .postedDate)
         category = try container.decodeIfPresent(String.self, forKey: .category)
         details = try container.decodeIfPresent(PostingDetails.self, forKey: .details)
+        fullDescription = try container.decodeIfPresent(String.self, forKey: .fullDescription)
     }
 }
