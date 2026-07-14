@@ -266,4 +266,55 @@ struct ResultsViewModelTests {
         #expect(vm.filteredResults.map(\.id) == ["c"])
         #expect(vm.totalCount == 2)                        // un-tracked total, not 3
     }
+
+    // MARK: Enrich on save (v0.6.0 Milestone A-D)
+
+    @Test func savingEnrichesAndPersistsTheDetails() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        let provider = EnrichingStubProvider(details: PostingDetails(workTypeRaw: "remote", aboutCompany: "Fintech."))
+        let vm = ResultsViewModel(
+            results: [ranked("a")],
+            loadTrackedJobs: LoadTrackedJobsUseCase(jobs: jobs, statuses: statuses),
+            loadJobHistory: LoadJobHistoryUseCase(jobs: jobs, statuses: statuses, applications: apps),
+            markStatus: MarkStatusUseCase(repository: statuses, now: { Date(timeIntervalSince1970: 0) }),
+            saveResults: SaveResultsUseCase(repository: jobs),
+            deleteSavedJob: DeleteSavedJobUseCase(jobs: jobs, statuses: statuses, applications: apps),
+            enrichPosting: EnrichPostingUseCase(provider: provider, postingSource: nil)   // snippet-only
+        )
+
+        await vm.saveToTracker(ranked("a"))
+
+        // The persisted saved job now carries the enriched details…
+        let saved = try await jobs.savedJobs().first { $0.id == "a" }
+        #expect(saved?.listing.details?.workType == .remote)
+        #expect(saved?.listing.details?.aboutCompany == "Fintech.")
+        // …and the in-memory list reflects it too.
+        #expect(vm.results.first { $0.id == "a" }?.listing.details != nil)
+    }
+
+    @Test func savingWithoutEnrichmentWiringLeavesDetailsNil() async throws {
+        let (vm, jobs, _, _) = makeRowActionVM(results: [ranked("a")])   // no enrichPosting wired
+        await vm.saveToTracker(ranked("a"))
+        let saved = try await jobs.savedJobs().first { $0.id == "a" }
+        #expect(saved?.listing.details == nil)   // save still works; nothing enriched
+    }
+}
+
+/// An `LLMProvider` that returns a canned `PostingDetails` (only `enrichPosting` matters here).
+private struct EnrichingStubProvider: LLMProvider {
+    var details: PostingDetails
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { [] }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        .init(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        .init(resumeMarkdown: "", coverLetter: "", gapNote: "")
+    }
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails { details }
 }

@@ -16,9 +16,10 @@ doing.
 > picker; C reuses it and A's enrichment). **A-A + A-B + A-C are done** (Adzuna-decoded posting fields on
 > `JobListing`; the `WorkType` / `@Generable` `PostingDetails` enrichment model + `enrichPosting` LLM step; and
 > `EnrichPostingUseCase` — full-page-fetch-preferred, snippet-fallback — plus the `JobPostingSource.readableText`
-> seam). Next is **Milestone A-D** — trigger enrichment (on save / on detail-open, the recommended timing) and
-> **persist** the enriched fields through `SavedJobsRepository` (back-compatible). `MARKETING_VERSION` bumped
-> to `0.6.0`.
+> seam; and **A-D** — enrich-on-save-to-Tracker wired through `Composition` → `ResultsViewModel`, re-persisting
+> the enriched `RankedJob`). Next is **Milestone A-E** — thread the enriched `PostingDetails` into
+> `buildTargetBrief` / `generateApplication` + `Prompts` so tailoring uses the richer signal (the payoff).
+> `MARKETING_VERSION` bumped to `0.6.0`.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
 > open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
@@ -124,8 +125,16 @@ free today:
       success + unreadable cases; use-case full-page-preferred, snippet-fallback, snippet-only, empty-unchanged,
       no-usable-text. Full suite green. **UI trigger + persistence deferred to A-D** (this slice is the
       mechanism + use case).
-- [ ] **A-D — Persist the enriched fields.** `SavedJobsRepository` + record-store mapping, back-compatible
-      (decode-with-defaults).
+- [x] **A-D — Trigger enrichment + persist the enriched fields.** ✅ **Done.** Resolved the enrichment-timing
+      open call as recommended: **enrich on save to Tracker** (only saved jobs get tailored). `EnrichPostingUseCase`
+      wired in `Composition` (over the shared `jobPostingSource`) and injected into `ResultsViewModel`;
+      `saveToTracker` now marks `.saved` + refreshes history **first** (the row drops out of Results immediately),
+      then best-effort enriches and **re-persists** the `RankedJob` carrying its `PostingDetails` — a fetch/LLM
+      failure leaves the plain saved job untouched, and an already-enriched job is skipped. Persistence needed
+      **no repository change**: `details` rides along in the `RankedJob` JSON via `SavedJobsRepository`, and A-B's
+      decode-with-default keeps legacy jobs loading (`details == nil`). Tests: saving enriches + persists +
+      reflects in the in-memory list; saving without enrichment wiring still works and leaves `details` nil.
+      Full suite green.
 - [ ] **A-E — Thread enriched fields into `TargetBrief` / generation `Prompts`.**
 - [ ] **A-F — `JobDetailView` verbose layout + `RankedRow` chips.**
 - [ ] **(open call) Enrichment timing.** Enrich **every** Adzuna result (an LLM call per result — heavy on a

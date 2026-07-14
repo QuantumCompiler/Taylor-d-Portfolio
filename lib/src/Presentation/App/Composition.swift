@@ -124,6 +124,11 @@ struct Composition {
     private var fetchPosting: FetchPostingUseCase {
         .init(postingSource: jobPostingSource, ranker: JobRanker(provider: llmProvider))
     }
+    /// Enriches a saved posting with richer detail (v0.6.0 Milestone A-D), preferring the full
+    /// posting page (via the same `jobPostingSource` used for the link flow) over the snippet.
+    private var enrichPosting: EnrichPostingUseCase {
+        .init(provider: llmProvider, postingSource: jobPostingSource)
+    }
     private var saveResults: SaveResultsUseCase? {
         savedJobsRepository.map(SaveResultsUseCase.init(repository:))
     }
@@ -202,7 +207,8 @@ struct Composition {
             loadJobHistory: loadJobHistory,
             markStatus: markStatus,
             saveResults: saveResults,
-            deleteSavedJob: deleteSavedJob
+            deleteSavedJob: deleteSavedJob,
+            enrichPosting: enrichPosting
         )
     }
     func makeTrackerViewModel() -> TrackerViewModel {
