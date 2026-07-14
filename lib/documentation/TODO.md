@@ -13,11 +13,12 @@ doing.
 > v0.1.0–v0.5.1 are done (see `MILESTONES.md`). v0.6.0 is now in progress: three composed milestones pulled
 > from `PLANNED.md` — **A** richer job postings, **B** select-a-profile-at-generation + ground on its source
 > documents, **C** regenerate result (re-rank/re-enrich a saved job). Build in order (B adds the shared profile
-> picker; C reuses it and A's enrichment). **A-A + A-B are done** (Adzuna-decoded posting fields on
-> `JobListing`; the `WorkType` / `@Generable` `PostingDetails` enrichment model + `enrichPosting` LLM step
-> through the seam). Next is **Milestone A-C** — call `enrichPosting` over the full posting page (reuse
-> `LinkJobPostingSource` against `JobListing.url`), with the description snippet as fallback.
-> `MARKETING_VERSION` bumped to `0.6.0`.
+> picker; C reuses it and A's enrichment). **A-A + A-B + A-C are done** (Adzuna-decoded posting fields on
+> `JobListing`; the `WorkType` / `@Generable` `PostingDetails` enrichment model + `enrichPosting` LLM step; and
+> `EnrichPostingUseCase` — full-page-fetch-preferred, snippet-fallback — plus the `JobPostingSource.readableText`
+> seam). Next is **Milestone A-D** — trigger enrichment (on save / on detail-open, the recommended timing) and
+> **persist** the enriched fields through `SavedJobsRepository` (back-compatible). `MARKETING_VERSION` bumped
+> to `0.6.0`.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
 > open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
@@ -113,8 +114,16 @@ free today:
       `enrichInstructions` (extract-only, "never invent"). Tests: `PostingDetails` round-trip + `WorkType`
       loose-parse + empty-has-no-content + `JobListing` carries details; provider JSON decode; router routing;
       prompt field/bounds/guardrail. Full suite green.
-- [ ] **A-C — Full-page fetch feeding enrichment.** Reuse `LinkJobPostingSource` against `JobListing.url`;
-      snippet fallback on unfetchable pages.
+- [x] **A-C — Full-page fetch feeding enrichment.** ✅ **Done.** Extended the `JobPostingSource` seam with
+      `readableText(from:)` (default throws `.unreadable`; `LinkJobPostingSource` implements it by refactoring
+      the fetch→decode→strip→min-length half of `fetchPosting` into a shared method — behaviour of the URL path
+      unchanged). New Business `EnrichPostingUseCase` prefers the **full posting page** (via `readableText`,
+      when richer than the snippet) and **falls back to the description snippet** on any fetch failure / no url
+      / no source; calls `LLMProvider.enrichPosting` and attaches `PostingDetails` only when `hasContent`
+      (never overwrites with emptiness), returning the listing unchanged otherwise. Tests: `readableText`
+      success + unreadable cases; use-case full-page-preferred, snippet-fallback, snippet-only, empty-unchanged,
+      no-usable-text. Full suite green. **UI trigger + persistence deferred to A-D** (this slice is the
+      mechanism + use case).
 - [ ] **A-D — Persist the enriched fields.** `SavedJobsRepository` + record-store mapping, back-compatible
       (decode-with-defaults).
 - [ ] **A-E — Thread enriched fields into `TargetBrief` / generation `Prompts`.**

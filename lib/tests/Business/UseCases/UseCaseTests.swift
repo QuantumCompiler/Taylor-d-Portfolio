@@ -254,6 +254,60 @@ struct UseCaseTests {
             _ = try await useCase(url: URL(string: "https://x.com/j")!, profile: profile)
         }
     }
+
+    // MARK: EnrichPostingUseCase (v0.6.0 Milestone A-C)
+
+    private func enrichListing(url: URL? = nil, description: String) -> JobListing {
+        JobListing(id: "e1", title: "iOS", company: "Acme", location: "Remote", description: description, url: url)
+    }
+    private let enrichURL = URL(string: "https://example.com/jobs/1")!
+
+    @Test func enrichPrefersFullPageOverSnippet() async throws {
+        let provider = EnrichRecordingProvider(details: PostingDetails(workTypeRaw: "remote", aboutCompany: "Fintech."))
+        let page = String(repeating: "Full posting page text. ", count: 20)
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: page))
+
+        let enriched = try await useCase(enrichListing(url: enrichURL, description: "short snippet"))
+        #expect(provider.lastText == page)                 // used the full page, not the snippet
+        #expect(enriched.details?.workType == .remote)
+        #expect(enriched.details?.aboutCompany == "Fintech.")
+    }
+
+    @Test func enrichFallsBackToSnippetWhenPageUnfetchable() async throws {
+        let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "A role."))
+        // readableText throws unreadable → fall back to the description snippet.
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: nil))
+
+        let enriched = try await useCase(enrichListing(url: enrichURL, description: "the snippet"))
+        #expect(provider.lastText == "the snippet")
+        #expect(enriched.details?.aboutRole == "A role.")
+    }
+
+    @Test func enrichUsesSnippetWhenNoSourceWired() async throws {
+        let provider = EnrichRecordingProvider(details: PostingDetails(benefits: ["Health"]))
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: nil)   // snippet-only
+        let enriched = try await useCase(enrichListing(url: nil, description: "just the snippet"))
+        #expect(provider.lastText == "just the snippet")
+        #expect(enriched.details?.benefits == ["Health"])
+    }
+
+    @Test func enrichLeavesListingUnchangedWhenNothingFound() async throws {
+        let provider = EnrichRecordingProvider(details: PostingDetails())   // empty → hasContent == false
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: nil)
+        let original = enrichListing(description: "snippet")
+        let result = try await useCase(original)
+        #expect(result == original)          // unchanged, not overwritten with an empty structure
+        #expect(result.details == nil)
+    }
+
+    @Test func enrichSkipsWhenNoUsableText() async throws {
+        let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "x"))
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: nil)
+        let blank = enrichListing(description: "   ")
+        let result = try await useCase(blank)
+        #expect(result == blank)
+        #expect(provider.lastText == nil)    // enrichment never called — nothing to read
+    }
 }
 
 /// A `JobPostingSource` that returns a canned listing or throws.
@@ -265,5 +319,37 @@ private struct StubPostingSource: JobPostingSource {
     private func result() throws -> JobListing {
         if let error { throw error }
         return listing ?? JobListing(id: "x", title: "t", company: "c", location: "l", description: "d")
+    }
+}
+
+/// A `JobPostingSource` whose `readableText` returns canned page text (or throws unreadable).
+private struct ReadableStubSource: JobPostingSource {
+    var pageText: String?
+    func fetchPosting(from url: URL) async throws -> JobListing { throw JobPostingSourceError.unreadable }
+    func extractPosting(fromText text: String, sourceURL: URL?) async throws -> JobListing { throw JobPostingSourceError.unreadable }
+    func readableText(from url: URL) async throws -> String {
+        guard let pageText else { throw JobPostingSourceError.unreadable }
+        return pageText
+    }
+}
+
+/// An `LLMProvider` that returns a canned `PostingDetails` and records the text it enriched.
+private final class EnrichRecordingProvider: LLMProvider, @unchecked Sendable {
+    let details: PostingDetails
+    private(set) var lastText: String?
+    init(details: PostingDetails) { self.details = details }
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { [] }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        .init(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        .init(resumeMarkdown: "", coverLetter: "", gapNote: "")
+    }
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        lastText = postingText
+        return details
     }
 }
