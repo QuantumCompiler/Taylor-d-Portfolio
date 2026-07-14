@@ -11,7 +11,7 @@ import Foundation
 /// A job-search provider whose API needs credentials. Provider-keyed so Adzuna and any
 /// future source (JSearch, The Muse — Milestone F) share one credential mechanism instead
 /// of each being special-cased.
-enum JobProvider: String, Codable, Sendable, CaseIterable {
+nonisolated enum JobProvider: String, Codable, Sendable, CaseIterable {
     case adzuna
 
     /// The credential fields this provider requires before it can search.
@@ -24,7 +24,7 @@ enum JobProvider: String, Codable, Sendable, CaseIterable {
 
 /// Identifies one credential field of one provider (e.g. Adzuna's app id vs. app key).
 /// The `storageKey` namespaces it in the backing `KeyValueStore`.
-struct JobCredentialField: Equatable, Hashable, Sendable {
+nonisolated struct JobCredentialField: Equatable, Hashable, Sendable {
     let provider: JobProvider
     let name: String
 
@@ -86,6 +86,19 @@ nonisolated struct JobSourceCredentialsStore: Sendable {
         provider.requiredCredentials.allSatisfy { value(for: $0) != nil }
     }
 
+    /// Whether the **user** has entered a non-blank value for `field` — distinct from
+    /// ``value(for:)``, which also honours the build-time fallback. Lets the UI offer a
+    /// "clear my credentials" affordance only when there's a user entry to clear.
+    func hasStoredValue(for field: JobCredentialField) -> Bool {
+        guard let stored = storedValue(for: field) else { return false }
+        return !stored.isBlank
+    }
+
+    /// Whether the user has entered any of `provider`'s credential fields.
+    func hasStoredCredentials(for provider: JobProvider) -> Bool {
+        provider.requiredCredentials.contains { hasStoredValue(for: $0) }
+    }
+
     // MARK: Helpers
 
     private func storedValue(for field: JobCredentialField) -> String? {
@@ -101,5 +114,5 @@ nonisolated struct JobSourceCredentialsStore: Sendable {
 }
 
 private extension String {
-    var isBlank: Bool { trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    nonisolated var isBlank: Bool { trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 }

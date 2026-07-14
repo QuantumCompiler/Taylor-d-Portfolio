@@ -128,4 +128,23 @@ struct JobSourceCredentialsStoreTests {
     @Test func adzunaRequiresBothKeys() {
         #expect(JobProvider.adzuna.requiredCredentials == [.adzunaAppID, .adzunaAppKey])
     }
+
+    // MARK: Stored-only checks (distinguish user entry from build-time fallback)
+
+    @Test func hasStoredValueReflectsUserEntryNotFallback() {
+        let (store, _) = makeStore(config: StubAppConfig(adzunaAppID: "baked-id", adzunaAppKey: "baked-key"))
+        // Resolves via the fallback, but the user hasn't stored anything.
+        #expect(store.value(for: .adzunaAppID) == "baked-id")
+        #expect(!store.hasStoredValue(for: .adzunaAppID))
+
+        store.setValue("mine", for: .adzunaAppID)
+        #expect(store.hasStoredValue(for: .adzunaAppID))
+    }
+
+    @Test func hasStoredCredentialsTrueWhenAnyFieldEntered() {
+        let (store, _) = makeStore(config: StubAppConfig(adzunaAppID: "baked-id", adzunaAppKey: "baked-key"))
+        #expect(!store.hasStoredCredentials(for: .adzuna))     // only build-time so far
+        store.setValue("mine", for: .adzunaAppKey)
+        #expect(store.hasStoredCredentials(for: .adzuna))      // one user field is enough
+    }
 }

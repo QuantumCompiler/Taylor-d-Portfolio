@@ -658,7 +658,7 @@ breakdown + open calls.
       + persistence. On-device: yes (LLM re-rank on the chosen engine; local persist). Guardrail: re-rank
       re-assesses fit honestly (may raise *or lower* the score); context steers emphasis, not fabrication.
 
-- [ ] **Milestone D — User-editable API credentials (build first).** Adzuna's `app_id` / `app_key` are baked
+- [x] **Milestone D — User-editable API credentials (build first).** ✅ **Done (D-A…D-D).** Adzuna's `app_id` / `app_key` are baked
       in at build time (`Secrets.xcconfig` → Info.plist → `BundleAppConfig` → `AppConfig`), so only a build with
       the secret file can search and there's no in-app fix. Re-integrate credentials as **user-entered
       settings**: add a `KeychainStore: KeyValueStore` (Infrastructure/Store) so secrets stay out of the

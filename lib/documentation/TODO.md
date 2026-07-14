@@ -9,14 +9,12 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.0 — richer grounding, job detail & sources — Milestone D (User-editable API
-> credentials); D-A…D-C done, next D-D (Settings UI).** Milestones **A–C are done** (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A**
-> richer job postings; **B** per-generation **profile picker** grounding on the chosen saved profile's source
-> documents; **C** **regenerate result** (single-job re-rank + re-enrich against a chosen profile). Three more
-> milestones — pulled from `PLANNED.md` — now extend the release: **D** user-editable API credentials, **E**
-> full job-posting text, **F** multi-source search. **Build D first** — it stands up the per-provider credential
-> seam that E and F both need — then E, then F. `MARKETING_VERSION` is already `0.6.0`. A/B/C's **device checks**
-> below still stand.
+> **Current focus. v0.6.0 — richer grounding, job detail & sources — Milestone E (Full job-posting text).**
+> Milestones **A–D are done** (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A** richer job postings;
+> **B** per-generation **profile picker**; **C** **regenerate result**; **D** **user-editable API credentials**
+> (keychain-backed `JobSourceCredentialsStore`, Settings fields, live availability). Two milestones remain —
+> **E** full job-posting text, then **F** multi-source search (F depends on D's credential seam).
+> `MARKETING_VERSION` is `0.6.0`. Device checks below still stand.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
 > open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
@@ -46,105 +44,30 @@ doing.
 > result** control re-scores the job against the chosen profile (score/reason/skills update in place, may rise
 > or fall), the optional context box steers the re-assessment, a legacy job gains posting detail after
 > regenerating, and the main-window Results/Tracker rows refresh to the new score.
+>
+> **⚠️ Awaiting device checks (v0.6.0 Milestone D)** — in **Settings → Adzuna**: entering your own App ID + App
+> Key and pressing **Save** flips Status to **Configured**, turns each field into an **immutable, greyed masked
+> indicator** (the key is never shown), and (the key check) **lifts the Search "unavailable" banner / enables
+> Generate without a relaunch**; **Clear saved credentials** appears only after you've saved keys, **unlocks the
+> fields** for re-entry, and reverts to Not-configured (or to build-time keys, if this build baked them); the
+> **"How to get an Adzuna API key"** link opens the browser; a build with baked keys and no user entry shows
+> Configured **with the fields still editable** (nothing to mask); and the keys **survive relaunch** (stored in
+> the Keychain, not the plist). *(Enter your own real key — the agent never does.)*
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
 
 ---
 
-# v0.6.0 — richer grounding, job detail & sources  (remaining: D, E, F)
+# v0.6.0 — richer grounding, job detail & sources  (remaining: E, F)
 
-Milestones **A–C are complete** (write-ups in `MILESTONES.md`). The three below extend the release — pulled
-from `PLANNED.md` (now removed from there) — and **build in order D → E → F**: **D** stands up the
-user-editable credential seam that **F** needs, and **E** captures the full posting text that composes with A's
-enrichment. Each respects the layer dependency rule (Presentation → Business → Data → Infrastructure).
+Milestones **A–D are complete** (write-ups in `MILESTONES.md`). The two below extend the release — pulled
+from `PLANNED.md` (now removed from there): **E** full job-posting text (composes with A's enrichment), then
+**F** multi-source search (depends on **D**'s user-editable credential seam for per-provider keys). Each
+respects the layer dependency rule (Presentation → Business → Data → Infrastructure).
 
-> **Safety note (Milestone D):** building the Settings *field* where the user types their own API key is fine;
-> the agent must **never** enter or paste real API keys — the user fills these in.
-
----
-
-## Milestone D — User-editable API credentials (move keys from build-time secrets into in-app Settings)
-
-**Build this first.** It's the foundation E and (especially) F lean on: adding providers and richer fetches all
-want a per-provider credential home, so standing this seam up first avoids reworking them.
-
-**What / why.** Adzuna's `app_id` / `app_key` are **baked in at build time** today: `Secrets.xcconfig` →
-Info.plist (`AdzunaAppID` / `AdzunaAppKey`) → `BundleAppConfig` (`Infrastructure/Config/BundleAppConfig.swift`)
-→ `AppConfig` (`Infrastructure/Config/AppConfig.swift`). Only a build with the secret file can search — a
-downloaded/shared binary can't, and there's no in-app fix. Re-integrate credentials as **user-entered
-settings** so anyone can paste their own keys. This also unblocks Milestone F (each added provider —
-JSearch/RapidAPI, etc. — needs a key field).
-
-**Seam + files.** Deliberately *inverts* the "credentials are build-time, not settings" decision recorded in
-`AppSettings.swift:14` and `AppConfig.swift` — update those doc comments as part of the change.
-- **Storage — Keychain, not `UserDefaults`.** The `KeyValueStore` protocol comment
-  (`Infrastructure/Store/KeyValueStore.swift:12`) already names "UserDefaults, the keychain, or an in-memory
-  stub" — add a **`KeychainStore: KeyValueStore`** (Infrastructure/Store) so secrets never sit in the
-  `UserDefaults` plist. Keep the non-secret `adzunaCountry` in the plain `SettingsStore`; route only id/key
-  through the keychain.
-- **A credentials port keyed by provider.** Generalise, don't special-case Adzuna: a small
-  `JobSourceCredentialsStore` (Data/Settings) exposing get/set for a `(provider, field)`, so Adzuna's id/key and
-  a future JSearch key share one mechanism. `AppConfig` stays an **optional build-time seed / fallback** (dev
-  builds keep working); resolution order becomes **user-entered value → build-time `AppConfig` → absent**.
-- **Live read at search time.** `SettingsBackedJobSource` (`Composition.swift:303`) already reads country live
-  on every `search` and pulls `config.adzunaAppID`/`adzunaAppKey` (`:310`–`311`); change it to pull id/key from
-  the credentials store first, falling back to `AppConfig`. `hasAdzunaCredentials` (`AppConfig.swift:27`)
-  generalises to "resolved from either source".
-- **Settings UI.** `SettingsViewModel` exposes `adzunaConfigured` as a **read-only status** today (`:24`);
-  replace it with editable `SecureField`-backed id + key that persist to the credentials store, and derive the
-  "configured / search available" banner from whether they now resolve. Mirror the existing country-field save
-  flow (`SettingsViewModel.save()`, `:69`).
-
-**Sub-tasks (letter as D-A…D-D for commits):**
-- [x] **D-A — `KeychainStore: KeyValueStore`** (Infrastructure/Store) + tests. ✅ Generic-password store namespaced
-      by `service`, legacy (file-based) keychain so the unsandboxed target needs no keychain-access-group
-      entitlement; non-throwing port surface over a throwing `readData`/`writeData`/`clear` API that surfaces
-      `OSStatus` (`KeychainError`, with `isEnvironmentUnavailable` so round-trip tests skip on CI without
-      entitlements). 8 tests (round-trip, missing-key, nil-removes, update-in-place, service isolation, port
-      surface, service-wide clear, error classification); full suite green.
-- [x] **D-B — `JobSourceCredentialsStore`** (Data/Settings), provider-keyed, on the keychain store; resolution
-      order user → `AppConfig` → absent. ✅ `JobProvider` (`.adzuna`, extensible for F) + `JobCredentialField`
-      (namespaced `storageKey`, e.g. `adzuna.appID`); `value(for:)` resolves user-entered (keychain) → build-time
-      `AppConfig` → nil, treating blank/whitespace as absent at **both** sources; `setValue` clears the entry for
-      a blank value (revert to fallback, keeps the keychain clean); `hasCredentials(for:)` generalises
-      `AppConfig.hasAdzunaCredentials` to "resolved from either source." 14 tests (resolution order, clear-reverts,
-      blank-as-absent, mixed user/build-time, namespacing); full suite green.
-- [x] **D-C — Rewire `SettingsBackedJobSource`** (`Composition.swift`) to resolve id/key live from the store
-      with the `AppConfig` fallback; generalise `hasAdzunaCredentials`. ✅ `Composition` now owns a
-      `JobSourceCredentialsStore(store: KeychainStore(), config: appConfig)`; `SettingsBackedJobSource` resolves
-      `appID`/`appKey` via `credentials.value(for:)` (user → build-time fallback) on each search; `isAdzunaConfigured`
-      is now `credentialsStore.hasCredentials(for: .adzuna)` (feeds the Search/Settings VMs + the DEBUG console
-      hint, reworded to cover both sources). Composition-root glue (untested like `SettingsBackedLLMProvider`);
-      resolution covered by D-B's tests; full suite green.
-- [ ] **D-D — Settings UI**: editable `SecureField` id/key persisting to the store; banner derives from
-      resolution. Flip the two "secrets are build-time" doc comments (`AppSettings.swift:14`, `AppConfig.swift`).
-      - [ ] **Refresh the availability snapshot after save (surfaced by D-C).** `SearchViewModel.adzunaConfigured`
-            and `SettingsViewModel.adzunaConfigured` are **Bool snapshots** taken at VM construction
-            (`Composition.makeSearchViewModel` / `makeSettingsViewModel`, seeded from `isAdzunaConfigured`). That
-            was fine when creds were build-time-only; now that the user can enter them, saving a key must
-            re-resolve availability so the Search banner/Generate gate update without a relaunch. Wire the
-            Settings save to re-read `credentialsStore.hasCredentials(for:)` and propagate (e.g. via `AppSession`
-            / a refreshed VM), or make `adzunaConfigured` a computed read rather than a snapshot.
-      - [ ] **Consider folding in the `PLANNED.md` "per-provider credential setup help" entry** — a "How to get a
-            key" `Link` beside each field — while building these fields (it's flagged there as a natural D fold-in).
-- [ ] **(open call) Migration.** Seed the keychain once from `AppConfig` (mirror `LegacyKeyMigration`) vs. pure
-      fallback (no copy). *Recommended:* **pure fallback** — simpler, keeps the secret out of the keychain
-      unless the user enters one.
-- [ ] **(open call) Keychain vs. `UserDefaults`.** *Recommended:* **Keychain** (they're secrets). If it's fiddly
-      under the unsandboxed target, a clearly-labelled `UserDefaults` fallback is acceptable — note it in About.
-- [ ] **(open call) Validate on entry vs. save-and-see.** *Recommended:* **save-and-see** first (a bad key
-      surfaces via the existing search-failure path); a "Test credentials" button is a later add.
-- [ ] **(open call) Flat key list vs. per-provider section.** *Recommended:* a **per-provider** Settings section,
-      so it scales to F's providers without redesign.
-
-**Tests.** `KeychainStore` get/set/delete round-trip (guarded/mocked if the Keychain is unavailable in CI);
-`JobSourceCredentialsStore` resolution order (user value wins, then `AppConfig`, then absent); a
-`SettingsBackedJobSource` that reads a stored key over the config fallback; `SettingsViewModel` persists edits
-and the "configured" banner reflects resolution.
-
-**On-device.** n/a — local storage only, no model/network. **Do not** have the agent enter real keys (safety
-note above).
+> **Safety note (F, credential UI):** building the Settings *field* where the user types a provider's API key is
+> fine; the agent must **never** enter or paste real API keys — the user fills these in.
 
 ---
 

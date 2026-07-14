@@ -404,6 +404,17 @@ Four contributor docs, from broadest to most granular:
   between `ROADMAP.md`'s loose Backlog and `TODO.md`'s in-progress milestones). Entries name real seams/files
   so a scheduled item lifts straight into a version's `TODO.md`/`ROADMAP.md` as lettered milestones; **remove
   it from `PLANNED.md` when it's scheduled** (this file holds only *unscheduled* work).
+  **Whenever you add or edit an entry here, ask Taylor which release it targets** — the in-progress version, a
+  specific future `v0.x.0`, or *backlog / unassigned* — and record it as a **`Target:`** line at the top of the
+  entry, so Taylor can plan features across future releases while they're still specced. Don't guess the target —
+  **ask**. A *target* is the entry's **intended** release; it is **not** the same as being *scheduled* (lifted into
+  that version's `TODO.md` as lettered milestones and removed from here). An entry can carry `Target: v0.x.0` and
+  still live in `PLANNED.md` until that version's planning actually pulls it in.
+  **Keep entries ordered by ascending target version.** Group all entries for the earliest target first, then the
+  next, and so on (`v0.6.0` before `v0.6.1` before `v0.7.0` …), with *backlog / unassigned* entries sorted last.
+  When you add an entry, **insert it at its target's position** rather than appending — a newly-added `v0.6.1` item
+  slots **between** the `v0.6.0` group and any `v0.7.0` group. This same ordering rule is restated at the top of
+  `PLANNED.md` itself.
 
 The loop, so any session can pick up where the last left off:
 
@@ -482,7 +493,9 @@ build pass. Run it like this:
    documents — and then **delete that entry from `PLANNED.md`** so the file only ever holds *unscheduled* work.
    Confirm the selection with Taylor (its scope may make it a `.0` vs. a patch — see step 1). Conversely, any
    new feature Taylor raises this session that he **doesn't** want in the current version goes the other way:
-   capture it as a fresh `PLANNED.md` entry (same rigor — real seam + files) rather than a version milestone.
+   capture it as a fresh `PLANNED.md` entry (same rigor — real seam + files) rather than a version milestone —
+   **and ask which release it targets, recording the `Target:` line** (per the `PLANNED.md` convention in "Working
+   process" above) so it's slotted for a future version rather than left version-less.
 
 1. **Confirm the version & release type.** Ask/confirm the working version (per **Versioning** above).
    Decide **feature release (`v0.x.0`)** vs. **patch release (`v0.x.y`)**: a batch of bug fixes / small

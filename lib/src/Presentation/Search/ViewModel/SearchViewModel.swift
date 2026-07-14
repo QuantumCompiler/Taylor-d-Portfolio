@@ -77,8 +77,9 @@ final class SearchViewModel {
     /// A soft, non-fatal note (e.g. one title's search failed but others succeeded).
     private(set) var warningMessage: String?
 
-    /// Whether this build has baked Adzuna credentials. When `false`, search can't run.
-    let adzunaConfigured: Bool
+    /// Whether Adzuna credentials resolve (user-entered or build-time). When `false`, search
+    /// can't run. A `var` so a Settings save can refresh it live (Milestone D-D).
+    var adzunaConfigured: Bool
 
     /// The user's saved, re-runnable searches, newest first (Milestone R).
     private(set) var savedSearches: [SavedSearch] = []

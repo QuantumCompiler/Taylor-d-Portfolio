@@ -11,9 +11,10 @@ import Foundation
 /// ``LLMTask`` picks its own engine and Claude model) plus the Adzuna country to
 /// search. `Codable` so it can be persisted via a `KeyValueStore`.
 ///
-/// Adzuna credentials are **not** here — they're baked in at build time via
-/// `AppConfig` (see Milestone K), so a misconfigured build fails fast. `adzunaCountry`
-/// stays a user setting because it's a search preference, not a secret.
+/// Adzuna credentials are **not** here — as of Milestone D they're user-entered into the
+/// keychain-backed `JobSourceCredentialsStore` (with a build-time `AppConfig` fallback), so
+/// secrets stay out of this `Codable` blob / the `UserDefaults` plist. `adzunaCountry` stays
+/// a user setting because it's a search preference, not a secret.
 nonisolated struct AppSettings: Codable, Equatable, Sendable {
     /// The engine (+ Claude model) chosen for each LLM task. Tasks absent from the map
     /// fall back to ``TaskEngineConfig/default`` via ``config(for:)``.

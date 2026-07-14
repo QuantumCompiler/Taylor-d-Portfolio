@@ -8,9 +8,9 @@
 import SwiftUI
 import AppKit
 
-/// Settings: assign an LLM engine (and Claude model) to each task, and choose the
-/// Adzuna country. Adzuna credentials are baked in at build time, so they're shown
-/// here only as a read-only status.
+/// Settings: assign an LLM engine (and Claude model) to each task, choose the Adzuna
+/// country, and enter your own Adzuna API credentials (Milestone D) — stored in the
+/// keychain, falling back to any build-time keys.
 struct SettingsView: View {
     @Bindable var viewModel: SettingsViewModel
     /// Which settings sub-view to show (v0.4.0 Milestone B). Defaults to the engines
@@ -49,24 +49,61 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Adzuna — country code + baked-in credentials status
+    // MARK: Adzuna — country code + user-entered credentials
+
+    /// Where to sign up for an Adzuna API key. Static developer page — safe to link out.
+    private static let adzunaKeyHelpURL = URL(string: "https://developer.adzuna.com/")!
 
     private var adzunaSection: some View {
         Section {
             TextField("Country code", text: $viewModel.adzunaCountry)
-            LabeledContent("Credentials") {
+
+            credentialField("App ID", text: $viewModel.adzunaAppID, saved: viewModel.appIDSaved)
+            credentialField("App Key", text: $viewModel.adzunaAppKey, saved: viewModel.appKeySaved)
+
+            LabeledContent("Status") {
                 if viewModel.adzunaConfigured {
                     Label("Configured", systemImage: "checkmark.seal.fill")
                         .foregroundStyle(.green)
                 } else {
-                    Label("Not configured in this build", systemImage: "exclamationmark.triangle.fill")
+                    Label("Not configured", systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                 }
+            }
+
+            if viewModel.hasStoredAdzunaCredentials {
+                Button("Clear saved credentials", role: .destructive) {
+                    viewModel.clearAdzunaCredentials()
+                }
+                .clickableCursor()
             }
         } header: {
             Text("Adzuna")
         } footer: {
-            saveButton
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Enter your own Adzuna API credentials to enable job search. "
+                    + "They're stored in your macOS Keychain and never leave your Mac. "
+                    + "Saved keys are hidden — use “Clear saved credentials” to replace them.")
+                Link("How to get an Adzuna API key", destination: Self.adzunaKeyHelpURL)
+                    .clickableCursor()
+                saveButton
+            }
+        }
+    }
+
+    /// One Adzuna credential field: an editable `SecureField` until it's saved, then an
+    /// immutable, greyed masked indicator — the saved key is never revealed, only shown as
+    /// "saved" in a lighter shade. Unlocked again by "Clear saved credentials".
+    @ViewBuilder
+    private func credentialField(_ label: String, text: Binding<String>, saved: Bool) -> some View {
+        if saved {
+            LabeledContent(label) {
+                Text(verbatim: "••••••••")
+                    .foregroundStyle(.tertiary)
+                    .accessibilityLabel("\(label) saved and hidden")
+            }
+        } else {
+            SecureField(label, text: text)
         }
     }
 

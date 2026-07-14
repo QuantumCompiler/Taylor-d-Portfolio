@@ -2097,13 +2097,15 @@ no separate Submit — it feeds the existing Generate/Regenerate.)*
 
 ---
 
-# v0.6.0 — richer grounding & job detail  (complete)
+# v0.6.0 — richer grounding, job detail & sources  (in progress)
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal to work
-from**. Three composed milestones drawn from `PLANNED.md`: capture and surface much more of a job posting
-(Milestone A), choose a profile to ground on (Milestone B), and regenerate a saved result (Milestone C).
-Grounded-by-default and never-fabricate hold throughout — enrichment *structures* what a posting says, it never
-invents. Milestones restart at **A**; commit as `v0.6.0 : Milestone X Completed`.
+from**, and **more (and better-fed) sources to get it from**. Six milestones drawn from `PLANNED.md`: A–C improve
+grounding — capture and surface much more of a job posting (Milestone A), choose a profile to ground on
+(Milestone B), regenerate a saved result (Milestone C); D–F widen the pipe — user-editable API credentials
+(Milestone D), full posting text (Milestone E), multi-source search (Milestone F). Grounded-by-default and
+never-fabricate hold throughout — enrichment *structures* what a posting says, it never invents. Milestones
+restart at **A**; commit as `v0.6.0 : Milestone X Completed`.
 
 ## Milestone A — Richer job postings (capture & surface full posting detail)  ✅ done
 
@@ -2239,3 +2241,54 @@ wired. Full suite green.
 
 *(Open calls resolved as recommended: re-rank always + re-enrich when wired; **per-result** (not bulk);
 latest-wins **overwrite**.)*
+
+## Milestone D — User-editable API credentials (move keys from build-time secrets into in-app Settings)  ✅ done
+
+Adzuna's `app_id` / `app_key` were baked in at build time (`Secrets.xcconfig` → Info.plist → `BundleAppConfig`
+→ `AppConfig`), so only a build with the secret file could search and there was no in-app fix. Milestone D makes
+credentials **user-entered** into a keychain-backed store, with the build-time keys kept as an optional fallback
+so dev/CI builds keep working. Four sub-parts:
+
+- [x] **D-A — `KeychainStore: KeyValueStore` (Infrastructure/Store).** Generic-password items namespaced by
+      `service`, on the **legacy (file-based)** keychain so the unsandboxed target needs no keychain-access-group
+      entitlement (the data-protection keychain would return `errSecMissingEntitlement`). The non-throwing
+      `KeyValueStore` surface sits over a throwing `readData`/`writeData`/`clear` API that surfaces `OSStatus`
+      (`KeychainError`, with `isEnvironmentUnavailable` so round-trip tests skip on CI without entitlements).
+      `clear()` loops `SecItemDelete` until `errSecItemNotFound` — the legacy keychain deletes only one match per
+      call, so a single delete left a multi-item service partly populated (caught by a full-suite-only test flake).
+- [x] **D-B — `JobSourceCredentialsStore` (Data/Settings).** Provider-keyed: `JobProvider` (`.adzuna`, extensible
+      for F) + `JobCredentialField` (namespaced `storageKey`, e.g. `adzuna.appID`). `value(for:)` resolves
+      **user-entered (keychain) → build-time `AppConfig` → nil**, treating blank/whitespace as absent at *both*
+      sources; `setValue` clears the entry for a blank value (revert to fallback, keeps the keychain clean);
+      `hasCredentials(for:)` generalises `AppConfig.hasAdzunaCredentials` to "resolved from either source";
+      `hasStoredValue`/`hasStoredCredentials` expose user-entry-only (gates the Clear affordance).
+- [x] **D-C — Rewire the composition root.** `Composition` owns a `JobSourceCredentialsStore(store:
+      KeychainStore(), config: appConfig)`; `SettingsBackedJobSource` resolves `appID`/`appKey` via
+      `credentials.value(for:)` live on each search (was reading `config` directly); `isAdzunaConfigured` is now
+      `credentialsStore.hasCredentials(for: .adzuna)` (feeds the Search/Settings VMs + the DEBUG console hint,
+      reworded to cover both sources).
+- [x] **D-D — Settings UI + live refresh.** `SettingsView`'s Adzuna section shows each credential field as an
+      editable `SecureField` until it's saved, then as an **immutable, greyed masked indicator** (dots, never the
+      real value) — a per-field `appIDSaved`/`appKeySaved` state drives the lock; **Clear saved credentials**
+      unlocks them again. Plus a live **Status** (Configured / Not) and a **"How to get an Adzuna API key"** link
+      (a single-provider down-payment on the `PLANNED` per-provider help entry). `SettingsViewModel` gained edit
+      buffers + `save()` (persists non-blank buffers, clears the input buffers + **locks** the saved fields,
+      **re-resolves** `adzunaConfigured`; a blank field leaves the saved value untouched) + `clearAdzunaCredentials()`
+      (unlocks + reverts). `adzunaConfigured` became a `private(set) var`; `RootView`
+      observes it and pushes changes to `SearchViewModel.adzunaConfigured` (now a `var`) so the Search banner +
+      Generate gate refresh **without a relaunch** — closing the snapshot-staleness gap D-C surfaced. Flipped the
+      two "secrets are build-time" doc comments (`AppSettings`, `AppConfig`).
+
+**Guardrail (safety).** The app builds the credential *fields*; the **user** enters their own keys — the agent
+never types or pastes real API keys. Secrets live in the Keychain, never the `UserDefaults` plist.
+
+**Tests.** `KeychainStore` round-trip / missing-key / nil-removes / update-in-place / service isolation / port
+surface / service-wide clear / error classification (8, guarded for keychain-less hosts);
+`JobSourceCredentialsStore` resolution order / clear-reverts / blank-as-absent (both sources) / mixed
+user+build-time / stored-only checks (16); `SettingsViewModel` seed-from-store / enter+persist+re-resolve /
+blank-leaves-unchanged / clear-reverts-to-fallback / clear-without-fallback / no-store no-ops (6). Full suite green.
+
+**On-device.** n/a — local Keychain/UserDefaults storage, no model or network.
+
+*(Open calls resolved as recommended: **pure fallback**, no keychain seeding; **Keychain** for the secrets;
+**save-and-see** validation; **per-provider** Settings section.)*
