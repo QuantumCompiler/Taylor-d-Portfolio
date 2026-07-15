@@ -599,10 +599,10 @@ breakdown + open calls.
       Steers emphasis/framing only — grounding + fidelity rules still bind. Seam: Data (`GenerationSettings`,
       `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device: yes.
 
-## v0.6.0 — richer grounding, job detail & sources  (complete)
+## v0.6.0 — richer grounding, job detail & sources  (in progress)
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal
-to work from**, and **more (and better-fed) sources to get it from**. Six milestones. The first three
+to work from**, and **more (and better-fed) sources to get it from**. Eight milestones. The first three
 (**A–C, complete**) improve grounding: capture and surface **much more of a job posting** (Milestone A),
 let the user **choose which profile to ground on** and generate against its real source documents
 (Milestone B), and **regenerate a saved result** against a chosen profile so stale/legacy entries can be
@@ -610,7 +610,10 @@ refreshed (Milestone C). The next three (**D–F, planned**) widen the pipe: mak
 in Settings** (Milestone D — the foundation the rest lean on), capture the **full posting text** instead of
 Adzuna's truncated snippet (Milestone E), and **aggregate multiple job providers** behind `JobSource`
 (Milestone F). **Build order for D–F: D first** (it stands up the per-provider credential seam E and F
-both need), then E, then F. Grounded-by-default and never-fabricate hold throughout: enrichment
+both need), then E, then F. Two follow-on milestones (**G–H, in progress**) build on that credential seam:
+per-provider **credential-setup help** in Settings (Milestone G), and a **provider selector** in the Search view
+so the user picks which API(s) to query — both driven by **one data-driven provider registry** so new providers
+appear everywhere automatically (Milestone H). Grounded-by-default and never-fabricate hold throughout: enrichment
 *structures* what a posting says, re-ranking *re-assesses fit honestly*, and neither invents facts.
 Milestones restart at **A** and commit as `v0.6.0 : Milestone X Completed`. `TODO.md` has the granular
 breakdown + open calls.
@@ -694,14 +697,34 @@ breakdown + open calls.
       + fingerprint) + composition-root wiring. On-device: search needs network (mind metered RapidAPI free tier).
       Guardrail: n/a (data plumbing).
 
+- [ ] **Milestone G — Per-provider credential-setup help.** With keys now user-entered (D), each provider's
+      `SecureField` needs a **"How to get a key"** link (+ optional inline steps). **D-D already shipped the Adzuna
+      link**; generalise it so every provider — including F's JSearch — draws its help from **one source of truth**:
+      add `setupURL` (+ optional `setupSteps`) to the per-provider descriptor (H-A's registry) and render a
+      descriptor-driven `Link` per provider sub-section in `SettingsView`, dropping the hardcoded Adzuna literal.
+      Seam: Data (descriptor metadata) + Presentation (Settings). On-device: n/a — static metadata + a browser
+      `Link`. Safety: links to official signup pages only; the app never creates accounts or enters keys.
+
+- [ ] **Milestone H — Provider selector in the Search view.** F queries *every* configured provider; let the user
+      **pick which API(s)** to search, from a picker that lists **all registered providers and grows automatically**
+      as new ones are added (no hardcoded list). Core piece: formalise the per-provider descriptor as an
+      **enumerable registry** (Data — id/displayName/credential spec/`setupURL`/`JobSource` factory) that
+      `CompositeJobSource`, Settings (D/G), **and** the picker all read. Add `JobSearchRequest.sources: [String]?`
+      (`Codable`, nil ⇒ all available; keeps old `SavedSearch`es valid), build it in `SearchViewModel.buildRequest()`,
+      have `SearchAndRankUseCase` run only the selected providers, add the selector to `SearchView` (unconfigured
+      rows disabled + link to Settings), and generalise the `adzunaConfigured` search gate to "≥1 *selected* provider
+      configured". Depends on **D** (configured signal); extends **F**. Seam: Data (registry + request field) +
+      Business (selection filter) + Presentation (picker). On-device: search needs network; registry/selection local.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
   & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), and **v0.5.1** (LaTeX
-  résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **complete**
-  — A richer job postings, B profile-at-generation, C regenerate result, D user-editable credentials, E full
-  posting text, F multi-source search (Adzuna + optional JSearch). **The next version is unstarted** — its number
+  résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **in progress**
+  — A–F complete (A richer job postings, B profile-at-generation, C regenerate result, D user-editable credentials,
+  E full posting text, F multi-source search: Adzuna + optional JSearch), with **Milestones G–H** (per-provider
+  credential-setup help + Search provider selector) added and building. **The next version is unstarted** — its number
   and theme are chosen when development on it begins
   (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"

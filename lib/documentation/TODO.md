@@ -9,14 +9,15 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.0 — richer grounding, job detail & sources — feature-complete; finishing the
-> merge-ready wrap.** All six milestones are done (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A**
-> richer job postings; **B** per-generation profile picker; **C** regenerate result; **D** user-editable API
-> credentials; **E** full job-posting text; **F** multi-source search (Adzuna + optional JSearch behind a
-> `CompositeJobSource`). Full suite green (build warning-free); `MARKETING_VERSION` is `0.6.0`. **Remaining before
-> the branch is merge-ready:** add the v0.6.0 one-paragraph summary to `README.md`'s Version history + advance
-> its **Next** line, and clear the **device checks** below (nothing else — the docs/version are otherwise at
-> shipped state).
+> **Current focus. v0.6.0 — richer grounding, job detail & sources — building Milestones G–H.** The original six
+> milestones are done (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A** richer job postings; **B**
+> per-generation profile picker; **C** regenerate result; **D** user-editable API credentials; **E** full
+> job-posting text; **F** multi-source search (Adzuna + optional JSearch behind a `CompositeJobSource`). **Two more
+> milestones were added to v0.6.0** (scheduled from `PLANNED.md` on 2026-07-15), so the version is **back in active
+> development** — see the **v0.6.0 — remaining milestones (G–H)** section below: **G** per-provider credential-setup
+> help (extends D), **H** a provider selector in the Search view (extends F). `MARKETING_VERSION` is `0.6.0`.
+> **Remaining before the branch is merge-ready:** build **G–H**; then add the v0.6.0 one-paragraph summary to
+> `README.md`'s Version history + advance its **Next** line, and clear the **device checks** below.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
 > open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
@@ -79,19 +80,100 @@ down only).
 
 ---
 
+# v0.6.0 — remaining milestones (G–H)
+
+Two features scheduled from `PLANNED.md` (2026-07-15) into the current release. **G** extends the already-shipped
+Milestone **D** (user-editable credentials); **H** extends **F** (multi-source). Both hang off **one data-driven
+provider registry** — the per-provider descriptor D/F introduced — so build **H-A (formalise the registry) first**;
+G and the rest of H then read from it. No provider list is ever hand-enumerated in a view.
+
+## Milestone G — Per-provider credential-setup help
+
+**What / why.** With API keys now **user-entered** (Milestone D), each provider's `SecureField` needs a "How to
+get a key" link (and ideally 2–3 inline steps). **D-D already shipped the Adzuna link**; generalise it so *every*
+provider — including the ones **F** adds (JSearch/RapidAPI, later The Muse) — gets its help from **one source of
+truth** rather than a hardcoded per-provider `Link`.
+
+**Seam + files.**
+- **Descriptor (Data).** Add `setupURL: URL` (+ optional `setupSteps: [String]`) to the per-provider descriptor
+  formalised in **H-A**. Static, known developer pages (Adzuna dev portal, RapidAPI's JSearch listing) — *not*
+  anything derived from a job posting, so no untrusted-link concern; verify each URL is live when built.
+- **Settings UI.** In [`SettingsView`](../src/Presentation/Settings/View/SettingsView.swift:54), replace the
+  hardcoded Adzuna `Link` with a **descriptor-driven** `Link("How to get a key", destination:)` (+ optional
+  `DisclosureGroup` of steps) rendered for **each** provider sub-section. Reuse `.clickableCursor()`.
+
+**Sub-tasks (G-A…):**
+- [ ] **G-A** — Add `setupURL` (+ optional `setupSteps`) to the provider descriptor (depends on **H-A**).
+- [ ] **G-B** — Drive the Settings help off the descriptor — one help `Link` per provider sub-section; drop the
+      one-off Adzuna literal.
+- [ ] **G-C** — Populate `setupURL`/steps for Adzuna + JSearch (and any other F provider); verify each URL is current.
+- [ ] **(open call) Link only, or link + inline steps?** *Recommended:* ship the `Link` first; steps are additive.
+- [ ] **(open call) Per-provider inline vs. one help screen.** *Recommended:* per-provider inline (closest to the field).
+
+**Tests.** The descriptor exposes a `setupURL` for every registered provider; the Settings section renders one help
+`Link` per provider (logic/snapshot as feasible).
+**On-device.** n/a — static metadata + a browser `Link`. **Safety:** links to official signup pages only; the app
+never creates accounts or enters keys — the user pastes their own.
+
+## Milestone H — Provider selector in the Search view
+
+**What / why.** **F** aggregates *every* configured provider on each search. Let the user **pick which API(s) to
+query** from the Search view — and the picker must list **all registered providers, growing automatically** as new
+ones are added (no hardcoded list). "Available" = **registered** *and* has **resolved credentials** (Milestone D);
+registered-but-unconfigured providers show **disabled**, with a jump to Settings to add a key.
+
+**Seam + files.**
+- **Registry (the core requirement).** Formalise the per-provider descriptor as the **enumerable source of truth**
+  (Data) — `id`, `displayName`, credential-field spec, `setupURL` (G), and a factory building the provider's
+  `JobSource` from resolved credentials. `CompositeJobSource` (F), the Settings credential fields (D) + help (G),
+  **and** this picker all read the same list. **Do not enumerate providers by hand in a view.**
+- **Selection → request.** Add `sources: [String]?` to
+  [`JobSearchRequest`](../src/Data/Models/JobSearchRequest.swift) (`Codable`; **nil ⇒ "all available"**,
+  decode-with-defaults keeps existing `SavedSearch`es valid). Build it in `SearchViewModel.buildRequest()`
+  ([`SearchViewModel.swift:433`](../src/Presentation/Search/ViewModel/SearchViewModel.swift:433)) from new
+  selection state on the view model.
+- **Honour it.** [`SearchAndRankUseCase`](../src/Business/UseCases/SearchAndRankUseCase.swift) filters the
+  composite's children to the request's selection before fanning out (empty/nil ⇒ all).
+- **UI.** A selector in [`SearchView`](../src/Presentation/Search/View/SearchView.swift) listing every registered
+  provider; each row enabled only when configured (disabled + "Add a key in Settings" otherwise — composes with G).
+  Reuse `.clickableCursor()`.
+- **Availability gate.** Today `adzunaConfigured` gates search (`SearchViewModel.swift:290,296`; `search()` `:419`).
+  Generalise to **"at least one *selected* provider is configured"**; the unavailable banner points at Settings.
+
+**Sub-tasks (H-A…):**
+- [ ] **H-A** — Formalise the enumerable provider registry (Data) — *build this first; G-A and H-B/D read it.*
+- [ ] **H-B** — `JobSearchRequest.sources: [String]?` (Codable, nil = all) + assemble it in `buildRequest()`.
+- [ ] **H-C** — `SearchAndRankUseCase` runs only the selected providers (nil/empty = all).
+- [ ] **H-D** — `SearchView` selector + `SearchViewModel` selection state; unconfigured rows disabled + link to Settings.
+- [ ] **H-E** — Generalise the availability gate to "≥1 *selected* provider configured".
+- [ ] **(open call) Multi- or single-select?** *Recommended:* **multi-select**, default **"All available"**.
+- [ ] **(open call) Persist the selection (incl. in `SavedSearch`)?** *Recommended:* persist; a saved search re-runs
+      against the providers it was saved with.
+- [ ] **(open call) A selected provider loses its key?** *Recommended:* skip it with a **soft note** (reuse the
+      `Output.failedTitles` style), never a hard failure — mirrors F's per-source resilience.
+- [ ] **(open call) Per-provider source labels?** *Recommended:* defer to F's `JobListing.source` open call.
+
+**Tests.** `JobSearchRequest` encodes/decodes `sources` (absent ⇒ nil ⇒ back-compatible); `SearchAndRankUseCase`
+fans out to only the selected stub providers; `canSearch` is true iff ≥1 selected provider is configured; the
+registry enumerates all providers.
+**On-device.** Search needs **network**; the registry + selection state are pure/local.
+
+---
+
 # Next version — (unstarted; number + theme TBD)
 
-**v0.6.0 (richer grounding, job detail & sources) is feature-complete** — all six milestones (A–F) are in
-`MILESTONES.md`, ticked in `ROADMAP.md`; the full suite is green and the build is warning-free. Remaining before
-merge: the small **merge-ready wrap** (the `README.md` Version-history summary + **Next** line) and the **device
-checks** above.
+**v0.6.0 (richer grounding, job detail & sources)** has **two new milestones — G and H — added** (scheduled from
+`PLANNED.md`), so it is **not yet feature-complete**: A–F are in `MILESTONES.md` / ticked in `ROADMAP.md`, but
+**G–H remain to build** (see the **v0.6.0 — remaining milestones (G–H)** section above). Remaining before merge:
+build **G–H**, then the small **merge-ready wrap** (the `README.md` Version-history summary + **Next** line) and
+the **device checks** above.
 
 **Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its number
 and theme aren't chosen until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At
 kickoff, pick a theme from `ROADMAP.md`'s Backlog (native `LanguageModel` provider seam, on-device embedding RAG,
-optional MCP tools) or a `PLANNED.md` entry (provider selector; per-provider credential-setup help; generalize
-search availability to any configured provider so a JSearch-only setup works), assign the version number, bump
-`MARKETING_VERSION`, and break it into Milestone A, B, C… here.
+optional MCP tools) or a `PLANNED.md` entry (currently empty — the provider-selector and credential-setup-help
+entries were scheduled into v0.6.0 as Milestones G–H), assign the version number, bump `MARKETING_VERSION`, and
+break it into Milestone A, B, C… here.
 
 **What / why.** Searches sometimes return too few results. `SearchAndRankUseCase` already pages toward a
 desired-result-count goal (round-robin pages, 50/page, `maxPagesPerTitle` cap — `SearchAndRankUseCase.swift`),
