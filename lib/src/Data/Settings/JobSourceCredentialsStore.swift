@@ -13,11 +13,13 @@ import Foundation
 /// of each being special-cased.
 nonisolated enum JobProvider: String, Codable, Sendable, CaseIterable {
     case adzuna
+    case jsearch
 
     /// The credential fields this provider requires before it can search.
     var requiredCredentials: [JobCredentialField] {
         switch self {
-        case .adzuna: return [.adzunaAppID, .adzunaAppKey]
+        case .adzuna:  return [.adzunaAppID, .adzunaAppKey]
+        case .jsearch: return [.jsearchAPIKey]
         }
     }
 }
@@ -33,6 +35,7 @@ nonisolated struct JobCredentialField: Equatable, Hashable, Sendable {
 
     static let adzunaAppID = JobCredentialField(provider: .adzuna, name: "appID")
     static let adzunaAppKey = JobCredentialField(provider: .adzuna, name: "appKey")
+    static let jsearchAPIKey = JobCredentialField(provider: .jsearch, name: "apiKey")
 }
 
 /// Resolves job-source API credentials from **user-entered values first, then the

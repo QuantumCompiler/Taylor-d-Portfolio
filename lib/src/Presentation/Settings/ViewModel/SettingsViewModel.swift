@@ -23,21 +23,24 @@ final class SettingsViewModel {
     var engines: [LLMTask: TaskEngineConfig]
     var adzunaCountry: String
 
-    /// Edit buffers for the Adzuna credential fields. Never pre-filled with the stored
+    /// Edit buffers for the provider credential fields. Never pre-filled with the stored
     /// secret; **empty means "leave the saved value unchanged"** on save (so saving other
     /// settings doesn't wipe existing keys). Cleared after a successful save.
     var adzunaAppID: String = ""
     var adzunaAppKey: String = ""
+    /// JSearch (RapidAPI) API key buffer (v0.6.0 Milestone F).
+    var jsearchAPIKey: String = ""
 
     /// Whether Adzuna credentials resolve (user-entered or build-time) — the search-
     /// availability status. Re-resolved after a save so the banner updates without relaunch.
     private(set) var adzunaConfigured: Bool
 
-    /// Whether each Adzuna field has a **user-saved** value. Drives the locked, masked field
-    /// display (a saved key is shown greyed-out and immutable, never revealed). Observable so
-    /// the field re-locks the moment it's saved / unlocks when cleared.
+    /// Whether each credential field has a **user-saved** value. Drives the locked, masked
+    /// field display (a saved key is shown greyed-out and immutable, never revealed). Observable
+    /// so the field re-locks the moment it's saved / unlocks when cleared.
     private(set) var appIDSaved: Bool
     private(set) var appKeySaved: Bool
+    private(set) var jsearchKeySaved: Bool
     /// Whether a `lualatex` install was found — the awesome-cv LaTeX export route needs it
     /// (Milestone E). Surfaced read-only in the About pane. Probed in the composition root.
     let latexAvailable: Bool
@@ -63,6 +66,7 @@ final class SettingsViewModel {
         self.adzunaConfigured = credentials?.hasCredentials(for: .adzuna) ?? adzunaConfigured
         self.appIDSaved = credentials?.hasStoredValue(for: .adzunaAppID) ?? false
         self.appKeySaved = credentials?.hasStoredValue(for: .adzunaAppKey) ?? false
+        self.jsearchKeySaved = credentials?.hasStoredValue(for: .jsearchAPIKey) ?? false
         self.latexAvailable = latexAvailable
         let settings = store.load()
         self.engines = settings.engines
@@ -70,8 +74,10 @@ final class SettingsViewModel {
     }
 
     /// Whether the user has entered Adzuna credentials (vs. relying on build-time keys) —
-    /// gates the "Clear saved credentials" affordance.
+    /// gates the Adzuna "Clear saved credentials" affordance.
     var hasStoredAdzunaCredentials: Bool { appIDSaved || appKeySaved }
+    /// Whether the user has entered a JSearch key — gates its "Clear" affordance.
+    var hasStoredJSearchCredentials: Bool { jsearchKeySaved }
 
     /// The config for `task`, defaulting when unset.
     func config(for task: LLMTask) -> TaskEngineConfig {
@@ -99,39 +105,50 @@ final class SettingsViewModel {
 
     func save() {
         store.save(settings)
-        persistAdzunaCredentials()
+        persistCredentials()
     }
 
-    /// Persists any non-blank credential buffers to the store, clears the buffers, and
-    /// re-resolves availability. A blank buffer leaves the saved value untouched (so saving
-    /// engine/country settings never wipes existing keys). The agent never sets these — the
-    /// user types their own keys.
-    private func persistAdzunaCredentials() {
+    /// Persists any non-blank credential buffers (Adzuna id/key + JSearch key) to the store,
+    /// clears the buffers, and re-resolves state. A blank buffer leaves the saved value
+    /// untouched (so saving engine/country settings never wipes existing keys). The agent
+    /// never sets these — the user types their own keys.
+    private func persistCredentials() {
         guard let credentials else { return }
         if !adzunaAppID.isBlank { credentials.setValue(adzunaAppID, for: .adzunaAppID) }
         if !adzunaAppKey.isBlank { credentials.setValue(adzunaAppKey, for: .adzunaAppKey) }
+        if !jsearchAPIKey.isBlank { credentials.setValue(jsearchAPIKey, for: .jsearchAPIKey) }
         adzunaAppID = ""
         adzunaAppKey = ""
-        refreshAdzunaState()
+        jsearchAPIKey = ""
+        refreshCredentialState()
     }
 
     /// Clears the user's stored Adzuna credentials (reverting to any build-time keys),
-    /// unlocking the fields for re-entry, and re-resolves availability.
+    /// unlocking the fields for re-entry, and re-resolves state.
     func clearAdzunaCredentials() {
         guard let credentials else { return }
         credentials.setValue(nil, for: .adzunaAppID)
         credentials.setValue(nil, for: .adzunaAppKey)
         adzunaAppID = ""
         adzunaAppKey = ""
-        refreshAdzunaState()
+        refreshCredentialState()
+    }
+
+    /// Clears the user's stored JSearch key, unlocking the field, and re-resolves state.
+    func clearJSearchCredentials() {
+        guard let credentials else { return }
+        credentials.setValue(nil, for: .jsearchAPIKey)
+        jsearchAPIKey = ""
+        refreshCredentialState()
     }
 
     /// Re-reads the stored/resolved credential state after a save or clear, so the locked
-    /// field display and the availability banner both reflect the change.
-    private func refreshAdzunaState() {
+    /// field displays and the availability banner reflect the change.
+    private func refreshCredentialState() {
         guard let credentials else { return }
         appIDSaved = credentials.hasStoredValue(for: .adzunaAppID)
         appKeySaved = credentials.hasStoredValue(for: .adzunaAppKey)
+        jsearchKeySaved = credentials.hasStoredValue(for: .jsearchAPIKey)
         adzunaConfigured = credentials.hasCredentials(for: .adzuna)
     }
 }

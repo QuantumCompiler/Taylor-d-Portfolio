@@ -129,6 +129,19 @@ struct JobSourceCredentialsStoreTests {
         #expect(JobProvider.adzuna.requiredCredentials == [.adzunaAppID, .adzunaAppKey])
     }
 
+    @Test func jsearchRequiresItsApiKey() {
+        // v0.6.0 Milestone F — a second provider shares the same credential mechanism.
+        #expect(JobProvider.jsearch.requiredCredentials == [.jsearchAPIKey])
+        #expect(JobCredentialField.jsearchAPIKey.storageKey == "jsearch.apiKey")
+
+        let (store, _) = makeStore()
+        #expect(!store.hasCredentials(for: .jsearch))
+        store.setValue("rapid-key", for: .jsearchAPIKey)
+        #expect(store.hasCredentials(for: .jsearch))
+        #expect(store.value(for: .jsearchAPIKey) == "rapid-key")
+        #expect(!store.hasCredentials(for: .adzuna))   // providers are independent
+    }
+
     // MARK: Stored-only checks (distinguish user entry from build-time fallback)
 
     @Test func hasStoredValueReflectsUserEntryNotFallback() {

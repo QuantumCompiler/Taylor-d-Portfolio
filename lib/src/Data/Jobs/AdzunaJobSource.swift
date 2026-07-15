@@ -132,7 +132,8 @@ nonisolated struct AdzunaJobSource: JobSource {
                 salary: salary,
                 positionTypes: positionTypes,
                 postedDate: created.flatMap(Self.parseTimestamp),
-                category: category?.label
+                category: category?.label,
+                source: "Adzuna"
             )
         }
 

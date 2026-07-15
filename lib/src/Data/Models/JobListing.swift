@@ -44,6 +44,13 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
     /// overwritten; both are kept, and ``effectiveDescription`` prefers this when present.
     var fullDescription: String?
 
+    // MARK: Source (v0.6.0 Milestone F)
+
+    /// Which ``JobSource`` produced this listing (e.g. "Adzuna", "JSearch") — captured when
+    /// several providers are aggregated, for future display / diagnostics. `nil` for a
+    /// single-source or legacy listing.
+    var source: String?
+
     init(
         id: String,
         title: String,
@@ -56,7 +63,8 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
         postedDate: Date? = nil,
         category: String? = nil,
         details: PostingDetails? = nil,
-        fullDescription: String? = nil
+        fullDescription: String? = nil,
+        source: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -70,6 +78,7 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
         self.category = category
         self.details = details
         self.fullDescription = fullDescription
+        self.source = source
     }
 
     /// The fullest posting text available for grounding and display — the recovered full page
@@ -77,9 +86,19 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
     /// the detail view read this so they work from the whole posting when it's been captured.
     var effectiveDescription: String { fullDescription ?? description }
 
+    /// A source-agnostic identity for **cross-source** de-duplication (Milestone F): the same
+    /// posting from two providers has different `id`s but the same fingerprint. `id` stays the
+    /// per-source key used for persistence. Normalized: lowercased title + company + location
+    /// with collapsed whitespace.
+    var fingerprint: String {
+        [title, company, location]
+            .map { $0.lowercased().split(whereSeparator: \.isWhitespace).joined(separator: " ") }
+            .joined(separator: " | ")
+    }
+
     enum CodingKeys: String, CodingKey {
         case id, title, company, location, description, url, salary
-        case positionTypes, postedDate, category, details, fullDescription
+        case positionTypes, postedDate, category, details, fullDescription, source
     }
 
     /// Custom decoding so listings persisted before the richer fields existed still load —
@@ -99,5 +118,6 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
         category = try container.decodeIfPresent(String.self, forKey: .category)
         details = try container.decodeIfPresent(PostingDetails.self, forKey: .details)
         fullDescription = try container.decodeIfPresent(String.self, forKey: .fullDescription)
+        source = try container.decodeIfPresent(String.self, forKey: .source)
     }
 }

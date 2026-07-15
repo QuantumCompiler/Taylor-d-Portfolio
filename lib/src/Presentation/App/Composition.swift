@@ -320,21 +320,30 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     }
 }
 
-/// A `JobSource` that assembles Adzuna credentials from the `JobSourceCredentialsStore`
-/// (user-entered id/key, falling back to build-time `AppConfig`) plus the user's chosen
-/// country from settings — all read live on each search (Milestone D).
+/// A `JobSource` that assembles every **configured** provider from the
+/// `JobSourceCredentialsStore` (user-entered keys, falling back to build-time `AppConfig`)
+/// and searches them together via a `CompositeJobSource` (Milestone F) — all read live on
+/// each search so Settings edits take effect immediately. A provider with no resolved key is
+/// simply omitted (fail-soft).
 private nonisolated struct SettingsBackedJobSource: JobSource {
     let credentials: JobSourceCredentialsStore
     let store: SettingsStore
     let http: any HTTPClient
 
     func search(_ query: JobQuery) async throws -> [JobListing] {
-        let creds = AdzunaJobSource.Credentials(
-            appID: credentials.value(for: .adzunaAppID) ?? "",
-            appKey: credentials.value(for: .adzunaAppKey) ?? "",
-            country: store.load().adzunaCountry
-        )
-        let source = AdzunaJobSource(credentials: creds, http: http)
-        return try await source.search(query)
+        var sources: [any JobSource] = []
+
+        if let appID = credentials.value(for: .adzunaAppID),
+           let appKey = credentials.value(for: .adzunaAppKey) {
+            sources.append(AdzunaJobSource(
+                credentials: .init(appID: appID, appKey: appKey, country: store.load().adzunaCountry),
+                http: http
+            ))
+        }
+        if let apiKey = credentials.value(for: .jsearchAPIKey) {
+            sources.append(JSearchJobSource(credentials: .init(apiKey: apiKey), http: http))
+        }
+
+        return try await CompositeJobSource(sources: sources).search(query)
     }
 }

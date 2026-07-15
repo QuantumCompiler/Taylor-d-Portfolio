@@ -180,6 +180,34 @@ struct SettingsViewModelTests {
         #expect(!vm.hasStoredAdzunaCredentials)
     }
 
+    @Test func enteringJSearchKeyPersistsLocksAndClears() {
+        // v0.6.0 Milestone F — the JSearch key rides the same save/lock/clear machinery.
+        let (vm, credentials) = makeVM()
+        vm.jsearchAPIKey = "rapid-key"
+        vm.save()
+        #expect(vm.jsearchKeySaved)                          // field locks
+        #expect(vm.hasStoredJSearchCredentials)
+        #expect(vm.jsearchAPIKey.isEmpty)                    // buffer cleared
+        #expect(credentials.value(for: .jsearchAPIKey) == "rapid-key")
+
+        vm.clearJSearchCredentials()
+        #expect(!vm.jsearchKeySaved)                         // unlocks
+        #expect(credentials.value(for: .jsearchAPIKey) == nil)
+    }
+
+    @Test func savingAdzunaDoesNotTouchJSearchAndViceVersa() {
+        let (vm, credentials) = makeVM()
+        vm.adzunaAppID = "id"
+        vm.adzunaAppKey = "key"
+        vm.save()
+        #expect(credentials.value(for: .jsearchAPIKey) == nil)   // JSearch untouched
+
+        vm.jsearchAPIKey = "rk"
+        vm.save()
+        #expect(credentials.value(for: .adzunaAppID) == "id")    // Adzuna preserved
+        #expect(credentials.value(for: .jsearchAPIKey) == "rk")
+    }
+
     @Test func credentialControlsAreNoOpsWithoutAStore() {
         // Previews/tests without a credentials store: no crash, stays on the passed flag.
         let vm = SettingsViewModel(store: SettingsStore(store: PresentationMemoryStore()), adzunaConfigured: true)

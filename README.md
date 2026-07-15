@@ -125,21 +125,26 @@ Adds a **second, high-fidelity PDF export path** plus a batch of export/Tracker 
   and an **additional-context** box that steers generation without changing the grounded default (I).
   *(Milestones A–I.)*
 
-### v0.6.0 — richer grounding & job detail
-Gave ranking and tailored generation **more real signal to work from**, in three composed milestones:
+### v0.6.0 — richer grounding, job detail & sources
+Gave ranking and tailored generation **more real signal to work from** — and **more sources** to get it from:
 - **Richer job postings (A):** decode Adzuna's job/work type, posted date, and category; **LLM-enrich** a saved
   posting into a structured `PostingDetails` (qualifications, responsibilities, about-the-role/company,
-  benefits) — over the full posting page when fetchable, else the snippet — and feed it into the two-stage
-  generation so tailoring is better-grounded. Surfaced as badges + a collapsible **Posting details** section.
+  benefits) and feed it into the two-stage generation. Surfaced as badges + a collapsible **Posting details** section.
 - **Profile at generation time (B):** a per-generation **profile picker** so the user chooses which saved
   profile to generate against, grounded on *that* profile's real source documents (defaults to the loaded one).
 - **Regenerate result (C):** a **re-rank** action on a saved job — re-assess fit (and backfill posting detail)
-  against a chosen profile with an optional steering note, persisted latest-wins — to refresh stale / legacy
-  entries. *(Milestones A–C.)*
+  against a chosen profile with an optional steering note, persisted latest-wins — to refresh stale / legacy entries.
+- **User-editable API credentials (D):** enter provider keys in **Settings → Sources** (stored locally, hidden &
+  locked after saving), with the build-time secrets kept as a fallback.
+- **Full job-posting text (E):** recover the **whole posting** behind the redirect URL, LLM-cleaned of site
+  chrome, rendered as markdown and used as grounding — not Adzuna's ~500-char snippet.
+- **Multi-source search (F):** aggregate providers behind a `CompositeJobSource` with cross-source de-dup —
+  **Adzuna** plus an optional **JSearch (RapidAPI)** aggregator whose rich response arrives already-enriched.
+  *(Milestones A–F.)*
 
 **Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
 from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
-layer — or a v0.6.0 fast-follow (full awesome-cv fidelity, or a bulk re-rank of legacy entries).
+layer — or a specced `PLANNED.md` item (a search-provider selector, per-provider credential-setup help).
 
 ## Build & run
 

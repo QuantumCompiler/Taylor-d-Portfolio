@@ -160,6 +160,27 @@ struct DomainModelTests {
         #expect(withFull.effectiveDescription == "the full body")
     }
 
+    @Test func jobListingSourceRoundTripsAndDecodesLegacyAsNil() throws {
+        // v0.6.0 Milestone F — the source label survives a round-trip; legacy blobs decode nil.
+        let listing = JobListing(id: "j", title: "t", company: "c", location: "l", description: "d", source: "JSearch")
+        #expect(try roundTrip(listing).source == "JSearch")
+
+        let legacy = #"{"id":"o","title":"t","company":"c","location":"l","description":"d"}"#
+        #expect(try JSONDecoder().decode(JobListing.self, from: Data(legacy.utf8)).source == nil)
+    }
+
+    @Test func jobListingFingerprintNormalizesAndIgnoresIDAndSource() {
+        // Same posting from two sources: different id/source, same normalized fingerprint.
+        let adzuna = JobListing(id: "adz-1", title: "iOS  Engineer", company: "ACME",
+                                location: "Denver, CO", description: "d", source: "Adzuna")
+        let jsearch = JobListing(id: "js-9", title: "ios engineer", company: "acme",
+                                 location: "denver, co", description: "different", source: "JSearch")
+        #expect(adzuna.fingerprint == jsearch.fingerprint)
+
+        let other = JobListing(id: "x", title: "iOS Engineer", company: "Globex", location: "Denver, CO", description: "d")
+        #expect(other.fingerprint != adzuna.fingerprint)   // different company → different posting
+    }
+
     @Test func jobQueryAppliesDefaultsAndRoundTrips() throws {
         let query = JobQuery(keywords: "swift developer")
         #expect(query.page == 1)

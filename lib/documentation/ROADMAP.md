@@ -599,7 +599,7 @@ breakdown + open calls.
       Steers emphasis/framing only — grounding + fidelity rules still bind. Seam: Data (`GenerationSettings`,
       `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device: yes.
 
-## v0.6.0 — richer grounding, job detail & sources  (in progress)
+## v0.6.0 — richer grounding, job detail & sources  (complete)
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal
 to work from**, and **more (and better-fed) sources to get it from**. Six milestones. The first three
@@ -682,7 +682,7 @@ breakdown + open calls.
       On-device: page-fetch needs network; storage/display local. Guardrail: full text is captured verbatim;
       any structuring organizes, never invents.
 
-- [ ] **Milestone F — Multi-source job search (aggregate providers behind `JobSource`).** Too-few-results
+- [x] **Milestone F — Multi-source job search (aggregate providers behind `JobSource`).** ✅ **Done (F-A…F-D).** Too-few-results
       means we've hit Adzuna's index ceiling for a query, not a paging bug — the fix is **more sources**. Add
       provider conformers in `Data/Jobs/` (each keeping its API types private, per the Adzuna pattern) — **JSearch
       via RapidAPI first** (a Google-for-Jobs aggregator whose rich structured response also feeds A/E), then The
@@ -699,9 +699,10 @@ breakdown + open calls.
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
   & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), and **v0.5.1** (LaTeX
-  résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **in
-  progress** — A–C done, **D–F planned** (user-editable credentials → full posting text → multi-source
-  search). **The next version is unstarted** — its number and theme are chosen when development on it begins
+  résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **complete**
+  — A richer job postings, B profile-at-generation, C regenerate result, D user-editable credentials, E full
+  posting text, F multi-source search (Adzuna + optional JSearch). **The next version is unstarted** — its number
+  and theme are chosen when development on it begins
   (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"
   shipped in v0.6.0 Milestone C); further providers for the multi-source seam (The Muse / remote feeds); and

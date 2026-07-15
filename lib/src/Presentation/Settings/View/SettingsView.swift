@@ -21,7 +21,7 @@ struct SettingsView: View {
         Form {
             switch section {
             case .engines: enginesSection
-            case .adzuna: adzunaSection
+            case .adzuna: sourcesSection
             case .about: aboutSection
             }
         }
@@ -49,30 +49,29 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Adzuna — country code + user-entered credentials
+    // MARK: Sources — per-provider credentials (Adzuna + JSearch, v0.6.0 Milestone F)
 
-    /// Where to sign up for an Adzuna API key. Static developer page — safe to link out.
+    /// Static developer sign-up pages — safe to link out (hardcoded, not from a posting).
     private static let adzunaKeyHelpURL = URL(string: "https://developer.adzuna.com/")!
+    private static let jsearchKeyHelpURL = URL(string: "https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch")!
 
-    private var adzunaSection: some View {
+    @ViewBuilder
+    private var sourcesSection: some View {
+        adzunaCredentialsSection
+        jsearchCredentialsSection
+    }
+
+    private var adzunaCredentialsSection: some View {
         Section {
             TextField("Country code", text: $viewModel.adzunaCountry)
 
             credentialField("App ID", text: $viewModel.adzunaAppID, saved: viewModel.appIDSaved)
             credentialField("App Key", text: $viewModel.adzunaAppKey, saved: viewModel.appKeySaved)
 
-            LabeledContent("Status") {
-                if viewModel.adzunaConfigured {
-                    Label("Configured", systemImage: "checkmark.seal.fill")
-                        .foregroundStyle(.green)
-                } else {
-                    Label("Not configured", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                }
-            }
+            statusRow(configured: viewModel.adzunaConfigured)
 
             if viewModel.hasStoredAdzunaCredentials {
-                Button("Clear saved credentials", role: .destructive) {
+                Button("Clear Adzuna credentials", role: .destructive) {
                     viewModel.clearAdzunaCredentials()
                 }
                 .clickableCursor()
@@ -80,13 +79,47 @@ struct SettingsView: View {
         } header: {
             Text("Adzuna")
         } footer: {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Enter your own Adzuna API credentials to enable job search. "
-                    + "They're stored on your Mac and never leave it. "
-                    + "Saved keys are hidden — use “Clear saved credentials” to replace them.")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Enter your own Adzuna API credentials to enable job search. Keys are stored "
+                    + "on your Mac and never leave it; saved keys are hidden.")
                 Link("How to get an Adzuna API key", destination: Self.adzunaKeyHelpURL)
                     .clickableCursor()
+            }
+        }
+    }
+
+    private var jsearchCredentialsSection: some View {
+        Section {
+            credentialField("API Key", text: $viewModel.jsearchAPIKey, saved: viewModel.jsearchKeySaved)
+
+            if viewModel.hasStoredJSearchCredentials {
+                Button("Clear JSearch key", role: .destructive) {
+                    viewModel.clearJSearchCredentials()
+                }
+                .clickableCursor()
+            }
+        } header: {
+            Text("JSearch (RapidAPI) — optional")
+        } footer: {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Add a JSearch (RapidAPI) key to also search a Google-for-Jobs aggregator "
+                    + "(Indeed, LinkedIn, Glassdoor…) alongside Adzuna. Optional; leave blank to use "
+                    + "Adzuna only. Note the RapidAPI free-tier request limit.")
+                Link("How to get a JSearch API key", destination: Self.jsearchKeyHelpURL)
+                    .clickableCursor()
                 saveButton
+            }
+        }
+    }
+
+    /// The shared Configured / Not-configured status row.
+    @ViewBuilder
+    private func statusRow(configured: Bool) -> some View {
+        LabeledContent("Status") {
+            if configured {
+                Label("Configured", systemImage: "checkmark.seal.fill").foregroundStyle(.green)
+            } else {
+                Label("Not configured", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
             }
         }
     }

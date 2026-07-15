@@ -2350,3 +2350,47 @@ are local. Posting text is bounded before it reaches the model, as elsewhere.
 
 *(Open calls resolved as recommended: **add** `fullDescription` (keep the snippet); **capture on save** via the
 existing enrichment fetch; **store** it — no re-fetch.)*
+
+## Milestone F — Multi-source job search (aggregate more providers behind `JobSource`)  ✅ done
+
+Searches sometimes hit **Adzuna's index ceiling** for a query; the fix is **more sources**, not more tuning.
+Milestone F aggregates providers behind one `JobSource`, so the fan-out over *providers* sits below the seam and
+`SearchAndRankUseCase` (which fans out over *titles*) is unchanged.
+
+- [x] **F-A — `CompositeJobSource`.** New `CompositeJobSource: JobSource` holds `[any JobSource]`, fans out with
+      **bounded concurrency** (mirrors `SearchAndRankUseCase.searchAll`'s windowed task group) and merges.
+      Partial failure is **soft** (skip a throwing provider); it throws only when **every** provider fails;
+      empty sources → `[]`.
+- [x] **F-B — `JobListing.fingerprint` + `source`.** `JobListing.id` is source-specific, so the composite
+      dedups on a normalized **fingerprint** (lowercased title + company + location, collapsed whitespace),
+      keeping the **first** occurrence in source order while preserving each listing's own `id` for persistence.
+      Added an optional `source` label ("Adzuna" / "JSearch"), captured for future display (Codable back-compat).
+- [x] **F-C — `JSearchJobSource` (RapidAPI).** New provider gateway (private wire types, the Adzuna pattern):
+      folds keywords + location into JSearch's free-text `query`, maps `PositionType` → `employment_types`, sends
+      the RapidAPI key/host as **headers**, and maps the rich response → `JobListing` **including the Milestone
+      A/E fields** — full description, `PostingDetails` from `job_highlights` (qualifications / responsibilities
+      / benefits + `is_remote`→workType), employment type, salary, posted date — so a JSearch result arrives
+      **already-enriched** (no page-fetch / LLM pass needed downstream).
+- [x] **F-D — Wiring + credentials + Settings.** `SettingsBackedJobSource` (`Composition`) now assembles every
+      **configured** provider — Adzuna (id/key) and JSearch (key), resolved from the Milestone-D credentials
+      store — into a `CompositeJobSource`; a provider with no resolved key is omitted (fail-soft). `JobProvider`
+      gained `.jsearch` (+ `JobCredentialField.jsearchAPIKey`); the Settings **"Sources"** pane (renamed from
+      "Adzuna") adds an **optional JSearch (RapidAPI) key** field with the same save / lock / mask / clear
+      machinery, a "How to get a key" link, and a free-tier-limit note.
+
+**Guardrail (safety).** The app builds the credential *field*; the **user** enters the RapidAPI key — the agent
+never types or pastes it.
+
+**Deferred (composes with the `PLANNED` "provider selector" / "credential-setup-help" entries).** Search
+**availability still gates on Adzuna**, so a JSearch-**only** setup (no Adzuna) would show the "unavailable"
+banner — generalize the gate to "any configured provider" when the provider-selection UI lands. (Adzuna +
+optional JSearch — the common case — works today.)
+
+**Tests.** `CompositeJobSource` fan-out / fingerprint dedup (case + whitespace) / soft-vs-total failure;
+`JobListing` fingerprint + source round-trip; JSearch URL building + RapidAPI headers + fixture mapping (A/E
+fields) + no-highlights→nil-details; `JobProvider.jsearch` resolution; `SettingsViewModel` JSearch
+save/lock/clear + provider independence. Full suite green; build warning-free.
+
+**On-device.** Search needs network; the composite + dedup are pure/local. *(Open calls resolved as recommended:
+**JSearch only** first (The Muse / remote feeds later); **no** per-provider balancing; **capture** source, defer
+display; bounded concurrency + the existing page cap for the metered RapidAPI tier.)*

@@ -9,12 +9,14 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.0 — richer grounding, job detail & sources — Milestone F (Multi-source job search).**
-> Milestones **A–E are done** (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A** richer job postings;
-> **B** per-generation **profile picker**; **C** **regenerate result**; **D** **user-editable API credentials**;
-> **E** **full job-posting text** (recover the full posting behind the redirect URL, ground/display on it).
-> **F is the last milestone** — multi-source search (aggregate providers behind `JobSource`), depending on D's
-> per-provider credential seam. `MARKETING_VERSION` is `0.6.0`. Device checks below still stand.
+> **Current focus. v0.6.0 — richer grounding, job detail & sources — feature-complete; finishing the
+> merge-ready wrap.** All six milestones are done (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A**
+> richer job postings; **B** per-generation profile picker; **C** regenerate result; **D** user-editable API
+> credentials; **E** full job-posting text; **F** multi-source search (Adzuna + optional JSearch behind a
+> `CompositeJobSource`). Full suite green (build warning-free); `MARKETING_VERSION` is `0.6.0`. **Remaining before
+> the branch is merge-ready:** add the v0.6.0 one-paragraph summary to `README.md`'s Version history + advance
+> its **Next** line, and clear the **device checks** below (nothing else — the docs/version are otherwise at
+> shipped state).
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
 > open as **separate windows**; marking status / saving / generating in a window refreshes the main-window
@@ -64,24 +66,32 @@ doing.
 > enrichment actually reaches the engine (the composition-forwarding fix); the fuller text visibly improves the
 > generated résumé/cover letter; and legacy saved jobs still load (full text simply absent). Also re-verify
 > **Milestone C**'s "Regenerate result" now honours the steering **context** box (same forwarding fix).
+>
+> **⚠️ Awaiting device checks (v0.6.0 Milestone F)** — with an Adzuna key **and** a JSearch (RapidAPI) key
+> entered in **Settings → Sources**: a search returns results from **both** providers (more/different results
+> than Adzuna alone), an obvious cross-source **duplicate** posting appears **once**, JSearch results show rich
+> **Posting details** without a page-fetch, and removing the JSearch key falls back to Adzuna-only with no
+> error. The JSearch field saves/locks/clears like the Adzuna fields. *(Enter your own RapidAPI key — the agent
+> never does.)*
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
 
 ---
 
-# v0.6.0 — richer grounding, job detail & sources  (remaining: F)
+# Next version — (unstarted; number + theme TBD)
 
-Milestones **A–E are complete** (write-ups in `MILESTONES.md`). **F** is the last milestone — pulled from
-`PLANNED.md` (now removed from there): multi-source search, depending on **D**'s user-editable credential seam
-for per-provider keys. It respects the layer dependency rule (Presentation → Business → Data → Infrastructure).
+**v0.6.0 (richer grounding, job detail & sources) is feature-complete** — all six milestones (A–F) are in
+`MILESTONES.md`, ticked in `ROADMAP.md`; the full suite is green and the build is warning-free. Remaining before
+merge: the small **merge-ready wrap** (the `README.md` Version-history summary + **Next** line) and the **device
+checks** above.
 
-> **Safety note (F, credential UI):** building the Settings *field* where the user types a provider's API key is
-> fine; the agent must **never** enter or paste real API keys — the user fills these in.
-
----
-
-## Milestone F — Multi-source job search (aggregate more providers behind `JobSource`)
+**Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its number
+and theme aren't chosen until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At
+kickoff, pick a theme from `ROADMAP.md`'s Backlog (native `LanguageModel` provider seam, on-device embedding RAG,
+optional MCP tools) or a `PLANNED.md` entry (provider selector; per-provider credential-setup help; generalize
+search availability to any configured provider so a JSearch-only setup works), assign the version number, bump
+`MARKETING_VERSION`, and break it into Milestone A, B, C… here.
 
 **What / why.** Searches sometimes return too few results. `SearchAndRankUseCase` already pages toward a
 desired-result-count goal (round-robin pages, 50/page, `maxPagesPerTitle` cap — `SearchAndRankUseCase.swift`),
