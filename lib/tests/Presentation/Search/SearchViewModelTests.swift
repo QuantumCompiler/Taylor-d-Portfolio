@@ -311,8 +311,17 @@ struct SearchViewModelTests {
 
         #expect(vm.results.isEmpty)                        // nothing pushed to Results
         #expect(vm.linkErrorMessage != nil)               // failure surfaced at the Fetch action
-        #expect(vm.linkErrorMessage?.contains("Paste") == true)  // and points to the fallback
+        #expect(vm.linkErrorMessage?.contains("paste") == true)   // points to the paste fallback…
+        #expect(vm.linkErrorMessage?.contains("JSearch") == true) // …and the aggregator path
         #expect(vm.errorMessage == nil)                   // not the search-button error slot
+    }
+
+    @Test func fetchFromABotWalledBoardNamesItInTheError() async {
+        let vm = makeLinkVM(postingSource: StubPostingSource(error: JobPostingSourceError.unreadable))
+        vm.profile = profile
+        vm.postingURL = "https://www.indeed.com/viewjob?jk=abc123"
+        await vm.fetchFromLink()
+        #expect(vm.linkErrorMessage?.contains("Indeed") == true)   // board-aware message
     }
 
     @Test func fetchFromLinkRequiresValidHTTPURL() async {

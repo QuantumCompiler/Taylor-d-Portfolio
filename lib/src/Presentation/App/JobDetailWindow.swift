@@ -42,6 +42,12 @@ struct JobDetailWindow: View {
                         session.showApplication(ranked.listing)
                         openWindow(id: ApplicationWindow.id)
                     },
+                    onSelectProfile: { saved in
+                        // Picking a profile in the detail loads it session-wide, so generation
+                        // works from here (Generate enables) without a Portfolio-tab detour.
+                        session.profile = saved.profile
+                        session.grounding = saved.grounding
+                    },
                     refreshSignal: session.revision
                 )
                 // This is a single-instance window reused for every job. Key the detail view by

@@ -401,11 +401,33 @@ final class SearchViewModel {
             results = [try await fetchPosting(url: url, profile: profile)]
             await persistResults()
         } catch is JobPostingSourceError {
-            linkErrorMessage = "Couldn't read that posting — the page may need a login or block automated access. "
-                + "Paste the posting text below and use “Generate from pasted text” instead."
+            linkErrorMessage = Self.blockedPostingMessage(for: url)
         } catch {
             linkErrorMessage = Self.message(for: error)
         }
+    }
+
+    /// Job boards that serve an anti-bot / login wall (a Cloudflare "security check", 403, or
+    /// JS challenge) to a plain fetch, so their posting URLs can never be read automatically.
+    private static let botWalledBoards: [(host: String, name: String)] = [
+        ("indeed.com", "Indeed"),
+        ("linkedin.com", "LinkedIn"),
+        ("glassdoor.com", "Glassdoor"),
+        ("ziprecruiter.com", "ZipRecruiter"),
+    ]
+
+    /// A clear, board-aware message when a posting URL can't be fetched, pointing at the two
+    /// paths that **do** work: paste the text, or search via an aggregator (JSearch) that
+    /// licenses many of these boards.
+    private static func blockedPostingMessage(for url: URL) -> String {
+        let host = (url.host ?? "").lowercased()
+        let board = botWalledBoards.first { host == $0.host || host.hasSuffix("." + $0.host) }?.name
+        let lead = board.map {
+            "\($0) blocks automated access to its job postings (an anti-bot / login wall), so this link can't be read automatically."
+        } ?? "Couldn't read that posting — the page may need a login or block automated access."
+        return lead + " Two ways to bring it in: paste the job description below and tap “Generate from pasted "
+            + "text”, or run a New Search with JSearch enabled (Settings → Sources) — the JSearch aggregator "
+            + "includes many of these boards' postings, with full descriptions."
     }
 
     /// Extracts a posting from `pastedPosting` (the fallback for un-fetchable pages),

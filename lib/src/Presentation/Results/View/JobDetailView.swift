@@ -47,6 +47,9 @@ struct JobDetailView: View {
     /// Opens the Application window (v0.5.0 Milestone B-C). Supplied by the hosting window;
     /// when nil (e.g. previews) the View/Generate buttons do nothing.
     var onOpenApplication: (() -> Void)? = nil
+    /// Picking a profile in the detail's picker **loads** it (sets the session profile +
+    /// grounding), so generation can proceed here without a trip to the Portfolio tab.
+    var onSelectProfile: ((SavedProfile) -> Void)? = nil
     /// A monotonically-increasing signal from the hosting window; a change re-checks whether
     /// materials now exist (e.g. after the Application window generated) — v0.5.0 B-C.
     var refreshSignal: Int = 0
@@ -246,6 +249,13 @@ struct JobDetailView: View {
                     }
                     .labelsHidden()
                     .clickableCursor()
+                    // Picking a saved profile loads it session-wide, so Generate/Regenerate both
+                    // use it — no need to go to the Portfolio tab (the "Current profile" option
+                    // keeps whatever was already loaded).
+                    .onChange(of: regenProfileID) { _, newID in
+                        guard let newID, let saved = regenProfiles.first(where: { $0.id == newID }) else { return }
+                        onSelectProfile?(saved)
+                    }
                 }
                 TextField("Optional: steer the re-rank (e.g. weight my Go backend experience)",
                           text: $regenContext, axis: .vertical)
@@ -433,9 +443,16 @@ struct JobDetailView: View {
             case .generate:
                 // Tracker context, nothing generated yet (Milestone V-D). Opens the
                 // Application window where the user sets options and presses Generate.
+                if profile == nil {
+                    Text(regenProfiles.isEmpty
+                         ? "Load a profile on the Portfolio tab to generate."
+                         : "Pick a profile above to generate.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Button("Generate application") { openApplication() }
                     .buttonStyle(.borderedProminent)
                     .disabled(profile == nil)
+                    .help(profile == nil ? "Select a profile in the picker above to enable generation." : "")
                     .clickableCursor()
             case .view:
                 // Tracker context with saved materials (v0.5.0 Milestone A): open the

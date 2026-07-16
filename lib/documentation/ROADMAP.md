@@ -599,10 +599,10 @@ breakdown + open calls.
       Steers emphasis/framing only — grounding + fidelity rules still bind. Seam: Data (`GenerationSettings`,
       `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device: yes.
 
-## v0.6.0 — richer grounding, job detail & sources  (complete)
+## v0.6.0 — richer grounding, job detail & sources  (in progress)
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal
-to work from**, and **more (and better-fed) sources to get it from**. Eight milestones. The first three
+to work from**, and **more (and better-fed) sources to get it from**. Nine milestones. The first three
 (**A–C, complete**) improve grounding: capture and surface **much more of a job posting** (Milestone A),
 let the user **choose which profile to ground on** and generate against its real source documents
 (Milestone B), and **regenerate a saved result** against a chosen profile so stale/legacy entries can be
@@ -613,7 +613,9 @@ Adzuna's truncated snippet (Milestone E), and **aggregate multiple job providers
 both need), then E, then F. Two follow-on milestones (**G–H, in progress**) build on that credential seam:
 per-provider **credential-setup help** in Settings (Milestone G), and a **provider selector** in the Search view
 so the user picks which API(s) to query — both driven by **one data-driven provider registry** so new providers
-appear everywhere automatically (Milestone H). Grounded-by-default and never-fabricate hold throughout: enrichment
+appear everywhere automatically (Milestone H). A ninth milestone (**I, planned**) lets a profile carry **additional
+supporting documents** — e.g. a full career portfolio — baked in as factual grounding for richer search + generation.
+Grounded-by-default and never-fabricate hold throughout: enrichment
 *structures* what a posting says, re-ranking *re-assesses fit honestly*, and neither invents facts.
 Milestones restart at **A** and commit as `v0.6.0 : Milestone X Completed`. `TODO.md` has the granular
 breakdown + open calls.
@@ -716,15 +718,29 @@ breakdown + open calls.
       configured". Depends on **D** (configured signal); extends **F**. Seam: Data (registry + request field) +
       Business (selection filter) + Presentation (picker). On-device: search needs network; registry/selection local.
 
+- [ ] **Milestone I — Supporting profile documents (bake extra career docs into a profile).** A `SavedProfile`
+      carries only two documents today — the résumé source (distilled + factual grounding) and an optional cover
+      letter (voice exemplar, never distilled). Let a profile attach **additional file(s)** — e.g. a complete
+      career portfolio — as **factual grounding** for both **ranking/search** and **generation**. Generalises the
+      existing doc handling: add `supportingDocuments: [SupportingDocument]` to `SavedProfile` (decode-with-defaults,
+      back-compatible), import + tidy each via the existing `ImportPortfolioUseCase` / `TidyDocumentUseCase`, add a
+      bounded `PortfolioGrounding.supportingText` that flows through Milestone B's grounding threading, and — for
+      ranking — distil the docs into a richer `CandidateProfile` at build time. UI: a multi-file slot on the
+      Portfolio tab. Bound all injected text; the large-portfolio case is the natural driver for the Backlog **RAG**
+      seam (`Retriever`/`EmbeddingClient`) as a follow-on. Seam: Data (`SavedProfile` + `PortfolioGrounding`) +
+      Business (build/tidy) + Presentation (upload). On-device: import/tidy are `.profile` LLM work. Guardrail:
+      factual grounding about the candidate — never-fabricate still binds. Scheduled from `PLANNED.md` 2026-07-15.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
   & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), and **v0.5.1** (LaTeX
-  résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **complete**
-  — A–H (A richer job postings, B profile-at-generation, C regenerate result, D user-editable credentials, E full
-  posting text, F multi-source search, G per-provider credential-setup help, H Search provider selector — the last
-  two on H-A's data-driven provider registry). **The next version is unstarted** — its number
+  résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **in progress**
+  — A–H complete (A richer job postings, B profile-at-generation, C regenerate result, D user-editable credentials,
+  E full posting text, F multi-source search, G per-provider credential-setup help, H Search provider selector — the
+  last two on H-A's data-driven provider registry), with **Milestone I** (supporting profile documents) added and
+  planned. **The next version is unstarted** — its number
   and theme are chosen when development on it begins
   (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"
