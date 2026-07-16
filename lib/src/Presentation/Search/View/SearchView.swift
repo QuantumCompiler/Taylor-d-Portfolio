@@ -43,6 +43,8 @@ struct SearchView: View {
 
         filtersSection
 
+        sourcesSection
+
         if let unavailable = viewModel.unavailableMessage {
             Label(unavailable, systemImage: "exclamationmark.triangle.fill")
                 .font(.callout).foregroundStyle(.orange)
@@ -89,6 +91,36 @@ struct SearchView: View {
             Label("\(viewModel.results.count) ranked results — see the Results area.",
                   systemImage: "checkmark.circle")
                 .font(.callout).foregroundStyle(.green)
+        }
+    }
+
+    // MARK: Search sources — pick which providers to query (Milestone H)
+
+    /// A checkbox per registered provider; a provider with no key is disabled with a hint to
+    /// Settings. Hidden when only one provider is registered (nothing to choose).
+    @ViewBuilder private var sourcesSection: some View {
+        if viewModel.providers.count > 1 {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Search sources").font(.headline)
+                ForEach(viewModel.providers) { descriptor in
+                    let configured = viewModel.isProviderConfigured(descriptor.id)
+                    Toggle(isOn: Binding(
+                        get: { viewModel.isProviderSelected(descriptor.id) },
+                        set: { viewModel.setProvider(descriptor.id, selected: $0) }
+                    )) {
+                        HStack(spacing: 6) {
+                            Text(descriptor.displayName)
+                            if !configured {
+                                Text("— add a key in Settings → Sources")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .toggleStyle(.checkbox)
+                    .disabled(!configured)
+                    .clickableCursor()
+                }
+            }
         }
     }
 

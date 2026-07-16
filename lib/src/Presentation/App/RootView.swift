@@ -62,8 +62,8 @@ struct RootView: View {
         .onChange(of: portfolio.grounding) { _, g in session.grounding = g }
         // Entering/clearing Adzuna credentials in Settings re-resolves availability — push it
         // to Search so its banner + Generate gate update without a relaunch (Milestone D-D).
-        .onChange(of: settings.adzunaConfigured) { _, configured in
-            search.adzunaConfigured = configured
+        .onChange(of: settings.configuredProviderIDs) { _, configured in
+            search.configuredProviderIDs = configured
         }
         .onAppear {
             session.profile = portfolio.profile

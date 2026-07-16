@@ -2428,3 +2428,35 @@ clear works per provider and providers stay independent. Full suite green; build
 
 **On-device.** n/a — static metadata + a browser `Link`. *(Open calls resolved as recommended: ship the `Link`
 first — inline steps added too, as a collapsible disclosure; per-provider inline, closest to the field.)*
+
+## Milestone H — Provider selector in the Search view  ✅ done
+
+F queries *every* configured provider; H lets the user **pick which to search**, from a selector that lists all
+registered providers and **grows automatically** (H-A's registry — which shipped with Milestone G).
+
+- [x] **H-B — `JobSearchRequest.sources` / `JobQuery.sources`.** Optional `[String]?` (nil ⇒ all), `Codable` —
+      the optional decodes-with-default so **pre-H `SavedSearch`es stay valid**; `JobSearchRequest.query(forTitle:)`
+      threads it into each `JobQuery`.
+- [x] **H-C — `CompositeJobSource` honours the selection.** The composite now holds **labeled** providers
+      (`Provider{id, source}`); `search` filters to the query's `sources` (nil/empty ⇒ all) before fanning out.
+      The composition root builds it from the registry, labeling each by provider id. `SearchAndRankUseCase` is
+      **unchanged** — it just passes the request's `sources` through the query.
+- [x] **H-D — Search-view selector.** `SearchViewModel` gained `selectedProviderIDs` + `providers` (the registry)
+      + `isProviderSelected`/`isProviderConfigured`/`setProvider`; `SearchView` shows a **checkbox per provider**
+      (disabled + "add a key in Settings → Sources" when unconfigured). `buildRequest` carries the selection; a
+      saved search restores it (nil ⇒ all).
+- [x] **H-E — Availability gate generalised.** Replaced `adzunaConfigured` with `configuredProviderIDs` (pushed
+      from Settings: `SettingsViewModel.configuredProviderIDs` → `RootView` → Search) and an
+      `activeProviderIDs = selected ∩ configured` gate; `canSearch` / the unavailable banner / `search()` /
+      `runSavedSearch` all use it. **This also fixes F's deferred JSearch-only case** — a setup with only a
+      JSearch key can now search.
+
+**Tests.** `JobSearchRequest.sources` round-trip + legacy-nil + threads into the query; `CompositeJobSource`
+runs only the selected providers (nil/empty ⇒ all); `SearchViewModel` gate (≥1 selected-and-configured) +
+`buildRequest` carries the selection; `SettingsViewModel.configuredProviderIDs` updates after save. Full suite
+green; build warning-free.
+
+**On-device.** Search needs network; the registry + selection state are pure/local. *(Open calls resolved as
+recommended: **multi-select**, default all; **persist** the selection in `SavedSearch` (re-runs against the
+providers it was saved with; legacy nil ⇒ all); a selected provider that loses its key just isn't in
+`configured` (skipped); source labels **deferred** to F's `JobListing.source`.)*

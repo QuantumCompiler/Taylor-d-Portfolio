@@ -599,7 +599,7 @@ breakdown + open calls.
       Steers emphasis/framing only — grounding + fidelity rules still bind. Seam: Data (`GenerationSettings`,
       `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device: yes.
 
-## v0.6.0 — richer grounding, job detail & sources  (in progress)
+## v0.6.0 — richer grounding, job detail & sources  (complete)
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal
 to work from**, and **more (and better-fed) sources to get it from**. Eight milestones. The first three
@@ -705,8 +705,7 @@ breakdown + open calls.
       Seam: Data (descriptor metadata) + Presentation (Settings). On-device: n/a — static metadata + a browser
       `Link`. Safety: links to official signup pages only; the app never creates accounts or enters keys.
 
-- [ ] **Milestone H — Provider selector in the Search view.** *(H-A — the enumerable provider registry — is
-      **done** and now drives F's composite, D/G's Settings; H-B–E remain.)* F queries *every* configured provider; let the user
+- [x] **Milestone H — Provider selector in the Search view.** ✅ **Done (H-A…H-E).** F queries *every* configured provider; let the user
       **pick which API(s)** to search, from a picker that lists **all registered providers and grows automatically**
       as new ones are added (no hardcoded list). Core piece: formalise the per-provider descriptor as an
       **enumerable registry** (Data — id/displayName/credential spec/`setupURL`/`JobSource` factory) that
@@ -722,10 +721,10 @@ breakdown + open calls.
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
   "Persistence with SwiftData" fast-follow already shipped via `SavedProfile`. **v0.4.0** (navigation
   & shell), **v0.4.1** (fixes & refinements), **v0.5.0** (document generation fixes), and **v0.5.1** (LaTeX
-  résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **in progress**
-  — A–F complete (A richer job postings, B profile-at-generation, C regenerate result, D user-editable credentials,
-  E full posting text, F multi-source search: Adzuna + optional JSearch), with **Milestones G–H** (per-provider
-  credential-setup help + Search provider selector) added and building. **The next version is unstarted** — its number
+  résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **complete**
+  — A–H (A richer job postings, B profile-at-generation, C regenerate result, D user-editable credentials, E full
+  posting text, F multi-source search, G per-provider credential-setup help, H Search provider selector — the last
+  two on H-A's data-driven provider registry). **The next version is unstarted** — its number
   and theme are chosen when development on it begins
   (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"

@@ -50,12 +50,13 @@ struct SearchViewModelTests {
     private func makeVM(
         jobs: [JobListing] = [],
         matches: [JobMatch] = [],
-        adzunaConfigured: Bool = true,
+        configuredProviderIDs: Set<String> = Set(JobProviderRegistry.all.map(\.id)),
         roleTitleStore: RoleTitleStore = RoleTitleStore(store: PresentationMemoryStore())
     ) -> SearchViewModel {
         let ranker = JobRanker(provider: PresentationStubProvider(matches: matches), shortlistLimit: 10)
         let useCase = SearchAndRankUseCase(jobSource: PresentationStubJobSource(jobs: jobs), ranker: ranker)
-        return SearchViewModel(searchAndRank: useCase, roleTitleStore: roleTitleStore, adzunaConfigured: adzunaConfigured)
+        return SearchViewModel(searchAndRank: useCase, roleTitleStore: roleTitleStore,
+                               configuredProviderIDs: configuredProviderIDs)
     }
 
     /// Builds a VM with the link-fetch flow wired to `postingSource`.
@@ -204,8 +205,8 @@ struct SearchViewModelTests {
         #expect(vm.warningMessage?.contains("bad") == true)
     }
 
-    @Test func unconfiguredBuildDisablesSearch() async {
-        let vm = makeVM(adzunaConfigured: false)
+    @Test func noConfiguredProviderDisablesSearch() async {
+        let vm = makeVM(configuredProviderIDs: [])   // no provider has a key
         vm.profile = profile
         vm.titleInput = "swift"
         #expect(vm.canSearch == false)
@@ -216,8 +217,28 @@ struct SearchViewModelTests {
         #expect(vm.errorMessage == vm.unavailableMessage)
     }
 
-    @Test func configuredBuildHasNoUnavailableBanner() {
-        #expect(makeVM(adzunaConfigured: true).unavailableMessage == nil)
+    @Test func configuredProviderHasNoUnavailableBanner() {
+        #expect(makeVM().unavailableMessage == nil)   // defaults to all providers configured
+    }
+
+    // MARK: Provider selection (Milestone H)
+
+    @Test func searchRequiresAtLeastOneSelectedConfiguredProvider() {
+        let vm = makeVM(configuredProviderIDs: ["adzuna"])   // only Adzuna configured
+        vm.profile = profile
+        vm.titleInput = "swift"
+        #expect(vm.canSearch)                                // adzuna selected + configured
+
+        vm.setProvider("adzuna", selected: false)            // deselect the only configured one
+        #expect(!vm.canSearch)
+        #expect(vm.unavailableMessage != nil)
+    }
+
+    @Test func buildRequestCarriesTheSelectedProviders() {
+        let vm = makeVM(configuredProviderIDs: ["adzuna", "jsearch"])
+        vm.titleInput = "swift"
+        vm.setProvider("jsearch", selected: false)           // Adzuna only
+        #expect(vm.buildRequest().sources == ["adzuna"])
     }
 
     @Test func errorMessagesAreActionable() {

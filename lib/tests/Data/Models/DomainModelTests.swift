@@ -181,6 +181,22 @@ struct DomainModelTests {
         #expect(other.fingerprint != adzuna.fingerprint)   // different company → different posting
     }
 
+    @Test func jobSearchRequestSourcesRoundTripAndLegacyDecodesNil() throws {
+        // v0.6.0 Milestone H — the provider selection survives a round-trip; pre-H saved
+        // searches (no `sources` key) decode to nil ⇒ "all providers".
+        var request = JobSearchRequest(titles: ["ios"])
+        request.sources = ["adzuna", "jsearch"]
+        #expect(try roundTrip(request).sources == ["adzuna", "jsearch"])
+
+        let legacy = #"{"titles":["ios"]}"#
+        #expect(try JSONDecoder().decode(JobSearchRequest.self, from: Data(legacy.utf8)).sources == nil)
+    }
+
+    @Test func jobSearchRequestThreadsSourcesIntoEachQuery() {
+        let request = JobSearchRequest(titles: ["ios"], sources: ["adzuna"])
+        #expect(request.query(forTitle: "ios").sources == ["adzuna"])
+    }
+
     @Test func jobQueryAppliesDefaultsAndRoundTrips() throws {
         let query = JobQuery(keywords: "swift developer")
         #expect(query.page == 1)

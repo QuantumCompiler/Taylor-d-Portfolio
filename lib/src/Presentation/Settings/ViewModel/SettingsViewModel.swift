@@ -23,9 +23,13 @@ final class SettingsViewModel {
     var engines: [LLMTask: TaskEngineConfig]
     var adzunaCountry: String
 
-    /// Whether Adzuna credentials resolve (user-entered or build-time) — the search-
-    /// availability status. Re-resolved after a save so the banner updates without relaunch.
+    /// Whether Adzuna credentials resolve (user-entered or build-time) — the Adzuna status.
+    /// Re-resolved after a save so the Settings status updates without relaunch.
     private(set) var adzunaConfigured: Bool
+    /// The ids of every registered provider whose credentials currently resolve — pushed to the
+    /// Search view so its availability gate + provider selector reflect what's configured
+    /// (Milestone H). Re-resolved after every save/clear.
+    private(set) var configuredProviderIDs: Set<String> = []
     /// Whether a `lualatex` install was found — the awesome-cv LaTeX export route needs it
     /// (Milestone E). Surfaced read-only in the About pane. Probed in the composition root.
     let latexAvailable: Bool
@@ -62,6 +66,16 @@ final class SettingsViewModel {
         self.engines = settings.engines
         self.adzunaCountry = settings.adzunaCountry
         self.savedFields = Self.storedFields(in: credentials)
+        self.configuredProviderIDs = Self.resolvedProviderIDs(credentials, adzunaFallback: self.adzunaConfigured)
+    }
+
+    /// The registered providers whose credentials currently resolve. Without a store (previews/
+    /// tests), falls back to the `adzunaConfigured` flag for Adzuna only.
+    private static func resolvedProviderIDs(_ credentials: JobSourceCredentialsStore?, adzunaFallback: Bool) -> Set<String> {
+        if let credentials {
+            return Set(JobProviderRegistry.all.filter { credentials.hasCredentials(for: $0.provider) }.map(\.id))
+        }
+        return adzunaFallback ? [JobProvider.adzuna.rawValue] : []
     }
 
     /// The credential fields that already have a user-saved value, across every registered
@@ -151,6 +165,7 @@ final class SettingsViewModel {
     private func refreshCredentialState() {
         savedFields = Self.storedFields(in: credentials)
         adzunaConfigured = credentials?.hasCredentials(for: .adzuna) ?? adzunaConfigured
+        configuredProviderIDs = Self.resolvedProviderIDs(credentials, adzunaFallback: adzunaConfigured)
     }
 }
 

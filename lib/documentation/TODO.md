@@ -73,79 +73,29 @@ doing.
 > **Posting details** without a page-fetch, and removing the JSearch key falls back to Adzuna-only with no
 > error. The JSearch field saves/locks/clears like the Adzuna fields. *(Enter your own RapidAPI key — the agent
 > never does.)*
+>
+> **⚠️ Awaiting device checks (v0.6.0 Milestones G–H)** — **(G)** Settings → **Sources** shows one credential
+> section **per registered provider** (Adzuna + JSearch) each with a working **"How to get a key"** link + a
+> collapsible **Setup steps** disclosure; save/lock/mask/clear still work per field. **(H)** the New Search form
+> shows a **"Search sources"** checkbox per provider — a provider with no key is **disabled** with an "add a key
+> in Settings" hint; unchecking a provider drops it from the search; with **only** a JSearch key configured,
+> search is available (JSearch-only) and Adzuna is disabled; a **saved search** re-runs against the providers it
+> was saved with (pre-existing saved searches run all).
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
 
 ---
 
-# v0.6.0 — remaining milestone (H, H-B onward)
-
-**Milestone G is complete** (write-up in `MILESTONES.md`) and, with it, **H-A** — the enumerable **provider
-registry** (`JobProviderRegistry` in `Data/Jobs`). The registry is the data-driven source of truth for every
-provider (id, displayName, credential-field spec + labels, `setupURL`/steps, and a `JobSource` factory); F's
-composite and the Settings credential UI now read it, and **no provider is hand-enumerated** in the composition
-root or any view. **What remains is Milestone H's H-B–H-E** — the Search-view provider selector.
-
-## Milestone H — Provider selector in the Search view
-
-**What / why.** **F** aggregates *every* configured provider on each search. Let the user **pick which API(s) to
-query** from the Search view — and the picker must list **all registered providers, growing automatically** as new
-ones are added (no hardcoded list). "Available" = **registered** *and* has **resolved credentials** (Milestone D);
-registered-but-unconfigured providers show **disabled**, with a jump to Settings to add a key.
-
-**Seam + files.**
-- **Registry (the core requirement).** Formalise the per-provider descriptor as the **enumerable source of truth**
-  (Data) — `id`, `displayName`, credential-field spec, `setupURL` (G), and a factory building the provider's
-  `JobSource` from resolved credentials. `CompositeJobSource` (F), the Settings credential fields (D) + help (G),
-  **and** this picker all read the same list. **Do not enumerate providers by hand in a view.**
-- **Selection → request.** Add `sources: [String]?` to
-  [`JobSearchRequest`](../src/Data/Models/JobSearchRequest.swift) (`Codable`; **nil ⇒ "all available"**,
-  decode-with-defaults keeps existing `SavedSearch`es valid). Build it in `SearchViewModel.buildRequest()`
-  ([`SearchViewModel.swift:433`](../src/Presentation/Search/ViewModel/SearchViewModel.swift:433)) from new
-  selection state on the view model.
-- **Honour it.** [`SearchAndRankUseCase`](../src/Business/UseCases/SearchAndRankUseCase.swift) filters the
-  composite's children to the request's selection before fanning out (empty/nil ⇒ all).
-- **UI.** A selector in [`SearchView`](../src/Presentation/Search/View/SearchView.swift) listing every registered
-  provider; each row enabled only when configured (disabled + "Add a key in Settings" otherwise — composes with G).
-  Reuse `.clickableCursor()`.
-- **Availability gate.** Today `adzunaConfigured` gates search (`SearchViewModel.swift:290,296`; `search()` `:419`).
-  Generalise to **"at least one *selected* provider is configured"**; the unavailable banner points at Settings.
-
-**Sub-tasks (H-A…):**
-- [x] **H-A** — Formalise the enumerable provider registry (Data). ✅ `JobProviderDescriptor` +
-      `JobProviderRegistry.all` (`Data/Jobs`) — id/displayName/credential-field spec (+ labels)/`setupURL`+steps/
-      `makeSource` factory; `Composition`'s `SettingsBackedJobSource` and `SettingsView` both read it (nothing
-      hand-enumerated). Delivered with Milestone G.
-- [ ] **H-B** — `JobSearchRequest.sources: [String]?` (Codable, nil = all) + assemble it in `buildRequest()`.
-- [ ] **H-C** — `SearchAndRankUseCase` runs only the selected providers (nil/empty = all).
-- [ ] **H-D** — `SearchView` selector + `SearchViewModel` selection state; unconfigured rows disabled + link to Settings.
-- [ ] **H-E** — Generalise the availability gate to "≥1 *selected* provider configured".
-- [ ] **(open call) Multi- or single-select?** *Recommended:* **multi-select**, default **"All available"**.
-- [ ] **(open call) Persist the selection (incl. in `SavedSearch`)?** *Recommended:* persist; a saved search re-runs
-      against the providers it was saved with.
-- [ ] **(open call) A selected provider loses its key?** *Recommended:* skip it with a **soft note** (reuse the
-      `Output.failedTitles` style), never a hard failure — mirrors F's per-source resilience.
-- [ ] **(open call) Per-provider source labels?** *Recommended:* defer to F's `JobListing.source` open call.
-
-**Tests.** `JobSearchRequest` encodes/decodes `sources` (absent ⇒ nil ⇒ back-compatible); `SearchAndRankUseCase`
-fans out to only the selected stub providers; `canSearch` is true iff ≥1 selected provider is configured; the
-registry enumerates all providers.
-**On-device.** Search needs **network**; the registry + selection state are pure/local.
-
----
-
 # Next version — (unstarted; number + theme TBD)
 
-**v0.6.0 (richer grounding, job detail & sources)** has **two new milestones — G and H — added** (scheduled from
-`PLANNED.md`), so it is **not yet feature-complete**: A–F are in `MILESTONES.md` / ticked in `ROADMAP.md`, but
-**G–H remain to build** (see the **v0.6.0 — remaining milestones (G–H)** section above). Remaining before merge:
-build **G–H**, then the small **merge-ready wrap** (the `README.md` Version-history summary + **Next** line) and
-the **device checks** above.
+**v0.6.0 (richer grounding, job detail & sources) is feature-complete** — all **eight** milestones (A–H) are in
+`MILESTONES.md`, ticked in `ROADMAP.md`; the full suite is green and the build is warning-free. Remaining before
+merge: the small **merge-ready wrap** (refresh the `README.md` Version-history summary for G–H) and the **device
+checks** above.
 
 **Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its number
 and theme aren't chosen until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At
 kickoff, pick a theme from `ROADMAP.md`'s Backlog (native `LanguageModel` provider seam, on-device embedding RAG,
-optional MCP tools) or a `PLANNED.md` entry (currently empty — the provider-selector and credential-setup-help
-entries were scheduled into v0.6.0 as Milestones G–H), assign the version number, bump `MARKETING_VERSION`, and
-break it into Milestone A, B, C… here.
+optional MCP tools) or a `PLANNED.md` entry (supporting profile documents; customizable LaTeX styles — v0.7.0),
+assign the version number, bump `MARKETING_VERSION`, and break it into Milestone A, B, C… here.

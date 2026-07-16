@@ -77,9 +77,14 @@ final class SearchViewModel {
     /// A soft, non-fatal note (e.g. one title's search failed but others succeeded).
     private(set) var warningMessage: String?
 
-    /// Whether Adzuna credentials resolve (user-entered or build-time). When `false`, search
-    /// can't run. A `var` so a Settings save can refresh it live (Milestone D-D).
-    var adzunaConfigured: Bool
+    /// The provider ids whose credentials resolve — the **available** set (Milestone H). A `var`
+    /// so a Settings save refreshes it live. Search runs only providers that are both configured
+    /// and selected.
+    var configuredProviderIDs: Set<String>
+    /// The provider ids the user has selected to query. Defaults to every registered provider.
+    var selectedProviderIDs: Set<String>
+    /// The registered providers, in order — drives the selector UI (Milestone H).
+    let providers: [JobProviderDescriptor] = JobProviderRegistry.all
 
     /// The user's saved, re-runnable searches, newest first (Milestone R).
     private(set) var savedSearches: [SavedSearch] = []
@@ -110,7 +115,7 @@ final class SearchViewModel {
         saveSearch: SaveSearchUseCase? = nil,
         loadSavedSearches: LoadSavedSearchesUseCase? = nil,
         deleteSavedSearch: DeleteSavedSearchUseCase? = nil,
-        adzunaConfigured: Bool = true
+        configuredProviderIDs: Set<String> = Set(JobProviderRegistry.all.map(\.id))
     ) {
         self.searchAndRank = searchAndRank
         self.suggestions = suggestions
@@ -124,7 +129,8 @@ final class SearchViewModel {
         self.saveSearch = saveSearch
         self.loadSavedSearches = loadSavedSearches
         self.deleteSavedSearch = deleteSavedSearch
-        self.adzunaConfigured = adzunaConfigured
+        self.configuredProviderIDs = configuredProviderIDs
+        self.selectedProviderIDs = Set(JobProviderRegistry.all.map(\.id))
         self.commonRoleTitles = roleTitleStore.load()
         self.savedLocations = locationStore?.load() ?? []
         self.savedSalaries = salaryPresetStore?.load() ?? []
@@ -157,7 +163,7 @@ final class SearchViewModel {
     /// saved request, then runs it (reporting how many results are new since last time).
     func runSavedSearch(_ saved: SavedSearch) async {
         applyRequest(saved.request)
-        guard adzunaConfigured else { errorMessage = unavailableMessage; return }
+        guard !activeProviderIDs.isEmpty else { errorMessage = unavailableMessage; return }
         guard hasProfile else { errorMessage = "Build your profile on the Portfolio tab first."; return }
         await performSearch(saved.request, isRerun: true)
     }
@@ -179,6 +185,8 @@ final class SearchViewModel {
         positionType = request.positionType
         desiredResultText = request.desiredResultCount.map(String.init) ?? ""
         minimumScore = Double(request.minimumScore ?? 0)
+        // Restore the saved provider selection (nil ⇒ all registered — a pre-H saved search).
+        selectedProviderIDs = request.sources.map(Set.init) ?? Set(JobProviderRegistry.all.map(\.id))
     }
 
     // MARK: Expanded search parameters (Milestone U)
@@ -284,16 +292,30 @@ final class SearchViewModel {
         return result
     }
 
-    /// A build-level banner shown when search is unavailable because credentials
-    /// weren't baked in. Distinct from `errorMessage`, which reports run failures.
+    /// The providers a search will actually run — selected **and** configured (Milestone H).
+    var activeProviderIDs: Set<String> { selectedProviderIDs.intersection(configuredProviderIDs) }
+
+    /// A banner shown when search can't run for a provider reason (no key configured, or none
+    /// of the configured providers is selected). Distinct from `errorMessage` (run failures).
     var unavailableMessage: String? {
-        adzunaConfigured
-            ? nil
-            : "Search is unavailable in this build — Adzuna credentials weren't configured when it was built."
+        guard activeProviderIDs.isEmpty else { return nil }
+        return configuredProviderIDs.isEmpty
+            ? "Search is unavailable — add a job-source API key in Settings → Sources."
+            : "No search source selected — pick at least one configured provider below."
     }
 
     var canSearch: Bool {
-        adzunaConfigured && hasProfile && !effectiveTitles.isEmpty && !isSearching
+        !activeProviderIDs.isEmpty && hasProfile && !effectiveTitles.isEmpty && !isSearching
+    }
+
+    // MARK: Provider selection (Milestone H)
+
+    func isProviderSelected(_ id: String) -> Bool { selectedProviderIDs.contains(id) }
+    func isProviderConfigured(_ id: String) -> Bool { configuredProviderIDs.contains(id) }
+
+    /// Adds/removes a provider from the selection (drives the selector toggles).
+    func setProvider(_ id: String, selected: Bool) {
+        if selected { selectedProviderIDs.insert(id) } else { selectedProviderIDs.remove(id) }
     }
 
     // MARK: Chip editing
@@ -417,7 +439,7 @@ final class SearchViewModel {
     // MARK: Search
 
     func search() async {
-        guard adzunaConfigured else {
+        guard !activeProviderIDs.isEmpty else {
             errorMessage = unavailableMessage
             return
         }
@@ -437,7 +459,8 @@ final class SearchViewModel {
             salaryMin: effectiveSalaryMin.map(Double.init),
             positionType: positionType,
             desiredResultCount: desiredResultCount,
-            minimumScore: effectiveMinimumScore
+            minimumScore: effectiveMinimumScore,
+            sources: selectedProviderIDs.isEmpty ? nil : selectedProviderIDs.sorted()
         )
     }
 

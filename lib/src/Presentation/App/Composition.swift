@@ -60,6 +60,12 @@ struct Composition {
     /// or the build-time fallback (Milestone D).
     var isAdzunaConfigured: Bool { credentialsStore.hasCredentials(for: .adzuna) }
 
+    /// The ids of every registered provider whose credentials currently resolve — seeds the
+    /// Search view's availability gate + provider selector (Milestone H).
+    var configuredProviderIDs: Set<String> {
+        Set(JobProviderRegistry.all.filter { credentialsStore.hasCredentials(for: $0.provider) }.map(\.id))
+    }
+
     /// Builds the SwiftData-backed record store, or `nil` if the container can't be
     /// created — persistence then degrades to off rather than crashing the app.
     private static func makeRecordStore() -> (any PersistentRecordStore)? {
@@ -215,7 +221,7 @@ struct Composition {
             saveSearch: saveSearch,
             loadSavedSearches: loadSavedSearches,
             deleteSavedSearch: deleteSavedSearch,
-            adzunaConfigured: isAdzunaConfigured
+            configuredProviderIDs: configuredProviderIDs
         )
     }
     func makeResultsViewModel() -> ResultsViewModel {
@@ -334,10 +340,12 @@ private nonisolated struct SettingsBackedJobSource: JobSource {
         let country = store.load().adzunaCountry
         // Data-driven: every registered provider builds itself from resolved credentials via
         // the registry (Milestone H-A); one with no key returns nil and is omitted (fail-soft).
-        // No provider is hand-enumerated here.
-        let sources = JobProviderRegistry.all.compactMap { descriptor in
+        // Labeled by the provider id so the composite can honour the query's source selection
+        // (Milestone H). No provider is hand-enumerated here.
+        let providers = JobProviderRegistry.all.compactMap { descriptor in
             descriptor.makeSource({ credentials.value(for: $0) }, http, country)
+                .map { CompositeJobSource.Provider(id: descriptor.id, source: $0) }
         }
-        return try await CompositeJobSource(sources: sources).search(query)
+        return try await CompositeJobSource(providers: providers).search(query)
     }
 }

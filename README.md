@@ -140,7 +140,9 @@ Gave ranking and tailored generation **more real signal to work from** — and *
   chrome, rendered as markdown and used as grounding — not Adzuna's ~500-char snippet.
 - **Multi-source search (F):** aggregate providers behind a `CompositeJobSource` with cross-source de-dup —
   **Adzuna** plus an optional **JSearch (RapidAPI)** aggregator whose rich response arrives already-enriched.
-  *(Milestones A–F.)*
+- **Provider setup help & selector (G, H):** a data-driven **provider registry** powers per-provider
+  "How to get a key" help in Settings and a **"Search sources" selector** in the Search view — pick which
+  API(s) to query; a provider with no key is disabled. *(Milestones A–H.)*
 
 **Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
 from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool

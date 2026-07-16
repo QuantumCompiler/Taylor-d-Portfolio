@@ -181,6 +181,21 @@ struct SettingsViewModelTests {
         #expect(credentials.value(for: .jsearchAPIKey) == nil)
     }
 
+    @Test func configuredProviderIDsReflectResolutionAndUpdateAfterSave() {
+        // v0.6.0 Milestone H — the set RootView pushes to Search's availability gate/selector.
+        let (vm, _) = makeVM()
+        #expect(vm.configuredProviderIDs.isEmpty)
+
+        vm.setCredentialBuffer("id", for: .adzunaAppID)
+        vm.setCredentialBuffer("key", for: .adzunaAppKey)
+        vm.save()
+        #expect(vm.configuredProviderIDs == ["adzuna"])
+
+        vm.setCredentialBuffer("rapid-key", for: .jsearchAPIKey)
+        vm.save()
+        #expect(vm.configuredProviderIDs == ["adzuna", "jsearch"])
+    }
+
     @Test func credentialControlsAreNoOpsWithoutAStore() {
         let vm = SettingsViewModel(store: SettingsStore(store: PresentationMemoryStore()), adzunaConfigured: true)
         vm.setCredentialBuffer("x", for: .adzunaAppID)

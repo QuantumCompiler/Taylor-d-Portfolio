@@ -85,4 +85,31 @@ struct CompositeJobSourceTests {
         let composite = CompositeJobSource(sources: [])
         #expect(try await composite.search(query).isEmpty)
     }
+
+    // MARK: Selection (Milestone H)
+
+    @Test func runsOnlyTheSelectedProviders() async throws {
+        let adzuna = StubSource(listings: [listing(id: "a1", company: "Acme")])
+        let jsearch = StubSource(listings: [listing(id: "b1", company: "Globex")])   // distinct posting
+        let composite = CompositeJobSource(providers: [
+            .init(id: "adzuna", source: adzuna),
+            .init(id: "jsearch", source: jsearch),
+        ])
+
+        var onlyJSearch = query; onlyJSearch.sources = ["jsearch"]
+        #expect(try await composite.search(onlyJSearch).map(\.id) == ["b1"])
+
+        var onlyAdzuna = query; onlyAdzuna.sources = ["adzuna"]
+        #expect(try await composite.search(onlyAdzuna).map(\.id) == ["a1"])
+    }
+
+    @Test func nilOrEmptySelectionRunsEveryProvider() async throws {
+        let composite = CompositeJobSource(providers: [
+            .init(id: "adzuna", source: StubSource(listings: [listing(id: "a1", company: "Acme")])),
+            .init(id: "jsearch", source: StubSource(listings: [listing(id: "b1", company: "Globex")])),
+        ])
+        #expect(try await composite.search(query).count == 2)         // nil ⇒ all
+        var empty = query; empty.sources = []
+        #expect(try await composite.search(empty).count == 2)         // empty ⇒ all
+    }
 }
