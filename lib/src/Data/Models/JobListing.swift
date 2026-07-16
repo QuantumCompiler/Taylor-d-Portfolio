@@ -81,6 +81,15 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
         self.source = source
     }
 
+    /// The `source` tag for an AI-suggested lead from the LLM job source (v0.6.0 Milestone J).
+    /// The UI keys its "AI-suggested — verify" labelling off this, and the lead's `url` is a
+    /// **search query**, never a model-produced live-posting link.
+    static let aiSource = "AI-suggested"
+
+    /// Whether this listing is an AI-suggested lead (from the LLM job source) rather than a
+    /// verified API posting — drives the results/detail labelling (Milestone J-F).
+    var isAISuggested: Bool { source == Self.aiSource }
+
     /// The fullest posting text available for grounding and display — the recovered full page
     /// when present, else the (possibly truncated) API snippet. Ranking, brief-building, and
     /// the detail view read this so they work from the whole posting when it's been captured.

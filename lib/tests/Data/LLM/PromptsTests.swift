@@ -245,8 +245,17 @@ struct PromptsTests {
         #expect(prompt.contains("gapNote"))
     }
 
-    @Test func generateInstructionsForbidFabrication() {
-        #expect(Prompts.generateInstructions.lowercased().contains("never"))
+    @Test func authenticInstructionsForbidFabrication() {
+        // The default (authentic) band keeps the original never-fake system instruction.
+        #expect(Prompts.generateInstructions().lowercased().contains("never"))
+        #expect(Prompts.generateInstructions(GenerationSettings(fidelity: 0)).lowercased().contains("never fake"))
+    }
+
+    @Test func embellishedInstructionsPermitDisclosedFabrication() {
+        let instr = Prompts.generateInstructions(GenerationSettings(fidelity: 1.0)).lowercased()
+        #expect(instr.contains("may add"))          // fabrication is permitted…
+        #expect(instr.contains("disclosed"))        // …but must be disclosed
+        #expect(!instr.contains("never fake"))      // the hard cap is gone at this band
     }
 
     // MARK: T-B — two-document grounding
@@ -386,6 +395,39 @@ struct PromptsTests {
         #expect(prompt.contains("EMBELLISHED:"))
     }
 
+    @Test func authenticBasePromptKeepsTheNeverFabricateFraming() {
+        let prompt = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief)
+        #expect(prompt.contains("grounded ONLY in the candidate profile"))
+        #expect(prompt.contains("never fabricate one"))
+        #expect(prompt.contains("the only true facts you may use"))
+    }
+
+    @Test func embellishedBasePromptDropsGroundingFramingAndPermitsInvention() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(fidelity: 1.0)
+        )
+        // The unconditional grounding scaffolding is gone at the embellished band…
+        #expect(!prompt.contains("grounded ONLY in the candidate profile"))
+        #expect(!prompt.contains("never fabricate one"))
+        #expect(!prompt.contains("the only true facts you may use"))
+        // …and the base framing itself now permits (disclosed) invention, agreeing with the controls.
+        #expect(prompt.contains("you MAY build"))
+        #expect(prompt.contains("add a plausible one"))
+    }
+
+    @Test func embellishedGroundingClauseRelaxesTheNeverAddRule() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            grounding: PortfolioGrounding(resumeText: "REAL RESUME", supportingText: "PORTFOLIO"),
+            settings: GenerationSettings(fidelity: 1.0)
+        )
+        #expect(prompt.contains("REAL RESUME"))
+        #expect(prompt.contains("PORTFOLIO"))
+        #expect(!prompt.contains("never add any fact absent"))   // grounding clause relaxed at this band
+        #expect(prompt.contains("extend"))                        // may extend with disclosed detail
+    }
+
     @Test func selectedAspectsRestrictTheScope() {
         let prompt = Prompts.generateApplication(
             job: job, profile: sampleProfile, brief: sampleBrief,
@@ -455,6 +497,34 @@ struct PromptsTests {
             job: job, profile: sampleProfile, brief: sampleBrief,
             settings: GenerationSettings(additionalContext: long)
         )
+        #expect(!prompt.contains(long))
+        #expect(prompt.contains("…"))
+    }
+
+    // MARK: J — LLM job search
+
+    @Test func searchJobsPromptCarriesQueryAndGroundingAndVerifyGuidance() {
+        let prompt = Prompts.searchJobs(
+            query: JobQuery(keywords: "iOS Engineer", location: "Berlin"),
+            grounding: PortfolioGrounding(resumeText: "REAL RESUME with QuantumKit")
+        )
+        #expect(prompt.contains("iOS Engineer"))              // the desired role
+        #expect(prompt.contains("Berlin"))                    // the location
+        #expect(prompt.contains("REAL RESUME with QuantumKit")) // grounded in the candidate
+        #expect(prompt.lowercased().contains("verify"))       // leads to verify, not confirmed
+        #expect(prompt.contains("Do NOT invent application links"))
+    }
+
+    @Test func searchJobsInstructionsForbidFabricatedURLsAndBiasToReal() {
+        let instr = Prompts.searchJobsInstructions.lowercased()
+        #expect(instr.contains("verify"))
+        #expect(instr.contains("fewer"))                      // return fewer rather than pad
+        #expect(instr.contains("url"))                        // never output application URLs
+    }
+
+    @Test func searchJobsBoundsALongResume() {
+        let long = String(repeating: "R", count: Prompts.maxPortfolioCharacters + 500)
+        let prompt = Prompts.searchJobs(query: JobQuery(keywords: "x"), grounding: PortfolioGrounding(resumeText: long))
         #expect(!prompt.contains(long))
         #expect(prompt.contains("…"))
     }

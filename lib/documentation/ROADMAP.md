@@ -602,7 +602,7 @@ breakdown + open calls.
 ## v0.6.0 — richer grounding, job detail & sources  (in progress)
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal
-to work from**, and **more (and better-fed) sources to get it from**. Ten milestones. The first three
+to work from**, and **more (and better-fed) sources to get it from**. Eleven milestones. The first three
 (**A–C, complete**) improve grounding: capture and surface **much more of a job posting** (Milestone A),
 let the user **choose which profile to ground on** and generate against its real source documents
 (Milestone B), and **regenerate a saved result** against a chosen profile so stale/legacy entries can be
@@ -615,8 +615,11 @@ per-provider **credential-setup help** in Settings (Milestone G), and a **provid
 so the user picks which API(s) to query — both driven by **one data-driven provider registry** so new providers
 appear everywhere automatically (Milestone H). A ninth milestone (**I, complete**) lets a profile carry **additional
 supporting documents** — e.g. a full career portfolio — baked in as factual grounding for richer search + generation.
-A tenth (**J, planned**) adds an **LLM-backed job source** — find leads from the résumé, labelled *AI-suggested*
-(leads, not verified postings) — wired in beside the API providers with its own engine in the task-engine map.
+A tenth (**J, complete**) adds an **LLM-backed job source** — find leads from the résumé, labelled *AI-suggested*
+(leads, not verified postings) — wired in beside the API providers with its own engine in the task-engine map. An
+eleventh (**K, planned**) **standardizes result descriptions** — LLM-digests *every* posting (whatever the source:
+Adzuna snippet, JSearch full text, page-fetch, or thin input) into one canonical `PostingDetails` format, rendered
+the same way, so results read consistently and generation grounds on a uniform structure.
 **Transparency to the user** holds throughout (the app makes clear what's real vs. generated), but there's **no
 hard never-fabricate rule** — fabrication is an accepted capability: enrichment *structures* what a posting says,
 re-ranking *re-assesses fit honestly*, and generated / LLM-sourced content is **surfaced as such** so the user
@@ -735,9 +738,9 @@ breakdown + open calls.
       Business (build/tidy) + Presentation (upload). On-device: import/tidy are `.profile` LLM work. Note:
       supporting docs are real, user-supplied grounding — they add signal, not invention. Scheduled from `PLANNED.md` 2026-07-15.
 
-- [ ] **Milestone J — LLM job source (find jobs from your résumé, no API required).** Search needs an API key today
+- [x] **Milestone J — LLM job source (find jobs from your résumé, no API required).** ✅ **Done (J-A…J-F).** Search needed an API key
       (Adzuna / JSearch); an LLM can surface roles straight from the résumé/portfolio (the "paste your résumé into a
-      fresh Claude session and it finds jobs" workflow). Wire an **LLM-backed `JobSource`** in as a first-class
+      fresh Claude session and it finds jobs" workflow). Now an **LLM-backed `JobSource`** is wired in as a first-class
       source — in **Settings → Sources** and the Milestone H **provider selector** — and give it its own **engine**
       via a new `LLMTask.jobSearch` (which auto-appears in the engines menu, since it iterates `LLMTask.allCases`).
       Add `LLMProvider.searchJobs(query:grounding:)` (forwarding default; Claude + on-device impls; `LLMRouter`
@@ -752,6 +755,22 @@ breakdown + open calls.
       `JobListing.fingerprint`). Seam: Data (LLM task + provider + `LLMJobSource` + registry) + Presentation
       (Sources + selector labelling). On-device: `.jobSearch` runs on-device or Claude — no API key. Scheduled 2026-07-15.
 
+- [ ] **Milestone K — Standardized result descriptions (digest every posting into one format).** Descriptions are
+      **inconsistent** (Adzuna's ~500-char snippet, JSearch full text, varying page-fetches) and enrichment runs only
+      **on save-to-Tracker** today (`ResultsViewModel.enrichSavedJob`), so the list / detail / grounding never get it.
+      Fix: as part of search, **LLM-digest every result into one canonical format** — the existing `PostingDetails`
+      sections — and render a **standardized description** from it, so every result reads the same *whatever the
+      source* and generation grounds on a uniform structure. Inject `EnrichPostingUseCase` into `SearchAndRankUseCase`
+      (bounded concurrency, reuse `searchAll`'s window); make it **always** structure — from the fetched page when it
+      works, **else the snippet + Adzuna fields anyway** — dropping the "keep snippet / skip already-full" no-op so
+      **even full JSearch text is normalized** (one format everywhere); add a pure `PostingDetails.standardDescription`
+      renderer as the displayed description; persist + show progressively. **Decisions:** reuse `PostingDetails`,
+      always digest every result. ⚠️ Cost: **one LLM call per result** (the skip-already-full saving is gone) —
+      guards are the bounded window, **caching** (never re-digest a job with `details`), and progressive display. Seam:
+      Business (`SearchAndRankUseCase` + `EnrichPostingUseCase`) + Data/Text (renderer) + Presentation (progressive
+      Results). On-device: `.extraction` LLM + page-fetch; the digest **normalizes** the posting (a normalized digest,
+      not verbatim, where the source is thin). Scheduled 2026-07-15.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
@@ -760,8 +779,9 @@ breakdown + open calls.
   résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **in progress**
   — A–H complete (A richer job postings, B profile-at-generation, C regenerate result, D user-editable credentials,
   E full posting text, F multi-source search, G per-provider credential-setup help, H Search provider selector — the
-  last two on H-A's data-driven provider registry), with **Milestones I–J** (supporting profile documents; LLM job
-  source) added and planned. **The next version is unstarted** — its number
+  last two on H-A's data-driven provider registry), with **I** (supporting profile documents) shipped and
+  **Milestones J–K** (LLM job source; standardized result descriptions) added and planned. **The next version is
+  unstarted** — its number
   and theme are chosen when development on it begins
   (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"

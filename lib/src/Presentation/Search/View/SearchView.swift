@@ -111,7 +111,10 @@ struct SearchView: View {
                         HStack(spacing: 6) {
                             Text(descriptor.displayName)
                             if !configured {
-                                Text("— add a key in Settings → Sources")
+                                // The LLM source needs no key — just an available engine.
+                                Text(descriptor.kind == .llm
+                                     ? "— set its engine in Settings → Engines"
+                                     : "— add a key in Settings → Sources")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                         }

@@ -105,7 +105,7 @@ extension SavedProfile {
     /// Mirrors `PortfolioViewModel.grounding`, but keyed to any saved profile so the user can
     /// pick which one to generate against and have generation ground on **its** source
     /// documents (not just the ambient/loaded one).
-    var grounding: PortfolioGrounding? {
+    nonisolated var grounding: PortfolioGrounding? {
         let resume = readableText.isEmpty ? sourceText : readableText
         guard !resume.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         let rawLetter = coverLetterReadableText.isEmpty ? coverLetterText : coverLetterReadableText
@@ -120,7 +120,7 @@ extension SavedProfile {
     /// The concatenated readable text of a profile's supporting documents (Milestone I),
     /// as one factual-grounding block — or `nil` when there are none with usable text.
     /// Shared by `SavedProfile.grounding` and `PortfolioViewModel.grounding`.
-    static func joinedSupportingText(_ documents: [SupportingDocument]) -> String? {
+    nonisolated static func joinedSupportingText(_ documents: [SupportingDocument]) -> String? {
         let joined = documents
             .map(\.effectiveText)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }

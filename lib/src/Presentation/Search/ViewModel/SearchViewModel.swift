@@ -482,7 +482,10 @@ final class SearchViewModel {
             positionType: positionType,
             desiredResultCount: desiredResultCount,
             minimumScore: effectiveMinimumScore,
-            sources: selectedProviderIDs.isEmpty ? nil : selectedProviderIDs.sorted()
+            // Only carry providers that are both selected **and** currently usable, so an
+            // unconfigured provider (e.g. the LLM source with no available engine) never lands in
+            // the saved request. `nil` ⇒ "all" (matches `CompositeJobSource`).
+            sources: activeProviderIDs.isEmpty ? nil : activeProviderIDs.sorted()
         )
     }
 

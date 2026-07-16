@@ -22,18 +22,31 @@ nonisolated struct JobProviderDescriptor: Sendable, Identifiable {
         let label: String
     }
 
+    /// How a provider's `JobSource` is built and how its availability is judged.
+    enum SourceKind: Sendable {
+        /// An API source built from resolved credentials (`makeSource`); available when its
+        /// required credentials resolve (Adzuna, JSearch).
+        case credentialed
+        /// The LLM-backed source (Milestone J): needs no API key, built by the composition root
+        /// from the LLM engine + profile grounding; available when its **engine** is available.
+        case llm
+    }
+
     let provider: JobProvider
     let displayName: String
-    /// The credential fields, in display order.
+    /// How the source is built + availability judged.
+    let kind: SourceKind
+    /// The credential fields, in display order (empty for `.llm`).
     let credentialFields: [CredentialField]
     /// The provider's developer sign-up / API-docs page — a static, known URL (never derived
-    /// from a job posting), safe to link out to.
-    let setupURL: URL
+    /// from a job posting), safe to link out to. `nil` for `.llm` (no key to sign up for).
+    let setupURL: URL?
     /// A few terse, offline/rot-proof setup steps (optional; may be empty).
     let setupSteps: [String]
     /// Builds this provider's `JobSource` from resolved credential values (`resolve`), the
     /// shared HTTP client, and the Adzuna country preference. Returns `nil` when a required
-    /// credential is missing — the caller then omits the provider (fail-soft).
+    /// credential is missing — the caller then omits the provider (fail-soft). Unused for
+    /// `.llm`, whose source the composition root builds (it needs the engine + grounding).
     let makeSource: @Sendable (
         _ resolve: @Sendable (JobCredentialField) -> String?,
         _ http: any HTTPClient,
@@ -46,7 +59,7 @@ nonisolated struct JobProviderDescriptor: Sendable, Identifiable {
 /// The registered search providers, in display / preference order. Adzuna is the primary
 /// (free) source; JSearch is an optional aggregator. Add a provider by appending a descriptor.
 nonisolated enum JobProviderRegistry {
-    static let all: [JobProviderDescriptor] = [.adzuna, .jsearch]
+    static let all: [JobProviderDescriptor] = [.adzuna, .jsearch, .llm]
 
     /// The descriptor for `provider`, if registered.
     static func descriptor(for provider: JobProvider) -> JobProviderDescriptor? {
@@ -58,6 +71,7 @@ extension JobProviderDescriptor {
     nonisolated static let adzuna = JobProviderDescriptor(
         provider: .adzuna,
         displayName: "Adzuna",
+        kind: .credentialed,
         credentialFields: [
             .init(field: .adzunaAppID, label: "App ID"),
             .init(field: .adzunaAppKey, label: "App Key"),
@@ -80,6 +94,7 @@ extension JobProviderDescriptor {
     nonisolated static let jsearch = JobProviderDescriptor(
         provider: .jsearch,
         displayName: "JSearch (RapidAPI)",
+        kind: .credentialed,
         credentialFields: [
             .init(field: .jsearchAPIKey, label: "API Key"),
         ],
@@ -93,5 +108,22 @@ extension JobProviderDescriptor {
             guard let apiKey = resolve(.jsearchAPIKey) else { return nil }
             return JSearchJobSource(credentials: .init(apiKey: apiKey), http: http)
         }
+    )
+
+    /// The LLM job source (Milestone J): no API key — its `JobSource` is built by the composition
+    /// root (it needs the AI engine + profile grounding, not credentials/HTTP), so `makeSource`
+    /// is unused here. Available when its **engine** is available (see `JobProvider.kind == .llm`).
+    nonisolated static let llm = JobProviderDescriptor(
+        provider: .llm,
+        displayName: "AI job search",
+        kind: .llm,
+        credentialFields: [],
+        setupURL: nil,
+        setupSteps: [
+            "No API key needed — this uses your on-device or Claude engine.",
+            "Choose its engine under Settings → Engines → “AI job search”.",
+            "Load a profile so suggestions are grounded in your real background.",
+        ],
+        makeSource: { _, _, _ in nil }
     )
 }

@@ -2509,3 +2509,51 @@ text bounded. *(Open calls resolved as recommended: **distil + ground** (both ch
 text as a first cut (RAG follow-on remains a Backlog item); **no per-doc "kind" tag** for now.)* Guardrail: factual
 grounding about the candidate — the transparency rule still binds (nothing beyond these real documents + the
 profile).
+
+## Milestone J — LLM job source (find jobs from your résumé, no API required)  ✅ done  (`Data/LLM` + `Data/Jobs` + `Data/Settings` + `Presentation`)
+
+Search needed an API key (Adzuna / JSearch). Milestone J wires an **LLM-backed `JobSource`** in as a first-class
+source — the "paste your résumé and it finds jobs" flow — so search works with **no API keys**, spanning both the
+**engines menu** (its own task) and the **Sources / provider selector** (its own source). The one hard rule is
+**transparency**: results are **AI-suggested leads**, labelled as such and never presented as verified live
+postings.
+
+- [x] **J-A — `LLMTask.jobSearch`.** New task (+ displayName "AI job search" / detail). Since Settings iterates
+      `LLMTask.allCases` and `AppSettings.defaultEngines` seeds from it, the task **auto-appears** in the engines
+      menu with its own `TaskEngineConfig` — no view change, no migration (`config(for:)` defaults it).
+- [x] **J-B — `searchJobs` seam.** New `GeneratedJobLead`/`GeneratedJobLeads` (`@Generable`+`Codable`, **no URL**
+      field by design). `LLMProvider.searchJobs(query:grounding:)` with a **forwarding default `[]`**; implemented
+      in `FoundationModelsProvider` (constrained decode) + `ClaudeCodeProvider` (JSON), routed through `.jobSearch`
+      in `LLMRouter`, and **forwarded in `SettingsBackedLLMProvider`** (Composition). `Prompts.searchJobs` grounds
+      on the profile/résumé + query with an explicit *"prefer real, plausibly-current roles; return fewer if unsure;
+      do NOT invent application links"* (bounded).
+- [x] **J-C — `JobProvider.llm` + `LLMJobSource`.** `JobProvider.llm` has **`requiredCredentials: []`** (no key).
+      [`LLMJobSource`](../src/Data/Jobs/LLMJobSource.swift) calls `searchJobs` (grounding read via an **async
+      closure**, since the source sits below the profile seam) and maps each lead → `JobListing` tagged
+      `JobListing.aiSource`, with a **deterministic id** (`ai:…`, so re-runs dedup + persist stably) and a
+      **web-search URL** (Google query — never a model-produced posting link).
+- [x] **J-D — Registered in `JobProviderRegistry`.** Descriptor gained a **`kind`** (`.credentialed` / `.llm`) and
+      an **optional `setupURL`**; `.llm` (kind `.llm`, no credential fields, nil setupURL) is appended to `all`.
+      `SettingsBackedJobSource` special-cases `kind == .llm` to build `LLMJobSource` from the engine + a
+      default-profile grounding closure; credentialed providers still build from resolved keys. Registry order puts
+      `.llm` **last**, so a real API posting wins over an AI dupe on `fingerprint`.
+- [x] **J-E — Engine-based availability.** For `.llm`, "configured / available" means the **engine** is available
+      (on-device ready, or `claude` on PATH) — not credentials. `Composition.isLLMJobSearchAvailable` drives its
+      inclusion in `configuredProviderIDs`; `SettingsViewModel(llmSourceAvailable:)` mirrors it in `isConfigured`;
+      the Settings Sources section renders no key fields + no sign-up link for it; the Search selector's disabled
+      hint points to **Engines**, not a key.
+- [x] **J-F — AI-suggested labelling.** `JobListing.isAISuggested` drives an **AI-suggested chip** on `RankedRow`,
+      a prominent **"AI-suggested lead — not a verified posting; confirm before applying"** banner in
+      `JobDetailView`, and relabels the footer link to **"Search for this role"** (its URL is a search query).
+
+**Tests.** `LLMJobSource` maps a stubbed `searchJobs` response → `JobListing`s tagged AI with a Google **search**
+URL + deterministic id; the grounding closure is passed through; an AI lead **dedups against an API listing by
+fingerprint** (API kept); the `.llm` descriptor is keyless (no fields, nil setupURL); `SettingsViewModel`'s
+`.llm` status/`configuredProviderIDs` are **engine-based, not credential-based**; `Prompts.searchJobs` carries the
+query + grounding + verify/never-invent-URL guidance and is bounded. Full suite green; build warning-free.
+
+**On-device.** `.jobSearch` runs on-device (or Claude when chosen) — **no API key**; a web-search-capable engine
+needs network. **Transparency (the one hard rule):** leads are **AI-suggested**, labelled, never shown as verified
+postings, and linked to a **search query** rather than a fabricated posting URL. *(Open calls resolved as
+recommended: **search-query URL** (never a fake posting link); leads are model-knowledge so the labelling carries
+the weight; **capped** at `Prompts.maxJobLeads` (8) and **deduped** against API results by `fingerprint`.)*

@@ -9,15 +9,16 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.0 — richer grounding, job detail & sources — Milestone J (LLM job source); next J-A.**
-> A–I are done (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A** richer job postings; **B**
+> **Current focus. v0.6.0 — richer grounding, job detail & sources — Milestone K (standardized result descriptions); next K-A.**
+> A–J are done (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A** richer job postings; **B**
 > per-generation profile picker; **C** regenerate result; **D** user-editable API credentials; **E** full
 > job-posting text; **F** multi-source search; **G** per-provider credential-setup help — which also delivered
 > **H-A**, the enumerable **provider registry** (`JobProviderRegistry`); **H** the Search **provider selector**;
-> **I** supporting profile documents (extra career docs baked into a profile as factual grounding). **Remaining:
-> Milestone J** (the **LLM job source** — scheduled 2026-07-15; see the **v0.6.0 — remaining milestone (J)** section
-> below), then the small **merge-ready wrap** (`README.md` Version-history is already updated for A–F; refresh it
-> for G–J) and the **device checks** below.
+> **I** supporting profile documents (extra career docs baked into a profile as factual grounding); **J** the
+> **LLM job source** (AI-suggested leads from your résumé, no API key). **Remaining: Milestone K**
+> (**standardized result descriptions** — scheduled 2026-07-15; see the **v0.6.0 — remaining milestone (K)**
+> section below), then the small **merge-ready wrap** (`README.md` Version-history is already updated for A–F;
+> refresh it for G–K) and the **device checks** below.
 > `MARKETING_VERSION` is `0.6.0`.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
@@ -91,96 +92,103 @@ doing.
 > with none still loads); and a job generated against a profile with a rich supporting portfolio visibly draws on
 > the extra signal (both the ranking and the tailored résumé/cover letter). *(Import real documents — the agent
 > never does.)*
+>
+> **⚠️ Awaiting device checks (v0.6.0 Milestone J)** — with an AI engine available (on-device ready, or `claude`
+> installed): **Settings → Engines** shows an **"AI job search"** task (pick its engine/model); **Settings →
+> Sources** shows an **"AI job search"** section with **Configured** status and **no key fields / no sign-up link**;
+> **Search → New Search** lists **AI job search** as a selectable source (disabled with an "engine" hint if no
+> engine is available). Running a search with it (a profile loaded) returns **AI-suggested** leads that carry a
+> purple **"AI-suggested"** chip in Results and a prominent **"not a verified posting — confirm before applying"**
+> banner in the detail, whose link opens a **web search** for the role (not a posting URL); an AI lead that
+> duplicates a real Adzuna/JSearch posting appears **once** (the API posting wins); and with **no** API keys but an
+> available engine, search still works (AI-only). *(The suggestions are the model's — verify before applying.)*
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
 
 ---
 
-# v0.6.0 — remaining milestone (J)
+# v0.6.0 — remaining milestone (K)
 
-One feature scheduled (2026-07-15) still to build in the current release: **J** — an **LLM-backed job source**
-that finds job leads from your résumé/portfolio, wired in alongside the API providers and given its own engine.
-(Milestone letters are per-version; this is v0.6.0's J, unrelated to v0.5.1's Milestone J.) *(Milestone **I** —
-supporting profile documents — shipped; its write-up is in `MILESTONES.md`.)*
+One feature still to build in the current release: **K** — **standardized result descriptions** (LLM-digest
+*every* posting into one canonical `PostingDetails` format so results read the same whatever the source, and
+generation grounds on a uniform structure). (Milestone letters are per-version.) *(Milestones **I** — supporting
+profile documents — and **J** — LLM job source — shipped; their write-ups are in `MILESTONES.md`.)*
 
-## Milestone J — LLM job source (find jobs from your résumé, no API required)
+## Milestone K — Standardized result descriptions (digest every posting into one format)
 
-**What / why.** Search needs an API key today (Adzuna / JSearch). But an LLM can surface roles straight from a
-résumé/portfolio — the "paste your résumé into a fresh Claude session and it finds jobs for you" workflow. Wire an
-**LLM-backed `JobSource`** in as a first-class search source (Settings → **Sources** + the Milestone H **provider
-selector**) and give it its own **engine** in the engines menu — so search works even with **no API keys**.
+**What / why.** Two problems with descriptions today: **(1)** a result shows the **raw source** `description` —
+Adzuna's ~500-char snippet ("…"), JSearch's full text, or a page-fetch of varying quality — so descriptions are
+**inconsistent** and often thin; and **(2)** enrichment runs **only on save-to-Tracker**
+([`ResultsViewModel.enrichSavedJob`](../src/Presentation/Results/ViewModel/ResultsViewModel.swift:139)), so the
+list / detail / grounding never get it automatically. **Fix:** as part of search, **LLM-digest every result into one
+canonical format** — the existing [`PostingDetails`](../src/Data/Models/PostingDetails.swift) sections — and render a
+**standardized description** from it, so every result reads the same *regardless of source* and generation always
+grounds on a uniform structure. **Decisions (2026-07-15):** reuse `PostingDetails` + a fixed renderer; **always
+digest every result** (even already-full JSearch text); and when the fetch is thin/blocked, **digest from whatever we
+have anyway** (snippet + Adzuna fields + title/company).
 
-**⚠️ The one rule that stays — transparency to the user.** An LLM asked to "find jobs" will surface roles that may
-not be verified live postings — possibly invented companies or URLs. **Fabrication itself is fine in this app;
-misleading the user isn't.** So LLM results are **AI-suggested leads**, clearly labelled, and shouldn't present an
-unverified `redirect_url` as a confirmed live posting — the user should know these are AI suggestions, not confirmed
-openings. This is the milestone's central design decision (open call below), not an afterthought.
+**Seam + files.**
+- **Digest into the search pipeline.** Inject
+  [`EnrichPostingUseCase`](../src/Business/UseCases/EnrichPostingUseCase.swift) into
+  [`SearchAndRankUseCase`](../src/Business/UseCases/SearchAndRankUseCase.swift) and, **after ranking**, digest the
+  `[RankedJob]` with **bounded concurrency** (reuse the `withTaskGroup` window in `SearchAndRankUseCase.searchAll`
+  `:161`). Digestion becomes part of the search output, not a save-time afterthought.
+- **Always structure, even from thin input.** Change `EnrichPostingUseCase` so it **always** runs `enrichPosting`
+  (LLM) into `PostingDetails` using the best available text — the fetched full page (Milestone E) when it works,
+  **else the snippet + structured Adzuna fields** (`contract_type`/`contract_time`/`category`) + title/company.
+  **Drop** today's "no-op when the page can't be fetched / `hasContent` is false → keep the snippet" gating: we
+  always attach the digest (some sections may be empty). And **always digest even already-full JSearch text**, so
+  every result shares one format (this removes the old skip-already-full cost saving — see cost note).
+- **Standard rendered description (pure).** Add a deterministic renderer — `PostingDetails.standardDescription` (or
+  a `StandardPostingRenderer`, Infrastructure/Text) — that renders the sections into a **fixed template** (role
+  summary → About the role → Responsibilities → Qualifications → Nice-to-haves → About the company → Benefits →
+  work type). Unit-testable, identical shape for every result. It becomes the **displayed** description
+  (`JobDetailView` / results); the raw source text stays as a fallback when the digest is empty.
+- **Feeds generation consistently (the payoff).** `PostingDetails` already flows into `buildTargetBrief` via
+  `Prompts.postingDetailSection` (A-E). Now that **every** job carries a populated `PostingDetails`, generation
+  grounds on a uniform structure — the "standard format for creating applications" this milestone is really about.
+- **⚠️ Cost (heavier than a plain enrich).** "Always digest" = **one LLM call per result** (+ a page-fetch
+  attempt), *including* JSearch results that were previously free — so the skip-already-full saving is gone. Guards:
+  the **bounded-concurrency window**, **caching** (never re-digest a job already carrying `details`), and
+  **progressive display** — show ranked rows immediately (raw snippet), swap each to the standardized description as
+  it completes. A 25–50-result search is a real token/latency cost; surface it.
 
-**Seam + files — two touch-points (this is why it's one milestone spanning both menus).**
-1. **Engine — the `LLMTask` map.** Add an `LLMTask` case **`.jobSearch`** to
-   [`LLMTask`](../src/Data/LLM/LLMTask.swift) (+ `displayName` / `detail`). Since the Settings engines section
-   iterates `LLMTask.allCases`, the new task **auto-appears in the engines menu** with its own `TaskEngineConfig`
-   (engine + Claude model) — "available in the engines menu" with no view change. Add
-   `LLMProvider.searchJobs(query:grounding:) async throws -> [JobListing]`
-   ([`LLMProvider`](../src/Data/LLM/LLMProvider.swift)) with a **forwarding default** (`[]`) so stubs/engines needn't
-   all change; implement in `ClaudeCodeProvider` (JSON list) + `FoundationModelsProvider` (constrained `@Generable`
-   list); route through the new task in `LLMRouter`. `Prompts` block grounded on the profile/résumé + query, with an
-   explicit **"do not invent — only real, plausibly-current roles; return fewer if unsure."**
-2. **Source — the `JobSource` registry.** Add a `JobProvider` case **`.llm`**
-   ([`JobSourceCredentialsStore.swift:14`](../src/Data/Settings/JobSourceCredentialsStore.swift:14)) with
-   **`requiredCredentials: []`** (no API key). Add **`LLMJobSource: JobSource`** (Data/Jobs) holding the
-   `LLMProvider` + a **grounding closure** (the selected/default profile's `PortfolioGrounding`); its `search(_:)`
-   calls `searchJobs(query:grounding:)` and tags each result's `source` = AI (reuses F's `JobListing.source` open
-   call). Register it in [`JobProviderRegistry`](../src/Data/Jobs/JobProviderRegistry.swift) so it appears in
-   **Settings → Sources** and the **H search selector** — no hand-enumeration.
+**Sub-tasks (K-A…):**
+- [ ] **K-A** — Inject `EnrichPostingUseCase` into `SearchAndRankUseCase`; digest **every** ranked result into
+      `PostingDetails` with bounded concurrency (reuse `searchAll`'s window).
+- [ ] **K-B** — Make `EnrichPostingUseCase` **always** structure (even from snippet + Adzuna fields); drop the
+      "keep snippet when empty / skip already-full" no-op — always attach the digest.
+- [ ] **K-C** — `PostingDetails.standardDescription` (pure fixed-template renderer) → the displayed description; raw
+      source kept as fallback.
+- [ ] **K-D** — Progressive display (`SearchViewModel` / Results): raw snippet first, swap to standardized as each
+      completes; persist the standardized set (`persistResults` / `SaveResultsUseCase`).
+- [ ] **K-E** — Cost guard: bounded window + **cache** (skip re-digesting a job already carrying `details`); reuse
+      the rate-limit posture.
+- [ ] **(open call) Fixed-template section order/labels for `standardDescription`.** *Recommended:* role summary →
+      about role → responsibilities → qualifications → nice-to-haves → about company → benefits → work type.
+- [ ] **(open call) Soft per-search cap / digest the tail on-demand for very large searches?** *Recommended:*
+      bounded window first; add a cap only if huge searches prove too slow/costly.
+- [ ] **(open call) Extend `PostingDetails` (one-line role summary, comp/logistics)?** *Recommended:* ship with the
+      current fields; extend only if the standard description needs them.
 
-**Three real wrinkles (name them, don't bury):**
-- **The descriptor factory doesn't fit an LLM source.** `JobProviderDescriptor.makeSource` is
-  `(resolve, http, country) -> JobSource?` — built for an API source from credentials + HTTP. The LLM source needs
-  the `LLMProvider`/router + **profile grounding**, not http/credentials. Extend the descriptor (a richer dependency
-  bundle, or a source `kind` the composition root special-cases) so it can build `LLMJobSource`.
-- **"Configured / available" means something different for `.llm`.** For API providers, available = credentials
-  resolve (`hasCredentials`); `.llm`'s `requiredCredentials` is empty, so that's trivially true. Instead,
-  availability = the chosen **engine is available** (`claude` CLI installed, or on-device model ready). The Sources
-  UI + the H selector's enable/disable must use **engine-availability** for `.llm`.
-- **The source needs the profile, which lives above the `JobSource` seam.** `JobSource.search(query)` carries no
-  profile, but `SearchAndRankUseCase(request:profile:)` has it. Inject a **grounding closure** into `LLMJobSource`
-  that reads the selected/default profile at search time (mirroring how `SettingsBackedJobSource` reads country live).
-
-**Sub-tasks (J-A…):**
-- [ ] **J-A** — `LLMTask.jobSearch` (+ displayName/detail) → auto-appears in the engines menu.
-- [ ] **J-B** — `LLMProvider.searchJobs(query:grounding:)` (forwarding default) + `ClaudeCodeProvider` /
-      `FoundationModelsProvider` impls + `LLMRouter` routing + a **never-invent** `Prompts` block.
-- [ ] **J-C** — `JobProvider.llm` (no required credentials) + `LLMJobSource: JobSource` (grounding closure; tags source=AI).
-- [ ] **J-D** — Register `.llm` in `JobProviderRegistry` (extend the descriptor factory for an LLM source) → Sources + H selector.
-- [ ] **J-E** — Availability = **engine-available** (not credential) for `.llm`, in the Sources UI + the H selector gate.
-- [ ] **J-F** — **AI-suggested labelling** in results/detail + lead-URL handling (don't present an unverified URL
-      as a confirmed posting).
-- [ ] **(open call) Lead-URL presentation.** *Recommended:* each lead links to a **search query** (LinkedIn/Google
-      "title company location"), badged **"AI-suggested — verify before applying"**, rather than an unverified
-      live-posting URL.
-- [ ] **(open call) Does the `claude -p` provider have web-search tooling?** **Verify at build.** If not, leads are
-      model-knowledge (staleness risk) and the labelling matters even more.
-- [ ] **(open call) Count / dedup.** *Recommended:* cap the returned count; dedup against API results via F's
-      `JobListing.fingerprint`.
-
-**Tests.** `LLMJobSource` maps a stubbed `searchJobs` response → `[JobListing]` tagged AI; the `.llm` provider
-reports available iff its **engine** stub is available (independent of credentials); LLM results dedup against an API
-source by fingerprint.
-**On-device.** `.jobSearch` runs on-device (or Claude when chosen) — **no API key needed**; a web-search-capable
-engine needs network. **Transparency:** results are **AI-suggested leads**, labelled as such and not presented as
-verified live postings — the user sees they're AI suggestions. (Fabrication is acceptable; the label is what keeps
-the user informed.)
+**Tests.** Every result gets a `PostingDetails` (bounded) — a JSearch-style full-text listing **is still digested**,
+and a thin Adzuna snippet is digested from snippet + fields; `standardDescription` renders a consistent template from
+both populated and sparse details; a digest failure falls back to the raw description without failing the search; the
+standardized set persists; a job already carrying `details` is not re-digested (cache).
+**On-device.** One `.extraction`-task LLM call per result + a page-fetch — **cost scales with result count** (no
+skip-already-full now); bounded window + caching + progressive display are the guards. The digest **normalizes** the
+posting into the standard format; where the source is thin it summarizes what's there (a **normalized digest, not
+verbatim** — surfaced as such, consistent with the transparency stance).
 
 ---
 
 # Next version — (unstarted; number + theme TBD)
 
-**v0.6.0 (richer grounding, job detail & sources)** is **not yet feature-complete**: A–I are in `MILESTONES.md` /
-ticked in `ROADMAP.md`, but **Milestone J remains to build** (the LLM job source — see the **v0.6.0 — remaining
-milestone (J)** section above). Remaining before merge: build **J**, then the small **merge-ready wrap** (refresh
-the `README.md` Version-history summary for G–J) and the **device checks** above.
+**v0.6.0 (richer grounding, job detail & sources)** is **not yet feature-complete**: A–J are in `MILESTONES.md` /
+ticked in `ROADMAP.md`, but **Milestone K remains to build** (standardized result descriptions — see the
+**v0.6.0 — remaining milestone (K)** section above). Remaining before merge: build **K**, then the small
+**merge-ready wrap** (refresh the `README.md` Version-history summary for G–K) and the **device checks** above.
 
 **Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its number
 and theme aren't chosen until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At

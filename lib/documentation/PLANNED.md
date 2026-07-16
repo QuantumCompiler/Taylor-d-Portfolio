@@ -22,8 +22,9 @@ guess. The target is the entry's *intended* release; it's distinct from being *s
 position**, not at the end — e.g. a later-added `v0.6.1` item slots **between** the `v0.6.0` group and any `v0.7.0`
 group (so the file always reads earliest-target → latest-target, top to bottom).
 
-> **Two entries below**, in ascending target order: **keyword-match / ATS coverage** targets **`v0.6.1`** (a patch
-> on v0.6.0); **customizable LaTeX styles** targets **`v0.7.0`**. The **supporting profile documents** entry was
+> **Three entries below**, in ascending target order: **keyword-match / ATS coverage** → **`v0.6.1`**;
+> **discoverable remove-from-Tracker** → **`v0.6.2`**; **customizable LaTeX styles** → **`v0.7.0`**. The **supporting
+> profile documents** entry was
 > scheduled into **v0.6.0** as **Milestone I** (2026-07-15) and now lives in `TODO.md` / `ROADMAP.md`. Prior specced
 > entries were also scheduled into **v0.6.0 (richer grounding, job detail & sources)**:
 > - **richer job postings**, **select a profile at generation time**, **regenerate result** → Milestones **A–C**.
@@ -88,6 +89,44 @@ existing engine — no new engine or seam.
 **Scope.** Moderate, patch-sized (`.1`) — a `KeywordCoverage` value type + a `GenerationSettings` toggle + a
 `Prompts` block + a coverage panel. Composes with the already-extracted `TargetBrief` keywords and `JobMatch`
 skills. Respects the layer rule (Data/Business coverage ← Presentation panel).
+
+---
+
+## Discoverable remove-from-Tracker — surface the existing untrack / delete actions
+
+**Target:** **v0.6.2** (a patch on v0.6.0). Small.
+
+**Why (read this — the logic already exists).** The Tracker *already* supports both removals; they're just
+**undiscoverable**. Leading-swipe a Tracker row = **"To Results"** → `returnToResults` (clears the job's status so it
+returns to the general Results list); trailing-swipe = **"Delete"** → `delete` (forgets the listing + status + any
+generated materials). Both are wired. But they're **swipe-only**, and swipe-to-reveal-row-actions is an iOS pattern
+that's **undiscoverable on macOS** (no visible affordance; Mac users right-click or expect visible controls) — so in
+practice there's "no way to remove a result from the Tracker." **The gap is the affordance, not the behaviour.**
+
+**The seam + files (almost entirely Presentation — reuse the existing methods).**
+- **The actions exist, wired.** [`TrackerViewModel.returnToResults(_:)`](../src/Presentation/Tracker/ViewModel/TrackerViewModel.swift:54)
+  (via `UntrackJobUseCase`) and `.delete(_:)` (`:63`, via `DeleteSavedJobUseCase`), gated by `supportsRowActions`
+  and injected in `Composition.makeTrackerViewModel`. **No Business/Data change needed.**
+- **Add a discoverable affordance** in [`TrackerView`](../src/Presentation/Tracker/View/TrackerView.swift:104),
+  alongside the existing swipes (`.swipeActions` at `:106`/`:112`):
+  - a right-click **`contextMenu`** on the row (the native macOS pattern) — **"Return to Results"** +
+    **"Delete"** (destructive); and/or
+  - **hover-revealed row buttons** (a `arrow.uturn.backward` + `trash` icon), mirroring the **Results tab's visible
+    save/delete row icons** so the two tabs feel consistent.
+  - Keep the swipe actions as a secondary path.
+
+**Open calls (recommended defaults).**
+- **Context menu, hover buttons, or both?** *Recommended:* **both** — `contextMenu` (native + discoverable) plus
+  hover icons (mirrors Results). If only one, the context menu.
+- **Confirm on Delete?** *Recommended:* **yes** for Delete (it also forgets generated materials); **none** for
+  Return to Results (non-destructive — the job just moves back).
+- **Expose the actions from the Tracker detail view too?** *Recommended:* yes — add both to the open job's
+  detail/toolbar so they're reachable when a job is open, not only from the row.
+
+**On-device.** n/a — pure Presentation over the existing persistence use cases.
+
+**Scope.** Small (patch-sized, `.2`) — a `contextMenu` / hover buttons in `TrackerView` reusing the existing VM
+methods; no new seam. Fits **v0.6.2**. (The behaviour is done; this is a discoverability fix.)
 
 ---
 

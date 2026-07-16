@@ -20,6 +20,10 @@ struct RankedRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(ranked.listing.title).font(.headline)
+                    // AI-suggested lead marker (v0.6.0 Milestone J) — set apart from verified postings.
+                    if ranked.listing.isAISuggested {
+                        FacetBadge(text: "AI-suggested", systemImage: "sparkles", tint: .purple)
+                    }
                     ForEach(Array(history.facets.enumerated()), id: \.offset) { _, facet in
                         facetBadge(facet)
                     }

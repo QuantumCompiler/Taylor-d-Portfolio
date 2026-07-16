@@ -39,12 +39,13 @@ Four stages, run locally on the user's Mac:
    save icon on the row, or swiping the opened result right) rather than generating on
    the spot — or **deletes** a result they don't want (a trash icon; swiping left just
    dismisses). Then, from the **Tracker**, the app generates a tailored resume and cover
-   letter for a saved job, grounded strictly in the real portfolio (ROADMAP v0.3.0 Milestone
-   V). The user can then **export** those materials — copy them, or save as Markdown, PDF,
+   letter for a saved job — grounded in the real portfolio by default, with a **fidelity
+   control** to opt into more latitude (any addition beyond the portfolio is disclosed; see
+   Principles). The user can then **export** those materials — copy them, or save as Markdown, PDF,
    or DOCX (native, on-device — see ROADMAP v0.3.0 Milestone Q). A **second, high-fidelity PDF
    path** (v0.5.1) renders the résumé and cover letter as their **own** documents through Taylor's
    awesome-cv LaTeX classes, compiled with `lualatex` (an optional external dependency, like the
-   `claude` CLI); the raw `.tex` source can also be exported. Export never alters the grounded content.
+   `claude` CLI); the raw `.tex` source can also be exported. Export never alters the generated content.
 
 Alongside search, the user can also paste a **specific job-posting URL** (or the
 posting text, when a page can't be fetched); the app extracts it into the same
@@ -118,9 +119,11 @@ user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
 
 ## Grounding strategy (RAG over the portfolio)
 
-Ranking and generation must stay grounded in the user's *real* portfolio, and
+Ranking, and generation at its grounded default, build on the user's *real* portfolio, and
 the on-device model has a small context window — so we treat portfolio grounding
-as a retrieval problem (RAG), not a "dump everything into the prompt" problem.
+as a retrieval problem (RAG), not a "dump everything into the prompt" problem. (Grounding is
+the *default*, not a hard rule — the fidelity control lets the user opt into more latitude; RAG
+improves grounding **quality**, it doesn't enforce a never-fabricate rule.)
 
 - **v0.1.0 keeps it simple:** the bounded (truncated) portfolio is injected directly
   into the profile-building and generation prompts.

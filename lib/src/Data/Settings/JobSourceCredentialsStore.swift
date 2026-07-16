@@ -14,12 +14,17 @@ import Foundation
 nonisolated enum JobProvider: String, Codable, Sendable, CaseIterable {
     case adzuna
     case jsearch
+    /// The LLM-backed job source (v0.6.0 Milestone J) — needs **no** API key; its
+    /// availability is engine-based, not credential-based (see `JobProviderDescriptor.kind`).
+    case llm
 
-    /// The credential fields this provider requires before it can search.
+    /// The credential fields this provider requires before it can search. Empty for `.llm`,
+    /// which uses the selected AI engine rather than an API key.
     var requiredCredentials: [JobCredentialField] {
         switch self {
         case .adzuna:  return [.adzunaAppID, .adzunaAppKey]
         case .jsearch: return [.jsearchAPIKey]
+        case .llm:     return []
         }
     }
 }

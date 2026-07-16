@@ -60,10 +60,44 @@ struct Composition {
     /// or the build-time fallback (Milestone D).
     var isAdzunaConfigured: Bool { credentialsStore.hasCredentials(for: .adzuna) }
 
-    /// The ids of every registered provider whose credentials currently resolve — seeds the
-    /// Search view's availability gate + provider selector (Milestone H).
+    /// The ids of every registered provider that's currently usable — seeds the Search view's
+    /// availability gate + provider selector (Milestone H). A **credentialed** provider is usable
+    /// when its keys resolve; the **LLM** provider (Milestone J) is usable when its *engine* is
+    /// available (no API key).
     var configuredProviderIDs: Set<String> {
-        Set(JobProviderRegistry.all.filter { credentialsStore.hasCredentials(for: $0.provider) }.map(\.id))
+        Set(JobProviderRegistry.all.filter { isProviderAvailable($0) }.map(\.id))
+    }
+
+    /// Whether `descriptor`'s source can run right now — credentials for API providers, engine
+    /// availability for the LLM source (Milestone J).
+    private func isProviderAvailable(_ descriptor: JobProviderDescriptor) -> Bool {
+        switch descriptor.kind {
+        case .credentialed: return credentialsStore.hasCredentials(for: descriptor.provider)
+        case .llm:          return isLLMJobSearchAvailable
+        }
+    }
+
+    /// Whether the LLM job source's chosen engine is available (Milestone J): the on-device model
+    /// is ready, or the `claude` CLI is installed — depending on the `.jobSearch` engine choice.
+    var isLLMJobSearchAvailable: Bool {
+        Composition.isJobSearchEngineAvailable(settingsStore: settingsStore, onDeviceClient: onDeviceClient)
+    }
+
+    /// Pure availability check, shared by the instance property and the job-source closure.
+    /// `nonisolated` so the `@Sendable` job-source closure can call it off the main actor.
+    nonisolated private static func isJobSearchEngineAvailable(settingsStore: SettingsStore, onDeviceClient: FoundationModelsClient) -> Bool {
+        switch settingsStore.load().config(for: .jobSearch).choice {
+        case .onDevice: return onDeviceClient.isAvailable
+        case .claude:   return claudeAvailable
+        case .auto:     return onDeviceClient.isAvailable || claudeAvailable
+        }
+    }
+
+    /// Whether a `claude` executable is resolvable on the widened PATH (cheap, no launch).
+    nonisolated private static var claudeAvailable: Bool {
+        let env = ProcessInfo.processInfo.environment
+        let path = ProcessSupport.searchPATH(base: env["PATH"], home: env["HOME"] ?? NSHomeDirectory())
+        return ProcessSupport.locateExecutable(named: "claude", inPATH: path) != nil
     }
 
     /// Builds the SwiftData-backed record store, or `nil` if the container can't be
@@ -117,7 +151,24 @@ struct Composition {
     }
 
     private var jobSource: any JobSource {
-        SettingsBackedJobSource(credentials: credentialsStore, store: settingsStore, http: httpClient)
+        let loadProfiles = self.loadProfiles
+        let settingsStore = self.settingsStore
+        let onDeviceClient = self.onDeviceClient
+        return SettingsBackedJobSource(
+            credentials: credentialsStore,
+            store: settingsStore,
+            http: httpClient,
+            llm: llmProvider,
+            // Reads the default (else most-recent) saved profile's grounding at search time — the
+            // LLM source sits below the profile seam, so the grounding is lifted in (Milestone J).
+            grounding: {
+                guard let loadProfiles else { return nil }
+                let profiles = (try? await loadProfiles()) ?? []
+                let defaultID = DefaultProfileStore(store: UserDefaultsStore()).load()
+                return (profiles.first { $0.id == defaultID } ?? profiles.first)?.grounding
+            },
+            isLLMAvailable: { Composition.isJobSearchEngineAvailable(settingsStore: settingsStore, onDeviceClient: onDeviceClient) }
+        )
     }
 
     private var jobPostingSource: any JobPostingSource {
@@ -243,7 +294,8 @@ struct Composition {
     }
     func makeSettingsViewModel() -> SettingsViewModel {
         .init(store: settingsStore, credentials: credentialsStore,
-              latexAvailable: LaTeXProcessClient().isAvailable)
+              latexAvailable: LaTeXProcessClient().isAvailable,
+              llmSourceAvailable: isLLMJobSearchAvailable)
     }
     func makeApplicationViewModel() -> ApplicationViewModel {
         .init(
@@ -324,6 +376,9 @@ private nonisolated struct SettingsBackedLLMProvider: LLMProvider {
     func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
         try await router().scoreApplication(for: job, brief: brief, kit: kit)
     }
+    func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) async throws -> [GeneratedJobLead] {
+        try await router().searchJobs(query: query, grounding: grounding)
+    }
 }
 
 /// A `JobSource` that assembles every **configured** provider from the
@@ -335,16 +390,30 @@ private nonisolated struct SettingsBackedJobSource: JobSource {
     let credentials: JobSourceCredentialsStore
     let store: SettingsStore
     let http: any HTTPClient
+    /// The AI engine for the LLM job source (Milestone J).
+    let llm: any LLMProvider
+    /// Reads the candidate's grounding at search time (default/most-recent profile).
+    let grounding: @Sendable () async -> PortfolioGrounding?
+    /// Whether the LLM source's engine is available right now.
+    let isLLMAvailable: @Sendable () -> Bool
 
     func search(_ query: JobQuery) async throws -> [JobListing] {
         let country = store.load().adzunaCountry
-        // Data-driven: every registered provider builds itself from resolved credentials via
-        // the registry (Milestone H-A); one with no key returns nil and is omitted (fail-soft).
-        // Labeled by the provider id so the composite can honour the query's source selection
-        // (Milestone H). No provider is hand-enumerated here.
-        let providers = JobProviderRegistry.all.compactMap { descriptor in
-            descriptor.makeSource({ credentials.value(for: $0) }, http, country)
-                .map { CompositeJobSource.Provider(id: descriptor.id, source: $0) }
+        let llmAvailable = isLLMAvailable()
+        let grounding = self.grounding
+        // Data-driven: every registered provider builds itself via the registry (Milestone H-A).
+        // Credentialed sources build from resolved keys (nil → omitted, fail-soft); the LLM source
+        // (Milestone J) is built here from the engine + grounding, included only when its engine is
+        // available. Labeled by provider id so the composite honours the query's source selection.
+        let providers: [CompositeJobSource.Provider] = JobProviderRegistry.all.compactMap { descriptor in
+            let source: (any JobSource)?
+            switch descriptor.kind {
+            case .credentialed:
+                source = descriptor.makeSource({ credentials.value(for: $0) }, http, country)
+            case .llm:
+                source = llmAvailable ? LLMJobSource(provider: llm, grounding: grounding) : nil
+            }
+            return source.map { CompositeJobSource.Provider(id: descriptor.id, source: $0) }
         }
         return try await CompositeJobSource(providers: providers).search(query)
     }

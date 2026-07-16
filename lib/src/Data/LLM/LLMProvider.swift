@@ -78,6 +78,13 @@ protocol LLMProvider: Sendable {
     /// rank-target loop). Has a throwing default, so only real engines implement it; the
     /// router forwards to one.
     func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch
+
+    /// Suggests job leads that fit the candidate, straight from the profile / résumé (v0.6.0
+    /// Milestone J — the LLM job source). `grounding` carries the candidate's real document text;
+    /// `query` steers the desired roles + location. Returns AI-suggested leads (mapped to
+    /// `JobListing`s and tagged by ``LLMJobSource``) — never verified live postings. Has a
+    /// forwarding default returning `[]`, so stubs and engines without the capability need no change.
+    func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) async throws -> [GeneratedJobLead]
 }
 
 extension LLMProvider {
@@ -133,6 +140,12 @@ extension LLMProvider {
     /// Default: scoring isn't supported. Real engines override this; the router forwards.
     func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
         throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: no leads. Real engines (Foundation Models, Claude) override this; the router
+    /// forwards to one. A `[]` default keeps stubs and non-supporting engines working unchanged.
+    func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) async throws -> [GeneratedJobLead] {
+        []
     }
 }
 

@@ -33,6 +33,9 @@ final class SettingsViewModel {
     /// Whether a `lualatex` install was found — the awesome-cv LaTeX export route needs it
     /// (Milestone E). Surfaced read-only in the About pane. Probed in the composition root.
     let latexAvailable: Bool
+    /// Whether the LLM job source's engine is available (Milestone J) — its "Configured" status
+    /// and its inclusion in `configuredProviderIDs` are **engine-based**, not credential-based.
+    let llmSourceAvailable: Bool
 
     /// The tasks to show, in display order.
     let tasks = LLMTask.allCases
@@ -54,7 +57,8 @@ final class SettingsViewModel {
         store: SettingsStore,
         credentials: JobSourceCredentialsStore? = nil,
         adzunaConfigured: Bool = false,
-        latexAvailable: Bool = false
+        latexAvailable: Bool = false,
+        llmSourceAvailable: Bool = false
     ) {
         self.store = store
         self.credentials = credentials
@@ -62,18 +66,25 @@ final class SettingsViewModel {
         // argument is a fallback for previews/tests that don't supply one.
         self.adzunaConfigured = credentials?.hasCredentials(for: .adzuna) ?? adzunaConfigured
         self.latexAvailable = latexAvailable
+        self.llmSourceAvailable = llmSourceAvailable
         let settings = store.load()
         self.engines = settings.engines
         self.adzunaCountry = settings.adzunaCountry
         self.savedFields = Self.storedFields(in: credentials)
-        self.configuredProviderIDs = Self.resolvedProviderIDs(credentials, adzunaFallback: self.adzunaConfigured)
+        self.configuredProviderIDs = Self.resolvedProviderIDs(credentials, adzunaFallback: self.adzunaConfigured, llmAvailable: llmSourceAvailable)
     }
 
-    /// The registered providers whose credentials currently resolve. Without a store (previews/
-    /// tests), falls back to the `adzunaConfigured` flag for Adzuna only.
-    private static func resolvedProviderIDs(_ credentials: JobSourceCredentialsStore?, adzunaFallback: Bool) -> Set<String> {
+    /// The registered providers that are currently usable. Credentialed providers need their keys
+    /// to resolve; the LLM provider (Milestone J) needs its **engine** available (not a key).
+    /// Without a store (previews/tests), falls back to the `adzunaConfigured` flag for Adzuna only.
+    private static func resolvedProviderIDs(_ credentials: JobSourceCredentialsStore?, adzunaFallback: Bool, llmAvailable: Bool) -> Set<String> {
         if let credentials {
-            return Set(JobProviderRegistry.all.filter { credentials.hasCredentials(for: $0.provider) }.map(\.id))
+            return Set(JobProviderRegistry.all.filter { descriptor in
+                switch descriptor.kind {
+                case .credentialed: return credentials.hasCredentials(for: descriptor.provider)
+                case .llm:          return llmAvailable
+                }
+            }.map(\.id))
         }
         return adzunaFallback ? [JobProvider.adzuna.rawValue] : []
     }
@@ -95,8 +106,10 @@ final class SettingsViewModel {
     /// Whether `field` has a user-saved value (so it's shown locked + masked, not editable).
     func isCredentialSaved(_ field: JobCredentialField) -> Bool { savedFields.contains(field) }
 
-    /// Whether `provider`'s credentials resolve (user-entered or build-time) — its status.
+    /// Whether `provider` is usable — its "Configured" status. Credentialed providers resolve
+    /// their keys; the LLM provider (Milestone J) reports its **engine** availability instead.
     func isConfigured(_ provider: JobProvider) -> Bool {
+        if provider == .llm { return llmSourceAvailable }
         if let credentials { return credentials.hasCredentials(for: provider) }
         return provider == .adzuna && adzunaConfigured   // previews/tests without a store
     }
@@ -165,7 +178,7 @@ final class SettingsViewModel {
     private func refreshCredentialState() {
         savedFields = Self.storedFields(in: credentials)
         adzunaConfigured = credentials?.hasCredentials(for: .adzuna) ?? adzunaConfigured
-        configuredProviderIDs = Self.resolvedProviderIDs(credentials, adzunaFallback: adzunaConfigured)
+        configuredProviderIDs = Self.resolvedProviderIDs(credentials, adzunaFallback: adzunaConfigured, llmAvailable: llmSourceAvailable)
     }
 }
 

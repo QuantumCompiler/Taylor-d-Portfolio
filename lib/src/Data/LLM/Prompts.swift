@@ -354,11 +354,29 @@ nonisolated enum Prompts {
 
     // MARK: Generate application (stage 2 of generation)
 
-    static let generateInstructions =
-        "You are an expert application writer. You tailor a candidate's REAL experience to a specific role " +
-        "by re-ordering, re-weighting, and re-phrasing true facts only — never by inventing employers, titles, " +
-        "dates, metrics, degrees, or skills. If the role wants something the candidate lacks, you omit it and " +
-        "note the gap; you never fake it."
+    /// The stage-2 system instruction, **conditioned on the fidelity band** (v0.6.0): authentic
+    /// forbids fabrication, curated permits reasonable inference, embellished permits *disclosed*
+    /// invention. Higher bands no longer contradict the base prompt's framing or the GENERATION
+    /// CONTROLS block — they agree. `.authentic` (the default) is the original grounded instruction.
+    static func generateInstructions(_ settings: GenerationSettings = .default) -> String {
+        switch settings.band {
+        case .authentic:
+            return "You are an expert application writer. You tailor a candidate's REAL experience to a specific role " +
+                "by re-ordering, re-weighting, and re-phrasing true facts only — never by inventing employers, titles, " +
+                "dates, metrics, degrees, or skills. If the role wants something the candidate lacks, you omit it and " +
+                "note the gap; you never fake it."
+        case .curated:
+            return "You are an expert application writer. You tailor a candidate's experience to a specific role — " +
+                "emphasizing and reframing real experience and inferring reasonable adjacent skills the candidate " +
+                "plausibly has. You avoid inventing hard credentials (employers, titles, dates, degrees) outright, " +
+                "and you surface any stretch in the gap note."
+        case .embellished:
+            return "You are an expert application writer producing a DRAFT the candidate will review before sending. " +
+                "You tailor aggressively to maximise fit, and you MAY add plausible detail beyond the candidate's " +
+                "stated experience when it strengthens the match. Every addition not supported by the profile must be " +
+                "disclosed in the gap note (prefixed \"EMBELLISHED: \") so the candidate can verify it before sending."
+        }
+    }
 
     /// Stage 2: tailor the application against the profile and the stage-1 ``TargetBrief``.
     /// Ports the résumé-agent discipline (AGENT.md §5): map each brief signal to a true
@@ -403,9 +421,44 @@ nonisolated enum Prompts {
         grounding: PortfolioGrounding? = nil,
         settings: GenerationSettings = .default
     ) -> String {
+        let sources = grounding?.resumeText.isEmpty == false ? "candidate profile and résumé" : "candidate profile"
+
+        // The base prompt's framing tracks the fidelity band, so higher latitude no longer fights
+        // the GENERATION CONTROLS block appended below — they agree instead of contradicting. At
+        // `.authentic` (the default) this reproduces the original grounded wording.
+        let opening: String, factsParenthetical: String, methodStep1: String
+        let metricsClause: String, gapNoteClause: String
+        switch settings.band {
+        case .authentic:
+            opening = "Tailor application materials for this role, grounded ONLY in the \(sources) below."
+            factsParenthetical = "the only true facts you may use"
+            methodStep1 = "Map each brief signal to the closest TRUE fact in the profile. Where the profile has no "
+                + "matching fact, treat it as a GAP — never fabricate one."
+            metricsClause = "no clichés and no invented metrics."
+            gapNoteClause = "an honest, short note listing the notable must-have requirements the candidate does NOT "
+                + "clearly meet (the gaps from step 1). Never disguise a gap as a strength."
+        case .curated:
+            opening = "Tailor application materials for this role, grounded primarily in the \(sources) below — you "
+                + "may infer reasonable adjacent strengths the candidate plausibly has where it sharpens the fit."
+            factsParenthetical = "the candidate's true facts — your primary source"
+            methodStep1 = "Map each brief signal to the closest fact in the profile. Where the profile has no matching "
+                + "fact, you MAY infer a reasonable adjacent strength the candidate plausibly has; otherwise note it as a gap."
+            metricsClause = "no clichés; avoid inventing hard metrics or credentials."
+            gapNoteClause = "a short note listing the notable must-have requirements the candidate does NOT clearly meet, "
+                + "plus any adjacent strengths you inferred rather than read directly from the profile."
+        case .embellished:
+            opening = "Tailor application materials for this role, informed by the \(sources) below — you MAY build "
+                + "beyond it with plausible, role-strengthening detail to maximise the fit. This is a DRAFT the candidate will verify."
+            factsParenthetical = "the candidate's true facts — your starting point, which you may extend"
+            methodStep1 = "Map each brief signal to a supporting claim. Where the profile has no matching fact, you MAY "
+                + "add a plausible one that strengthens the fit — and record every such addition in gapNote."
+            metricsClause = "no clichés; any invented metric must be plausible and disclosed."
+            gapNoteClause = "a short note listing (a) the must-have requirements the candidate does NOT clearly meet, and "
+                + "(b) every statement you added beyond the profile, so the candidate can verify each one."
+        }
+
         let base = """
-        Tailor application materials for this role, grounded ONLY in the candidate profile\
-        \(grounding?.resumeText.isEmpty == false ? " and résumé" : "") below.
+        \(opening)
 
         Target brief (what the role wants):
         - company: \(brief.company)
@@ -416,17 +469,16 @@ nonisolated enum Prompts {
         - domain: \(brief.domain)
         - missionValues: \(brief.missionValues)
 
-        Candidate profile (the only true facts you may use):
+        Candidate profile (\(factsParenthetical)):
         - seniority: \(profile.seniority)
         - yearsExperience: \(profile.yearsExperience)
         - coreSkills: \(profile.coreSkills.joined(separator: ", "))
         - domains: \(profile.domains.joined(separator: ", "))
         - targetTitles: \(profile.targetTitles.joined(separator: ", "))
         - summary: \(profile.summary)
-        \(groundingSection(grounding))
+        \(groundingSection(grounding, band: settings.band))
         Method:
-        1. Map each brief signal to the closest TRUE fact in the profile. Where the profile has
-           no matching fact, treat it as a GAP — never fabricate one.
+        1. \(methodStep1)
         2. Foreground the overlap: lead with the single best-fit strength (the skill, domain, or
            experience that most closely matches the must-have keywords), and surface the exact
            keywords from the brief that are genuinely true for this candidate.
@@ -440,27 +492,28 @@ nonisolated enum Prompts {
             "## Why \(brief.company)" — connect the candidate's real strengths to this company's
               product, domain, and stated mission/values. This is the company-specific section.
             "## Why Me" — the concrete value proposition and a memorable closing.
-          Confident, specific, and technically literal; no clichés and no invented metrics.
-        - gapNote: an honest, short note listing the notable must-have requirements the candidate
-          does NOT clearly meet (the gaps from step 1). Never disguise a gap as a strength.
+          Confident, specific, and technically literal; \(metricsClause)
+        - gapNote: \(gapNoteClause)
         """
-        return base + generationControls(settings) + additionalContextSection(settings.additionalContext)
+        return base + generationControls(settings) + additionalContextSection(settings.additionalContext, band: settings.band)
     }
 
     /// The user's free-text steering guidance (Milestone I), appended when non-empty. Empty
     /// context returns "", so the default path stays byte-for-byte the base prompt. It directs
-    /// **emphasis/framing** only — the grounding + latitude rules above still bind, so it can't
-    /// introduce fabricated facts at the grounded default.
-    static func additionalContextSection(_ context: String) -> String {
+    /// **emphasis/framing**; the fidelity band above still governs how much latitude the model
+    /// takes, so at the grounded default the guidance can't introduce fabricated facts.
+    static func additionalContextSection(_ context: String, band: FidelityBand = .authentic) -> String {
         let trimmed = context.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "" }
+        let latitudeNote = band == .authentic
+            ? "It does NOT permit inventing anything; the grounding and latitude rules above still apply."
+            : "It steers emphasis and framing only; the latitude rules above still govern how much you may add or embellish."
         return """
 
 
-        ADDITIONAL USER GUIDANCE (steer emphasis and framing, NOT facts):
-        The candidate asked you to keep the following in mind — use it to choose which TRUE
-        experience to foreground and how to frame it. It does NOT permit inventing anything; the
-        grounding and latitude rules above still apply.
+        ADDITIONAL USER GUIDANCE (steer emphasis and framing):
+        The candidate asked you to keep the following in mind — use it to choose which experience to
+        foreground and how to frame it. \(latitudeNote)
         "\(truncate(trimmed, to: maxAdditionalContextCharacters))"
         """
     }
@@ -520,11 +573,28 @@ nonisolated enum Prompts {
 
     // MARK: Grounding (Milestone T)
 
-    /// The optional two-document grounding block injected into generation. The résumé is
-    /// additional **factual** grounding (reorder/rephrase only); the cover letter is a
-    /// **voice/tone exemplar** whose facts are never imported. Empty when there's nothing
-    /// to inject, so profile-only generation is byte-for-byte unchanged.
-    static func groundingSection(_ grounding: PortfolioGrounding?) -> String {
+    /// How the résumé / supporting documents may be used, **conditioned on the fidelity band**.
+    /// `subject` names the source ("it" / "these documents"). At `.authentic` this is the original
+    /// reorder-and-rephrase-only wording; higher bands permit inference / disclosed extension.
+    static func groundingUsageClause(_ band: FidelityBand, subject: String) -> String {
+        switch band {
+        case .authentic:
+            return "Use it as factual grounding: you may reorder and rephrase it, but never add any fact "
+                + "absent from \(subject) or the profile above."
+        case .curated:
+            return "Use it as your primary factual grounding: you may reorder, rephrase, and infer reasonable "
+                + "adjacent strengths from \(subject), disclosing any inference in gapNote."
+        case .embellished:
+            return "Use it as your factual base: you may reorder, rephrase, and extend \(subject) with plausible, "
+                + "role-strengthening detail — disclose every addition in gapNote."
+        }
+    }
+
+    /// The optional two-document grounding block injected into generation. The résumé + supporting
+    /// documents are **factual** grounding (usage conditioned on the fidelity `band`); the cover
+    /// letter is a **voice/tone exemplar** whose facts are never imported, regardless of band.
+    /// Empty when there's nothing to inject, so profile-only generation is unchanged.
+    static func groundingSection(_ grounding: PortfolioGrounding?, band: FidelityBand = .authentic) -> String {
         guard let grounding else { return "" }
         var section = ""
 
@@ -533,8 +603,7 @@ nonisolated enum Prompts {
             section += """
 
 
-            Candidate résumé — the candidate's REAL experience, as written. Use it as factual grounding:
-            you may reorder and rephrase it, but never add any fact absent from it or the profile above.
+            Candidate résumé — the candidate's REAL experience, as written. \(groundingUsageClause(band, subject: "it"))
             \(truncate(resume, to: maxPortfolioCharacters))
             """
         }
@@ -545,8 +614,7 @@ nonisolated enum Prompts {
 
 
             Additional supporting documents — more of the candidate's REAL background (e.g. a full career
-            portfolio of roles, skills, and projects). Use it as factual grounding exactly like the résumé:
-            you may draw on and rephrase it, but never add any fact absent from these documents or the profile.
+            portfolio of roles, skills, and projects). \(groundingUsageClause(band, subject: "these documents"))
             \(truncate(supporting, to: maxSupportingCharacters))
             """
         }
@@ -563,6 +631,58 @@ nonisolated enum Prompts {
             """
         }
         return section
+    }
+
+    // MARK: LLM job search (Milestone J)
+
+    /// Cap on the number of AI-suggested leads requested per search.
+    static let maxJobLeads = 8
+
+    static let searchJobsInstructions =
+        "You are a career research assistant. You suggest real, plausibly-current job openings that fit a " +
+        "candidate. These are LEADS the candidate will verify before applying — so prefer genuine, well-known " +
+        "employers and realistic roles, and if you are unsure, return FEWER leads rather than padding the list. " +
+        "You never output application URLs (the app builds a search link itself)."
+
+    /// Asks the engine for job leads that fit the candidate, grounded in the profile / résumé and
+    /// steered by the user's search keywords + location. Requests up to ``maxJobLeads`` leads, each
+    /// with a title, company, location, and a short why-it-fits summary — **no URLs** (the source
+    /// attaches a search-query link; a model-produced link is never shown as a live posting).
+    static func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) -> String {
+        let keywords = query.keywords.trimmingCharacters(in: .whitespacesAndNewlines)
+        let location = query.location?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resume = grounding?.resumeText.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let supporting = grounding?.supportingText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        var sections = [String]()
+        sections.append("""
+        Suggest up to \(maxJobLeads) job openings that would genuinely fit this candidate. They are leads the
+        candidate will verify before applying — favour real, plausibly-current roles at real employers, and return
+        fewer than \(maxJobLeads) if you are not confident. Do NOT invent application links.
+        """)
+
+        var wanted = [String]()
+        if !keywords.isEmpty { wanted.append("Desired roles / keywords: \(keywords)") }
+        if let location, !location.isEmpty { wanted.append("Preferred location: \(location)") }
+        if !wanted.isEmpty { sections.append(wanted.joined(separator: "\n")) }
+
+        if !resume.isEmpty {
+            sections.append("Candidate résumé (their REAL background — match roles to it):\n"
+                + truncate(resume, to: maxPortfolioCharacters))
+        }
+        if !supporting.isEmpty {
+            sections.append("Additional candidate background:\n" + truncate(supporting, to: maxSupportingCharacters))
+        }
+
+        sections.append("""
+        For each lead produce:
+        - title: the role's job title.
+        - company: the hiring company.
+        - location: where it's based, or "Remote".
+        - summary: two or three sentences on what the role is and why it fits this candidate.
+        """)
+
+        return sections.joined(separator: "\n\n")
     }
 
     // MARK: Shared helpers

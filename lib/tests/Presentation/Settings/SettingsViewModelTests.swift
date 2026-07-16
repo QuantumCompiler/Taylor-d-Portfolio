@@ -31,6 +31,26 @@ struct SettingsViewModelTests {
         return (vm, credentials)
     }
 
+    @Test func llmSourceStatusIsEngineBasedNotCredentialBased() {
+        let credentials = JobSourceCredentialsStore(
+            store: PresentationMemoryStore(), config: StubConfig(adzunaAppID: nil, adzunaAppKey: nil)
+        )
+        // Engine available → the keyless LLM source reports Configured and is in the provider set.
+        let available = SettingsViewModel(
+            store: SettingsStore(store: PresentationMemoryStore()), credentials: credentials, llmSourceAvailable: true
+        )
+        #expect(available.isConfigured(.llm))
+        #expect(available.configuredProviderIDs.contains(JobProvider.llm.rawValue))
+        #expect(!available.isConfigured(.adzuna))   // still gated on its own (absent) credentials
+
+        // Engine unavailable → not configured, and excluded from the provider set.
+        let unavailable = SettingsViewModel(
+            store: SettingsStore(store: PresentationMemoryStore()), credentials: credentials, llmSourceAvailable: false
+        )
+        #expect(!unavailable.isConfigured(.llm))
+        #expect(!unavailable.configuredProviderIDs.contains(JobProvider.llm.rawValue))
+    }
+
     @Test func loadsExistingSettings() {
         let store = SettingsStore(store: PresentationMemoryStore())
         var settings = AppSettings.default

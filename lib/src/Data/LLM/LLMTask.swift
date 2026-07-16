@@ -22,6 +22,9 @@ nonisolated enum LLMTask: String, Codable, Equatable, Hashable, Sendable, CaseIt
     case extraction
     /// Writing tailored application materials (brief + resume + cover letter).
     case application
+    /// Suggesting job leads straight from the candidate's profile — the LLM job source
+    /// (v0.6.0 Milestone J), which needs no API key.
+    case jobSearch
 
     var id: String { rawValue }
 
@@ -32,6 +35,7 @@ nonisolated enum LLMTask: String, Codable, Equatable, Hashable, Sendable, CaseIt
         case .ranking:     return "Job ranking"
         case .extraction:  return "Posting extraction"
         case .application: return "Resume & cover letter"
+        case .jobSearch:   return "AI job search"
         }
     }
 
@@ -42,6 +46,7 @@ nonisolated enum LLMTask: String, Codable, Equatable, Hashable, Sendable, CaseIt
         case .ranking:     return "Scoring search results against your profile."
         case .extraction:  return "Reading a pasted job link into a structured posting."
         case .application: return "Writing your tailored resume and cover letter."
+        case .jobSearch:   return "Suggesting job leads from your profile — no API key needed."
         }
     }
 }

@@ -16,14 +16,23 @@ private struct StubHTTP: HTTPClient {
 @Suite("JobProviderRegistry")
 struct JobProviderRegistryTests {
 
-    @Test func everyProviderHasHelpAndCredentialFields() {
-        for descriptor in JobProviderRegistry.all {
+    @Test func credentialedProvidersHaveHelpAndCredentialFields() {
+        for descriptor in JobProviderRegistry.all where descriptor.kind == .credentialed {
             #expect(!descriptor.displayName.isEmpty)
             #expect(!descriptor.credentialFields.isEmpty)
-            #expect(descriptor.setupURL.scheme == "https")   // a real, linkable help page (G)
+            #expect(descriptor.setupURL?.scheme == "https")   // a real, linkable help page (G)
             // Each listed credential field belongs to this provider.
             #expect(descriptor.credentialFields.allSatisfy { $0.field.provider == descriptor.provider })
         }
+    }
+
+    /// The LLM source (Milestone J) is keyless: no credential fields, no sign-up URL.
+    @Test func llmProviderIsKeyless() {
+        let llm = try! #require(JobProviderRegistry.descriptor(for: .llm))
+        #expect(llm.kind == .llm)
+        #expect(llm.credentialFields.isEmpty)
+        #expect(llm.setupURL == nil)
+        #expect(JobProvider.llm.requiredCredentials.isEmpty)
     }
 
     @Test func registryCoversEveryJobProvider() {

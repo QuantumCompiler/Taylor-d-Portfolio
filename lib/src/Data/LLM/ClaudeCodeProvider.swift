@@ -102,7 +102,7 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit {
         try await generateJSON(
             prompt: Prompts.generateApplication(job: job, profile: profile, brief: brief, grounding: grounding, settings: settings),
-            instructions: Prompts.generateInstructions,
+            instructions: Prompts.generateInstructions(settings),
             as: ApplicationKit.self
         )
     }
@@ -113,6 +113,15 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
             instructions: Prompts.scoreInstructions,
             as: JobMatch.self
         )
+    }
+
+    func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) async throws -> [GeneratedJobLead] {
+        let result = try await generateJSON(
+            prompt: Prompts.searchJobs(query: query, grounding: grounding),
+            instructions: Prompts.searchJobsInstructions,
+            as: GeneratedJobLeads.self
+        )
+        return Array(result.leads.prefix(Prompts.maxJobLeads))
     }
 
     /// Adds the JSON-only instruction, runs the engine, and decodes the reply.

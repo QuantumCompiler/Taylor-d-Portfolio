@@ -86,9 +86,12 @@ struct SettingsView: View {
         } footer: {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Keys are stored on your Mac and never leave it; saved keys are hidden.")
-                // Per-provider setup help, from the registry (Milestone G).
-                Link("How to get a key", destination: descriptor.setupURL)
-                    .clickableCursor()
+                // Per-provider setup help, from the registry (Milestone G). Absent for the
+                // keyless LLM source (Milestone J) — nothing to sign up for.
+                if let setupURL = descriptor.setupURL {
+                    Link("How to get a key", destination: setupURL)
+                        .clickableCursor()
+                }
                 if !descriptor.setupSteps.isEmpty {
                     DisclosureGroup("Setup steps") {
                         VStack(alignment: .leading, spacing: 4) {

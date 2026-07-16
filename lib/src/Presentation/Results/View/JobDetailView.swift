@@ -120,6 +120,7 @@ struct JobDetailView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    if listing.isAISuggested { aiSuggestedBanner }
                     if markStatus != nil { statusSection }
                     metaBadges
                     matchSection
@@ -319,6 +320,22 @@ struct JobDetailView: View {
         }
     }
 
+    // MARK: AI-suggested lead (v0.6.0 Milestone J)
+
+    /// A prominent notice that this is an AI-suggested lead, not a verified posting — the one hard
+    /// rule for the LLM job source is that the user is never misled into treating it as confirmed.
+    private var aiSuggestedBanner: some View {
+        Label(
+            "AI-suggested lead — not a verified posting. Confirm the role and company before applying.",
+            systemImage: "sparkles"
+        )
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.purple.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+    }
+
     // MARK: Richer posting detail (v0.6.0 Milestone A-F)
 
     /// At-a-glance chips (work type, employment type, posted date, category) — shown only when
@@ -421,7 +438,9 @@ struct JobDetailView: View {
         HStack {
             if let url = listing.url {
                 Link(destination: url) {
-                    Label("View original posting", systemImage: "arrow.up.right.square")
+                    // An AI lead's URL is a web *search* for the role, not a confirmed posting.
+                    Label(listing.isAISuggested ? "Search for this role" : "View original posting",
+                          systemImage: listing.isAISuggested ? "magnifyingglass" : "arrow.up.right.square")
                 }
                 .clickableCursor()
             }

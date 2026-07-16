@@ -98,7 +98,7 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         try await client.respond(
             to: Prompts.generateApplication(job: job, profile: profile, brief: brief, grounding: grounding, settings: settings),
             generating: ApplicationKit.self,
-            instructions: Prompts.generateInstructions
+            instructions: Prompts.generateInstructions(settings)
         )
     }
 
@@ -108,5 +108,14 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
             generating: JobMatch.self,
             instructions: Prompts.scoreInstructions
         )
+    }
+
+    func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) async throws -> [GeneratedJobLead] {
+        let result = try await client.respond(
+            to: Prompts.searchJobs(query: query, grounding: grounding),
+            generating: GeneratedJobLeads.self,
+            instructions: Prompts.searchJobsInstructions
+        )
+        return Array(result.leads.prefix(Prompts.maxJobLeads))
     }
 }
