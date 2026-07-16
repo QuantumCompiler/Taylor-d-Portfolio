@@ -697,7 +697,7 @@ breakdown + open calls.
       + fingerprint) + composition-root wiring. On-device: search needs network (mind metered RapidAPI free tier).
       Guardrail: n/a (data plumbing).
 
-- [ ] **Milestone G — Per-provider credential-setup help.** With keys now user-entered (D), each provider's
+- [x] **Milestone G — Per-provider credential-setup help.** ✅ **Done (G-A…G-C, on H-A's registry).** With keys now user-entered (D), each provider's
       `SecureField` needs a **"How to get a key"** link (+ optional inline steps). **D-D already shipped the Adzuna
       link**; generalise it so every provider — including F's JSearch — draws its help from **one source of truth**:
       add `setupURL` (+ optional `setupSteps`) to the per-provider descriptor (H-A's registry) and render a
@@ -705,7 +705,8 @@ breakdown + open calls.
       Seam: Data (descriptor metadata) + Presentation (Settings). On-device: n/a — static metadata + a browser
       `Link`. Safety: links to official signup pages only; the app never creates accounts or enters keys.
 
-- [ ] **Milestone H — Provider selector in the Search view.** F queries *every* configured provider; let the user
+- [ ] **Milestone H — Provider selector in the Search view.** *(H-A — the enumerable provider registry — is
+      **done** and now drives F's composite, D/G's Settings; H-B–E remain.)* F queries *every* configured provider; let the user
       **pick which API(s)** to search, from a picker that lists **all registered providers and grows automatically**
       as new ones are added (no hardcoded list). Core piece: formalise the per-provider descriptor as an
       **enumerable registry** (Data — id/displayName/credential spec/`setupURL`/`JobSource` factory) that

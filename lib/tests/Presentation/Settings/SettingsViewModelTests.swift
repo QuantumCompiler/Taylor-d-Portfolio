@@ -79,142 +79,114 @@ struct SettingsViewModelTests {
         #expect(SettingsViewModel(store: store).adzunaConfigured == false)
     }
 
-    // MARK: Adzuna credentials (Milestone D-D)
+    // MARK: Provider credentials (field-keyed, registry-driven — Milestones D/F/G)
 
     @Test func adzunaConfiguredSeededFromCredentialsStore() {
-        // A credentials store with baked keys makes the VM configured with no flag passed.
         let (configured, _) = makeVM(configID: "id", configKey: "key")
         #expect(configured.adzunaConfigured)
+        #expect(configured.isConfigured(.adzuna))
 
         let (unconfigured, _) = makeVM()
         #expect(!unconfigured.adzunaConfigured)
     }
 
-    @Test func enteringCredentialsPersistsAndReResolves() {
+    @Test func enteringCredentialsPersistsLocksAndReResolves() {
         let (vm, credentials) = makeVM()   // no build-time fallback
         #expect(!vm.adzunaConfigured)
 
-        vm.adzunaAppID = "my-id"
-        vm.adzunaAppKey = "my-key"
+        vm.setCredentialBuffer("my-id", for: .adzunaAppID)
+        vm.setCredentialBuffer("my-key", for: .adzunaAppKey)
         vm.save()
 
-        #expect(vm.adzunaConfigured)                          // re-resolved after save
-        #expect(vm.hasStoredAdzunaCredentials)
-        #expect(vm.appIDSaved && vm.appKeySaved)              // both fields now locked/masked
-        #expect(vm.adzunaAppID.isEmpty && vm.adzunaAppKey.isEmpty)   // buffers cleared
-        #expect(credentials.value(for: .adzunaAppID) == "my-id")     // actually persisted
+        #expect(vm.adzunaConfigured)                                   // re-resolved after save
+        #expect(vm.hasStoredCredentials(.adzuna))
+        #expect(vm.isCredentialSaved(.adzunaAppID) && vm.isCredentialSaved(.adzunaAppKey))
+        #expect(vm.credentialBuffer(for: .adzunaAppID).isEmpty)        // buffers cleared
+        #expect(credentials.value(for: .adzunaAppID) == "my-id")       // actually persisted
         #expect(credentials.value(for: .adzunaAppKey) == "my-key")
     }
 
     @Test func savedFlagsSeededFromStoredValues() {
-        let credentials = JobSourceCredentialsStore(
-            store: PresentationMemoryStore(), config: StubConfig()
-        )
+        let credentials = JobSourceCredentialsStore(store: PresentationMemoryStore(), config: StubConfig())
         credentials.setValue("id", for: .adzunaAppID)   // App ID stored, App Key not
         let vm = SettingsViewModel(store: SettingsStore(store: PresentationMemoryStore()), credentials: credentials)
-        #expect(vm.appIDSaved)
-        #expect(!vm.appKeySaved)
+        #expect(vm.isCredentialSaved(.adzunaAppID))
+        #expect(!vm.isCredentialSaved(.adzunaAppKey))
     }
 
     @Test func savingOnlyOneFieldLocksOnlyThatField() {
         let (vm, _) = makeVM()
-        vm.adzunaAppID = "just-the-id"
+        vm.setCredentialBuffer("just-the-id", for: .adzunaAppID)
         vm.save()
-        #expect(vm.appIDSaved)          // entered field locks
-        #expect(!vm.appKeySaved)        // untouched field stays editable
+        #expect(vm.isCredentialSaved(.adzunaAppID))     // entered field locks
+        #expect(!vm.isCredentialSaved(.adzunaAppKey))   // untouched field stays editable
     }
 
-    @Test func clearingUnlocksBothFields() {
+    @Test func clearingUnlocksAndRevertsToFallback() {
         let (vm, _) = makeVM(configID: "baked-id", configKey: "baked-key")
-        vm.adzunaAppID = "id"
-        vm.adzunaAppKey = "key"
+        vm.setCredentialBuffer("id", for: .adzunaAppID)
+        vm.setCredentialBuffer("key", for: .adzunaAppKey)
         vm.save()
-        #expect(vm.appIDSaved && vm.appKeySaved)
+        #expect(vm.hasStoredCredentials(.adzuna))
 
-        vm.clearAdzunaCredentials()
-        #expect(!vm.appIDSaved && !vm.appKeySaved)   // fields editable again
-    }
-
-    @Test func buildTimeFallbackDoesNotLockFields() {
-        // Baked keys make search available, but there's no user entry to mask — fields stay editable.
-        let (vm, _) = makeVM(configID: "baked-id", configKey: "baked-key")
-        #expect(vm.adzunaConfigured)
-        #expect(!vm.appIDSaved && !vm.appKeySaved)
-    }
-
-    @Test func savingBlankCredentialsLeavesStoredValuesUnchanged() {
-        let (vm, credentials) = makeVM()
-        vm.adzunaAppID = "id"
-        vm.adzunaAppKey = "key"
-        vm.save()
-
-        // A later save of only non-credential settings must not wipe the saved keys.
-        vm.adzunaCountry = "gb"
-        vm.save()
-        #expect(vm.adzunaConfigured)
-        #expect(credentials.value(for: .adzunaAppID) == "id")
-        #expect(credentials.value(for: .adzunaAppKey) == "key")
-    }
-
-    @Test func clearingRevertsToBuildTimeFallback() {
-        let (vm, _) = makeVM(configID: "baked-id", configKey: "baked-key")
-        vm.adzunaAppID = "mine-id"
-        vm.adzunaAppKey = "mine-key"
-        vm.save()
-        #expect(vm.hasStoredAdzunaCredentials)
-
-        vm.clearAdzunaCredentials()
-        #expect(!vm.hasStoredAdzunaCredentials)
-        #expect(vm.adzunaConfigured)                          // still configured via the fallback
+        vm.clearCredentials(.adzuna)
+        #expect(!vm.isCredentialSaved(.adzunaAppID) && !vm.isCredentialSaved(.adzunaAppKey))
+        #expect(!vm.hasStoredCredentials(.adzuna))
+        #expect(vm.adzunaConfigured)   // still configured via the build-time fallback
     }
 
     @Test func clearingWithoutFallbackMakesUnconfigured() {
         let (vm, _) = makeVM()   // no build-time keys
-        vm.adzunaAppID = "id"
-        vm.adzunaAppKey = "key"
+        vm.setCredentialBuffer("id", for: .adzunaAppID)
+        vm.setCredentialBuffer("key", for: .adzunaAppKey)
         vm.save()
         #expect(vm.adzunaConfigured)
 
-        vm.clearAdzunaCredentials()
+        vm.clearCredentials(.adzuna)
         #expect(!vm.adzunaConfigured)
-        #expect(!vm.hasStoredAdzunaCredentials)
+        #expect(!vm.hasStoredCredentials(.adzuna))
     }
 
-    @Test func enteringJSearchKeyPersistsLocksAndClears() {
-        // v0.6.0 Milestone F — the JSearch key rides the same save/lock/clear machinery.
-        let (vm, credentials) = makeVM()
-        vm.jsearchAPIKey = "rapid-key"
-        vm.save()
-        #expect(vm.jsearchKeySaved)                          // field locks
-        #expect(vm.hasStoredJSearchCredentials)
-        #expect(vm.jsearchAPIKey.isEmpty)                    // buffer cleared
-        #expect(credentials.value(for: .jsearchAPIKey) == "rapid-key")
+    @Test func buildTimeFallbackDoesNotLockFields() {
+        let (vm, _) = makeVM(configID: "baked-id", configKey: "baked-key")
+        #expect(vm.adzunaConfigured)
+        #expect(!vm.isCredentialSaved(.adzunaAppID) && !vm.isCredentialSaved(.adzunaAppKey))
+    }
 
-        vm.clearJSearchCredentials()
-        #expect(!vm.jsearchKeySaved)                         // unlocks
+    @Test func savingBlankCredentialsLeavesStoredValuesUnchanged() {
+        let (vm, credentials) = makeVM()
+        vm.setCredentialBuffer("id", for: .adzunaAppID)
+        vm.setCredentialBuffer("key", for: .adzunaAppKey)
+        vm.save()
+
+        vm.adzunaCountry = "gb"   // a later save of only non-credential settings
+        vm.save()
+        #expect(credentials.value(for: .adzunaAppID) == "id")
+        #expect(credentials.value(for: .adzunaAppKey) == "key")
+    }
+
+    @Test func jsearchKeyRidesTheSameMachineryIndependently() {
+        // v0.6.0 Milestone F/G — a second provider needs no VM-specific code.
+        let (vm, credentials) = makeVM()
+        vm.setCredentialBuffer("rapid-key", for: .jsearchAPIKey)
+        vm.save()
+        #expect(vm.isCredentialSaved(.jsearchAPIKey))
+        #expect(vm.hasStoredCredentials(.jsearch))
+        #expect(vm.isConfigured(.jsearch))
+        #expect(credentials.value(for: .jsearchAPIKey) == "rapid-key")
+        #expect(credentials.value(for: .adzunaAppID) == nil)   // providers independent
+
+        vm.clearCredentials(.jsearch)
+        #expect(!vm.isCredentialSaved(.jsearchAPIKey))
         #expect(credentials.value(for: .jsearchAPIKey) == nil)
     }
 
-    @Test func savingAdzunaDoesNotTouchJSearchAndViceVersa() {
-        let (vm, credentials) = makeVM()
-        vm.adzunaAppID = "id"
-        vm.adzunaAppKey = "key"
-        vm.save()
-        #expect(credentials.value(for: .jsearchAPIKey) == nil)   // JSearch untouched
-
-        vm.jsearchAPIKey = "rk"
-        vm.save()
-        #expect(credentials.value(for: .adzunaAppID) == "id")    // Adzuna preserved
-        #expect(credentials.value(for: .jsearchAPIKey) == "rk")
-    }
-
     @Test func credentialControlsAreNoOpsWithoutAStore() {
-        // Previews/tests without a credentials store: no crash, stays on the passed flag.
         let vm = SettingsViewModel(store: SettingsStore(store: PresentationMemoryStore()), adzunaConfigured: true)
-        vm.adzunaAppID = "x"
-        vm.save()                       // persists engine/country settings; credentials no-op
-        vm.clearAdzunaCredentials()     // no-op
-        #expect(!vm.hasStoredAdzunaCredentials)
-        #expect(vm.adzunaConfigured)    // unchanged (still the passed flag)
+        vm.setCredentialBuffer("x", for: .adzunaAppID)
+        vm.save()                    // persists engine/country settings; credentials no-op
+        vm.clearCredentials(.adzuna) // no-op
+        #expect(!vm.hasStoredCredentials(.adzuna))
+        #expect(vm.adzunaConfigured) // unchanged (still the passed flag)
     }
 }

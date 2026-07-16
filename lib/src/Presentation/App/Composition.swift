@@ -331,19 +331,13 @@ private nonisolated struct SettingsBackedJobSource: JobSource {
     let http: any HTTPClient
 
     func search(_ query: JobQuery) async throws -> [JobListing] {
-        var sources: [any JobSource] = []
-
-        if let appID = credentials.value(for: .adzunaAppID),
-           let appKey = credentials.value(for: .adzunaAppKey) {
-            sources.append(AdzunaJobSource(
-                credentials: .init(appID: appID, appKey: appKey, country: store.load().adzunaCountry),
-                http: http
-            ))
+        let country = store.load().adzunaCountry
+        // Data-driven: every registered provider builds itself from resolved credentials via
+        // the registry (Milestone H-A); one with no key returns nil and is omitted (fail-soft).
+        // No provider is hand-enumerated here.
+        let sources = JobProviderRegistry.all.compactMap { descriptor in
+            descriptor.makeSource({ credentials.value(for: $0) }, http, country)
         }
-        if let apiKey = credentials.value(for: .jsearchAPIKey) {
-            sources.append(JSearchJobSource(credentials: .init(apiKey: apiKey), http: http))
-        }
-
         return try await CompositeJobSource(sources: sources).search(query)
     }
 }

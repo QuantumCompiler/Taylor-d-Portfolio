@@ -23,24 +23,9 @@ final class SettingsViewModel {
     var engines: [LLMTask: TaskEngineConfig]
     var adzunaCountry: String
 
-    /// Edit buffers for the provider credential fields. Never pre-filled with the stored
-    /// secret; **empty means "leave the saved value unchanged"** on save (so saving other
-    /// settings doesn't wipe existing keys). Cleared after a successful save.
-    var adzunaAppID: String = ""
-    var adzunaAppKey: String = ""
-    /// JSearch (RapidAPI) API key buffer (v0.6.0 Milestone F).
-    var jsearchAPIKey: String = ""
-
     /// Whether Adzuna credentials resolve (user-entered or build-time) — the search-
     /// availability status. Re-resolved after a save so the banner updates without relaunch.
     private(set) var adzunaConfigured: Bool
-
-    /// Whether each credential field has a **user-saved** value. Drives the locked, masked
-    /// field display (a saved key is shown greyed-out and immutable, never revealed). Observable
-    /// so the field re-locks the moment it's saved / unlocks when cleared.
-    private(set) var appIDSaved: Bool
-    private(set) var appKeySaved: Bool
-    private(set) var jsearchKeySaved: Bool
     /// Whether a `lualatex` install was found — the awesome-cv LaTeX export route needs it
     /// (Milestone E). Surfaced read-only in the About pane. Probed in the composition root.
     let latexAvailable: Bool
@@ -49,6 +34,14 @@ final class SettingsViewModel {
     let tasks = LLMTask.allCases
     /// The Claude models available to pick from.
     let claudeModels = ClaudeModel.all
+
+    /// Per-field edit buffers, keyed by ``JobCredentialField`` (registry-driven, so a new
+    /// provider needs no VM change). Never pre-filled with the stored secret; **empty means
+    /// "leave the saved value unchanged"** on save. Cleared after a successful save.
+    private var buffers: [JobCredentialField: String] = [:]
+    /// The credential fields that currently have a **user-saved** value — drives the locked,
+    /// masked display (a saved key is shown greyed and immutable, never revealed).
+    private var savedFields: Set<JobCredentialField> = []
 
     private let store: SettingsStore
     private let credentials: JobSourceCredentialsStore?
@@ -64,20 +57,40 @@ final class SettingsViewModel {
         // When a credentials store is wired, it's the source of truth; the `adzunaConfigured`
         // argument is a fallback for previews/tests that don't supply one.
         self.adzunaConfigured = credentials?.hasCredentials(for: .adzuna) ?? adzunaConfigured
-        self.appIDSaved = credentials?.hasStoredValue(for: .adzunaAppID) ?? false
-        self.appKeySaved = credentials?.hasStoredValue(for: .adzunaAppKey) ?? false
-        self.jsearchKeySaved = credentials?.hasStoredValue(for: .jsearchAPIKey) ?? false
         self.latexAvailable = latexAvailable
         let settings = store.load()
         self.engines = settings.engines
         self.adzunaCountry = settings.adzunaCountry
+        self.savedFields = Self.storedFields(in: credentials)
     }
 
-    /// Whether the user has entered Adzuna credentials (vs. relying on build-time keys) —
-    /// gates the Adzuna "Clear saved credentials" affordance.
-    var hasStoredAdzunaCredentials: Bool { appIDSaved || appKeySaved }
-    /// Whether the user has entered a JSearch key — gates its "Clear" affordance.
-    var hasStoredJSearchCredentials: Bool { jsearchKeySaved }
+    /// The credential fields that already have a user-saved value, across every registered
+    /// provider — the source of the initial/refreshed locked state.
+    private static func storedFields(in credentials: JobSourceCredentialsStore?) -> Set<JobCredentialField> {
+        guard let credentials else { return [] }
+        let fields = JobProviderRegistry.all.flatMap { $0.credentialFields.map(\.field) }
+        return Set(fields.filter { credentials.hasStoredValue(for: $0) })
+    }
+
+    // MARK: Provider credentials (field-keyed, registry-driven — Milestones D/F/G)
+
+    /// The edit-buffer value for `field` (empty when untouched this session).
+    func credentialBuffer(for field: JobCredentialField) -> String { buffers[field] ?? "" }
+    /// Sets the edit buffer for `field`.
+    func setCredentialBuffer(_ value: String, for field: JobCredentialField) { buffers[field] = value }
+    /// Whether `field` has a user-saved value (so it's shown locked + masked, not editable).
+    func isCredentialSaved(_ field: JobCredentialField) -> Bool { savedFields.contains(field) }
+
+    /// Whether `provider`'s credentials resolve (user-entered or build-time) — its status.
+    func isConfigured(_ provider: JobProvider) -> Bool {
+        if let credentials { return credentials.hasCredentials(for: provider) }
+        return provider == .adzuna && adzunaConfigured   // previews/tests without a store
+    }
+    /// Whether the user has entered any of `provider`'s fields — gates its "Clear" affordance.
+    func hasStoredCredentials(_ provider: JobProvider) -> Bool {
+        (JobProviderRegistry.descriptor(for: provider)?.credentialFields ?? [])
+            .contains { savedFields.contains($0.field) }
+    }
 
     /// The config for `task`, defaulting when unset.
     func config(for task: LLMTask) -> TaskEngineConfig {
@@ -103,53 +116,41 @@ final class SettingsViewModel {
         AppSettings(engines: engines, adzunaCountry: adzunaCountry)
     }
 
+    /// Clears `provider`'s stored fields (reverting to any build-time keys), unlocking them for
+    /// re-entry, and re-resolves state.
+    func clearCredentials(_ provider: JobProvider) {
+        guard let credentials else { return }
+        for credentialField in JobProviderRegistry.descriptor(for: provider)?.credentialFields ?? [] {
+            credentials.setValue(nil, for: credentialField.field)
+            buffers[credentialField.field] = ""
+        }
+        refreshCredentialState()
+    }
+
     func save() {
         store.save(settings)
         persistCredentials()
     }
 
-    /// Persists any non-blank credential buffers (Adzuna id/key + JSearch key) to the store,
-    /// clears the buffers, and re-resolves state. A blank buffer leaves the saved value
-    /// untouched (so saving engine/country settings never wipes existing keys). The agent
-    /// never sets these — the user types their own keys.
+    /// Persists any non-blank credential buffers (every provider's fields) to the store, clears
+    /// the buffers, and re-resolves state. A blank buffer leaves the saved value untouched (so
+    /// saving engine/country settings never wipes existing keys). The agent never sets these —
+    /// the user types their own keys.
     private func persistCredentials() {
         guard let credentials else { return }
-        if !adzunaAppID.isBlank { credentials.setValue(adzunaAppID, for: .adzunaAppID) }
-        if !adzunaAppKey.isBlank { credentials.setValue(adzunaAppKey, for: .adzunaAppKey) }
-        if !jsearchAPIKey.isBlank { credentials.setValue(jsearchAPIKey, for: .jsearchAPIKey) }
-        adzunaAppID = ""
-        adzunaAppKey = ""
-        jsearchAPIKey = ""
+        for field in JobProviderRegistry.all.flatMap({ $0.credentialFields.map(\.field) }) {
+            let value = buffers[field] ?? ""
+            if !value.isBlank { credentials.setValue(value, for: field) }
+        }
+        buffers.removeAll()
         refreshCredentialState()
     }
 
-    /// Clears the user's stored Adzuna credentials (reverting to any build-time keys),
-    /// unlocking the fields for re-entry, and re-resolves state.
-    func clearAdzunaCredentials() {
-        guard let credentials else { return }
-        credentials.setValue(nil, for: .adzunaAppID)
-        credentials.setValue(nil, for: .adzunaAppKey)
-        adzunaAppID = ""
-        adzunaAppKey = ""
-        refreshCredentialState()
-    }
-
-    /// Clears the user's stored JSearch key, unlocking the field, and re-resolves state.
-    func clearJSearchCredentials() {
-        guard let credentials else { return }
-        credentials.setValue(nil, for: .jsearchAPIKey)
-        jsearchAPIKey = ""
-        refreshCredentialState()
-    }
-
-    /// Re-reads the stored/resolved credential state after a save or clear, so the locked
-    /// field displays and the availability banner reflect the change.
+    /// Re-reads the stored/resolved credential state after a save or clear, so the locked field
+    /// displays and the availability banner reflect the change.
     private func refreshCredentialState() {
-        guard let credentials else { return }
-        appIDSaved = credentials.hasStoredValue(for: .adzunaAppID)
-        appKeySaved = credentials.hasStoredValue(for: .adzunaAppKey)
-        jsearchKeySaved = credentials.hasStoredValue(for: .jsearchAPIKey)
-        adzunaConfigured = credentials.hasCredentials(for: .adzuna)
+        savedFields = Self.storedFields(in: credentials)
+        adzunaConfigured = credentials?.hasCredentials(for: .adzuna) ?? adzunaConfigured
     }
 }
 

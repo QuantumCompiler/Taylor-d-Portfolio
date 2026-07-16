@@ -49,65 +49,58 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Sources — per-provider credentials (Adzuna + JSearch, v0.6.0 Milestone F)
+    // MARK: Sources — per-provider credentials, driven by the registry (v0.6.0 Milestones F/G/H-A)
 
-    /// Static developer sign-up pages — safe to link out (hardcoded, not from a posting).
-    private static let adzunaKeyHelpURL = URL(string: "https://developer.adzuna.com/")!
-    private static let jsearchKeyHelpURL = URL(string: "https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch")!
-
+    /// One credential section per **registered** provider (no provider is hand-enumerated here —
+    /// adding one to `JobProviderRegistry` renders it automatically), then a single Save control.
     @ViewBuilder
     private var sourcesSection: some View {
-        adzunaCredentialsSection
-        jsearchCredentialsSection
+        ForEach(JobProviderRegistry.all) { descriptor in
+            providerSection(descriptor)
+        }
+        Section { saveButton }
     }
 
-    private var adzunaCredentialsSection: some View {
+    @ViewBuilder
+    private func providerSection(_ descriptor: JobProviderDescriptor) -> some View {
         Section {
-            TextField("Country code", text: $viewModel.adzunaCountry)
+            // Adzuna's country is a provider-specific search preference, not a secret.
+            if descriptor.provider == .adzuna {
+                TextField("Country code", text: $viewModel.adzunaCountry)
+            }
 
-            credentialField("App ID", text: $viewModel.adzunaAppID, saved: viewModel.appIDSaved)
-            credentialField("App Key", text: $viewModel.adzunaAppKey, saved: viewModel.appKeySaved)
+            ForEach(descriptor.credentialFields, id: \.field) { credentialField in
+                providerCredentialField(credentialField.label, field: credentialField.field)
+            }
 
-            statusRow(configured: viewModel.adzunaConfigured)
+            statusRow(configured: viewModel.isConfigured(descriptor.provider))
 
-            if viewModel.hasStoredAdzunaCredentials {
-                Button("Clear Adzuna credentials", role: .destructive) {
-                    viewModel.clearAdzunaCredentials()
+            if viewModel.hasStoredCredentials(descriptor.provider) {
+                Button("Clear \(descriptor.displayName) credentials", role: .destructive) {
+                    viewModel.clearCredentials(descriptor.provider)
                 }
                 .clickableCursor()
             }
         } header: {
-            Text("Adzuna")
+            Text(descriptor.displayName)
         } footer: {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Enter your own Adzuna API credentials to enable job search. Keys are stored "
-                    + "on your Mac and never leave it; saved keys are hidden.")
-                Link("How to get an Adzuna API key", destination: Self.adzunaKeyHelpURL)
+                Text("Keys are stored on your Mac and never leave it; saved keys are hidden.")
+                // Per-provider setup help, from the registry (Milestone G).
+                Link("How to get a key", destination: descriptor.setupURL)
                     .clickableCursor()
-            }
-        }
-    }
-
-    private var jsearchCredentialsSection: some View {
-        Section {
-            credentialField("API Key", text: $viewModel.jsearchAPIKey, saved: viewModel.jsearchKeySaved)
-
-            if viewModel.hasStoredJSearchCredentials {
-                Button("Clear JSearch key", role: .destructive) {
-                    viewModel.clearJSearchCredentials()
+                if !descriptor.setupSteps.isEmpty {
+                    DisclosureGroup("Setup steps") {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(Array(descriptor.setupSteps.enumerated()), id: \.offset) { index, step in
+                                Text("\(index + 1). \(step)")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
                 }
-                .clickableCursor()
-            }
-        } header: {
-            Text("JSearch (RapidAPI) — optional")
-        } footer: {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Add a JSearch (RapidAPI) key to also search a Google-for-Jobs aggregator "
-                    + "(Indeed, LinkedIn, Glassdoor…) alongside Adzuna. Optional; leave blank to use "
-                    + "Adzuna only. Note the RapidAPI free-tier request limit.")
-                Link("How to get a JSearch API key", destination: Self.jsearchKeyHelpURL)
-                    .clickableCursor()
-                saveButton
             }
         }
     }
@@ -124,19 +117,22 @@ struct SettingsView: View {
         }
     }
 
-    /// One Adzuna credential field: an editable `SecureField` until it's saved, then an
-    /// immutable, greyed masked indicator — the saved key is never revealed, only shown as
-    /// "saved" in a lighter shade. Unlocked again by "Clear saved credentials".
+    /// One credential field: an editable `SecureField` until it's saved, then an immutable,
+    /// greyed masked indicator — the saved key is never revealed, only shown as "saved" in a
+    /// lighter shade. Unlocked again by "Clear … credentials".
     @ViewBuilder
-    private func credentialField(_ label: String, text: Binding<String>, saved: Bool) -> some View {
-        if saved {
+    private func providerCredentialField(_ label: String, field: JobCredentialField) -> some View {
+        if viewModel.isCredentialSaved(field) {
             LabeledContent(label) {
                 Text(verbatim: "••••••••")
                     .foregroundStyle(.tertiary)
                     .accessibilityLabel("\(label) saved and hidden")
             }
         } else {
-            SecureField(label, text: text)
+            SecureField(label, text: Binding(
+                get: { viewModel.credentialBuffer(for: field) },
+                set: { viewModel.setCredentialBuffer($0, for: field) }
+            ))
         }
     }
 

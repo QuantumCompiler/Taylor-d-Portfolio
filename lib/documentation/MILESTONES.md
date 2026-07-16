@@ -2394,3 +2394,37 @@ save/lock/clear + provider independence. Full suite green; build warning-free.
 **On-device.** Search needs network; the composite + dedup are pure/local. *(Open calls resolved as recommended:
 **JSearch only** first (The Muse / remote feeds later); **no** per-provider balancing; **capture** source, defer
 display; bounded concurrency + the existing page cap for the metered RapidAPI tier.)*
+
+## Milestone G — Per-provider credential-setup help (built on H-A's provider registry)  ✅ done
+
+With API keys now user-entered (Milestone D), each provider's `SecureField` needed a **"How to get a key"** link;
+D-D shipped a hardcoded Adzuna link. G generalises it so **every** provider draws its help from **one source of
+truth** — which meant first standing up the **provider registry** the plan calls for (Milestone **H-A**, built
+here as G's foundation).
+
+- [x] **H-A — provider registry (the enumerable source of truth).** New `JobProviderDescriptor` +
+      `JobProviderRegistry.all` (`Data/Jobs`): per provider — `provider`, `displayName`, `credentialFields`
+      (field + UI label), `setupURL` + `setupSteps`, and a `makeSource` factory that builds the provider's
+      `JobSource` from resolved credentials (or nil when a key is missing). The composition root's
+      `SettingsBackedJobSource` (F) now builds the `CompositeJobSource` by mapping the registry — **no provider is
+      hand-enumerated** in the composition root or any view. Adding a provider = appending one descriptor.
+- [x] **G-A — `setupURL` / `setupSteps` on the descriptor.** Static, known developer pages (Adzuna dev portal,
+      RapidAPI's JSearch listing) — not derived from any posting.
+- [x] **G-B — Settings help driven by the registry.** `SettingsView`'s "Sources" pane now **iterates
+      `JobProviderRegistry.all`**, rendering one credential Section per provider with a descriptor-driven
+      `Link("How to get a key")` + a collapsible **Setup steps** disclosure — the hardcoded Adzuna/JSearch
+      sections and URL literals are gone. `SettingsViewModel` was refactored from hand-named buffers
+      (`adzunaAppID`…) to **field-keyed** state (`credentialBuffer(for:)` / `isCredentialSaved(_:)` /
+      `hasStoredCredentials(_:)` / `clearCredentials(_:)`), all driven off the registry — so a new provider needs
+      **zero** view/VM changes. Save / lock-and-mask / clear behaviour (D-D) is preserved per field.
+- [x] **G-C — Populated for Adzuna + JSearch;** URLs verified as live developer pages.
+
+**Guardrail (safety).** Links point only to official provider signup pages (static registry metadata) — the app
+never creates accounts or enters keys; the user pastes their own.
+
+**Tests.** Registry: every provider exposes an https `setupURL` + credential fields, covers every `JobProvider`,
+and `makeSource` builds only when its credentials resolve. `SettingsViewModel`: the field-keyed save / lock /
+clear works per provider and providers stay independent. Full suite green; build warning-free.
+
+**On-device.** n/a — static metadata + a browser `Link`. *(Open calls resolved as recommended: ship the `Link`
+first — inline steps added too, as a collapsible disclosure; per-provider inline, closest to the field.)*
