@@ -182,7 +182,9 @@ struct Composition {
     private var tidyDocument: TidyDocumentUseCase { .init(provider: llmProvider) }
     private var refineSummary: RefineSummaryUseCase { .init(provider: llmProvider) }
     private var searchAndRank: SearchAndRankUseCase {
-        .init(jobSource: jobSource, ranker: JobRanker(provider: llmProvider))
+        // Milestone K: inject the digester so every search result is structured into one uniform
+        // format (progressive, cached), read by the detail view + grounding.
+        .init(jobSource: jobSource, ranker: JobRanker(provider: llmProvider), enrichPosting: enrichPosting)
     }
     private var generateApplication: GenerateApplicationUseCase { .init(provider: llmProvider) }
     private var generateToTarget: GenerateToTargetUseCase { .init(provider: llmProvider) }

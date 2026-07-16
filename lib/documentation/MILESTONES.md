@@ -2557,3 +2557,42 @@ needs network. **Transparency (the one hard rule):** leads are **AI-suggested**,
 postings, and linked to a **search query** rather than a fabricated posting URL. *(Open calls resolved as
 recommended: **search-query URL** (never a fake posting link); leads are model-knowledge so the labelling carries
 the weight; **capped** at `Prompts.maxJobLeads` (8) and **deduped** against API results by `fingerprint`.)*
+
+## Milestone K — Standardized result descriptions (digest every posting into one format)  ✅ done  (`Data/Models` + `Business` + `Presentation`)
+
+Descriptions were inconsistent (Adzuna's ~500-char snippet vs. JSearch full text vs. a page-fetch) and enrichment
+ran **only on save-to-Tracker**. Milestone K **digests every search result** into the uniform
+[`PostingDetails`](../src/Data/Models/PostingDetails.swift) and renders a **standardized description** from it, so
+every result reads the same regardless of source and generation always grounds on one structure — done
+**progressively** so results still appear immediately.
+
+- [x] **K-A / K-E — digest in the search pipeline (bounded + cached).** `SearchAndRankUseCase` gains an optional
+      injected `EnrichPostingUseCase` + a `digestStream(_:)` that **streams** each digested `RankedJob` as it
+      completes, with **bounded concurrency** (reusing the search window), a **cache** (a job already carrying
+      `details` is skipped), and a soft **fallback** (a digest that fails or changes nothing isn't yielded — the row
+      keeps its raw description). `callAsFunction` stays fast (returns ranked rows un-digested); digestion is a
+      separate, streamed step. Wired in `Composition`.
+- [x] **K-B — always structure from best-available text.** The existing `EnrichPostingUseCase` already runs
+      `enrichPosting` on the best available text (full page → cleaned → snippet) for **every** listing regardless of
+      source, so "always digest, even already-full JSearch text" needed no gating change; the pipeline (K-A) simply
+      runs it on **all** results now, not just save-to-Tracker.
+- [x] **K-C — `PostingDetails.standardDescription` (pure).** A deterministic fixed-template markdown renderer —
+      About the role → Responsibilities → Qualifications → Nice to have → About the company → Benefits → Work type —
+      omitting empty sections and returning `""` when empty (raw fallback). It becomes the **displayed** description
+      in `JobDetailView` (the redundant collapsible "Posting details" section is retired — its content now lives in
+      the standardized description); raw `fullDescription` / snippet remain the fallback.
+- [x] **K-D — progressive display + persist.** `SearchViewModel` shows ranked rows immediately, then consumes
+      `digestStream` and swaps each row to its standardized description as it completes (an `isDigesting` indicator
+      shows "Standardizing descriptions…"), re-persisting the standardized set. Applied to the search **and** the
+      link/paste single-result flows.
+
+**Tests.** `standardDescription` renders the fixed template in order, omits empty sections, and is `""` when blank;
+`digestStream` structures every un-digested result, **caches** (skips those already carrying `details`), yields
+nothing when un-wired, and skips results a digest didn't change; a `SearchViewModel` search digests results into the
+standardized format. Full suite green; build warning-free.
+
+**On-device.** One `.extraction`-task LLM call per result (+ a page-fetch attempt) — **cost scales with result
+count**, guarded by the bounded window, the cache, and progressive display (rows appear before digestion finishes).
+The digest **normalizes** the posting into the standard format (a normalized digest, not verbatim — consistent with
+the transparency stance). *(Open calls resolved as recommended: the recommended section order; **bounded window**
+first (no hard per-search cap); shipped with the **current `PostingDetails` fields**.)*

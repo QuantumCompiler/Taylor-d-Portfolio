@@ -128,7 +128,6 @@ struct JobDetailView: View {
                         labeledSection("Salary") { Text(text).font(.callout) }
                     }
                     descriptionSection
-                    postingDetailSection
                 }
             }
             Divider()
@@ -362,66 +361,21 @@ struct JobDetailView: View {
         }
     }
 
-    /// The enriched posting structure as collapsible sections — only the non-empty ones,
-    /// and the whole block is omitted when there's nothing enriched.
-    @ViewBuilder private var postingDetailSection: some View {
-        if let details = listing.details, details.hasContent {
-            labeledSection("Posting details") {
-                VStack(alignment: .leading, spacing: 12) {
-                    detailDisclosure("About the role", text: details.aboutRole)
-                    detailDisclosure("About the company", text: details.aboutCompany)
-                    detailDisclosure("Qualifications", list: details.qualifications)
-                    detailDisclosure("Responsibilities", list: details.responsibilities)
-                    detailDisclosure("Nice to have", list: details.niceToHaves)
-                    detailDisclosure("Benefits", list: details.benefits)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private func detailDisclosure(_ title: String, text: String) -> some View {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            ExpandableRow {
-                Text(title).font(.subheadline.weight(.semibold))
-            } content: {
-                Text(trimmed)
-                    .font(.callout)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    @ViewBuilder private func detailDisclosure(_ title: String, list: [String]) -> some View {
-        if !list.isEmpty {
-            ExpandableRow {
-                Text(title).font(.subheadline.weight(.semibold))
-            } content: {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(Array(list.enumerated()), id: \.offset) { _, item in
-                        Text("• \(item)")
-                            .font(.callout)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-            }
-        }
-    }
-
     // MARK: Description
 
     @ViewBuilder
     private var descriptionSection: some View {
         labeledSection("Description") {
-            if let full = listing.fullDescription,
-               !full.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                // The recovered full posting is clean markdown (v0.6.0 Milestone E) — render it
-                // styled (headings / bullets / bold), not as raw markup.
+            if let details = listing.details, details.hasContent {
+                // Milestone K: the **standardized** description — every result reads the same,
+                // regardless of source, rendered from the uniform `PostingDetails` structure.
+                MarkdownText(markdown: details.standardDescription)
+            } else if let full = listing.fullDescription,
+                      !full.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                // Fallback: the recovered full posting is clean markdown (Milestone E).
                 MarkdownText(markdown: full)
             } else {
-                // The Adzuna snippet is HTML/plain text — strip tags and show it plainly.
+                // Fallback: the raw source snippet is HTML/plain text — strip tags, show plainly.
                 let text = HTMLStripper.plainText(listing.description)
                 Text(text.isEmpty ? "No description provided." : text)
                     .font(.callout)

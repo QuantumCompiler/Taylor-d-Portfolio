@@ -22,9 +22,9 @@ guess. The target is the entry's *intended* release; it's distinct from being *s
 position**, not at the end — e.g. a later-added `v0.6.1` item slots **between** the `v0.6.0` group and any `v0.7.0`
 group (so the file always reads earliest-target → latest-target, top to bottom).
 
-> **Three entries below**, in ascending target order: **keyword-match / ATS coverage** → **`v0.6.1`**;
-> **discoverable remove-from-Tracker** → **`v0.6.2`**; **customizable LaTeX styles** → **`v0.7.0`**. The **supporting
-> profile documents** entry was
+> **Six entries below**, in ascending target order: **keyword-match / ATS coverage** → **`v0.6.1`**;
+> **discoverable remove-from-Tracker**, **multi-select bulk actions**, **Results sort + Tracker filter**, and
+> **hide imported-doc raw preview** → **`v0.6.2`**; **customizable LaTeX styles** → **`v0.7.0`**. The **supporting profile documents** entry was
 > scheduled into **v0.6.0** as **Milestone I** (2026-07-15) and now lives in `TODO.md` / `ROADMAP.md`. Prior specced
 > entries were also scheduled into **v0.6.0 (richer grounding, job detail & sources)**:
 > - **richer job postings**, **select a profile at generation time**, **regenerate result** → Milestones **A–C**.
@@ -127,6 +127,139 @@ practice there's "no way to remove a result from the Tracker." **The gap is the 
 
 **Scope.** Small (patch-sized, `.2`) — a `contextMenu` / hover buttons in `TrackerView` reusing the existing VM
 methods; no new seam. Fits **v0.6.2**. (The behaviour is done; this is a discoverability fix.)
+
+---
+
+## Multi-select results — bulk save-to-Tracker / delete
+
+**Target:** **v0.6.2** (a patch on v0.6.0). Moderate.
+
+**Why.** Results row actions are **one-at-a-time** today — `saveToTracker` / `delete` per row (swipe or icon). After
+a search returns many results, saving or clearing several is tedious. Add **multi-select** on the Results list plus
+**bulk actions** (save selected to Tracker, delete selected, …).
+
+**Seam + files (Presentation — reuse the existing per-item logic + batch repos).**
+- **Selection state.** Add `selectedIDs: Set<String>` to
+  [`ResultsViewModel`](../src/Presentation/Results/ViewModel/ResultsViewModel.swift) — distinct from `selectedJob`
+  (`:19`), which is the single job open for detail.
+- **Bulk methods.** `saveSelectedToTracker()` / `deleteSelected()` iterate `selectedIDs`, reusing the existing
+  `saveToTracker` (`:125`) / `delete` (`:152`) paths. Batch is already available where it helps:
+  `SaveResultsUseCase([RankedJob])` persists a batch; `MarkStatusUseCase` / `DeleteSavedJobUseCase` are per-id
+  (loop, or add a batch-delete overload). Clear the selection afterward.
+- **UI — the multi-select affordance (the main design fork).**
+  [`ResultsView`](../src/Presentation/Results/View/ResultsView.swift:53) is a plain `List` with **tap-to-open-detail**
+  (`onTapGesture`) + swipe row actions — so adding selection **conflicts with tap-to-open**. Options:
+  - **Native `List(selection: $selectedIDs)`** — ⌘/shift-click multi-select (macOS-idiomatic); move open-detail to
+    **double-click** (single-click now selects).
+  - **A "Select" mode toggle** — shows per-row **checkboxes**; tap toggles selection while in mode; tap-to-open
+    stays out of mode.
+  - **Always-visible leading checkbox** — row tap opens detail, checkbox selects.
+- **Bulk action bar.** When `!selectedIDs.isEmpty`, show a bar/toolbar: **"N selected" · Save to Tracker · Delete
+  (destructive, confirm) · Clear**, wired to the bulk methods.
+
+**⚠️ Cost note.** `saveToTracker` triggers per-job enrichment (`enrichSavedJob`), so **bulk-saving N** kicks off N
+enrichments — bound it (reuse the concurrency posture; composes with **Milestone K**'s standardized-digest pipeline).
+Bulk delete is cheap.
+
+**Open calls (recommended defaults).**
+- **Selection affordance?** *Recommended:* **native `List(selection:)`** (⌘/shift, macOS-idiomatic) with
+  **double-click to open detail**; fall back to a Select-mode toggle if double-click feels off. This is the primary
+  UX decision.
+- **Confirm on bulk Delete?** *Recommended:* **yes** (destructive; removes materials), with a count in the prompt
+  ("Delete 7 results?").
+- **Multi-select in the Tracker too?** *Recommended:* yes, same pattern for bulk **Return to Results** / **Delete** —
+  composes with the **discoverable remove-from-Tracker** entry above (both v0.6.2).
+- **Bulk actions beyond save/delete?** *Recommended:* save + delete first; add bulk status-mark later if useful.
+
+**On-device.** n/a for selection/UI; bulk-save enrichment is `.extraction` LLM work — bound it (see cost note).
+
+**Scope.** Moderate (patch-sized, `.2`) — `ResultsViewModel` selection state + bulk methods, a `ResultsView`
+selection affordance + action bar; reuses the existing per-item logic + batch repos. **Pairs with** the
+discoverable-remove-from-Tracker entry (same row-actions theme) and **Milestone K** (bulk-save enrichment). Fits
+**v0.6.2**.
+
+---
+
+## Results sort + Tracker filter — sort/filter parity across both tabs
+
+**Target:** **v0.6.2** (a patch on v0.6.0). Small–moderate.
+
+**Why.** The two list tabs each have **one** of the pair: Results has a live **filter**
+([`ResultsFilter`](../src/Presentation/Results/View/ResultsFilter.swift)) but no sort; the Tracker has a live **sort**
+([`TrackerSort`](../src/Presentation/Tracker/View/TrackerSort.swift) — built as "the Tracker analogue of
+`ResultsFilter`") but no filter. Give each tab the capability the other already has, so **both** tabs can sort *and*
+filter. Both existing types are pure, non-destructive, session-only — this is mostly lifting each pattern across.
+
+**Seam + files (there's a useful asymmetry — one side reuses, the other parallels).**
+- **Tracker filter — *reuse* `ResultsFilter`.** `ResultsFilter.matches(_ job: RankedJob, isTracked:)` is generic
+  over a `RankedJob`, and a `TrackedJob` **wraps** one — so the Tracker can apply the existing filter directly to
+  `tracked.job`. In [`TrackerViewModel.jobs(in:)`](../src/Presentation/Tracker/ViewModel/TrackerViewModel.swift:74),
+  filter **before** the sort: `sort.apply(to: trackedJobs.filter { resultsFilter.matches($0.job, isTracked: { _ in
+  true }) && section.includes($0.status.stage) })`. Add `var filter = ResultsFilter()` to `TrackerViewModel` and a
+  filter bar in `TrackerView` mirroring the Results filter controls. **Hide the `trackedStatus` facet** in the
+  Tracker (moot — everything there is tracked); expose minScore / keywords / location / company / salaryMin.
+- **Results sort — a *new* `ResultsSort` mirroring `TrackerSort`.** `TrackerSort` sorts `[TrackedJob]` with
+  **status-based keys** (recentActivity / dateApplied / stage) that **don't exist** for Results (`[RankedJob]`, no
+  status). So add a parallel **`ResultsSort`** — same `Key` + `Direction` + `apply(to: [RankedJob])` shape, pure and
+  unit-tested — with **RankedJob-appropriate keys**: **match score (default = the current ranking order)**, company,
+  role title, salary, posted date (`JobListing.postedDate`). Add `var sort = ResultsSort.default` to
+  [`ResultsViewModel`](../src/Presentation/Results/ViewModel/ResultsViewModel.swift) and apply it in
+  `filteredResults` (`:75`) **after** the filter (`sort.apply(to: filter.apply(...))`); add a sort bar in
+  `ResultsView` mirroring `TrackerView.sortBar` (`:61`).
+
+**Open calls (recommended defaults).**
+- **Share the types or keep parallel?** *Recommended:* **reuse `ResultsFilter`** for the Tracker (trivial — it's
+  already `RankedJob`-generic) and **add a parallel `ResultsSort`** for Results (the Tracker's status keys don't
+  fit). Optionally relocate both to `Presentation/Components/` as a shared list-filter / list-sort later (reusing a
+  Results-folder type from the Tracker is legal — same layer — but crosses feature folders).
+- **Results sort keys?** *Recommended:* match score (default) / company / role title / salary / posted date.
+- **Tracker filter facets?** *Recommended:* minScore / keywords / location / company / salaryMin (drop
+  `trackedStatus` — moot; the stage **tabs** already segment by stage).
+- **Filter scope in the Tracker — within the stage tab or across all?** *Recommended:* **within the selected tab**
+  (matches how `jobs(in:)` already applies the sort per section).
+
+**On-device.** n/a — pure Presentation value types, session-only and non-destructive (no persistence, no re-load).
+
+**Scope.** Small–moderate (patch-sized, `.2`) — reuse `ResultsFilter` in `TrackerViewModel` + a Tracker filter bar;
+a new `ResultsSort` + a Results sort bar. **No Business/Data change** (both are pure view state). Pairs with the
+other v0.6.2 entries (Results/Tracker actions). Fits **v0.6.2**.
+
+---
+
+## Hide the raw-text preview for imported source documents (keep paste)
+
+**Target:** **v0.6.2** (a patch on v0.6.0). Small.
+
+**Why.** On the Portfolio → Profile tab, each résumé/cover-letter upload slot
+([`documentSlot`](../src/Presentation/Portfolio/View/PortfolioView.swift:152)) has a **"Show text"** toggle that
+reveals a raw `TextEditor` (`:185`) of the document's extracted text. For an **imported file**, that raw extracted
+text is noisy and not worth previewing — the user only cares about the **tidied** view (the Source Documents tab,
+`readableText`) after **Build Profile**. So: **when a file is imported, drop the raw-text preview**; the nicely
+formatted details after build stay. **Keep the paste path** — the same editor is how a user types/pastes text
+instead of importing, so it must remain available when there's no imported file.
+
+**Seam + files (Presentation-only).**
+- **Gate the raw editor on import-vs-paste** in `documentSlot` (`PortfolioView.swift:152`). The slot already knows
+  `fileName: String?` (set on import — `viewModel.sourceFileName` / `coverLetterFileName`):
+  - **Imported (`fileName != nil`):** replace the "Show text" toggle + `TextEditor` with a compact **summary**
+    (file name + character count — the existing `collapsedSummary` at `:247`) plus a **Clear/Remove** affordance.
+    **No raw-text preview.**
+  - **Paste (`fileName == nil`):** keep the `TextEditor` (type/paste) unchanged, so pasting still works.
+- **Unchanged:** the **Source Documents** tab (`sourceDocumentsSection`, `:263`) still shows each saved profile's
+  **`readableText`** (tidied form) after build — the "nicely formatted details" the user keeps.
+- **Context:** the **Supporting-documents** slot is already import-only with no editor (Milestone I); this brings the
+  résumé/cover-letter slots close to that, just retaining a paste editor when no file is imported.
+
+**Open calls (recommended defaults).**
+- **After import, a way to switch back to paste?** *Recommended:* **yes** — a small **Clear** on the imported
+  summary drops `fileName` + text so the paste editor returns (otherwise an import can't be undone in-slot).
+- **Show a tiny read-only snippet of the import, or nothing?** *Recommended:* **nothing** (name + char count only) —
+  the raw preview is exactly what's being removed; the tidied post-build view is where it's read.
+
+**On-device.** n/a — pure Presentation (conditional rendering in one view helper).
+
+**Scope.** Small (patch-sized, `.2`) — a conditional in `documentSlot`; **no VM/Business/Data change** (the paste
+binding + `sourceFileName` already exist). Fits **v0.6.2**.
 
 ---
 

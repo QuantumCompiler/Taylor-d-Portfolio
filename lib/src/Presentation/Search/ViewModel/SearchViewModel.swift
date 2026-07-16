@@ -73,6 +73,10 @@ final class SearchViewModel {
 
     private(set) var results: [RankedJob] = []
     private(set) var isSearching = false
+    /// Whether results are being digested into the standardized description format (Milestone K).
+    /// Rows appear immediately after ranking and swap to the standardized description as each
+    /// digest completes.
+    private(set) var isDigesting = false
     private(set) var errorMessage: String?
     /// A soft, non-fatal note (e.g. one title's search failed but others succeeded).
     private(set) var warningMessage: String?
@@ -267,6 +271,22 @@ final class SearchViewModel {
         profile = saved.profile
     }
 
+    /// Digests the current results into the standardized description format (Milestone K),
+    /// swapping each row to its standardized description **as its digest completes** (progressive),
+    /// then re-persisting the standardized set. Best-effort and no-op when digestion isn't wired or
+    /// there's nothing to digest; a job already carrying `details` is skipped (cache).
+    private func digestResults() async {
+        guard searchAndRank.canDigest, !results.isEmpty else { return }
+        isDigesting = true
+        defer { isDigesting = false }
+        for await updated in searchAndRank.digestStream(results) {
+            if let index = results.firstIndex(where: { $0.id == updated.id }) {
+                results[index] = updated
+            }
+        }
+        await persistResults()
+    }
+
     /// Persists the current results (best-effort — a persistence failure never breaks
     /// the search/fetch the user just ran).
     private func persistResults() async {
@@ -400,6 +420,7 @@ final class SearchViewModel {
         do {
             results = [try await fetchPosting(url: url, profile: profile)]
             await persistResults()
+            await digestResults()   // standardize the fetched posting too (Milestone K)
         } catch is JobPostingSourceError {
             linkErrorMessage = Self.blockedPostingMessage(for: url)
         } catch {
@@ -451,6 +472,7 @@ final class SearchViewModel {
             let sourceURL = URL(string: postingURL.trimmingCharacters(in: .whitespacesAndNewlines))
             results = [try await fetchPosting(pastedText: text, sourceURL: sourceURL, profile: profile)]
             await persistResults()
+            await digestResults()   // standardize the pasted posting too (Milestone K)
         } catch is JobPostingSourceError {
             linkErrorMessage = "That didn't look like a job posting — make sure you pasted the full description."
         } catch {
@@ -510,6 +532,7 @@ final class SearchViewModel {
             }
             warningMessage = notes.isEmpty ? nil : notes.joined(separator: " ")
             await persistResults()
+            await digestResults()   // standardize descriptions progressively (Milestone K)
         } catch {
             errorMessage = Self.message(for: error)
         }

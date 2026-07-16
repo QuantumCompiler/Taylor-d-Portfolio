@@ -9,16 +9,15 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.0 — richer grounding, job detail & sources — Milestone K (standardized result descriptions); next K-A.**
-> A–J are done (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A** richer job postings; **B**
+> **Current focus. The next version (unstarted) — number + theme TBD.** See "Next version" at the bottom of this
+> file. **v0.6.0 (richer grounding, job detail & sources) is complete and merge-ready** — all eleven milestones
+> **A–K** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`): **A** richer job postings; **B**
 > per-generation profile picker; **C** regenerate result; **D** user-editable API credentials; **E** full
 > job-posting text; **F** multi-source search; **G** per-provider credential-setup help — which also delivered
 > **H-A**, the enumerable **provider registry** (`JobProviderRegistry`); **H** the Search **provider selector**;
-> **I** supporting profile documents (extra career docs baked into a profile as factual grounding); **J** the
-> **LLM job source** (AI-suggested leads from your résumé, no API key). **Remaining: Milestone K**
-> (**standardized result descriptions** — scheduled 2026-07-15; see the **v0.6.0 — remaining milestone (K)**
-> section below), then the small **merge-ready wrap** (`README.md` Version-history is already updated for A–F;
-> refresh it for G–K) and the **device checks** below.
+> **I** supporting profile documents; **J** the **LLM job source** (AI-suggested leads from your résumé, no API
+> key); **K** standardized result descriptions. Only the **device checks** below remain before the branch merges
+> (the docs, `README.md` Version-history, and `MARKETING_VERSION = 0.6.0` are all done).
 > `MARKETING_VERSION` is `0.6.0`.
 >
 > **⚠️ Awaiting device checks (v0.5.0 + v0.5.1)** — verify on a real run: **(v0.5.0)** job detail + Application
@@ -102,93 +101,28 @@ doing.
 > banner in the detail, whose link opens a **web search** for the role (not a posting URL); an AI lead that
 > duplicates a real Adzuna/JSearch posting appears **once** (the API posting wins); and with **no** API keys but an
 > available engine, search still works (AI-only). *(The suggestions are the model's — verify before applying.)*
+>
+> **⚠️ Awaiting device checks (v0.6.0 Milestone K)** — with a live engine: a New Search shows ranked rows
+> **immediately**, then a **"Standardizing descriptions…"** indicator while each result's description is digested;
+> as each completes, the detail view's **Description** shows one **standardized** layout (About the role →
+> Responsibilities → Qualifications → Nice to have → About the company → Benefits → Work type) — the **same shape**
+> for an Adzuna result, a JSearch result, and a link/paste posting; a result whose digest finds nothing keeps its
+> raw description (no error); re-opening the app shows the **persisted** standardized descriptions (and a job
+> already digested isn't re-digested); and a generated résumé/cover letter is grounded on the uniform structure.
+> *(Cost scales with result count — one LLM call per result; the bounded window + cache + progressive display are
+> the guards.)*
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
 
 ---
 
-# v0.6.0 — remaining milestone (K)
-
-One feature still to build in the current release: **K** — **standardized result descriptions** (LLM-digest
-*every* posting into one canonical `PostingDetails` format so results read the same whatever the source, and
-generation grounds on a uniform structure). (Milestone letters are per-version.) *(Milestones **I** — supporting
-profile documents — and **J** — LLM job source — shipped; their write-ups are in `MILESTONES.md`.)*
-
-## Milestone K — Standardized result descriptions (digest every posting into one format)
-
-**What / why.** Two problems with descriptions today: **(1)** a result shows the **raw source** `description` —
-Adzuna's ~500-char snippet ("…"), JSearch's full text, or a page-fetch of varying quality — so descriptions are
-**inconsistent** and often thin; and **(2)** enrichment runs **only on save-to-Tracker**
-([`ResultsViewModel.enrichSavedJob`](../src/Presentation/Results/ViewModel/ResultsViewModel.swift:139)), so the
-list / detail / grounding never get it automatically. **Fix:** as part of search, **LLM-digest every result into one
-canonical format** — the existing [`PostingDetails`](../src/Data/Models/PostingDetails.swift) sections — and render a
-**standardized description** from it, so every result reads the same *regardless of source* and generation always
-grounds on a uniform structure. **Decisions (2026-07-15):** reuse `PostingDetails` + a fixed renderer; **always
-digest every result** (even already-full JSearch text); and when the fetch is thin/blocked, **digest from whatever we
-have anyway** (snippet + Adzuna fields + title/company).
-
-**Seam + files.**
-- **Digest into the search pipeline.** Inject
-  [`EnrichPostingUseCase`](../src/Business/UseCases/EnrichPostingUseCase.swift) into
-  [`SearchAndRankUseCase`](../src/Business/UseCases/SearchAndRankUseCase.swift) and, **after ranking**, digest the
-  `[RankedJob]` with **bounded concurrency** (reuse the `withTaskGroup` window in `SearchAndRankUseCase.searchAll`
-  `:161`). Digestion becomes part of the search output, not a save-time afterthought.
-- **Always structure, even from thin input.** Change `EnrichPostingUseCase` so it **always** runs `enrichPosting`
-  (LLM) into `PostingDetails` using the best available text — the fetched full page (Milestone E) when it works,
-  **else the snippet + structured Adzuna fields** (`contract_type`/`contract_time`/`category`) + title/company.
-  **Drop** today's "no-op when the page can't be fetched / `hasContent` is false → keep the snippet" gating: we
-  always attach the digest (some sections may be empty). And **always digest even already-full JSearch text**, so
-  every result shares one format (this removes the old skip-already-full cost saving — see cost note).
-- **Standard rendered description (pure).** Add a deterministic renderer — `PostingDetails.standardDescription` (or
-  a `StandardPostingRenderer`, Infrastructure/Text) — that renders the sections into a **fixed template** (role
-  summary → About the role → Responsibilities → Qualifications → Nice-to-haves → About the company → Benefits →
-  work type). Unit-testable, identical shape for every result. It becomes the **displayed** description
-  (`JobDetailView` / results); the raw source text stays as a fallback when the digest is empty.
-- **Feeds generation consistently (the payoff).** `PostingDetails` already flows into `buildTargetBrief` via
-  `Prompts.postingDetailSection` (A-E). Now that **every** job carries a populated `PostingDetails`, generation
-  grounds on a uniform structure — the "standard format for creating applications" this milestone is really about.
-- **⚠️ Cost (heavier than a plain enrich).** "Always digest" = **one LLM call per result** (+ a page-fetch
-  attempt), *including* JSearch results that were previously free — so the skip-already-full saving is gone. Guards:
-  the **bounded-concurrency window**, **caching** (never re-digest a job already carrying `details`), and
-  **progressive display** — show ranked rows immediately (raw snippet), swap each to the standardized description as
-  it completes. A 25–50-result search is a real token/latency cost; surface it.
-
-**Sub-tasks (K-A…):**
-- [ ] **K-A** — Inject `EnrichPostingUseCase` into `SearchAndRankUseCase`; digest **every** ranked result into
-      `PostingDetails` with bounded concurrency (reuse `searchAll`'s window).
-- [ ] **K-B** — Make `EnrichPostingUseCase` **always** structure (even from snippet + Adzuna fields); drop the
-      "keep snippet when empty / skip already-full" no-op — always attach the digest.
-- [ ] **K-C** — `PostingDetails.standardDescription` (pure fixed-template renderer) → the displayed description; raw
-      source kept as fallback.
-- [ ] **K-D** — Progressive display (`SearchViewModel` / Results): raw snippet first, swap to standardized as each
-      completes; persist the standardized set (`persistResults` / `SaveResultsUseCase`).
-- [ ] **K-E** — Cost guard: bounded window + **cache** (skip re-digesting a job already carrying `details`); reuse
-      the rate-limit posture.
-- [ ] **(open call) Fixed-template section order/labels for `standardDescription`.** *Recommended:* role summary →
-      about role → responsibilities → qualifications → nice-to-haves → about company → benefits → work type.
-- [ ] **(open call) Soft per-search cap / digest the tail on-demand for very large searches?** *Recommended:*
-      bounded window first; add a cap only if huge searches prove too slow/costly.
-- [ ] **(open call) Extend `PostingDetails` (one-line role summary, comp/logistics)?** *Recommended:* ship with the
-      current fields; extend only if the standard description needs them.
-
-**Tests.** Every result gets a `PostingDetails` (bounded) — a JSearch-style full-text listing **is still digested**,
-and a thin Adzuna snippet is digested from snippet + fields; `standardDescription` renders a consistent template from
-both populated and sparse details; a digest failure falls back to the raw description without failing the search; the
-standardized set persists; a job already carrying `details` is not re-digested (cache).
-**On-device.** One `.extraction`-task LLM call per result + a page-fetch — **cost scales with result count** (no
-skip-already-full now); bounded window + caching + progressive display are the guards. The digest **normalizes** the
-posting into the standard format; where the source is thin it summarizes what's there (a **normalized digest, not
-verbatim** — surfaced as such, consistent with the transparency stance).
-
----
-
 # Next version — (unstarted; number + theme TBD)
 
-**v0.6.0 (richer grounding, job detail & sources)** is **not yet feature-complete**: A–J are in `MILESTONES.md` /
-ticked in `ROADMAP.md`, but **Milestone K remains to build** (standardized result descriptions — see the
-**v0.6.0 — remaining milestone (K)** section above). Remaining before merge: build **K**, then the small
-**merge-ready wrap** (refresh the `README.md` Version-history summary for G–K) and the **device checks** above.
+**v0.6.0 (richer grounding, job detail & sources) is complete and merge-ready** — all eleven milestones **A–K** are
+in `MILESTONES.md` and ticked in `ROADMAP.md`, the `README.md` Version-history has its v0.6.0 summary, and
+`MARKETING_VERSION` is `0.6.0`. Only the **device checks** above remain (genuinely manual). The next version is
+**unstarted** — no work is scheduled here yet.
 
 **Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its number
 and theme aren't chosen until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At

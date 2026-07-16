@@ -111,6 +111,42 @@ struct DomainModelTests {
         #expect(!empty.hasContent)
     }
 
+    // MARK: Standardized description (v0.6.0 Milestone K)
+
+    @Test func standardDescriptionRendersTheFixedTemplateInOrder() {
+        let details = PostingDetails(
+            workTypeRaw: "remote",
+            qualifications: ["Swift", "5 yrs"],
+            responsibilities: ["Ship features"],
+            niceToHaves: ["SwiftUI"],
+            aboutRole: "Build the iOS app.",
+            aboutCompany: "A fintech.",
+            benefits: ["Equity"]
+        )
+        let md = details.standardDescription
+        // Sections present with their headings…
+        #expect(md.contains("## About the role\nBuild the iOS app."))
+        #expect(md.contains("## Responsibilities\n- Ship features"))
+        #expect(md.contains("## Qualifications\n- Swift\n- 5 yrs"))
+        #expect(md.contains("## Nice to have\n- SwiftUI"))
+        #expect(md.contains("## About the company\nA fintech."))
+        #expect(md.contains("## Benefits\n- Equity"))
+        #expect(md.contains("## Work type\nRemote"))
+        // …in the fixed order (role → responsibilities → qualifications → nice-to-have → company → benefits → work type).
+        let order = ["About the role", "Responsibilities", "Qualifications", "Nice to have", "About the company", "Benefits", "Work type"]
+        let positions = order.map { md.range(of: $0)!.lowerBound }
+        #expect(positions == positions.sorted())
+    }
+
+    @Test func standardDescriptionOmitsEmptySectionsAndIsEmptyWhenBlank() {
+        let sparse = PostingDetails(responsibilities: ["Do the thing"])
+        let md = sparse.standardDescription
+        #expect(md.contains("## Responsibilities\n- Do the thing"))
+        #expect(!md.contains("## About the role"))     // empty section omitted
+        #expect(!md.contains("## Work type"))
+        #expect(PostingDetails().standardDescription.isEmpty)   // nothing → "" (raw fallback)
+    }
+
     @Test func workTypeParsesLooseModelStrings() {
         #expect(WorkType(loose: "On-Site") == .onSite)
         #expect(WorkType(loose: "in office") == .onSite)

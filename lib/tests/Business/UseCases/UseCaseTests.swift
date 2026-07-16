@@ -385,6 +385,57 @@ struct UseCaseTests {
         #expect(result == blank)
         #expect(provider.lastText == nil)    // enrichment never called — nothing to read
     }
+
+    // MARK: SearchAndRankUseCase.digestStream (v0.6.0 Milestone K)
+
+    private func rankedFixture(_ id: String, details: PostingDetails? = nil) -> RankedJob {
+        var listing = JobListing(id: id, title: "t", company: "c", location: "l", description: "raw snippet")
+        listing.details = details
+        return RankedJob(listing: listing, match: JobMatch(jobId: id, score: 50, reason: "", matchedSkills: [], missingSkills: []))
+    }
+
+    private func digestUseCase(_ provider: EnrichRecordingProvider) -> SearchAndRankUseCase {
+        SearchAndRankUseCase(
+            jobSource: DigestNoopJobSource(),
+            ranker: JobRanker(provider: provider, shortlistLimit: 10),
+            enrichPosting: EnrichPostingUseCase(provider: provider, postingSource: nil)
+        )
+    }
+
+    @Test func digestStreamStructuresEveryUndigestedResultAndCachesTheRest() async {
+        let useCase = digestUseCase(EnrichRecordingProvider(details: PostingDetails(aboutRole: "A role.")))
+        let jobs = [
+            rankedFixture("a"),                                              // undigested → digested
+            rankedFixture("b", details: PostingDetails(aboutRole: "kept")),  // already has details → skipped (cache)
+        ]
+        var digested = [RankedJob]()
+        for await job in useCase.digestStream(jobs) { digested.append(job) }
+        #expect(digested.map(\.id) == ["a"])                                 // only the undigested one is yielded
+        #expect(digested.first?.listing.details?.aboutRole == "A role.")
+    }
+
+    @Test func digestStreamYieldsNothingWhenNotWired() async {
+        let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "x"))
+        let useCase = SearchAndRankUseCase(jobSource: DigestNoopJobSource(), ranker: JobRanker(provider: provider, shortlistLimit: 10))
+        #expect(!useCase.canDigest)
+        var count = 0
+        for await _ in useCase.digestStream([rankedFixture("a")]) { count += 1 }
+        #expect(count == 0)
+    }
+
+    @Test func digestStreamSkipsResultsThatDidNotChange() async {
+        // A digest that finds nothing (empty details) leaves the listing unchanged → not yielded,
+        // so the row keeps its raw description (soft fallback).
+        let useCase = digestUseCase(EnrichRecordingProvider(details: PostingDetails()))
+        var count = 0
+        for await _ in useCase.digestStream([rankedFixture("a")]) { count += 1 }
+        #expect(count == 0)
+    }
+}
+
+/// A `JobSource` that returns nothing — for `digestStream` tests that don't exercise searching.
+private struct DigestNoopJobSource: JobSource {
+    func search(_ query: JobQuery) async throws -> [JobListing] { [] }
 }
 
 /// A `JobPostingSource` that returns a canned listing or throws.

@@ -92,6 +92,14 @@ struct SearchView: View {
                   systemImage: "checkmark.circle")
                 .font(.callout).foregroundStyle(.green)
         }
+
+        // Milestone K: results appear immediately, then descriptions standardize in the background.
+        if viewModel.isDigesting {
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Standardizing descriptions…").font(.callout).foregroundStyle(.secondary)
+            }
+        }
     }
 
     // MARK: Search sources — pick which providers to query (Milestone H)

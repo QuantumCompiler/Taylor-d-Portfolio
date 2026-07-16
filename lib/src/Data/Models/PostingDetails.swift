@@ -75,4 +75,31 @@ nonisolated struct PostingDetails: Codable, Equatable, Sendable {
             || !niceToHaves.isEmpty
             || !benefits.isEmpty
     }
+
+    /// A **standardized** rendering of the posting into one fixed markdown template (v0.6.0
+    /// Milestone K), so every result reads the same regardless of source: About the role →
+    /// Responsibilities → Qualifications → Nice to have → About the company → Benefits → Work
+    /// type. Empty sections are omitted; empty overall (`!hasContent`) returns `""` so callers
+    /// fall back to the raw description. Pure and deterministic.
+    var standardDescription: String {
+        var sections: [String] = []
+        func paragraph(_ heading: String, _ body: String) {
+            let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { sections.append("## \(heading)\n\(trimmed)") }
+        }
+        func bulleted(_ heading: String, _ items: [String]) {
+            let cleaned = items
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            if !cleaned.isEmpty { sections.append("## \(heading)\n" + cleaned.map { "- \($0)" }.joined(separator: "\n")) }
+        }
+        paragraph("About the role", aboutRole)
+        bulleted("Responsibilities", responsibilities)
+        bulleted("Qualifications", qualifications)
+        bulleted("Nice to have", niceToHaves)
+        paragraph("About the company", aboutCompany)
+        bulleted("Benefits", benefits)
+        if let workType { sections.append("## Work type\n\(workType.label)") }
+        return sections.joined(separator: "\n\n")
+    }
 }

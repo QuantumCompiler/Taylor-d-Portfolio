@@ -51,10 +51,14 @@ struct SearchViewModelTests {
         jobs: [JobListing] = [],
         matches: [JobMatch] = [],
         configuredProviderIDs: Set<String> = Set(JobProviderRegistry.all.map(\.id)),
-        roleTitleStore: RoleTitleStore = RoleTitleStore(store: PresentationMemoryStore())
+        roleTitleStore: RoleTitleStore = RoleTitleStore(store: PresentationMemoryStore()),
+        enrichDetails: PostingDetails? = nil
     ) -> SearchViewModel {
-        let ranker = JobRanker(provider: PresentationStubProvider(matches: matches), shortlistLimit: 10)
-        let useCase = SearchAndRankUseCase(jobSource: PresentationStubJobSource(jobs: jobs), ranker: ranker)
+        let provider = PresentationStubProvider(matches: matches, enrichDetails: enrichDetails)
+        let ranker = JobRanker(provider: provider, shortlistLimit: 10)
+        // Milestone K: wire the digester only when the test opts in via `enrichDetails`.
+        let enrich = enrichDetails.map { _ in EnrichPostingUseCase(provider: provider, postingSource: nil) }
+        let useCase = SearchAndRankUseCase(jobSource: PresentationStubJobSource(jobs: jobs), ranker: ranker, enrichPosting: enrich)
         return SearchViewModel(searchAndRank: useCase, roleTitleStore: roleTitleStore,
                                configuredProviderIDs: configuredProviderIDs)
     }
@@ -87,6 +91,20 @@ struct SearchViewModelTests {
         await vm.search()
         #expect(vm.results.isEmpty)
         #expect(vm.errorMessage != nil)
+    }
+
+    @Test func searchDigestsResultsIntoTheStandardizedFormat() async {
+        // Milestone K: after ranking, every result is digested into a uniform `PostingDetails`.
+        let jobs = [JobListing(id: "a", title: "t", company: "c", location: "l", description: "raw snippet")]
+        let matches = [JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: [])]
+        let vm = makeVM(jobs: jobs, matches: matches, enrichDetails: PostingDetails(aboutRole: "A great role."))
+        vm.profile = profile
+        vm.titleInput = "iOS Engineer"
+        await vm.search()
+        #expect(vm.results.map(\.id) == ["a"])
+        #expect(vm.results.first?.listing.details?.aboutRole == "A great role.")   // standardized
+        #expect(vm.results.first?.listing.details?.standardDescription.contains("A great role.") == true)
+        #expect(vm.isDigesting == false)
     }
 
     @Test func searchWithProfileProducesResults() async {
