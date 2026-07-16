@@ -344,6 +344,20 @@ xcodebuild test -project "Taylor'd Portfolio.xcodeproj" -scheme "Taylor'd Portfo
 - Wire dependencies only in the composition root (`Taylor_d_PortfolioApp`).
 - ViewModels are `@MainActor`; do async work in use cases off the main actor and
   assign results back on the main actor.
+- **Keep the build warning-free** — the suite ships with zero warnings, so fix any new one in the same change
+  rather than letting them accumulate (a "warnings sweep" was its own milestone once — v0.4.1 Milestone H — don't
+  let it become one again).
+- **Default-`MainActor` isolation → mark lower-layer types `nonisolated`.** The project builds under **default
+  `MainActor` isolation** (SwiftUI-app default), so a top-level type, global, or `static` is inferred
+  `@MainActor` unless told otherwise. Data/Infrastructure types meant to be used from any context are therefore
+  declared **`nonisolated`** (see `AdzunaJobSource`, `JobSource`, `SavedProfile`, `JobProviderDescriptor`…), and
+  they must be `Sendable`. **The gotcha:** `nonisolated` on a type's primary declaration does **not** cover
+  `static` members added in an **`extension`** — those are re-inferred `@MainActor` and then can't be referenced
+  from the nonisolated type (e.g. `Main actor-isolated static property 'adzuna' can not be referenced from a
+  nonisolated context`, `JobProviderRegistry.swift`). **Fix:** mark each such member `nonisolated static let …`
+  — allowed because the value is an **immutable `let`** of a **`Sendable`** type. Don't "fix" an isolation
+  warning by making a lower-layer value `@MainActor` (it would fracture the seam); push the annotation the other
+  way — `nonisolated` — so the Data/Infra type stays callable from use cases and background contexts.
 
 ## Hard rules for generated content
 
