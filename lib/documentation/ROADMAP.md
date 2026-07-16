@@ -602,7 +602,7 @@ breakdown + open calls.
 ## v0.6.0 — richer grounding, job detail & sources  (in progress)
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal
-to work from**, and **more (and better-fed) sources to get it from**. Nine milestones. The first three
+to work from**, and **more (and better-fed) sources to get it from**. Ten milestones. The first three
 (**A–C, complete**) improve grounding: capture and surface **much more of a job posting** (Milestone A),
 let the user **choose which profile to ground on** and generate against its real source documents
 (Milestone B), and **regenerate a saved result** against a chosen profile so stale/legacy entries can be
@@ -613,10 +613,14 @@ Adzuna's truncated snippet (Milestone E), and **aggregate multiple job providers
 both need), then E, then F. Two follow-on milestones (**G–H, in progress**) build on that credential seam:
 per-provider **credential-setup help** in Settings (Milestone G), and a **provider selector** in the Search view
 so the user picks which API(s) to query — both driven by **one data-driven provider registry** so new providers
-appear everywhere automatically (Milestone H). A ninth milestone (**I, planned**) lets a profile carry **additional
+appear everywhere automatically (Milestone H). A ninth milestone (**I, complete**) lets a profile carry **additional
 supporting documents** — e.g. a full career portfolio — baked in as factual grounding for richer search + generation.
-Grounded-by-default and never-fabricate hold throughout: enrichment
-*structures* what a posting says, re-ranking *re-assesses fit honestly*, and neither invents facts.
+A tenth (**J, planned**) adds an **LLM-backed job source** — find leads from the résumé, labelled *AI-suggested*
+(leads, not verified postings) — wired in beside the API providers with its own engine in the task-engine map.
+**Transparency to the user** holds throughout (the app makes clear what's real vs. generated), but there's **no
+hard never-fabricate rule** — fabrication is an accepted capability: enrichment *structures* what a posting says,
+re-ranking *re-assesses fit honestly*, and generated / LLM-sourced content is **surfaced as such** so the user
+knows what's real vs. generated.
 Milestones restart at **A** and commit as `v0.6.0 : Milestone X Completed`. `TODO.md` has the granular
 breakdown + open calls.
 
@@ -718,9 +722,9 @@ breakdown + open calls.
       configured". Depends on **D** (configured signal); extends **F**. Seam: Data (registry + request field) +
       Business (selection filter) + Presentation (picker). On-device: search needs network; registry/selection local.
 
-- [ ] **Milestone I — Supporting profile documents (bake extra career docs into a profile).** A `SavedProfile`
-      carries only two documents today — the résumé source (distilled + factual grounding) and an optional cover
-      letter (voice exemplar, never distilled). Let a profile attach **additional file(s)** — e.g. a complete
+- [x] **Milestone I — Supporting profile documents (bake extra career docs into a profile).** ✅ **Done (I-A…I-E).** A `SavedProfile`
+      carried only two documents — the résumé source (distilled + factual grounding) and an optional cover
+      letter (voice exemplar, never distilled). Now a profile attaches **additional file(s)** — e.g. a complete
       career portfolio — as **factual grounding** for both **ranking/search** and **generation**. Generalises the
       existing doc handling: add `supportingDocuments: [SupportingDocument]` to `SavedProfile` (decode-with-defaults,
       back-compatible), import + tidy each via the existing `ImportPortfolioUseCase` / `TidyDocumentUseCase`, add a
@@ -728,8 +732,25 @@ breakdown + open calls.
       ranking — distil the docs into a richer `CandidateProfile` at build time. UI: a multi-file slot on the
       Portfolio tab. Bound all injected text; the large-portfolio case is the natural driver for the Backlog **RAG**
       seam (`Retriever`/`EmbeddingClient`) as a follow-on. Seam: Data (`SavedProfile` + `PortfolioGrounding`) +
-      Business (build/tidy) + Presentation (upload). On-device: import/tidy are `.profile` LLM work. Guardrail:
-      factual grounding about the candidate — never-fabricate still binds. Scheduled from `PLANNED.md` 2026-07-15.
+      Business (build/tidy) + Presentation (upload). On-device: import/tidy are `.profile` LLM work. Note:
+      supporting docs are real, user-supplied grounding — they add signal, not invention. Scheduled from `PLANNED.md` 2026-07-15.
+
+- [ ] **Milestone J — LLM job source (find jobs from your résumé, no API required).** Search needs an API key today
+      (Adzuna / JSearch); an LLM can surface roles straight from the résumé/portfolio (the "paste your résumé into a
+      fresh Claude session and it finds jobs" workflow). Wire an **LLM-backed `JobSource`** in as a first-class
+      source — in **Settings → Sources** and the Milestone H **provider selector** — and give it its own **engine**
+      via a new `LLMTask.jobSearch` (which auto-appears in the engines menu, since it iterates `LLMTask.allCases`).
+      Add `LLMProvider.searchJobs(query:grounding:)` (forwarding default; Claude + on-device impls; `LLMRouter`
+      routing), a `JobProvider.llm` case (**no credentials**), and an `LLMJobSource: JobSource` (grounded on the
+      selected profile via a closure, since the profile lives above the `JobSource` seam). Register `.llm` in
+      `JobProviderRegistry` — extending its descriptor factory, which currently builds only credential+HTTP API
+      sources — and gate its availability on **engine-availability**, not credentials. **Transparency:** results are
+      **AI-suggested leads**, labelled as such and linking to a *search* rather than presenting an unverified URL as
+      a confirmed live posting — so the user knows these are AI suggestions, not confirmed openings (fabrication is
+      fine; misleading the user isn't). Open calls: lead-URL presentation; whether the `claude -p` provider has
+      web-search tooling (verify at build); count/dedup (reuse F's
+      `JobListing.fingerprint`). Seam: Data (LLM task + provider + `LLMJobSource` + registry) + Presentation
+      (Sources + selector labelling). On-device: `.jobSearch` runs on-device or Claude — no API key. Scheduled 2026-07-15.
 
 ## Fast follow (next up)
 
@@ -739,8 +760,8 @@ breakdown + open calls.
   résumé & cover letter output) are complete; **v0.6.0 (richer grounding, job detail & sources)** is **in progress**
   — A–H complete (A richer job postings, B profile-at-generation, C regenerate result, D user-editable credentials,
   E full posting text, F multi-source search, G per-provider credential-setup help, H Search provider selector — the
-  last two on H-A's data-driven provider registry), with **Milestone I** (supporting profile documents) added and
-  planned. **The next version is unstarted** — its number
+  last two on H-A's data-driven provider registry), with **Milestones I–J** (supporting profile documents; LLM job
+  source) added and planned. **The next version is unstarted** — its number
   and theme are chosen when development on it begins
   (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"

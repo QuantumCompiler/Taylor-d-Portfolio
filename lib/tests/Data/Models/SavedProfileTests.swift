@@ -99,4 +99,58 @@ struct SavedProfileTests {
         #expect(saved().grounding == nil)
         #expect(saved(sourceText: "   ").grounding == nil)   // whitespace-only doesn't count
     }
+
+    // MARK: Supporting documents (v0.6.0 Milestone I)
+
+    @Test func roundTripsIncludingSupportingDocuments() throws {
+        let original = SavedProfile(
+            id: "id-1", name: "Primary", profile: profile(),
+            sourceText: "raw", readableText: "tidy",
+            supportingDocuments: [
+                SupportingDocument(id: "d1", fileName: "portfolio.pdf", rawText: "raw a", readableText: "tidy a"),
+                SupportingDocument(id: "d2", fileName: nil, rawText: "raw b", readableText: "tidy b"),
+            ],
+            createdAt: Date(timeIntervalSince1970: 100)
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(SavedProfile.self, from: data)
+        #expect(decoded == original)
+        #expect(decoded.supportingDocuments.count == 2)
+        #expect(decoded.supportingDocuments[0].fileName == "portfolio.pdf")
+        #expect(decoded.supportingDocuments[1].readableText == "tidy b")
+    }
+
+    /// A profile saved before supporting documents existed must decode with an empty array.
+    @Test func legacyBlobWithoutSupportingDocumentsDecodesEmpty() throws {
+        let profileObject = try JSONSerialization.jsonObject(with: JSONEncoder().encode(profile()))
+        let legacy: [String: Any] = [
+            "id": "s-1", "name": "Single", "profile": profileObject, "createdAt": 0,
+            "sourceFileName": "cv.pdf", "sourceText": "raw", "readableText": "tidy",
+        ]
+        let data = try JSONSerialization.data(withJSONObject: legacy)
+        let decoded = try JSONDecoder().decode(SavedProfile.self, from: data)
+        #expect(decoded.supportingDocuments.isEmpty)
+    }
+
+    private func savedWithSupporting(_ documents: [SupportingDocument]) -> SavedProfile {
+        SavedProfile(
+            id: "id", name: "P", profile: profile(),
+            sourceText: "raw résumé", readableText: "tidy résumé",
+            supportingDocuments: documents, createdAt: Date(timeIntervalSince1970: 0)
+        )
+    }
+
+    @Test func groundingConcatenatesSupportingDocumentText() {
+        let grounding = savedWithSupporting([
+            SupportingDocument(id: "a", rawText: "raw a", readableText: "tidy a"),
+            SupportingDocument(id: "b", rawText: "raw b"),   // no tidy → falls back to raw
+        ]).grounding
+        #expect(grounding?.supportingText == "tidy a\n\nraw b")   // readable preferred, joined
+    }
+
+    @Test func groundingSupportingTextIsNilWhenNoneUsable() {
+        #expect(savedWithSupporting([]).grounding?.supportingText == nil)
+        // Whitespace-only documents don't count.
+        #expect(savedWithSupporting([SupportingDocument(id: "a", rawText: "   ")]).grounding?.supportingText == nil)
+    }
 }

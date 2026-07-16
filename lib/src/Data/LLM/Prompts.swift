@@ -22,6 +22,10 @@ nonisolated enum Prompts {
     static let maxPageCharacters = 12_000
     /// Cap on the cover-letter voice exemplar injected into generation grounding.
     static let maxCoverLetterCharacters = 3_000
+    /// Cap on the concatenated supporting-document text injected into generation grounding
+    /// (Milestone I) — larger than the résumé, since a full portfolio is the point, but still
+    /// bounded for the on-device context window.
+    static let maxSupportingCharacters = 8_000
     /// Cap on the user's free-text steering guidance injected into generation (Milestone I).
     static let maxAdditionalContextCharacters = 1_000
 
@@ -532,6 +536,18 @@ nonisolated enum Prompts {
             Candidate résumé — the candidate's REAL experience, as written. Use it as factual grounding:
             you may reorder and rephrase it, but never add any fact absent from it or the profile above.
             \(truncate(resume, to: maxPortfolioCharacters))
+            """
+        }
+
+        if let supporting = grounding.supportingText?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !supporting.isEmpty {
+            section += """
+
+
+            Additional supporting documents — more of the candidate's REAL background (e.g. a full career
+            portfolio of roles, skills, and projects). Use it as factual grounding exactly like the résumé:
+            you may draw on and rephrase it, but never add any fact absent from these documents or the profile.
+            \(truncate(supporting, to: maxSupportingCharacters))
             """
         }
 

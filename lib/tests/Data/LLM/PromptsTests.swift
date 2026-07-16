@@ -325,6 +325,37 @@ struct PromptsTests {
         #expect(prompt.contains("…"))
     }
 
+    // MARK: I — supporting documents grounding
+
+    @Test func supportingDocumentsAreInjectedAsFactualGrounding() {
+        let grounding = PortfolioGrounding(
+            resumeText: "resume",
+            supportingText: "FULL PORTFOLIO — shipped QuantumKit at Globex"
+        )
+        let prompt = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief, grounding: grounding)
+        #expect(prompt.contains("FULL PORTFOLIO — shipped QuantumKit at Globex"))
+        #expect(prompt.lowercased().contains("supporting documents"))
+        #expect(prompt.contains("factual grounding"))
+    }
+
+    @Test func absentSupportingDocumentsOmitTheSectionCleanly() {
+        let resumeOnly = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            grounding: PortfolioGrounding(resumeText: "resume", supportingText: nil)
+        )
+        #expect(!resumeOnly.lowercased().contains("additional supporting documents"))
+    }
+
+    @Test func supportingDocumentsAreBounded() {
+        let longSupporting = String(repeating: "S", count: Prompts.maxSupportingCharacters + 500)
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            grounding: PortfolioGrounding(resumeText: "resume", supportingText: longSupporting)
+        )
+        #expect(!prompt.contains(longSupporting))   // truncated, not injected whole
+        #expect(prompt.contains("…"))
+    }
+
     // MARK: D — generation controls (fidelity / aspects / disclosure)
 
     @Test func defaultSettingsLeaveThePromptUnchanged() {

@@ -47,6 +47,11 @@ final class PortfolioViewModel {
     /// The LLM-tidied, readable form of the cover letter, shown with the profile.
     private(set) var coverLetterReadableText: String = ""
 
+    /// **Additional supporting documents** (v0.6.0 Milestone I) — extra factual grounding
+    /// baked into the profile (e.g. a full career portfolio). Imported one file at a time
+    /// (add/remove), tidied in `build()`, distilled into the profile, and persisted with it.
+    private(set) var supportingDocuments: [SupportingDocument] = []
+
     /// Whether the default profile has been auto-applied yet (so it's applied once, on
     /// first load, and never clobbers a later manual selection).
     private var hasAppliedDefault = false
@@ -97,7 +102,11 @@ final class PortfolioViewModel {
         guard !resume.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         let rawLetter = coverLetterReadableText.isEmpty ? coverLetterSourceText : coverLetterReadableText
         let letter = rawLetter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : rawLetter
-        return PortfolioGrounding(resumeText: resume, coverLetterText: letter)
+        return PortfolioGrounding(
+            resumeText: resume,
+            coverLetterText: letter,
+            supportingText: SavedProfile.joinedSupportingText(supportingDocuments)
+        )
     }
 
     var canBuild: Bool {
@@ -143,6 +152,30 @@ final class PortfolioViewModel {
         }
     }
 
+    /// Imports a picked document into the **supporting-documents** list (Milestone I): extra
+    /// factual grounding appended to the profile. Never gates Build; each file is tidied in
+    /// `build()`. The raw text is captured now; `readableText` is filled at build time.
+    func importSupportingDocument(from url: URL) async {
+        isImporting = true
+        errorMessage = nil
+        defer { isImporting = false }
+        do {
+            let raw = try await importPortfolio(fileURL: url)
+            supportingDocuments.append(
+                SupportingDocument(id: UUID().uuidString, fileName: url.lastPathComponent, rawText: raw)
+            )
+        } catch let error as DocumentExtractionError {
+            errorMessage = Self.message(for: error)
+        } catch {
+            errorMessage = "Couldn't read that document. Try a PDF, Word, RTF, or text file."
+        }
+    }
+
+    /// Removes a supporting document from the list (before or after a build).
+    func removeSupportingDocument(_ id: String) {
+        supportingDocuments.removeAll { $0.id == id }
+    }
+
     private static func message(for error: DocumentExtractionError) -> String {
         switch error {
         case .unsupportedType(let ext):
@@ -161,7 +194,29 @@ final class PortfolioViewModel {
         defer { isBuilding = false }
         do {
             let text = portfolioText
-            let built = try await buildProfile(portfolio: text)
+            // Supporting documents (Milestone I): tidy each (best-effort) so the readable form
+            // is stored, then distil them into the profile alongside the résumé — so ranking and
+            // generation both draw on the fuller, real signal. Tidy first so the distillation
+            // sees clean text.
+            if let tidyDocument {
+                for index in supportingDocuments.indices {
+                    let raw = supportingDocuments[index].rawText
+                    supportingDocuments[index].readableText = (try? await tidyDocument(rawText: raw)) ?? raw
+                }
+            } else {
+                for index in supportingDocuments.indices where supportingDocuments[index].readableText.isEmpty {
+                    supportingDocuments[index].readableText = supportingDocuments[index].rawText
+                }
+            }
+            // Distil over the résumé **plus** the supporting documents (I-D). The résumé leads,
+            // so `Prompts.buildProfile`'s cap preserves it if the combined text overflows.
+            let distillationInput: String
+            if let supporting = SavedProfile.joinedSupportingText(supportingDocuments) {
+                distillationInput = text + "\n\nAdditional supporting documents:\n\n" + supporting
+            } else {
+                distillationInput = text
+            }
+            let built = try await buildProfile(portfolio: distillationInput)
             profile = built
             // A freshly-built profile isn't yet saved; prefill a sensible name.
             selectedProfileID = nil
@@ -276,6 +331,7 @@ final class PortfolioViewModel {
                 coverLetterFileName: coverLetterFileName,
                 coverLetterText: coverLetterSourceText,
                 coverLetterReadableText: coverLetterReadableText,
+                supportingDocuments: supportingDocuments,
                 existing: existing
             )
             selectedProfileID = saved.id
@@ -297,6 +353,7 @@ final class PortfolioViewModel {
         coverLetterFileName = saved.coverLetterFileName
         coverLetterSourceText = saved.coverLetterText
         coverLetterReadableText = saved.coverLetterReadableText
+        supportingDocuments = saved.supportingDocuments
         errorMessage = nil
     }
 
@@ -322,6 +379,7 @@ final class PortfolioViewModel {
         coverLetterFileName = nil
         coverLetterSourceText = ""
         coverLetterReadableText = ""
+        supportingDocuments = []
         errorMessage = nil
     }
 

@@ -105,7 +105,7 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
   The profile's **summary/description can be regenerated** from a user prompt without
   rebuilding the whole profile: `RefineSummaryUseCase` → `LLMProvider.refineSummary(profile:
   portfolio:instruction:)` (a plain-text task routed through `.profile`, grounded in the
-  profile + portfolio, never fabricating) rewrites only `summary`; the Portfolio tab exposes a
+  profile + portfolio) rewrites only `summary`; the Portfolio tab exposes a
   prompt field + Submit, and the user Saves/Updates to persist it.
   Long-pressing a saved profile marks it the **default** (persisted via `DefaultProfileStore`,
   a single-id KeyValueStore pointer); the Portfolio VM auto-loads it once on launch.
@@ -359,17 +359,23 @@ xcodebuild test -project "Taylor'd Portfolio.xcodeproj" -scheme "Taylor'd Portfo
   warning by making a lower-layer value `@MainActor` (it would fracture the seam); push the annotation the other
   way — `nonisolated` — so the Data/Infra type stays callable from use cases and background contexts.
 
-## Hard rules for generated content
+## Transparency for generated content
 
-- **Grounded by default.** With the generation-fidelity control at its default (0), resumes
-  and cover letters are grounded strictly in the user's portfolio: reorder and rephrase real
-  experience only, and **never** invent employers, job titles, dates, degrees, or credentials.
-- **Opt-in embellishment is always disclosed.** Raising the fidelity control (ROADMAP v0.5.0
-  Milestone D) permits curation and, at the top of the scale, invented content — but only as an
-  explicit user choice, and every addition not supported by the profile must be **surfaced**:
-  listed in the gap note / disclosures, flagged in the UI, and marked "draft — verify before
-  sending." **Never emit fabricated content silently or by default**, and keep the default
-  (fidelity 0) generation path byte-for-byte grounded.
+This app **may fabricate** — that's an accepted capability, not a bug. The generation-fidelity control can
+curate, embellish, and at the top of the scale invent content; the LLM job source (v0.6.0 Milestone J) surfaces
+**AI-suggested** leads that aren't verified live postings. There is **no hard "never-fabricate /
+grounded-by-default" rule**.
+
+The one rule that stays is **transparency to the user** — never mislead the person who's about to send the
+document or act on a lead:
+
+- **Surface what isn't the user's own data.** Content the model added or invented beyond the real portfolio
+  (embellished/invented résumé lines, unverified job leads) should be **visible**: listed in the gap note /
+  disclosures, flagged in the UI, and marked "draft — verify before sending" (or "AI-suggested — verify") where
+  it matters. The user decides what to submit; the app's job is to make clear what's real vs. generated.
+- **The fidelity control is a quality dial, not a guardrail.** Default = closer to the portfolio, higher = more
+  curation/embellishment/invention. It governs *how much* latitude the model takes; it no longer enforces a
+  byte-for-byte-grounded default path.
 
 ## Build & run
 

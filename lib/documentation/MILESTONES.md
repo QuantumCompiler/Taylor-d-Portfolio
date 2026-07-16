@@ -2460,3 +2460,52 @@ green; build warning-free.
 recommended: **multi-select**, default all; **persist** the selection in `SavedSearch` (re-runs against the
 providers it was saved with; legacy nil ⇒ all); a selected provider that loses its key just isn't in
 `configured` (skipped); source labels **deferred** to F's `JobListing.source`.)*
+
+## Milestone I — Supporting profile documents  ✅ done  (`Data/Models` + `Business` + `Data/LLM` + `Presentation/Portfolio`)
+
+A `SavedProfile` carried only the **résumé source** (distilled into the profile *and* used as factual grounding)
+and an **optional cover letter** (a voice/tone exemplar, never distilled). Milestone I lets a profile attach
+**additional supporting documents** — e.g. a complete career portfolio — **baked into the profile** as **factual**
+grounding, so both **ranking/search** and **application generation** draw on far more real signal. Unlike the
+cover letter, their content *may* be used (like the résumé). This generalises the existing résumé/cover-letter
+doc handling — no new generation seam; it rides Milestone B's existing grounding thread.
+
+- [x] **I-A — `SupportingDocument` model + `SavedProfile.supportingDocuments`.** New
+      [`SupportingDocument`](../src/Data/Models/SupportingDocument.swift) (`{ id, fileName?, rawText, readableText }`
+      + an `effectiveText` accessor, mirroring the résumé/cover-letter triple; `nonisolated`, `Codable`,
+      `Sendable`). Added `supportingDocuments: [SupportingDocument]` to
+      [`SavedProfile`](../src/Data/Models/SavedProfile.swift) with a **decode-with-defaults** `init(from:)`
+      (`decodeIfPresent … ?? []`) so pre-I profiles still load, and threaded it through
+      [`SaveProfileUseCase`](../src/Business/UseCases/SaveProfileUseCase.swift) (new `supportingDocuments:` param,
+      default `[]`).
+- [x] **I-B — `PortfolioViewModel` multi-file import/remove + tidy + store.** New `supportingDocuments` state +
+      `importSupportingDocument(from:)` (reuses `ImportPortfolioUseCase`, appends one per file) / `removeSupportingDocument(_:)`;
+      `build()` tidies each (`TidyDocumentUseCase`, best-effort → raw fallback); `select`/`deselect`/`saveProfile`
+      load/clear/persist them. Never gates Build.
+- [x] **I-C — `PortfolioGrounding.supportingText` (bounded) threaded through `Prompts`.** Added
+      `supportingText: String?` to [`PortfolioGrounding`](../src/Data/Models/PortfolioGrounding.swift); a shared
+      `SavedProfile.joinedSupportingText(_:)` concatenates each doc's `effectiveText` (readable-preferred), fed into
+      **both** grounding mappers (`SavedProfile.grounding` + `PortfolioViewModel.grounding`). `Prompts.groundingSection`
+      injects it as an **additional factual-grounding** block (after the résumé), bounded by a new
+      `maxSupportingCharacters` (8 000). Absent ⇒ byte-for-byte unchanged.
+- [x] **I-D — Distil supporting docs into the `CandidateProfile` at build.** `build()` now passes the résumé
+      **plus** the joined supporting text to `buildProfile` (résumé leading, so `Prompts.buildProfile`'s cap
+      preserves it) — so ranking benefits with **no per-rank cost** (recommended path), while raw grounding still
+      flows to generation.
+- [x] **I-E — Portfolio UI: supporting-docs slot (add/remove/browse).** The **Profile** tab gained a
+      multi-file **Supporting documents (optional)** slot (Add file… + per-file remove list) beside the source +
+      cover-letter slots ([`PortfolioView`](../src/Presentation/Portfolio/View/PortfolioView.swift)); **Source
+      Documents** lists each profile's supporting docs (readable form) under its disclosure.
+
+**Tests.** `SavedProfile` round-trips with supporting docs + decodes legacy blobs (no `supportingDocuments`) as
+empty; `grounding` concatenates their text (readable-preferred) and is nil when none usable; `Prompts` injects the
+supporting block as factual grounding, omits it cleanly when absent, and bounds it; `PortfolioViewModel`
+import/remove, build-tidy, grounding inclusion, save/select/deselect round-trip, and — via a recording provider —
+that **both** the résumé and the supporting text reach `buildProfile` (résumé first). Full suite green; build
+warning-free.
+
+**On-device.** Import + tidy are `.profile`-task LLM work (on-device-friendly; Claude when chosen), all injected
+text bounded. *(Open calls resolved as recommended: **distil + ground** (both channels); **bound** the injected
+text as a first cut (RAG follow-on remains a Backlog item); **no per-doc "kind" tag** for now.)* Guardrail: factual
+grounding about the candidate — the transparency rule still binds (nothing beyond these real documents + the
+profile).

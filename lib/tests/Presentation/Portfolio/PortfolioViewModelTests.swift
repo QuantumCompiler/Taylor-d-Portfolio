@@ -371,4 +371,108 @@ struct PortfolioViewModelTests {
         await vm.regenerateSummary()
         #expect(vm.profile?.summary == "REFINED:")  // stub echoes the (empty) instruction
     }
+
+    // MARK: I — supporting documents
+
+    @Test func importSupportingDocumentAppendsAndRemoveDropsIt() async {
+        let vm = makePersistingVM(importText: "PORTFOLIO A")
+        await vm.importSupportingDocument(from: URL(fileURLWithPath: "/tmp/a.pdf"))
+        await vm.importSupportingDocument(from: URL(fileURLWithPath: "/tmp/b.pdf"))
+        #expect(vm.supportingDocuments.count == 2)
+        #expect(vm.supportingDocuments[0].fileName == "a.pdf")
+        #expect(vm.supportingDocuments[0].rawText == "PORTFOLIO A")
+        #expect(vm.portfolioText.isEmpty)          // the résumé slot is untouched
+
+        vm.removeSupportingDocument(vm.supportingDocuments[0].id)
+        #expect(vm.supportingDocuments.count == 1)
+        #expect(vm.supportingDocuments[0].fileName == "b.pdf")
+    }
+
+    @Test func buildTidiesSupportingDocuments() async {
+        let vm = makePersistingVM(importText: "PORTFOLIO")
+        vm.portfolioText = "resume"
+        await vm.importSupportingDocument(from: URL(fileURLWithPath: "/tmp/portfolio.pdf"))
+        await vm.build()
+        #expect(vm.supportingDocuments[0].readableText == "TIDY:\nPORTFOLIO")
+    }
+
+    @Test func groundingIncludesSupportingText() async {
+        let vm = makePersistingVM(importText: "PORTFOLIO")
+        vm.portfolioText = "resume"
+        await vm.importSupportingDocument(from: URL(fileURLWithPath: "/tmp/portfolio.pdf"))
+        await vm.build()
+        #expect(vm.grounding?.supportingText == "TIDY:\nPORTFOLIO")
+    }
+
+    @Test func supportingDocumentsRoundTripThroughSaveSelectAndDeselect() async {
+        let vm = makePersistingVM(importText: "PORTFOLIO")
+        vm.portfolioText = "resume"
+        await vm.importSupportingDocument(from: URL(fileURLWithPath: "/tmp/portfolio.pdf"))
+        await vm.build()
+        vm.profileName = "Primary"
+        await vm.saveProfile()
+
+        let saved = vm.savedProfiles[0]
+        #expect(saved.supportingDocuments.count == 1)
+        #expect(saved.supportingDocuments[0].fileName == "portfolio.pdf")
+        #expect(saved.supportingDocuments[0].readableText == "TIDY:\nPORTFOLIO")
+
+        vm.deselect()
+        #expect(vm.supportingDocuments.isEmpty)
+        vm.select(saved)
+        #expect(vm.supportingDocuments.count == 1)
+        #expect(vm.supportingDocuments[0].readableText == "TIDY:\nPORTFOLIO")
+    }
+
+    @Test func buildDistilsSupportingDocumentsIntoTheProfileInput() async {
+        // I-D: the résumé **and** the supporting documents reach `buildProfile`, so the profile
+        // (and thus ranking) draws on the fuller signal — with the résumé leading.
+        let recorder = RecordingBuildProvider()
+        let vm = PortfolioViewModel(
+            buildProfile: BuildProfileUseCase(provider: recorder),
+            importPortfolio: ImportPortfolioUseCase(extractor: PresentationStubExtractor(text: "CAREER PORTFOLIO")),
+            tidyDocument: TidyDocumentUseCase(provider: recorder)
+        )
+        vm.portfolioText = "MY RESUME"
+        await vm.importSupportingDocument(from: URL(fileURLWithPath: "/tmp/portfolio.pdf"))
+        await vm.build()
+
+        let input = recorder.lastPortfolio
+        #expect(input.contains("MY RESUME"))
+        #expect(input.contains("CAREER PORTFOLIO"))
+        #expect(input.range(of: "MY RESUME")!.lowerBound < input.range(of: "CAREER PORTFOLIO")!.lowerBound)
+    }
+
+    @Test func buildWithoutSupportingDocumentsPassesResumeOnly() async {
+        let recorder = RecordingBuildProvider()
+        let vm = PortfolioViewModel(
+            buildProfile: BuildProfileUseCase(provider: recorder),
+            importPortfolio: ImportPortfolioUseCase(extractor: PresentationStubExtractor()),
+            tidyDocument: TidyDocumentUseCase(provider: recorder)
+        )
+        vm.portfolioText = "MY RESUME"
+        await vm.build()
+        #expect(recorder.lastPortfolio == "MY RESUME")   // no supporting-docs addendum appended
+    }
+}
+
+/// A reference-type `LLMProvider` that records the last `buildProfile` portfolio, so a test can
+/// assert what text was distilled (I-D). `tidyDocument` echoes so readable text is deterministic.
+private final class RecordingBuildProvider: LLMProvider, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _lastPortfolio = ""
+    var lastPortfolio: String { lock.withLock { _lastPortfolio } }
+
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        lock.withLock { _lastPortfolio = portfolio }
+        return CandidateProfile(seniority: "BUILT", yearsExperience: 1, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func tidyDocument(rawText: String) async throws -> String { "TIDY:\n" + rawText }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { [] }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        TargetBrief(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        ApplicationKit(resumeMarkdown: "", coverLetter: "", gapNote: "")
+    }
 }

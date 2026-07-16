@@ -22,9 +22,10 @@ guess. The target is the entry's *intended* release; it's distinct from being *s
 position**, not at the end — e.g. a later-added `v0.6.1` item slots **between** the `v0.6.0` group and any `v0.7.0`
 group (so the file always reads earliest-target → latest-target, top to bottom).
 
-> **One entry below**, targeting **`v0.7.0`** (customizable LaTeX styles). The **supporting profile documents**
-> entry was scheduled into **v0.6.0** as **Milestone I** (2026-07-15) and now lives in `TODO.md` / `ROADMAP.md`.
-> Prior specced entries were also scheduled into **v0.6.0 (richer grounding, job detail & sources)**:
+> **Two entries below**, in ascending target order: **keyword-match / ATS coverage** targets **`v0.6.1`** (a patch
+> on v0.6.0); **customizable LaTeX styles** targets **`v0.7.0`**. The **supporting profile documents** entry was
+> scheduled into **v0.6.0** as **Milestone I** (2026-07-15) and now lives in `TODO.md` / `ROADMAP.md`. Prior specced
+> entries were also scheduled into **v0.6.0 (richer grounding, job detail & sources)**:
 > - **richer job postings**, **select a profile at generation time**, **regenerate result** → Milestones **A–C**.
 > - **user-editable API credentials**, **full job-posting text**, **multi-source job search** → Milestones **D–F**.
 > - **per-provider credential-setup help**, **provider selector in Search** → Milestones **G–H** (scheduled
@@ -32,6 +33,61 @@ group (so the file always reads earliest-target → latest-target, top to bottom
 >
 > Add new specced-but-unscheduled work below as it comes up in chat — each with its `Target:` release, in
 > ascending target-version order.
+
+---
+
+## Keyword match / ATS coverage at generation — visible keyword alignment, no hidden text
+
+**Target:** **v0.6.1** (a patch on v0.6.0). Moderate.
+
+**Why.** ATS / AI résumé screeners filter on the posting's keywords, and good candidates get auto-rejected for
+missing a few. The honest, effective answer (explicitly **not** hidden "invisible-ink" white-text keyword stuffing,
+which backfires — ATS parse to plain text, recruiters see it, LLM screeners flag it) is to surface how well the
+generated résumé covers the posting's **real** keywords **in visible text**, so the user aligns truthfully with what
+the screener looks for. Everything here is visible-text-only — that's the whole point.
+
+**The seam + files (most of the data already exists).**
+- **Coverage computation — a pure value type.** Add a `KeywordCoverage` (Data or Business, pure/`Sendable`,
+  unit-testable): given the posting keywords from
+  [`TargetBrief`](../src/Data/Models/TargetBrief.swift) (`mustHaveKeywords` + `niceToHaveKeywords` + `techStack`)
+  and the generated visible résumé (`ApplicationKit.resumeMarkdown` → plain text via
+  `MarkdownPlainText`), compute **covered vs. missing** per tier (case-insensitive, word-boundary match, light
+  normalization). `JobMatch.matchedSkills` / `missingSkills` already exist from ranking and can seed/cross-check it,
+  but coverage is specifically *posting-keyword vs. the actual résumé text*.
+- **Generation option — a toggle.** Add a **keyword-match** option to
+  [`GenerationSettings`](../src/Data/Models/GenerationSettings.swift) — either a new `TailoredAspect` case (fits the
+  existing `aspects: Set<TailoredAspect>` checkboxes + presets) or a dedicated flag. When on, the `Prompts`
+  generation block is told to **weave the posting's must-have keywords into the visible résumé where they truthfully
+  apply**, and route keywords that don't fit into the `gapNote` — so the user sees what's missing and decides.
+  Forwarding default so stubs/engines are unaffected.
+- **UI — a coverage panel.** In the generation controls / result view (`ApplicationSheet` `generationControlsPanel`
+  or the generated-result view): **"Posting keywords: X/Y covered,"** with the covered list (green) and missing list
+  (amber), computed on the **visible** résumé and recomputed after generate/regenerate.
+
+**Related (optional companion, could be its own entry).** An **ATS-friendly export mode** — standard section
+headings, single-column, selectable text (no text-in-images) — is what actually determines whether an ATS can parse
+the résumé at all. Natural pairing with keyword coverage; note it, don't fold it in unless scoped together.
+
+**Open calls (recommended defaults).**
+- **`TailoredAspect` case vs. dedicated flag?** *Recommended:* a `TailoredAspect` case — reuses the checkbox UI +
+  preset save/apply.
+- **Which keyword tiers count?** *Recommended:* weight **must-have**, but show all three tiers (must / nice /
+  tech-stack) in the coverage view.
+- **Match strictness (exact / stemmed / synonyms)?** *Recommended:* case-insensitive word-boundary + light
+  normalization first; stemming/synonyms later.
+- **Report-only vs. auto-emphasize?** *Recommended:* **report-only by default**, with the opt-in emphasis toggle —
+  the user stays in control of what's claimed.
+
+**Transparency.** Coverage reports **truthfully** what's in the visible résumé; the emphasis option weaves in
+keywords that **genuinely apply** and routes the rest to the gap note (the user sees covered vs. missing and decides
+what to claim). **No hidden text** — the deliberate opposite of the invisible-ink idea this replaces.
+
+**On-device.** Coverage is pure/local string matching; the optional emphasis is `.application`-task LLM work on the
+existing engine — no new engine or seam.
+
+**Scope.** Moderate, patch-sized (`.1`) — a `KeywordCoverage` value type + a `GenerationSettings` toggle + a
+`Prompts` block + a coverage panel. Composes with the already-extracted `TargetBrief` keywords and `JobMatch`
+skills. Respects the layer rule (Data/Business coverage ← Presentation panel).
 
 ---
 
@@ -109,9 +165,9 @@ eventual unification is a later question — open call.)
 - **Unknown / generated section names in a user-defined order?** *Recommended:* known sections follow the style's
   order; unknown ones append **stably** (today's fallback), never dropped.
 
-**Guardrail.** Styles theme **presentation only** — never content. The grounded-by-default / never-fabricate rules
-are untouched; the raw-LaTeX override themes layout and **cannot introduce résumé content** (body text stays
-generated + escaped).
+**Scoping constraint.** Styles theme **presentation only** — the raw-LaTeX override changes layout, **not** résumé
+content: body text stays app-generated + escaped, so a template can't smuggle in content. (This is a correctness
+boundary for the template system, not a fabrication rule — the fidelity control still governs content latitude.)
 
 **On-device.** n/a for styling — pure text/preamble generation. Compiling still needs a local `lualatex`
 (the existing **optional** TeX dependency; the route is simply disabled when absent). No model calls.

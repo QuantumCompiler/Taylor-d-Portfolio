@@ -16,6 +16,7 @@ struct PortfolioView: View {
     var section: PortfolioSection = .profile
     @State private var showResumeImporter = false
     @State private var showCoverLetterImporter = false
+    @State private var showSupportingImporter = false
     /// Whether each document's raw text editor is revealed. Hidden by default — the editors
     /// are long, so they're collapsed behind a "Show text" toggle until the user wants them.
     @State private var showResumeText = false
@@ -73,6 +74,17 @@ struct PortfolioView: View {
                 Task { await viewModel.importCoverLetter(from: url) }
             }
         }
+
+        supportingDocumentsSlot
+            .fileImporter(
+                isPresented: $showSupportingImporter,
+                allowedContentTypes: Self.allowedTypes,
+                allowsMultipleSelection: true
+            ) { result in
+                if case .success(let urls) = result {
+                    Task { for url in urls { await viewModel.importSupportingDocument(from: url) } }
+                }
+            }
 
         HStack(spacing: 12) {
             Button("Build Profile") {
@@ -186,6 +198,51 @@ struct PortfolioView: View {
         }
     }
 
+    /// The **supporting documents** slot (v0.6.0 Milestone I): a multi-file add/remove list of
+    /// extra factual grounding baked into the profile (e.g. a full career portfolio). Unlike the
+    /// résumé/cover-letter slots these are import-only (no paste editor) and can hold several files.
+    private var supportingDocumentsSlot: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text("Supporting documents (optional)").font(.headline)
+                Spacer()
+                Button { showSupportingImporter = true } label: {
+                    Label("Add file…", systemImage: "doc.badge.plus")
+                }
+                .disabled(viewModel.isBusy)
+                .clickableCursor()
+            }
+
+            Text("Extra factual grounding baked into the profile — e.g. a full career portfolio of every role, skill, and project. Used for ranking and generation, like your résumé (not just voice, unlike the cover letter).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if viewModel.supportingDocuments.isEmpty {
+                Text("No supporting documents yet — Add a file to enrich this profile.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(viewModel.supportingDocuments) { doc in
+                    HStack(spacing: 8) {
+                        Image(systemName: "doc.text").foregroundStyle(.secondary)
+                        Text(doc.fileName ?? "Document").font(.callout)
+                        Text("· \(doc.rawText.count) characters")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Button { viewModel.removeSupportingDocument(doc.id) } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .disabled(viewModel.isBusy)
+                        .help("Remove this supporting document")
+                        .clickableCursor()
+                    }
+                }
+            }
+        }
+    }
+
     /// A one-line summary shown when a document's editor is collapsed.
     private func collapsedSummary(for text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -230,7 +287,17 @@ struct PortfolioView: View {
                         text: saved.coverLetterReadableText
                     )
                 }
-                if saved.readableText.isEmpty && saved.coverLetterReadableText.isEmpty {
+                ForEach(saved.supportingDocuments) { doc in
+                    let text = doc.effectiveText
+                    if !text.isEmpty {
+                        documentDisclosure(
+                            label: doc.fileName.map { "Supporting — \($0)" } ?? "Supporting document",
+                            text: text
+                        )
+                    }
+                }
+                if saved.readableText.isEmpty && saved.coverLetterReadableText.isEmpty
+                    && saved.supportingDocuments.allSatisfy({ $0.effectiveText.isEmpty }) {
                     Text("No source documents saved for this profile.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
