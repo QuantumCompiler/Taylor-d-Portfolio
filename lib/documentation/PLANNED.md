@@ -22,9 +22,10 @@ guess. The target is the entry's *intended* release; it's distinct from being *s
 position**, not at the end — e.g. a later-added `v0.6.1` item slots **between** the `v0.6.0` group and any `v0.7.0`
 group (so the file always reads earliest-target → latest-target, top to bottom).
 
-> **Six entries below**, in ascending target order: **keyword-match / ATS coverage** → **`v0.6.1`**;
-> **discoverable remove-from-Tracker**, **multi-select bulk actions**, **Results sort + Tracker filter**, and
-> **hide imported-doc raw preview** → **`v0.6.2`**; **customizable LaTeX styles** → **`v0.7.0`**. The **supporting profile documents** entry was
+> **Seven entries below**, in ascending target order: **keyword-match / ATS coverage** → **`v0.6.1`**;
+> **discoverable remove-from-Tracker**, **multi-select bulk actions**, **Results sort + Tracker filter**,
+> **hide imported-doc raw preview**, and **full source-document preview** → **`v0.6.2`**; **customizable LaTeX
+> styles** → **`v0.7.0`**. The **supporting profile documents** entry was
 > scheduled into **v0.6.0** as **Milestone I** (2026-07-15) and now lives in `TODO.md` / `ROADMAP.md`. Prior specced
 > entries were also scheduled into **v0.6.0 (richer grounding, job detail & sources)**:
 > - **richer job postings**, **select a profile at generation time**, **regenerate result** → Milestones **A–C**.
@@ -260,6 +261,47 @@ instead of importing, so it must remain available when there's no imported file.
 
 **Scope.** Small (patch-sized, `.2`) — a conditional in `documentSlot`; **no VM/Business/Data change** (the paste
 binding + `sourceFileName` already exist). Fits **v0.6.2**.
+
+---
+
+## Full source-document preview — remove both truncations
+
+**Target:** **v0.6.2** (a patch on v0.6.0). Small–moderate.
+
+**Why.** The source-document preview appears to truncate. **Two** truncations are actually in play:
+1. **UI cap.** [`documentDisclosure`](../src/Presentation/Portfolio/View/PortfolioView.swift:310) renders the text
+   in a `ScrollView` capped at `.frame(maxHeight: 220)` — the full text is present but confined to a ~220pt box that
+   reads as "cut off."
+2. **Content truncation at tidy (the real one).** `readableText` is produced by `TidyDocumentUseCase` →
+   `Prompts.tidyDocument(rawText:)`, which **truncates the input to `maxPortfolioCharacters`**
+   ([`Prompts.swift:75`](../src/Data/LLM/Prompts.swift:75)) before tidying. So for a long document the stored tidied
+   text is **genuinely shorter than the original** — dropping the UI cap alone still won't reveal what was never
+   tidied. (The **full** extracted text does survive in `sourceText`; only the tidy *prompt* truncates.)
+
+**Seam + files.**
+- **UI cap (cheap).** In `documentDisclosure` (`:310`), raise or drop the `maxHeight: 220` — let the disclosure
+  expand to the full text (the tab already scrolls), or add a **"View full document"** resizable window/sheet for
+  very long docs. `Text` doesn't line-limit, so it renders fully once the height frees up.
+- **Content (the substantive fix).** To truly show the **whole** document the preview must use untruncated text.
+  `sourceText` holds the **full** extracted document; `readableText` is the tidied-but-bounded form. Options:
+  - render the preview from **`sourceText`** (full, but un-tidied);
+  - **raise `maxPortfolioCharacters`** for the tidy path so `readableText` covers typical full documents;
+  - **chunked tidy** — tidy the document in segments so `readableText` is complete *and* formatted (larger scope);
+  - **fallback** — show `readableText`, appending the remainder from `sourceText` when the tidy was truncated.
+
+**Open calls (recommended defaults).**
+- **How to get the full text into the preview?** *Recommended:* **raise the tidy bound** so typical
+  résumés/portfolios tidy in full, and **fall back to the full `sourceText`** for anything longer, so the preview is
+  never missing content. (A chunked full-tidy is the nicer-but-larger follow-on.)
+- **Inline-expand vs. open in a window?** *Recommended:* **inline-expand** (drop the 220 cap) for the common case;
+  add a "View full document" resizable window only if long docs feel unwieldy inline.
+
+**On-device.** The UI change is free; a higher tidy bound / chunked tidy is more `.profile`-task LLM work (mind the
+on-device context window). The raw-`sourceText` fallback needs **no** extra model work.
+
+**Scope.** Small–moderate (patch-sized, `.2`) — a trivial UI cap change plus the content fix (raise bound / raw
+fallback). Presentation (`documentDisclosure`) and, for the content fix, `Prompts` / `TidyDocumentUseCase` (or just
+the preview's text source). Fits **v0.6.2**.
 
 ---
 
