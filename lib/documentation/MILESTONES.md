@@ -7,7 +7,9 @@ and how it was built. For the product spec see `SPEC.md`; for the high-level pla
 these docs fit together.
 
 Grouped by release: **v0.1.0 — foundation**, **v0.2.0 — reliability**, **v0.3.0 — output & polish**,
-**v0.4.0 — navigation & shell**, **v0.4.1 — fixes & refinements** (the first patch release), then
+**v0.4.0 — navigation & shell**, **v0.4.1 — fixes & refinements** (the first patch release),
+**v0.5.0 — document generation fixes**, **v0.5.1 — LaTeX résumé & cover letter output**,
+**v0.6.0 — richer grounding, job detail & sources**, and **v0.6.1 — keyword match & ATS coverage**, plus
 **ad-hoc / quality-of-life** enhancements. (A former Milestone L —
 "prefer AFM 3 Core Advanced on-device" — was dropped: on-device tier selection has no developer API;
 see `CLAUDE.md` → Stack.)
@@ -2097,14 +2099,17 @@ no separate Submit — it feeds the existing Generate/Regenerate.)*
 
 ---
 
-# v0.6.0 — richer grounding, job detail & sources  (in progress)
+# v0.6.0 — richer grounding, job detail & sources
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal to work
-from**, and **more (and better-fed) sources to get it from**. Six milestones drawn from `PLANNED.md`: A–C improve
-grounding — capture and surface much more of a job posting (Milestone A), choose a profile to ground on
-(Milestone B), regenerate a saved result (Milestone C); D–F widen the pipe — user-editable API credentials
-(Milestone D), full posting text (Milestone E), multi-source search (Milestone F). Grounded-by-default and
-never-fabricate hold throughout — enrichment *structures* what a posting says, it never invents. Milestones
+from**, and **more (and better-fed) sources to get it from**. Eleven milestones (**A–K**), several drawn from
+`PLANNED.md`: A–C improve grounding — capture and surface much more of a job posting (Milestone A), choose a
+profile to ground on (Milestone B), regenerate a saved result (Milestone C); D–F widen the pipe — user-editable
+API credentials (Milestone D), full posting text (Milestone E), multi-source search (Milestone F); G–H build on
+the credential seam — per-provider setup help (Milestone G) and a Search provider selector (Milestone H), both on
+one data-driven provider registry; then supporting profile documents (Milestone I), an LLM job source
+(Milestone J), and standardized result descriptions (Milestone K). **Transparency to the user** holds throughout —
+enrichment *structures* what a posting says, and generated / LLM-sourced content is surfaced as such. Milestones
 restart at **A**; commit as `v0.6.0 : Milestone X Completed`.
 
 ## Milestone A — Richer job postings (capture & surface full posting detail)  ✅ done
@@ -2596,3 +2601,178 @@ count**, guarded by the bounded window, the cache, and progressive display (rows
 The digest **normalizes** the posting into the standard format (a normalized digest, not verbatim — consistent with
 the transparency stance). *(Open calls resolved as recommended: the recommended section order; **bounded window**
 first (no hard per-search cap); shipped with the **current `PostingDetails` fields**.)*
+
+---
+
+# v0.6.1 — keyword match & ATS coverage
+
+A **patch release** on shipped v0.6.0, scheduled out of `PLANNED.md` (its sole `Target: v0.6.1` entry). The theme:
+ATS / AI résumé screeners filter on a posting's keywords, and good candidates get auto-rejected for missing a few.
+The answer here is **visible-text-only** — explicitly **not** hidden "invisible-ink" white-text keyword stuffing,
+which backfires (ATS parse to plain text, recruiters see it, LLM screeners flag it) — so the app **shows** how well
+the generated résumé covers the posting's **real** keywords and lets the user align truthfully. Four milestones
+**A–D**; milestones restart at **A**; commit as `v0.6.1 : Milestone X Completed`.
+
+## Milestone A — `KeywordCoverage`: pure covered-vs-missing computation  ✅ done  (`Data/Models/KeywordCoverage` (new); tests in `lib/tests/Data/Models`)
+
+The foundation the rest of v0.6.1 renders (C) and complements (D): a pure, `Sendable`, unit-tested value type that
+answers *"how much of this posting's keyword set actually appears in the generated **visible** résumé?"* — no store,
+no view, no model call. Derived on demand, never persisted, and deliberately distinct from
+`JobMatch.matchedSkills` / `missingSkills`, which score the **profile** during ranking rather than the generated text.
+
+- [x] **The type.** [`KeywordCoverage`](../src/Data/Models/KeywordCoverage.swift) (Data · Models, `nonisolated` +
+      `Sendable`) with a `Tier` enum (`mustHave` / `niceToHave` / `techStack` — the three `TargetBrief` keyword
+      fields, each with a UI `label`) and a `TierCoverage` (`covered` / `missing` / `total`, `Identifiable` by tier
+      for SwiftUI). Keywords are reported **as the posting wrote them** (whitespace-trimmed only), so the UI renders
+      "C++", not a normalized form.
+- [x] **Roll-ups.** `coveredCount` / `totalCount` are the **must-have** headline (what a screener actually filters
+      on — the recommended resolution of the "which tiers count" open call), with `allCoveredCount` / `allTotalCount`
+      across every tier and `isEmpty` so C can hide the panel rather than report a meaningless "0/0 covered". A tier
+      that contributes no usable keyword is omitted from `tiers` entirely rather than rendered as an empty group.
+- [x] **Matching.** `normalized(_:)` folds case + diacritics, collapses whitespace runs (including newlines, so a
+      multi-word keyword matches across a line break), and trims **end** punctuation from a deliberately narrow set
+      (sentence + quoting marks only — never `+`, `#`, or `/`, so "C++", "C#", and "Node.js" survive). Intentionally
+      light: **no stemming, no synonyms** — over-matching would report coverage the user doesn't have.
+- [x] **Word boundaries without a regex.** `contains(_:in:)` scans hits and requires the characters either side to
+      be non-alphanumeric. This is the reason it isn't `NSRegularExpression`: `\bC\+\+\b` **never** matches "C++"
+      (no word character follows the "+"), whereas the boundary scan matches "C++", ".NET", and "Node.js" while
+      still keeping "Go" out of "Google" and "React" out of "reactive". The scan continues past a rejected hit, so a
+      bounded occurrence later in the text still counts ("go" in "logo go").
+- [x] **De-duplication.** A keyword listed in more than one tier is counted **once, in its highest tier**
+      (must-have > nice-to-have > tech stack) — as are repeats within a tier — so the headline can't double-count a
+      term the posting merely repeats. Empty / whitespace-only keywords are dropped, never counted as missing.
+- [x] **Markdown entry point.** `init(brief:resumeMarkdown:)` reduces the résumé through
+      [`MarkdownPlainText`](../src/Infrastructure/Text/MarkdownPlainText.swift) first (a legal downward Data →
+      Infrastructure use), so a keyword behind emphasis or a bullet marker counts — it's visible text either way —
+      while a keyword that appears **only** in a Markdown link target does not, since the URL was never visible.
+
+**Tests.** `lib/tests/Data/Models/KeywordCoverageTests.swift` — 24 tests: present/absent, case-insensitivity,
+diacritic folding, the word-boundary guarantees (Go/Google, React/reactive, the "logo go" continuation), keywords
+ending or leading in punctuation (C++, C#, .NET, Node.js), trailing sentence punctuation on a keyword, multi-word
+phrases (including across a line break, and scattered words *not* matching), no-stemming, Markdown reduction
+(emphasis/bullets count, link targets don't), tier ordering, empty-tier omission, cross-tier and within-tier
+de-duplication, the must-have headline vs. the all-tier breakdown, and the empty edges (no keywords, blank
+keywords, empty résumé). Full suite green; build warning-free.
+
+**On-device.** n/a — pure local string matching. No LLM call, no network, no persistence.
+
+## Milestone B — Surface the `TargetBrief` out of generation  ✅ done  (`Business/UseCases` + `Data/Persistence/SavedApplicationsRepository` + `Presentation/Application/ApplicationViewModel`)
+
+The posting's keywords existed only *inside* generation and were then thrown away:
+[`GenerateApplicationUseCase`](../src/Business/UseCases/GenerateApplicationUseCase.swift) built the stage-1
+`TargetBrief` and returned just the `ApplicationKit`, `GenerateToTargetUseCase.Outcome` carried no brief, and
+`SavedApplicationsRepository` persisted only the kit — so `TargetBrief` never reached Presentation and a reopened
+saved kit had no keywords either. Milestone A's computation had no input. B carries the brief out and pairs it with
+the kit in storage. **No `LLMProvider` change** — nothing to forward in `SettingsBackedLLMProvider`.
+
+- [x] **`GenerateApplicationUseCase` returns an `Outcome`.** A `struct Outcome: Sendable, Equatable { kit, brief }`
+      mirroring `GenerateToTargetUseCase.Outcome`, so both generation paths hand back the same pair rather than one
+      returning a bare kit.
+- [x] **`GenerateToTargetUseCase.Outcome` carries the brief.** The loop already builds it once up front; it's now
+      returned on **both** exits — target reached, and best-attempt-at-the-cap.
+- [x] **`ApplicationViewModel.brief`.** A `private(set) var brief: TargetBrief?` set from whichever path ran and
+      cleared in lockstep with `kit` (start of `generate`, and the miss branch of `loadSaved`), so a failed
+      regeneration can never leave a stale brief pointing at a résumé that no longer exists.
+- [x] **The brief is persisted *inside the kit's own record*** — resolving the open call, but not as the
+      "sibling `SavedBriefsRepository`" the plan sketched. `SavedApplicationsRepository` now encodes a private
+      `StoredApplication { kit, brief }` envelope under its existing `applicationKit` kind. Keyword coverage
+      compares a résumé against **the brief that produced it**, so one latest-wins record makes it structurally
+      impossible for the two to drift apart — and `DeleteSavedJobUseCase` already forgets both in its existing
+      single delete, so the design adds **no orphan class and no new composition wiring**. `save(_:brief:forJobID:)`
+      and `SaveApplicationUseCase` take the brief with a `nil` default; `brief(forJobID:)` is a new read on the
+      repository and on `LoadApplicationUseCase`, leaving `kit(forJobID:)` (and `JobDetailView`'s
+      "already generated?" probe) untouched.
+- [x] **Back-compatible reads.** `kit(forJobID:)` tries the envelope, then falls back to the legacy bare-kit
+      encoding, so records written before B still load — they simply report no brief, and coverage is *unavailable*
+      for them rather than wrong.
+
+**Tests.** Business — `GenerateApplicationUseCase` returns the brief it tailored against (and the existing
+two-stage test now reads `outcome.kit`); the rank-target loop carries the brief out on both the target-reached and
+capped exits. Data/Persistence — brief round-trips beside the kit, saving without one still stores the kit, a later
+save replaces **both** (no stale brief outliving its résumé), and a legacy bare-kit blob still decodes with a nil
+brief. Presentation — generate exposes the brief *and* persists it, reopening a saved result restores it without
+calling the engine, a legacy record leaves it nil, and a failed regeneration clears it along with the kit. Full
+suite green; build warning-free.
+
+**On-device.** n/a — reuses the existing stage-1 call (no extra LLM work); the added persistence is local.
+
+## Milestone C — Coverage panel in the Application view  ✅ done  (`Presentation/Application`: `ApplicationViewModel` + `ApplicationSheet`)
+
+The user-facing half of the release: on a generated result, **"Posting keywords: X/Y must-haves covered"** with the
+covered list (green) and the missing list (amber) per keyword tier — computed on the **visible** résumé and
+recomputed after every generate / regenerate. Presentation only, over Milestone A's computation and Milestone B's
+brief.
+
+- [x] **`ApplicationViewModel.coverage`.** A computed `KeywordCoverage?` from `kit` + `brief` — both `@Observable`,
+      so it recomputes after each generation with no explicit refresh and no stored state to invalidate. It returns
+      `nil` for all three "nothing honest to report" cases at once: no kit, no brief (a record predating Milestone
+      B), or a posting that yielded no keywords — so the view has a single condition to render on.
+- [x] **`coverageSection` in `ApplicationSheet`.** A `GroupBox` in the same family as `documentSection` /
+      `disclosuresSection` / `gapsSection`, listing each tier's covered and missing keywords as capsules via a
+      `keywordRow` mirroring `JobDetailView.skillRow` — so covered/missing keywords read in the app's existing
+      visual language for matched/missing skills rather than introducing a new one. A caption states the rule the
+      feature exists for: *counted in the visible résumé text — never hidden keywords.*
+- [x] **Placement (open call, resolved as recommended).** Below the two documents and above the disclosures / gaps:
+      the user reads what was produced, then how it aligns to the posting, then what's claimed about it.
+- [x] **Headline.** Leads with must-haves — what a screener actually filters on — and falls back to the all-tier
+      count when a brief named no must-haves, so the panel can never read "0/0 must-haves covered" while listing
+      keywords underneath it.
+- [x] **Hidden, not empty.** With no coverage to report the section simply isn't rendered — no "0/0 covered" box,
+      no empty group.
+
+**Tests.** `lib/tests/Presentation/Application/` — `coverage` is nil before anything is generated; after a
+generation against a keyword-bearing brief it reports the covered/missing split, the must-have headline, and the
+nice-to-have tier in the breakdown but not the headline; it's nil for a thin posting whose brief has no keywords;
+and nil for a saved record with no brief while the documents still show. The stub's résumé is deliberately Markdown
+(`- **Swift** and Metal`) so the test proves coverage reads the visible text past the syntax. Full suite green;
+build warning-free.
+
+**On-device.** n/a — pure local rendering over Milestone A's string matching. *(Visual check pending — see the
+device-checks note in `TODO.md`.)*
+
+## Milestone D — Optional keyword-emphasis generation control  ✅ done  (`Data`: `GenerationSettings` + `LLM/Prompts`; `Business`: `GenerateToTargetUseCase`; `Presentation`: `ApplicationViewModel`, `ApplicationSheet`)
+
+The only part of v0.6.1 that changes what generation *produces*. A–C report coverage; D lets the user act on it —
+an **opt-in** control telling generation to weave the posting's must-have keywords into the **visible** résumé
+where they truthfully apply, and route the rest into `gapNote`. Report-only remains the default.
+
+- [x] **A dedicated flag, not a `TailoredAspect` case.** `GenerationSettings.emphasizeKeywords: Bool = false`.
+      `PLANNED.md` recommended a `TailoredAspect` case for the free checkbox UI, but the code says otherwise:
+      `TailoredAspect` is documented *and prompted* as a résumé **section**, and `Prompts.generationControls`
+      renders the selection as "tailor ONLY these résumé sections — …" — a non-section case would corrupt that
+      sentence and the preset semantics. A flag costs one checkbox and keeps both clean.
+- [x] **Persisted into presets, back-compatible.** Added to `CodingKeys` so new presets carry it, with a
+      hand-written `init(from:)` that `decodeIfPresent`s it — synthesized decoding requires every non-optional
+      key, which would have broken **every preset saved before v0.6.1**. Absent ⇒ `false`, so a legacy preset
+      still produces exactly the prompt it always did. Encoding stays synthesized.
+- [x] **Counted as a control.** Folded into `hasDefaultControls`, so the flag alone turns on the GENERATION
+      CONTROLS block; with it off the prompt is **byte-for-byte** what it was. `isDefault` follows from
+      `Equatable` for free.
+- [x] **The prompt clause.** `Prompts.generationControls` gains one line when the flag is on, sharpening the
+      existing Objective line from "foreground the keywords where supported" into an explicit
+      **cover-it-or-declare-it** instruction: use the posting's own wording for experience the candidate genuinely
+      has; any must-have keyword they cannot truthfully claim must **not** appear as experience and is named in
+      `gapNote` instead. It states the rule the feature exists for — *never emit a hidden, decorative, or bulk
+      keyword list*, the résumé must still read as prose written for a human — and scopes the push to
+      **must-haves** so nice-to-have and tech-stack terms aren't forced (the recommended resolution of that open
+      call).
+- [x] **Survives the rank-target loop (open call, resolved as recommended).** `GenerateToTargetUseCase` builds
+      fresh settings each round, discarding the user's fidelity and aspects; `emphasizeKeywords` is now threaded in
+      exactly as `additionalContext` already was, because the target overrides **latitude** controls and this isn't
+      one. The checkbox is correspondingly left **enabled** under a rank target, outside the `rankTargetOn` disable
+      that greys the fidelity slider and aspect checkboxes.
+- [x] **UI.** A checkbox in the generation-options panel — "Match the posting's must-have keywords" — with a
+      caption naming both halves of the deal: the posting's wording for experience you genuinely have, anything
+      you can't claim listed in Gaps, visible text only.
+
+**Tests.** `Data/Models` — off by default; the flag counts as a control but not as latitude (`band` stays
+`.authentic`, `mayEmbellish` false); round-trips into a preset; and a v0.6.0-era blob with no
+`emphasizeKeywords` key still decodes, to `false`, with its other controls intact. `Data/LLM` — with the flag off
+the prompt is byte-for-byte unchanged; with it on the clause appears **exactly once**, carries the gap-note routing
+and the no-hidden-list rule, and turning it on alone emits the controls block while keeping the grounded
+"REAL experience only" latitude (no `EMBELLISHED:` disclosure). `Business` — the flag reaches every round of the
+rank-target loop, both directly and through `ApplicationViewModel`. Full suite green; build warning-free.
+
+**On-device.** `.application`-task LLM work on the existing engine and prompt path — no new engine, task, or seam.
+The emphasis is prompt-driven, so both engines stay in lockstep. *(Visual/behavioural check pending — see the
+device-checks note in `TODO.md`.)*

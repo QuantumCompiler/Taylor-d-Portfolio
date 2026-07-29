@@ -19,6 +19,9 @@ nonisolated struct GenerateToTargetUseCase: Sendable {
     /// The result of the loop.
     struct Outcome: Sendable, Equatable {
         let kit: ApplicationKit
+        /// The stage-1 brief every round tailored against (v0.6.1 Milestone B) — carried out
+        /// so the UI can report how well the winning résumé covers the posting's keywords.
+        let brief: TargetBrief
         let achievedScore: Int
         let target: Int
         let reachedTarget: Bool
@@ -40,7 +43,8 @@ nonisolated struct GenerateToTargetUseCase: Sendable {
         profile: CandidateProfile,
         grounding: PortfolioGrounding? = nil,
         target: Int,
-        additionalContext: String = ""
+        additionalContext: String = "",
+        emphasizeKeywords: Bool = false
     ) async throws -> Outcome {
         let brief = try await provider.buildTargetBrief(for: job)
         var bestKit: ApplicationKit?
@@ -51,8 +55,11 @@ nonisolated struct GenerateToTargetUseCase: Sendable {
         for round in 0..<maxRounds {
             rounds = round + 1
             // Target overrides fidelity + aspects: climb latitude, tailor all sections. The
-            // user's free-text guidance (Milestone I) still rides along each round.
+            // user's free-text guidance (Milestone I) and keyword emphasis (v0.6.1 Milestone D)
+            // still ride along each round — neither is a latitude control, so neither is
+            // something the target should override.
             let settings = GenerationSettings(fidelity: escalatedFidelity(round: round),
+                                              emphasizeKeywords: emphasizeKeywords,
                                               additionalContext: additionalContext)
             do {
                 let kit = try await provider.generateApplication(
@@ -65,7 +72,8 @@ nonisolated struct GenerateToTargetUseCase: Sendable {
                     bestKit = kit
                 }
                 if match.score >= target {
-                    return Outcome(kit: kit, achievedScore: match.score, target: target, reachedTarget: true, rounds: rounds)
+                    return Outcome(kit: kit, brief: brief, achievedScore: match.score,
+                                   target: target, reachedTarget: true, rounds: rounds)
                 }
             } catch {
                 // A single round failing (a transient engine/decoding error) shouldn't lose the
@@ -80,6 +88,7 @@ nonisolated struct GenerateToTargetUseCase: Sendable {
         // Target not reached within the cap — return the best-scoring attempt.
         return Outcome(
             kit: bestKit,
+            brief: brief,
             achievedScore: max(0, bestScore),
             target: target,
             reachedTarget: false,

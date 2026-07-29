@@ -46,6 +46,10 @@ Four stages, run locally on the user's Mac:
    path** (v0.5.1) renders the résumé and cover letter as their **own** documents through Taylor's
    awesome-cv LaTeX classes, compiled with `lualatex` (an optional external dependency, like the
    `claude` CLI); the raw `.tex` source can also be exported. Export never alters the generated content.
+   The generated result also reports **keyword coverage** — how many of the posting's must-have
+   keywords the résumé actually contains, covered vs. missing — measured on the **visible** text, plus
+   an opt-in control that asks generation to use the posting's wording for experience the candidate
+   genuinely has and to route the rest to the gap note (ROADMAP v0.6.1).
 
 Alongside search, the user can also paste a **specific job-posting URL** (or the
 posting text, when a page can't be fetched); the app extracts it into the same
@@ -107,6 +111,14 @@ user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
   only as a **voice / tone / structure exemplar** for the generated cover letter — the
   output mirrors the candidate's real style. Factual grounding comes from the
   resume/portfolio and the distilled profile.
+- **Keyword alignment is visible, never hidden.** The app helps the user match what an ATS / AI
+  screener filters on by **reporting** how well the generated résumé covers the posting's keywords,
+  and — opt-in — by asking generation to use the posting's own wording for experience the candidate
+  genuinely has, routing anything unclaimable to the gap note (ROADMAP v0.6.1). It will **not** write
+  hidden, white-text, or bulk keyword lists: those are read by the screener but not by the recruiter,
+  which is exactly the kind of silent mismatch the transparency principle above rules out (and they
+  backfire — screeners parse to plain text). Note this is an *alignment* control, not a latitude one:
+  the fidelity scale still governs what may be claimed.
 - **On-device first.** Default to Apple Foundation Models: free, private, offline.
   Escalate to Claude only when chosen or when the on-device model is unavailable.
 - **Swappable seams.** The LLM engine and the job source are both behind

@@ -13,6 +13,15 @@ import Foundation
 /// then tailor the application against that brief. Orchestrating both stages here
 /// keeps the providers atomic and the pipeline visible in the Business layer.
 nonisolated struct GenerateApplicationUseCase: Sendable {
+    /// What one generation produced. The stage-1 brief is returned alongside the kit
+    /// (v0.6.1 Milestone B) rather than discarded, because the posting's keywords live only
+    /// there — keyword coverage compares them against the résumé this same run generated.
+    /// Mirrors ``GenerateToTargetUseCase/Outcome`` so both paths hand back the same pair.
+    struct Outcome: Sendable, Equatable {
+        let kit: ApplicationKit
+        let brief: TargetBrief
+    }
+
     let provider: any LLMProvider
 
     init(provider: any LLMProvider) {
@@ -24,10 +33,11 @@ nonisolated struct GenerateApplicationUseCase: Sendable {
         profile: CandidateProfile,
         grounding: PortfolioGrounding? = nil,
         settings: GenerationSettings = .default
-    ) async throws -> ApplicationKit {
+    ) async throws -> Outcome {
         let brief = try await provider.buildTargetBrief(for: job)
-        return try await provider.generateApplication(
+        let kit = try await provider.generateApplication(
             for: job, profile: profile, brief: brief, grounding: grounding, settings: settings
         )
+        return Outcome(kit: kit, brief: brief)
     }
 }

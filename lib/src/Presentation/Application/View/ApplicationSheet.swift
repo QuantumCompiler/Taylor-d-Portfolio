@@ -174,6 +174,19 @@ struct ApplicationSheet: View {
                 }
                 .disabled(rankTargetOn)
                 .opacity(rankTargetOn ? 0.5 : 1)
+                // Keyword emphasis (v0.6.1 Milestone D). Deliberately outside the rank-target
+                // disable above: this is an alignment control, not a latitude one, so it stays
+                // available and rides along each round of the outcome-driven loop.
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Match the posting's must-have keywords",
+                           isOn: $viewModel.generationSettings.emphasizeKeywords)
+                        .toggleStyle(.checkbox)
+                        .clickableCursor()
+                    Text("Uses the posting's wording for experience you genuinely have; anything you can't "
+                         + "claim is listed in Gaps instead. Visible text only — never hidden keywords.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
                 // Free-text steering (Milestone I). Stays enabled under a rank target — the
                 // guidance is honoured on both the single-pass and outcome-driven paths.
                 VStack(alignment: .leading, spacing: 4) {
@@ -435,6 +448,11 @@ struct ApplicationSheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     documentSection("Résumé", kit.resumeMarkdown)
                     documentSection("Cover letter", kit.coverLetter)
+                    // The documents first, then how they align to the posting, then the honesty
+                    // surfaces — read what was produced before what's claimed about it.
+                    if let coverage = viewModel.coverage {
+                        coverageSection(coverage)
+                    }
                     if parts.hasEmbellishments {
                         disclosuresSection(parts.embellishments)
                     }
@@ -473,6 +491,68 @@ struct ApplicationSheet: View {
                 .foregroundStyle(.secondary)
                 .help("Copy the \(title.lowercased()) (Markdown)")
                 .clickableCursor()
+            }
+        }
+    }
+
+    // MARK: Keyword coverage (v0.6.1 Milestone C)
+
+    /// How well the generated résumé covers the posting's keywords — the covered list (green)
+    /// and the missing list (amber), per keyword tier.
+    ///
+    /// Measured on the **visible** résumé text, which is the whole point: this exists so the
+    /// user can align truthfully with what an ATS screener reads, and it is the deliberate
+    /// opposite of hidden white-text keyword stuffing. Missing keywords are information, not a
+    /// defect — the user decides which ones they can honestly claim.
+    private func coverageSection(_ coverage: KeywordCoverage) -> some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(coverage.tiers) { tier in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(tier.tier.label).font(.caption.bold())
+                        if !tier.covered.isEmpty {
+                            keywordRow("In your résumé", tier.covered, tint: .green)
+                        }
+                        if !tier.missing.isEmpty {
+                            keywordRow("Missing", tier.missing, tint: .orange)
+                        }
+                    }
+                }
+                Text("Counted in the visible résumé text — never hidden keywords.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(4)
+        } label: {
+            Label(coverageHeadline(coverage), systemImage: "checklist")
+        }
+    }
+
+    /// The headline count. Leads with **must-haves** (what a screener actually filters on), and
+    /// falls back to the all-tier total for a posting whose brief named none — so the panel
+    /// never reads "0/0 must-haves covered" while listing keywords underneath.
+    private func coverageHeadline(_ coverage: KeywordCoverage) -> String {
+        coverage.totalCount > 0
+            ? "Posting keywords: \(coverage.coveredCount)/\(coverage.totalCount) must-haves covered"
+            : "Posting keywords: \(coverage.allCoveredCount)/\(coverage.allTotalCount) covered"
+    }
+
+    /// One labelled row of keyword capsules, mirroring `JobDetailView.skillRow` so covered /
+    /// missing keywords read in the same visual language as matched / missing skills.
+    private func keywordRow(_ label: String, _ keywords: [String], tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label).font(.caption).foregroundStyle(.secondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(keywords, id: \.self) { keyword in
+                        Text(keyword)
+                            .font(.caption)
+                            .textSelection(.enabled)
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(tint.opacity(0.18), in: Capsule())
+                    }
+                }
             }
         }
     }

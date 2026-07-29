@@ -18,6 +18,8 @@ private actor ScoringStubProvider: LLMProvider {
     private(set) var scoreCalls = 0
     /// The `additionalContext` seen on the most recent settings-carrying generate call.
     private(set) var lastAdditionalContext = ""
+    /// Whether the most recent round asked for keyword emphasis (v0.6.1 Milestone D).
+    private(set) var lastEmphasizeKeywords = false
 
     init(scores: [Int]) { self.scores = scores }
 
@@ -34,6 +36,7 @@ private actor ScoringStubProvider: LLMProvider {
     }
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit {
         lastAdditionalContext = settings.additionalContext
+        lastEmphasizeKeywords = settings.emphasizeKeywords
         return try await generateApplication(for: job, profile: profile, brief: brief)
     }
     func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
@@ -107,6 +110,44 @@ struct GenerateToTargetUseCaseTests {
             job: job, profile: profile, target: 80, additionalContext: "emphasize EV Charging"
         )
         #expect(await provider.lastAdditionalContext == "emphasize EV Charging")
+    }
+
+    /// v0.6.1 Milestone D — the rank target overrides fidelity and aspects, but keyword emphasis
+    /// isn't a latitude control, so it must survive into every round rather than being dropped.
+    @Test func forwardsKeywordEmphasisIntoEachRound() async throws {
+        let provider = ScoringStubProvider(scores: [90])
+        _ = try await GenerateToTargetUseCase(provider: provider)(
+            job: job, profile: profile, target: 80, emphasizeKeywords: true
+        )
+        #expect(await provider.lastEmphasizeKeywords)
+    }
+
+    @MainActor
+    @Test func viewModelForwardsKeywordEmphasisIntoTheRankTargetLoop() async {
+        let provider = ScoringStubProvider(scores: [88])
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: provider),
+            generateToTarget: GenerateToTargetUseCase(provider: provider)
+        )
+        vm.generationSettings.desiredRankMatch = 80
+        vm.generationSettings.emphasizeKeywords = true
+        await vm.generate(for: job, profile: profile)
+        #expect(await provider.lastEmphasizeKeywords)
+    }
+
+    /// v0.6.1 Milestone B — the loop builds the brief once, up front, and carries it out on
+    /// **both** exits so coverage works whether or not the target was met.
+    @Test func carriesTheBriefOutOnBothExits() async throws {
+        let reached = try await GenerateToTargetUseCase(provider: ScoringStubProvider(scores: [90]))(
+            job: job, profile: profile, target: 80
+        )
+        #expect(reached.brief.roleTitle == "R")
+
+        let capped = try await GenerateToTargetUseCase(provider: ScoringStubProvider(scores: [50]), maxRounds: 2)(
+            job: job, profile: profile, target: 95
+        )
+        #expect(capped.reachedTarget == false)
+        #expect(capped.brief.roleTitle == "R")
     }
 
     @Test func fidelityEscalatesEachRound() {

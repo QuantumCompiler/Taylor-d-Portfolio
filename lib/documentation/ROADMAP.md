@@ -771,6 +771,77 @@ breakdown + open calls.
       Results). On-device: `.extraction` LLM + page-fetch; the digest **normalizes** the posting (a normalized digest,
       not verbatim, where the source is thin). Scheduled 2026-07-15.
 
+## v0.6.1 — keyword match & ATS coverage  (complete)
+
+A **patch release** on shipped v0.6.0, scheduled out of `PLANNED.md` (its sole `Target: v0.6.1` entry). The
+theme: ATS / AI résumé screeners filter on a posting's keywords, and good candidates get auto-rejected for
+missing a few. The answer here is **visible-text-only** — explicitly **not** hidden "invisible-ink" white-text
+keyword stuffing, which backfires (ATS parse to plain text, recruiters see it, LLM screeners flag it) — so the
+app **shows** how well the generated résumé covers the posting's **real** keywords and lets the user align
+truthfully. Most of the data already exists: the posting's keywords are distilled into `TargetBrief` at
+generation stage 1, and the résumé is `ApplicationKit.resumeMarkdown`. Four milestones **A–D**, in build order;
+milestones restart at **A** and commit as `v0.6.1 : Milestone X Completed`. **No new seam and no `LLMProvider`
+change.** An **ATS-friendly export mode** (standard headings, single-column, selectable text) is the natural
+companion but is **out of scope** — spec it separately if wanted. `TODO.md` has the granular breakdown +
+open calls.
+
+- [x] **Milestone A — `KeywordCoverage`: pure covered-vs-missing computation.** ✅ **Done.** A pure, `Sendable`,
+      unit-tested value type (Data · Models) that answers "how much of this posting's keyword set actually
+      appears in the generated **visible** résumé?" — given `TargetBrief`'s three tiers (`mustHaveKeywords` /
+      `niceToHaveKeywords` / `techStack`) and `ApplicationKit.resumeMarkdown` reduced through
+      `MarkdownPlainText.plainText(from:)` (Infrastructure — a legal downward use), it returns per-tier
+      covered/missing plus a must-have "X/Y covered" headline and all-tier roll-ups. Matching is
+      case-insensitive, diacritic-folded, whitespace-collapsed (so a phrase matches across a line break) and
+      **word-boundary** — scanned directly rather than by regex, because `\bC\+\+\b` never matches "C++", while
+      the scan keeps "Go" out of "Google". No stemming or synonyms (over-matching would report coverage the user
+      lacks); a keyword repeated across tiers counts once, in its highest tier. Distinct from
+      `JobMatch.matchedSkills` / `missingSkills`, which score the *profile* rather than the generated text.
+      Seam: Data (new model) only. On-device: n/a — pure local string matching, no model call.
+
+- [x] **Milestone B — Surface the `TargetBrief` out of generation.** ✅ **Done.** The posting's keywords existed
+      only *inside* generation and were thrown away: `GenerateApplicationUseCase` built the brief and returned just
+      the `ApplicationKit`, `GenerateToTargetUseCase.Outcome` carried no brief, and `SavedApplicationsRepository`
+      persisted only the kit — so a reopened saved kit had no keywords either, and A's computation had no input.
+      Both use cases now return an `Outcome` pairing kit **+** brief, and `ApplicationViewModel.brief` is held in
+      lockstep with `kit` (cleared on a failed regeneration, so no stale brief survives its résumé). The open call
+      resolved to persisting the brief — but **inside the kit's own record**, as a `{kit, brief}` envelope under the
+      existing `applicationKit` kind rather than a sibling repository: coverage compares a résumé against the brief
+      that produced it, so one latest-wins record can't let them drift apart, `DeleteSavedJobUseCase` already
+      forgets both, and no new composition wiring is needed. Legacy bare-kit records still decode (brief nil →
+      coverage unavailable, not wrong). Seam: Business + Data/Persistence + Presentation; **no `LLMProvider`
+      change**, so nothing to forward in `SettingsBackedLLMProvider`. On-device: n/a — reuses the existing stage-1
+      call, no extra LLM work.
+
+- [x] **Milestone C — Coverage panel in the Application view.** ✅ **Done.** The generated result now shows
+      **"Posting keywords: X/Y must-haves covered"** with the covered list (green) and missing list (amber) per
+      tier, computed on the **visible** résumé and recomputed after each generate/regenerate. A `coverage`
+      computed property on `ApplicationViewModel` (`kit` + `brief`, both `@Observable`, so no refresh plumbing and
+      no state to invalidate) plus a `coverageSection` in `ApplicationSheet.content`, styled with the existing
+      `documentSection` / `disclosuresSection` / `gapsSection` family and reusing `JobDetailView.skillRow`'s
+      capsule language for the keyword lists. Placement resolved as recommended — below the documents, above the
+      disclosures/gaps. `coverage` is `nil` (and the section simply isn't rendered) for all three empty cases: no
+      kit, no brief, or a posting with no keywords — never a misleading "0/0"; the headline falls back to the
+      all-tier count when a brief named no must-haves. Seam: **Presentation only**. On-device: n/a — local
+      rendering.
+
+- [x] **Milestone D — Optional keyword-emphasis generation control.** ✅ **Done.** An **opt-in** control telling
+      generation to weave the posting's must-have keywords into the **visible** résumé **where they truthfully
+      apply**, and route the rest into `gapNote` so the user sees what's missing and decides. Report-only stays the
+      default (A–C change nothing about what's generated). A dedicated `GenerationSettings.emphasizeKeywords` flag
+      — **not** a `TailoredAspect` case as `PLANNED.md` suggested, because `TailoredAspect` is documented and
+      prompted as a *résumé section* ("tailor ONLY these résumé sections — …") and a non-section case would
+      corrupt that sentence and the preset semantics — added to `CodingKeys` and to `hasDefaultControls` so the
+      default prompt stays byte-for-byte. Presets persist it via a hand-written `init(from:)` that
+      `decodeIfPresent`s the key, since synthesized decoding would have broken every pre-v0.6.1 preset.
+      `Prompts.generationControls` sharpens its existing keyword Objective line into an explicit
+      cover-it-or-declare-it instruction that also forbids hidden/bulk keyword lists; a checkbox joins the
+      generation-options panel. Both open calls resolved as recommended: the flag is threaded through the
+      rank-target loop (as `additionalContext` already was — the target overrides *latitude*, and this isn't a
+      latitude control, so the checkbox also stays enabled there), and only **must-have** keywords are pushed.
+      **No hidden text** — the deliberate opposite of the invisible-ink idea this replaces. Seam: Data
+      (`GenerationSettings` + `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device:
+      `.application`-task LLM work on the existing engine — no new engine or seam.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
@@ -780,10 +851,13 @@ breakdown + open calls.
   — v0.6.0 shipped **A–K** (A richer job postings, B profile-at-generation, C regenerate result, D user-editable
   credentials, E full posting text, F multi-source search, G per-provider credential-setup help, H Search provider
   selector — the last two on H-A's data-driven provider registry, I supporting profile documents, J LLM job source,
-  K standardized result descriptions). **The next version is
-  unstarted** — its number
-  and theme are chosen when development on it begins
-  (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv
+  K standardized result descriptions). **v0.6.1 (keyword match & ATS coverage) is complete** — Milestones
+  **A–D** above: a pure `KeywordCoverage` computation, the `TargetBrief` carried out of generation and persisted
+  with the kit, the coverage panel, and the opt-in keyword-emphasis control. **The next version is unstarted**;
+  its number and theme are chosen when development on it
+  begins (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: an
+  **ATS-friendly export mode** (the companion noted but deliberately left out of v0.6.1 — standard headings,
+  single-column, selectable text, which is what decides whether an ATS can *parse* a résumé at all); full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"
   shipped in v0.6.0 Milestone C); further providers for the multi-source seam (The Muse / remote feeds); and
   the deeper Backlog themes (native `LanguageModel` provider seam, on-device embedding RAG, optional MCP tools).

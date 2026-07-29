@@ -41,8 +41,9 @@ Source lives under `lib/src/`, tests under `lib/tests/`. Not distributed via the
 
 ## Version history
 
-Releases are numbered `v0.x.0`. Each is a coherent theme; the granular per-milestone record
-is in [`lib/documentation/MILESTONES.md`](lib/documentation/MILESTONES.md).
+Feature releases are numbered `v0.x.0`, each a coherent theme; `v0.x.y` numbers a patch release — a batch of
+fixes and refinements on top of a shipped feature release. The granular per-milestone record is in
+[`lib/documentation/MILESTONES.md`](lib/documentation/MILESTONES.md).
 
 ### v0.1.0 — foundation
 The end-to-end vertical slice, built layer by layer: project scaffold, domain models, the dual
@@ -153,9 +154,24 @@ Gave ranking and tailored generation **more real signal to work from** — and *
   format** and rendered the same way — done **progressively** (rows appear first, descriptions standardize in the
   background) — so results read consistently whatever the source and generation grounds on a uniform structure. *(Milestones A–K.)*
 
+### v0.6.1 — keyword match & ATS coverage
+A patch release on v0.6.0. ATS and AI résumé screeners filter on a posting's keywords, and good candidates get
+auto-rejected for missing a few. The answer here is **visible text only** — never hidden white-text keyword
+stuffing, which backfires (screeners parse to plain text, and recruiters see it):
+- **Coverage, measured on what a human reads (A–C):** a generated application now reports **how many of the
+  posting's must-have keywords the résumé actually contains**, with the covered and missing lists per keyword
+  tier. Matching is case- and accent-insensitive and respects word boundaries — so "Go" never matches "Google",
+  while "C++", "C#", and "Node.js" match properly. The posting's keyword brief is stored **with** the generated
+  documents, so coverage is still there when a saved result is reopened.
+- **Truthful keyword matching, opt-in (D):** a **"Match the posting's must-have keywords"** control tells
+  generation to use the posting's own wording for experience you **genuinely have**, and to list anything you
+  can't claim in the **Gaps** note instead of writing it into the résumé. Off by default; it changes emphasis,
+  never latitude, so the grounded default still can't invent. *(Milestones A–D.)*
+
 **Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
 from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
-layer — or a specced `PLANNED.md` item (e.g. customizable LaTeX styles).
+layer — or a specced `PLANNED.md` item (e.g. customizable LaTeX styles, or the **ATS-friendly export mode** noted
+alongside this release).
 
 ## Build & run
 

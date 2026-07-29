@@ -56,6 +56,34 @@ struct GenerationSettingsTests {
         #expect(GenerationSettings(desiredRankMatch: 80).hasDefaultControls == false)
     }
 
+    // MARK: v0.6.1 Milestone D — keyword emphasis
+
+    @Test func keywordEmphasisIsOffByDefaultAndCountsAsAControl() {
+        #expect(GenerationSettings.default.emphasizeKeywords == false)
+        let s = GenerationSettings(emphasizeKeywords: true)
+        #expect(s.isDefault == false)
+        #expect(s.hasDefaultControls == false)   // it changes the prompt, so it's a real control
+        #expect(s.band == .authentic)            // …but not a latitude one
+        #expect(s.mayEmbellish == false)
+    }
+
+    @Test func keywordEmphasisRoundTripsIntoAPreset() throws {
+        let s = GenerationSettings(fidelity: 0.5, emphasizeKeywords: true)
+        let back = try JSONDecoder().decode(GenerationSettings.self, from: try JSONEncoder().encode(s))
+        #expect(back == s)
+        #expect(back.emphasizeKeywords)
+    }
+
+    @Test func presetsSavedBeforeTheFlagExistedStillDecode() throws {
+        // A blob written by v0.6.0 and earlier: no `emphasizeKeywords` key at all.
+        let legacy = Data(#"{"fidelity":0.5,"aspects":["summary"],"desiredRankMatch":80}"#.utf8)
+        let back = try JSONDecoder().decode(GenerationSettings.self, from: legacy)
+        #expect(back.emphasizeKeywords == false)   // defaults off — the old prompt is preserved
+        #expect(back.fidelity == 0.5)
+        #expect(back.aspects == [.summary])
+        #expect(back.desiredRankMatch == 80)
+    }
+
     @Test func additionalContextIsNotPersisted() throws {
         // Excluded from Codable so it never lands in a saved preset; decodes back to "".
         let s = GenerationSettings(fidelity: 0.5, additionalContext: "per-job note")
