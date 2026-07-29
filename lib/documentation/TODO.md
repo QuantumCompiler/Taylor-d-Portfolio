@@ -9,14 +9,17 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. The next version (unstarted) — number + theme TBD.** See "Next version" at the bottom of this
-> file. **v0.6.2 (list actions, sorting & document previews) is complete and merge-ready** — all five milestones
-> **A–E** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs, `README.md`, and
-> `MARKETING_VERSION = 0.6.2` are done, and the full suite is green (719 tests, no warnings). **v0.6.1 (keyword
+> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone A** (`LaTeXStyle` model + built-in
+> template registry). Six milestones **A–F**, scheduled out of `PLANNED.md`'s `Target: v0.7.0` entry (2026-07-28);
+> see the v0.7.0 section at the bottom of this file. **v0.6.2 (list actions, sorting & document previews) is
+> complete and merge-ready** — all five milestones
+> **A–E** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs and `README.md`
+> are done, and the full suite is green (719 tests, no warnings). **v0.6.1 (keyword
 > match & ATS coverage) is likewise complete.** Only the **device checks** below remain before the branch merges.
 >
 > **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
-> milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.6.2**.
+> milestone's full write-up is in `MILESTONES.md`). These were written against a **0.6.2** build; the project
+> version is now **0.7.0**, so Settings → About reads 0.7.0 in a current build.
 > - **v0.6.2 A** — a Tracker row shows the **Return to Results + trash icons** without hovering, matching the
 >   Results rows; **right-clicking** a row offers the same two; both **swipes** still work. **Delete confirms from
 >   all three paths** (and the dialog names the job), Return to Results doesn't. With a job open, the footer's
@@ -73,16 +76,207 @@ down only).
 
 ---
 
-# Next version — (unstarted; number + theme TBD)
+# v0.7.0 — customizable LaTeX document styles (in progress)
 
-**Nothing is scheduled yet** — v0.6.2 is complete (see "Current focus" above) and the next version is unstarted.
+Scheduled out of `PLANNED.md`'s `Target: v0.7.0` entry (2026-07-28) — a **feature release**, so milestones
+restart at **A** and commit as `v0.7.0 : Milestone X Completed`.
 
-**Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its number
-and theme aren't chosen until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At
-kickoff, pick a theme from `ROADMAP.md`'s Backlog (native `LanguageModel` provider seam, on-device embedding RAG,
-optional MCP tools) or a `PLANNED.md` entry — one remains, **customizable LaTeX styles** (`Target: v0.7.0`, a
-large ~6-milestone feature). Two candidates are **unspecced** and need a `PLANNED.md` entry with a `Target:`
-first: the **ATS-friendly export mode** noted alongside v0.6.1, and the **chunked full tidy** noted as v0.6.2
-Milestone E's follow-on (tidy a long document in segments so its readable copy is complete *and* formatted
-throughout, rather than tidied-then-raw). Assign the version number, bump `MARKETING_VERSION`, and break it into
-Milestone A, B, C… here.
+**Why.** The awesome-cv LaTeX route (v0.5.1) is a **single fixed template** mimicking Taylor's hand-authored
+résumé: [`TexDocumentBuilder`](../src/Infrastructure/Tex/TexDocumentBuilder.swift) hardcodes every presentation
+choice — `\documentclass[6pt]{Class/Resume}` + `\geometry{…}` in `resumePreamble`, `\fontdir[fonts/]`, the
+section order (`canonicalOrder`) and per-section spacing (`sectionVSpace`), and a *separate*
+`\documentclass[11pt, a4paper]{Class/CoverLetter}` for the letter. This release makes the look **user-owned**:
+named, reusable styles chosen at export time, plus a raw-LaTeX escape hatch for power users.
+
+**Decisions locked in planning (2026-07-15, carried from `PLANNED.md`).**
+- **Both** multiple built-in templates **and** a user-editable raw-LaTeX preamble override — not just
+  parameterizing the one template.
+- Controls exposed: **font family & size**, **accent colour**, **margins + spacing + page size** (US Letter / A4),
+  and **section order / visibility**.
+- Granularity: **reusable named styles** in an app-wide library, **chosen at export time** (mirrors saved
+  profiles / generation presets).
+- **One shared style applies to both documents** (résumé + cover letter), unifying today's divergent hardcoded
+  geometry; only doc-inherent bits (the letter's `\makeletterclosing`) stay per-type.
+
+**⚠️ Naming — don't collide with the existing template type.** [`ExportTemplate`](../src/Infrastructure/Export/ExportTemplate.swift)
++ `TemplateStyle` (classic / compact / modern) already exist, but they theme the **native Core Text** PDF/DOCX
+exports (v0.3.0 Milestone X), **not** LaTeX. The new type is LaTeX-specific — name it **`LaTeXStyle`** and keep
+the two separate. Unifying them later is an explicit open call, not part of this release.
+
+**Scoping constraint (applies to every milestone).** Styles theme **presentation only** — the raw-LaTeX override
+changes layout, **never** content: the body stays app-generated and escaped (`escape` / `inlineLaTeX` /
+`plainLaTeX` in `TexDocumentBuilder`), so a template can't smuggle in résumé content. This is a correctness
+boundary for the template system, not a fabrication rule — the fidelity control still governs content latitude.
+
+**Layer note.** Not Presentation-only: A–C + F are **Infrastructure/Tex**, D is **Data/Persistence**, E is
+**Presentation** (+ `Composition` wiring). Dependencies still point down (Infra model/builder ← Data persistence
+← Presentation manager/picker). Business's [`ExportApplicationUseCase`](../src/Business/UseCases/ExportApplicationUseCase.swift)
+is the one call site that threads a style through (`texSource` / `latexPDF`).
+
+**Release hygiene (do once, at kickoff).**
+- [x] Bump every `MARKETING_VERSION` to `0.7.0` (4 copies in `project.pbxproj` — Debug/Release × app/test) so
+      Settings → About reports the real version.
+
+---
+
+## Milestone A — `LaTeXStyle` model + built-in template registry
+
+The style has no home today; every choice is a literal in `TexDocumentBuilder`'s two preamble builders. Define
+the value type and the enumerable set of built-in templates first, so B–F have something to read.
+
+**Seam + files.** `Infrastructure/Tex` — new `LaTeXStyle.swift` + `LaTeXTemplateRegistry.swift`, alongside
+[`TexAssets`](../src/Infrastructure/Tex/TexAssets.swift) (which already resolves the bundled `lib/tex/` classes
+and fonts). Pure, `nonisolated`, `Sendable`, `Codable` — no I/O, no model calls.
+
+- [ ] `LaTeXStyle`: `template` (built-in template id), `fontFamily`, `fontSizePt`, `accentColor`, `pageSize`
+      (`.usLetter` / `.a4`), margins (left/top/right/bottom/footskip), section + line spacing, `sectionOrder`,
+      `hiddenSections`, and `customPreamble: String?` (Milestone F's override; nil here).
+- [ ] A `.default` style that reproduces **today's exact output** byte-for-byte — this is what makes B and C
+      safe to land (see their regression tests).
+- [ ] `LaTeXTemplateRegistry` — a **data-driven, enumerable** source of truth (mirror `JobProviderRegistry` from
+      v0.6.0 H-A): each descriptor pairs a bundled class set (resolved via `TexAssets`) with its default
+      `LaTeXStyle`. Adding a template = appending one descriptor + its `.cls` under `lib/tex/Class/`, never
+      hand-enumerating in a view.
+- [ ] Accent colour: model it as a value the builder can emit into awesome-cv's `\colorlet{awesome}{…}` /
+      `\definecolor` mechanism (`lib/tex/Class/Resume.cls` defines the `awesome-*` palette) — a hex string or a
+      small `RGBColor`-shaped value, **not** `Infrastructure/Export`'s `RGBColor` (that belongs to the native
+      exporter; don't cross-wire the two systems).
+- [ ] Font family choice restricted to **bundled** faces — today Roboto + Source Sans under `lib/tex/fonts/`.
+- [ ] **(open call)** Curating more families. *Recommended:* keep to the bundled two for now and note the
+      licensing + bundle-size cost of each addition; revisit in E once the picker exists.
+
+**Tests.** `lib/tests/Infrastructure/` — `LaTeXStyle` round-trips through `Codable`; the registry enumerates its
+descriptors and every one resolves against a fixture `TexAssets(root:)`; `.default` matches the documented
+current values.
+
+**On-device.** n/a — pure value types, no model calls.
+
+---
+
+## Milestone B — Parameterize `TexDocumentBuilder` typography, geometry, colour & page size
+
+The core change. `resumePreamble(headline:)` and `coverLetterPreamble(headline:)` build their preambles from
+string literals; they must build them from a `LaTeXStyle` instead.
+
+**Seam + files.** `Infrastructure/Tex/TexDocumentBuilder.swift`; the entry points
+`resume(fromMarkdown:)` / `coverLetter(fromMarkdown:)` gain a `style:` parameter, threaded from
+`ExportApplicationUseCase.texSource(_:_:)` / `.latexPDF(_:_:)` (Business).
+
+- [ ] `resume(fromMarkdown:style:)` / `coverLetter(fromMarkdown:style:)`, with `style: LaTeXStyle = .default`
+      so existing call sites and tests compile unchanged while the chain is wired.
+- [ ] Generate from the style: documentclass options + font size (replacing the literal `[6pt]` / `[11pt, a4paper]`),
+      `\geometry{…}` from margins **and page size**, `\fontdir[…]` for the chosen family, and the accent colour
+      via the class's colour mechanism.
+- [ ] **One style, both documents** — the letter's page size/margins/typography now come from the same style as
+      the résumé; only doc-inherent commands (`\makeletterclosing`, the `pageFooter` label) stay per-type.
+- [ ] All escaping paths (`escape`, `inlineLaTeX`, `plainLaTeX`) untouched — style affects the **preamble**, not
+      the body.
+- [ ] Thread `style` through `ExportApplicationUseCase` (default `.default` until E supplies the chosen one).
+
+**Tests.** `lib/tests/Infrastructure/` — a **golden regression**: `.default` produces the byte-identical `.tex`
+the current builder emits (add the fixture before changing the builder); a non-default style changes the expected
+preamble lines (font size, geometry, `\fontdir`, colour) and **only** those; body output for a given Markdown
+input is identical across styles.
+
+**On-device.** n/a — no model calls. A compile still needs `lualatex`; the tests assert on generated `.tex`, not
+on a compile.
+
+---
+
+## Milestone C — Section order & visibility driven by the style
+
+`canonicalOrder(_:)` (Education → Experience → Projects → Skills → everything else) and `sectionVSpace(_:)` are
+hardcoded to match the hand-authored résumé. Both become style-driven.
+
+**Seam + files.** `Infrastructure/Tex/TexDocumentBuilder.swift` (the ordering/spacing helpers and their call
+site in the résumé assembly), reading `sectionOrder` / `hiddenSections` / section spacing from `LaTeXStyle`.
+
+- [ ] Order sections by the style's `sectionOrder`; drop those in `hiddenSections`.
+- [ ] Per-section `\vspace` from the style's spacing values, with today's values as the `.default`.
+- [ ] **(open call)** Unknown / generated section names not named in a user-defined order. *Recommended:* known
+      sections follow the style's order; unknown ones **append stably** (today's `return 4` fallback) — never
+      dropped, so a section the model invents can't vanish silently.
+- [ ] Hiding a section must not disturb the surrounding spacing (no double gap where a section was removed).
+
+**Tests.** Ordering + visibility unit tests over a fixture Markdown with all four canonical sections plus an
+unknown one: default order unchanged; a reordered style reorders; a hidden section is absent and the remaining
+spacing matches; the unknown section still appears last.
+
+**On-device.** n/a.
+
+---
+
+## Milestone D — Persistence: the styles library + default pointer
+
+Styles must survive relaunch and be reusable by name — the same shape as saved profiles.
+
+**Seam + files.** `Data/Persistence` — `SavedDocumentStyle` (id / name / `LaTeXStyle`),
+`SavedDocumentStylesRepository` (mirror [`SavedProfilesRepository`](../src/Data/Persistence/SavedProfilesRepository.swift):
+its own `static let kind`, upsert-by-id over `PersistentRecordStore`), and `DefaultDocumentStyleStore` (mirror
+[`DefaultProfileStore`](../src/Data/Persistence/DefaultProfileStore.swift) — a single-id `KeyValueStore` pointer
+under the `com.veritum.taylordportfolio.*` namespace). Wired in `Composition`.
+
+- [ ] `SavedDocumentStyle` — `Codable`, `Sendable`, `nonisolated`; decodes tolerantly so a style saved before a
+      later field is added still loads (the `SavedProfile` precedent).
+- [ ] Repository `save` / `all` / `delete(id:)` against the record store under a new `kind`.
+- [ ] Default-style pointer (one default by construction, not a flag per style).
+- [ ] Built-in templates stay in the registry (A) — the repository holds only **user** styles; the picker in E
+      shows built-ins + saved styles together.
+
+**Tests.** `lib/tests/Data/` — repository round-trip / update / delete against the in-memory record store;
+default pointer load/save/clear; legacy-blob decode.
+
+**On-device.** n/a.
+
+---
+
+## Milestone E — Style-manager UI + export-time picker
+
+**Seam + files.** `Presentation` — a **"Document styles"** manager (create / name / duplicate / edit / delete,
+the four control groups) and a **style picker** on the LaTeX export route in
+[`ApplicationSheet`](../src/Presentation/Application/View/ApplicationSheet.swift) (the Export menu, which today
+offers "PDF — Portfolio (LaTeX)" / "LaTeX source (.tex)" plus the native `ExportTemplate` picker), backed by
+`ApplicationViewModel.exportLaTeXPDF(_:)` / `.exportTexSource(_:)`. **LaTeX-only** — the native exports keep
+`ExportTemplate`, and the two pickers must read as clearly different things in that menu.
+
+- [ ] Manager screen with the four control groups (typography / colour / geometry + page size / section order).
+- [ ] Export-time picker defaulting to the default style; the chosen style flows
+      view → `ApplicationViewModel` → `ExportApplicationUseCase` → `TexDocumentBuilder`.
+- [ ] **(open call)** Where the manager lives. *Recommended:* a new `SettingsSection` case in
+      [`ShellNavigation`](../src/Presentation/App/ShellNavigation.swift) (today `engines` / `adzuna` / `about`) —
+      cheaper than a new sidebar area and it's a preference, not a workflow.
+- [ ] **(open call)** Live preview vs. a Preview button. *Recommended:* a **Preview button** that compiles a
+      sample — a live preview pays the `lualatex` latency on every keystroke. Disabled when `lualatex` is absent
+      (the route already degrades that way).
+- [ ] Views stay dumb — all state on the VM; no `Process` or file I/O in Presentation.
+
+**Tests.** `lib/tests/Presentation/` — VM-level: the picker's selection reaches the export call; the manager's
+create/duplicate/delete drive the repository; deleting the default style clears/reassigns the pointer.
+
+**On-device.** n/a. A Preview compile needs `lualatex`, same optional dependency as the export route.
+
+---
+
+## Milestone F — Raw-LaTeX preamble override + graceful compile failure
+
+The power-user escape hatch, last so it lands on a working style system.
+
+**Seam + files.** `Infrastructure/Tex/TexDocumentBuilder.swift` (honour `customPreamble`) +
+[`LaTeXProcessClient`](../src/Infrastructure/Tex/LaTeXProcessClient.swift) / `ApplicationViewModel`'s existing
+`LaTeXProcessError` handling (it already surfaces the real `lualatex` log rather than a generic failure), plus
+an advanced editor in the E manager.
+
+- [ ] When `customPreamble` is set, it replaces the **generated preamble verbatim**; the body stays
+      app-generated + escaped (the scoping constraint above).
+- [ ] A broken override fails **gracefully** — the compile already runs `\nonstopmode`, so surface the compile
+      error and offer **revert to a built-in** (a one-click path back to a compiling style, so a user can't
+      strand themselves).
+- [ ] The `.tex` **source** export stays available even when the override won't compile (it needs no TeX install)
+      — that's how a user debugs their preamble.
+- [ ] Advanced editor in the manager, clearly marked as replacing the generated preamble.
+
+**Tests.** Override present → generated preamble absent and the override verbatim, body unchanged; override
+absent → identical to B/C output; the error path maps a compile failure to a user-facing message + revert
+affordance (VM-level, with a stub compiler).
+
+**On-device.** n/a — no model calls.

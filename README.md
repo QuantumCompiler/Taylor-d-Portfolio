@@ -185,10 +185,13 @@ A patch release on v0.6.0/v0.6.1, tidying up how the two list tabs and the Portf
   Documents is no longer cut off, either by the box it sat in **or** by a length limit that quietly dropped the
   end of a long document. *(Milestones A–E.)*
 
-**Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
-from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
-layer — or a specced `PLANNED.md` item (e.g. customizable LaTeX styles, or the **ATS-friendly export mode** noted
-alongside v0.6.1).
+**Next — v0.7.0, customizable LaTeX document styles (in progress):** the awesome-cv PDF route currently has one
+fixed look, hardcoded down to the font size and margins. v0.7.0 turns that into **named styles you create and
+pick when you export** — font, accent colour, margins, page size (US Letter / A4), and which sections appear and
+in what order — with several built-in templates and a raw-LaTeX escape hatch for anyone who wants to write the
+preamble themselves. *(Milestones A–F.)* Later candidates come from the backlog — the native `LanguageModel`
+provider seam, on-device embedding RAG, an optional MCP tool layer — or the **ATS-friendly export mode** noted
+alongside v0.6.1.
 
 ## Build & run
 

@@ -921,6 +921,65 @@ granular breakdown + open calls.
       Presentation + Data/LLM (`Prompts`) + Business (`TidyDocumentUseCase`). On-device: twice the input for one
       document on the `.profile` task, still bounded; the appended remainder costs no model work.
 
+## v0.7.0 — customizable LaTeX document styles  (in progress)
+
+A **feature release**, scheduled out of `PLANNED.md`'s single `Target: v0.7.0` entry (2026-07-28). The theme is
+**user-owned document presentation**: the awesome-cv LaTeX route (v0.5.1) is one fixed template with every
+presentation choice hardcoded in `TexDocumentBuilder` — class + font size, `\geometry`, `\fontdir`, section order
+and spacing, and a separate cover-letter documentclass. This release replaces those literals with **named,
+reusable `LaTeXStyle`s** chosen at export time, backed by an enumerable built-in template registry, plus a
+**raw-LaTeX preamble escape hatch** for power users. Six milestones **A–F**; milestones restart at **A** and
+commit as `v0.7.0 : Milestone X Completed`. **Not Presentation-only** — A–C + F are Infrastructure/Tex, D is
+Data/Persistence, E is Presentation. Distinct from the native `ExportTemplate` (Core Text PDF/DOCX), which is
+untouched. Styles theme **presentation only** — the body stays app-generated and escaped, so a template can't
+inject content. `TODO.md` has the granular breakdown + open calls.
+
+- [ ] **Milestone A — `LaTeXStyle` model + built-in template registry.** The style has no home today. Add a pure
+      `nonisolated`/`Sendable`/`Codable` `LaTeXStyle` (template id, font family + size, accent colour, page size,
+      margins/spacing, `sectionOrder` / `hiddenSections`, optional `customPreamble`) and a **data-driven**
+      `LaTeXTemplateRegistry` — descriptors pairing a bundled class set (via `TexAssets`) with a default style,
+      mirroring v0.6.0 H-A's `JobProviderRegistry` so adding a template is one descriptor + its `.cls`, never a
+      hand-enumerated view. A `.default` style reproduces today's output exactly, which is what makes B and C safe.
+      Seam: **Infrastructure/Tex**. On-device: n/a.
+
+- [ ] **Milestone B — Parameterize `TexDocumentBuilder` typography, geometry, colour & page size.** The core
+      change: `resumePreamble` / `coverLetterPreamble` build from a `LaTeXStyle` instead of literals —
+      documentclass options + font size, `\geometry` from margins **and** page size (US Letter / A4), `\fontdir`
+      for the chosen bundled family, accent colour through awesome-cv's colour mechanism. **One style covers both
+      documents**, unifying today's divergent résumé (`[6pt]`) and letter (`[11pt, a4paper]`) geometry; only
+      doc-inherent commands stay per-type. Escaping paths untouched. Threaded through
+      `ExportApplicationUseCase.texSource` / `.latexPDF` with a `.default` so nothing breaks mid-chain. Seam:
+      **Infrastructure/Tex** + Business call site. On-device: n/a.
+
+- [ ] **Milestone C — Section order & visibility from the style.** `canonicalOrder` (Education → Experience →
+      Projects → Skills) and `sectionVSpace` are hardcoded to the hand-authored résumé; both become style-driven
+      (reorder, show/hide, per-section spacing). Open call resolved as recommended: known sections follow the
+      style's order, **unknown ones append stably** — never dropped, so a model-invented section can't vanish.
+      Seam: **Infrastructure/Tex**. On-device: n/a.
+
+- [ ] **Milestone D — Persistence: styles library + default pointer.** A `SavedDocumentStyle` (id / name / style)
+      through `PersistentRecordStore` via a `SavedDocumentStylesRepository` (mirrors `SavedProfilesRepository`,
+      its own `kind`), plus a single-id `DefaultDocumentStyleStore` on `KeyValueStore` (mirrors
+      `DefaultProfileStore`, so "exactly one default" holds by construction). Built-ins stay in the registry; the
+      repository holds only user styles. Tolerant decode so older saves survive a later field. Seam:
+      **Data/Persistence** + `Composition`. On-device: n/a.
+
+- [ ] **Milestone E — Style-manager UI + export-time picker.** A "Document styles" manager (create / name /
+      duplicate / edit / delete, the four control groups) and a style picker on the LaTeX route in
+      `ApplicationSheet`'s Export menu, defaulting to the default style and flowing view → `ApplicationViewModel`
+      → `ExportApplicationUseCase` → `TexDocumentBuilder`. **LaTeX-only** — the native exports keep
+      `ExportTemplate`, and the two pickers must not read as the same control. Open calls: the manager lives in a
+      new `SettingsSection` (recommended, over a new sidebar area), and styling previews via a **Preview button**
+      rather than live (recommended — a live preview pays the `lualatex` latency per keystroke). Seam:
+      **Presentation**. On-device: n/a.
+
+- [ ] **Milestone F — Raw-LaTeX preamble override + graceful compile failure.** When `customPreamble` is set it
+      replaces the *generated* preamble verbatim while the body stays app-generated and escaped (presentation
+      only, never content). A broken override must degrade well: the compile already runs `\nonstopmode` and
+      `ApplicationViewModel` already surfaces the real `lualatex` log, so add **revert to a built-in** and keep
+      the `.tex` **source** export available (it needs no TeX install) so a user can debug their own preamble.
+      Seam: **Infrastructure/Tex** + the existing error path + an advanced editor in E's manager. On-device: n/a.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
@@ -935,9 +994,9 @@ granular breakdown + open calls.
   with the kit, the coverage panel, and the opt-in keyword-emphasis control. **v0.6.2 (list actions, sorting &
   document previews) is complete** — Milestones **A–E** above (A discoverable remove-from-Tracker, B multi-select
   bulk actions, C sort/filter parity, D no raw preview for imports, E full source-document preview), scheduled out
-  of `PLANNED.md`'s five `Target: v0.6.2` entries. **The next version is unstarted**; its number and theme are
-  chosen when development on it begins (see `CLAUDE.md` → "Never pre-name the next version"). Candidate
-  fast-follows / themes: an
+  of `PLANNED.md`'s five `Target: v0.6.2` entries. **v0.7.0 (customizable LaTeX document styles) is in progress** —
+  Milestones **A–F** above, scheduled out of `PLANNED.md`'s last remaining entry, which is now empty. Candidate
+  fast-follows / later themes: an
   **ATS-friendly export mode** (the companion noted but deliberately left out of v0.6.1 — standard headings,
   single-column, selectable text, which is what decides whether an ATS can *parse* a résumé at all); full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"
