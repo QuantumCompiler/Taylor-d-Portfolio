@@ -9,15 +9,16 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone B** (parameterize `TexDocumentBuilder`'s
-> typography / geometry / colour / page size from a style). **Milestone A is done** — `LaTeXStyle` +
-> `LaTeXTemplateRegistry` exist and `LaTeXStyle.default` reproduces today's output, so B lands behind a
-> byte-for-byte regression (write-up in `MILESTONES.md`, ticked in `ROADMAP.md`). Six milestones **A–F**,
+> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone C** (section order / visibility from the
+> style). **Milestones A and B are done** — `LaTeXStyle` + `LaTeXTemplateRegistry` exist, and the builder's
+> preambles are style-driven behind a **whole-document golden** that pins the default output byte-for-byte
+> (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`). C changes the résumé's section ordering/spacing, so it
+> must extend that golden rather than replace it. Six milestones **A–F**,
 > scheduled out of `PLANNED.md`'s `Target: v0.7.0` entry (2026-07-28); see the v0.7.0 section at the bottom of
 > this file. **v0.6.2 (list actions, sorting & document previews) is
 > complete and merge-ready** — all five milestones
 > **A–E** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs and `README.md`
-> are done, and the full suite is green (758 cases, no warnings). **v0.6.1 (keyword
+> are done, and the full suite is green (773 cases, no warnings). **v0.6.1 (keyword
 > match & ATS coverage) is likewise complete.** Only the **device checks** below remain before the branch merges.
 >
 > **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
@@ -119,36 +120,6 @@ is the one call site that threads a style through (`texSource` / `latexPDF`).
 **Release hygiene (do once, at kickoff).**
 - [x] Bump every `MARKETING_VERSION` to `0.7.0` (4 copies in `project.pbxproj` — Debug/Release × app/test) so
       Settings → About reports the real version.
-
----
-
-## Milestone B — Parameterize `TexDocumentBuilder` typography, geometry, colour & page size
-
-The core change. `resumePreamble(headline:)` and `coverLetterPreamble(headline:)` build their preambles from
-string literals; they must build them from a `LaTeXStyle` instead.
-
-**Seam + files.** `Infrastructure/Tex/TexDocumentBuilder.swift`; the entry points
-`resume(fromMarkdown:)` / `coverLetter(fromMarkdown:)` gain a `style:` parameter, threaded from
-`ExportApplicationUseCase.texSource(_:_:)` / `.latexPDF(_:_:)` (Business).
-
-- [ ] `resume(fromMarkdown:style:)` / `coverLetter(fromMarkdown:style:)`, with `style: LaTeXStyle = .default`
-      so existing call sites and tests compile unchanged while the chain is wired.
-- [ ] Generate from the style: documentclass options + font size (replacing the literal `[6pt]` / `[11pt, a4paper]`),
-      `\geometry{…}` from margins **and page size**, `\fontdir[…]` for the chosen family, and the accent colour
-      via the class's colour mechanism.
-- [ ] **One style, both documents** — the letter's page size/margins/typography now come from the same style as
-      the résumé; only doc-inherent commands (`\makeletterclosing`, the `pageFooter` label) stay per-type.
-- [ ] All escaping paths (`escape`, `inlineLaTeX`, `plainLaTeX`) untouched — style affects the **preamble**, not
-      the body.
-- [ ] Thread `style` through `ExportApplicationUseCase` (default `.default` until E supplies the chosen one).
-
-**Tests.** `lib/tests/Infrastructure/` — a **golden regression**: `.default` produces the byte-identical `.tex`
-the current builder emits (add the fixture before changing the builder); a non-default style changes the expected
-preamble lines (font size, geometry, `\fontdir`, colour) and **only** those; body output for a given Markdown
-input is identical across styles.
-
-**On-device.** n/a — no model calls. A compile still needs `lualatex`; the tests assert on generated `.tex`, not
-on a compile.
 
 ---
 

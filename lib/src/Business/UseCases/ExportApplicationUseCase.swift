@@ -50,19 +50,24 @@ nonisolated struct ExportApplicationUseCase: Sendable {
     var isLaTeXAvailable: Bool { compiler?.isAvailable ?? false }
 
     /// The awesome-cv `.tex` **source** for one document — deterministic, no compile, so it works
-    /// even without a TeX install (a handoff into the manual `PortfolioBuddy` pipeline).
-    func texSource(_ kit: ApplicationKit, _ document: ApplicationDocument) -> String {
+    /// even without a TeX install (a handoff into the manual `PortfolioBuddy` pipeline). `style`
+    /// carries the user's document style (v0.7.0); the default reproduces the original look, and
+    /// Milestone E supplies the style the user picked at export time.
+    func texSource(_ kit: ApplicationKit, _ document: ApplicationDocument,
+                   style: LaTeXStyle = .default) -> String {
         switch document {
-        case .resume: return TexDocumentBuilder.resume(fromMarkdown: kit.resumeMarkdown)
-        case .coverLetter: return TexDocumentBuilder.coverLetter(fromMarkdown: kit.coverLetter)
+        case .resume: return TexDocumentBuilder.resume(fromMarkdown: kit.resumeMarkdown, style: style)
+        case .coverLetter: return TexDocumentBuilder.coverLetter(fromMarkdown: kit.coverLetter, style: style)
         }
     }
 
     /// Compiles one document into an awesome-cv **PDF** via `lualatex`. Throws
     /// ``LaTeXProcessError/notInstalled`` when no compiler is wired/available.
-    func latexPDF(_ kit: ApplicationKit, _ document: ApplicationDocument) async throws -> Data {
+    func latexPDF(_ kit: ApplicationKit, _ document: ApplicationDocument,
+                  style: LaTeXStyle = .default) async throws -> Data {
         guard let compiler else { throw LaTeXProcessError.notInstalled }
-        return try await compiler.compile(tex: texSource(kit, document), jobName: document.displayName)
+        return try await compiler.compile(tex: texSource(kit, document, style: style),
+                                          jobName: document.displayName)
     }
 
     /// Exports a **single** document (résumé or cover letter) — the primary path. Each file

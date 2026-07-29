@@ -24,8 +24,10 @@ nonisolated enum TexDocumentBuilder {
 
     // MARK: Public API (mirrors the DocumentExporter shape: Markdown in, .tex out)
 
-    /// A complete résumé `.tex` document driving `Class/Resume`.
-    static func resume(fromMarkdown markdown: String) -> String {
+    /// A complete résumé `.tex` document driving the style's résumé class (`Class/Resume` by default).
+    /// The `style` supplies every presentation choice (v0.7.0 Milestone B); ``LaTeXStyle/default``
+    /// reproduces the hand-authored look this builder used to hardcode.
+    static func resume(fromMarkdown markdown: String, style: LaTeXStyle = .default) -> String {
         let blocks = MarkdownBlockParser.blocks(from: markdown)
         let level = sectionLevel(of: blocks)
         let (preamble, sections) = split(blocks, atHeadingLevel: level)
@@ -46,11 +48,13 @@ nonisolated enum TexDocumentBuilder {
             body += isSkillsSection(section.title) ? renderSkills(section.blocks) : renderEntries(section.blocks)
             body += "\n"
         }
-        return resumePreamble(headline: headline(in: preamble)) + "\\begin{document}\n\n" + body + "\\end{document}\n"
+        return resumePreamble(headline: headline(in: preamble), style: style)
+            + "\\begin{document}\n\n" + body + "\\end{document}\n"
     }
 
-    /// A complete cover-letter `.tex` document driving `Class/CoverLetter`.
-    static func coverLetter(fromMarkdown markdown: String) -> String {
+    /// A complete cover-letter `.tex` document driving the style's letter class. The **same** style
+    /// as the résumé — one look across both deliverables (v0.7.0 Milestone B).
+    static func coverLetter(fromMarkdown markdown: String, style: LaTeXStyle = .default) -> String {
         let blocks = MarkdownBlockParser.blocks(from: markdown)
         let (preamble, sections) = split(blocks, atHeadingLevel: sectionLevel(of: blocks))
 
@@ -65,9 +69,10 @@ nonisolated enum TexDocumentBuilder {
             }
         }
 
-        return coverLetterPreamble(headline: headline(in: preamble))
+        return coverLetterPreamble(headline: headline(in: preamble), style: style)
             + "\\begin{document}\n\n\\makecvheader\n\n"
-            + "\\setlength{\\parskip}{1.0em}\n\\linespread{1.08}\\selectfont\n\n"
+            + "\\setlength{\\parskip}{\(style.letterParagraphSkipArgument)}\n"
+            + "\\linespread{\(style.letterLineSpreadArgument)}\\selectfont\n\n"
             + "\\begin{cvletter}\n\n\(letter)\\end{cvletter}\n\n"
             + "\\makeletterclosing\n\n\\end{document}\n"
     }
@@ -239,15 +244,79 @@ nonisolated enum TexDocumentBuilder {
 
     // MARK: Preambles
 
-    private static func resumePreamble(headline: String?) -> String {
-        var out = """
-        \\documentclass[6pt]{Class/Resume}
-        \\geometry{left=0.50cm, top=0.50cm, right=0.50cm, bottom=0.75cm, footskip=0.25cm}
+    /// The bundled font directory, as `\fontdir` and `fontspec`'s `Path=` both want it (relative to
+    /// the staged compile directory — see `LaTeXProcessClient`).
+    static let fontDirectory = "fonts/"
+
+    /// The shared head of both preambles: `\documentclass`, geometry, and the optional font-family
+    /// and accent overrides. Every part is style-driven; under ``LaTeXStyle/default`` the overrides
+    /// are empty and this is byte-for-byte what the builder emitted before v0.7.0.
+    static func preambleHead(for document: LaTeXDocumentKind, style: LaTeXStyle) -> String {
+        let descriptor = LaTeXTemplateRegistry.descriptor(for: style)
+        let options = [style.fontSizes.classOption(for: document),
+                       descriptor.paperOption(for: document, style: style)]
+            .compactMap { $0 }
+            .joined(separator: ", ")
+
+        return """
+        \\documentclass[\(options)]{\(descriptor.documentClass(for: document))}
+        \\geometry{\(style.margins.geometryOptions)}
         \\nonstopmode
-        \\fontdir[fonts/]
-        \\pageHeader
+        \\fontdir[\(fontDirectory)]
 
         """
+        + fontFamilyOverride(style)
+        + accentOverride(style)
+        + "\\pageHeader\n"
+    }
+
+    /// Repoints awesome-cv's `\bodyfont` / `\bodyfontlight` at a bundled family, or `""` for the
+    /// template's own faces. Only **bundled** families are selectable, so the `Path=` always
+    /// resolves inside the staged compile directory.
+    static func fontFamilyOverride(_ style: LaTeXStyle) -> String {
+        guard let family = style.fontFamily.faceNamePrefix,
+              let fileExtension = style.fontFamily.fileExtension,
+              let regular = style.fontFamily.regularFaces,
+              let light = style.fontFamily.lightFaces
+        else { return "" }
+
+        func declaration(_ command: String, _ faces: LaTeXFontFamily.Faces) -> String {
+            """
+            \\newfontfamily\\\(command)[
+              Path=\(fontDirectory),
+              Extension=\(fileExtension),
+              UprightFont=\(faces.upright),
+              ItalicFont=\(faces.italic),
+              BoldFont=\(faces.bold),
+              BoldItalicFont=\(faces.boldItalic),
+            ]{\(family)}
+
+            """
+        }
+
+        return declaration("styleBodyFont", regular)
+            + declaration("styleBodyFontLight", light)
+            + "\\renewcommand*{\\bodyfont}{\\styleBodyFont}\n"
+            + "\\renewcommand*{\\bodyfontlight}{\\styleBodyFontLight}\n\n"
+    }
+
+    /// Repoints the class's `awesome` colour, or `""` for the template's own (`awesome-cyan`).
+    /// A named palette colour is emitted by name — it's already defined by the class — and a custom
+    /// one as a hex `\definecolor`. A malformed custom hex resolves to no override at all.
+    static func accentOverride(_ style: LaTeXStyle) -> String {
+        switch style.accent {
+        case .templateDefault:
+            return ""
+        case let .named(colour):
+            return "\\colorlet{awesome}{\(colour.latexName)}\n\n"
+        case .custom:
+            guard let hex = style.accent.hex else { return "" }
+            return "\\definecolor{awesome}{HTML}{\(hex)}\n\n"
+        }
+    }
+
+    private static func resumePreamble(headline: String?, style: LaTeXStyle) -> String {
+        var out = preambleHead(for: .resume, style: style)
         if let headline, !headline.isEmpty { out += "\\position{\(plainLaTeX(headline))}\n" }
         out += "\\pageFooter{Résumé}\n\n"
         out += Self.entryHelpers + "\n"
@@ -275,15 +344,8 @@ nonisolated enum TexDocumentBuilder {
     }
     """
 
-    private static func coverLetterPreamble(headline: String?) -> String {
-        var out = """
-        \\documentclass[11pt, a4paper]{Class/CoverLetter}
-        \\geometry{left=0.50cm, top=0.50cm, right=0.50cm, bottom=0.75cm, footskip=0.25cm}
-        \\nonstopmode
-        \\fontdir[fonts/]
-        \\pageHeader
-
-        """
+    private static func coverLetterPreamble(headline: String?, style: LaTeXStyle) -> String {
+        var out = preambleHead(for: .coverLetter, style: style)
         if let headline, !headline.isEmpty { out += "\\position{\(plainLaTeX(headline))}\n" }
         out += "\\pageFooter{Cover Letter}\n\n"
         return out

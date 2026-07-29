@@ -950,13 +950,19 @@ inject content. `TODO.md` has the granular breakdown + open calls.
       style's single bucket unifies that — pinned by its own test so C's byte-for-byte claim stays honest.
       **No behaviour change yet**; the builder is untouched. Seam: **Infrastructure/Tex**. On-device: n/a.
 
-- [ ] **Milestone B — Parameterize `TexDocumentBuilder` typography, geometry, colour & page size.** The core
-      change: `resumePreamble` / `coverLetterPreamble` build from a `LaTeXStyle` instead of literals —
-      documentclass options + font size, `\geometry` from margins **and** page size (US Letter / A4), `\fontdir`
-      for the chosen bundled family, accent colour through awesome-cv's colour mechanism. **One style covers both
-      documents**, unifying today's divergent résumé (`[6pt]`) and letter (`[11pt, a4paper]`) geometry; only
-      doc-inherent commands stay per-type. Escaping paths untouched. Threaded through
-      `ExportApplicationUseCase.texSource` / `.latexPDF` with a `.default` so nothing breaks mid-chain. Seam:
+- [x] **Milestone B — Parameterize `TexDocumentBuilder` typography, geometry, colour & page size.** ✅ **Done.**
+      Both preambles now come from a shared `preambleHead(for:style:)` — document class + options from the
+      template descriptor and the style's per-document base size and page size, `\geometry` from its margins, then
+      optional font-family and accent overrides — with the letter's `\parskip`/`\linespread` style-driven too.
+      **One style covers both documents:** the résumé-vs-letter paper asymmetry moved to the *template*
+      (`templateDefaultPaperOptions`), consulted only while the style says "template default", so choosing US
+      Letter or A4 applies to both. A chosen family emits `\newfontfamily` + `\renewcommand*{\bodyfont}` with
+      per-family face suffixes and an explicit `Extension=`; a named accent emits `\colorlet{awesome}{awesome-…}`
+      and a custom one `\definecolor`, with a malformed hex emitting nothing rather than an uncompilable line.
+      Threaded through `ExportApplicationUseCase.texSource` / `.latexPDF` with a `.default`, so Presentation is
+      untouched until E. **No change by default, proven properly:** the pre-change output was captured first and
+      is asserted as a **whole-document** golden for both deliverables, and a fully-styled document (custom
+      accent, Roboto, US Letter, non-default sizes/margins) is compiled under real `lualatex`. Seam:
       **Infrastructure/Tex** + Business call site. On-device: n/a.
 
 - [ ] **Milestone C — Section order & visibility from the style.** `canonicalOrder` (Education → Experience →

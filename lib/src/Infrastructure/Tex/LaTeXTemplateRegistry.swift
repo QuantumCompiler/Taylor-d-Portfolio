@@ -36,6 +36,11 @@ nonisolated struct LaTeXTemplateDescriptor: Sendable, Identifiable {
     let coverLetterClass: String
     /// The class files this template needs present under `TexAssets.classesDirectory`.
     let requiredClassFiles: [String]
+    /// The paper option each document passes when the style says ``LaTeXPageSize/templateDefault`` —
+    /// the template's *own* choice. The awesome-cv résumé passes none (the class's `article` default)
+    /// while its cover letter passes `a4paper`; that asymmetry is the template's, not the user's, so
+    /// it lives here rather than in the style.
+    let templateDefaultPaperOptions: [LaTeXDocumentKind: String]
     /// The style a new document of this template starts from.
     let defaultStyle: LaTeXStyle
 
@@ -47,6 +52,12 @@ nonisolated struct LaTeXTemplateDescriptor: Sendable, Identifiable {
         case .resume: return resumeClass
         case .coverLetter: return coverLetterClass
         }
+    }
+
+    /// The paper option to emit for one document under `style` — the user's choice when they made
+    /// one, else this template's own default (possibly none).
+    func paperOption(for document: LaTeXDocumentKind, style: LaTeXStyle) -> String? {
+        style.pageSize.classOption ?? templateDefaultPaperOptions[document]
     }
 
     /// Whether this template's classes are actually present in a bundled asset tree — so a
@@ -94,6 +105,7 @@ extension LaTeXTemplateDescriptor {
         resumeClass: "Class/Resume",
         coverLetterClass: "Class/CoverLetter",
         requiredClassFiles: ["Resume.cls", "CoverLetter.cls"],
+        templateDefaultPaperOptions: [.coverLetter: "a4paper"],
         defaultStyle: .default
     )
 
@@ -106,6 +118,7 @@ extension LaTeXTemplateDescriptor {
         resumeClass: "Class/Resume",
         coverLetterClass: "Class/CoverLetter",
         requiredClassFiles: ["Resume.cls", "CoverLetter.cls"],
+        templateDefaultPaperOptions: [.coverLetter: "a4paper"],
         defaultStyle: LaTeXStyle(
             template: .awesomeCVCompact,
             margins: LaTeXMargins(leftCm: 0.35, topCm: 0.35, rightCm: 0.35, bottomCm: 0.55, footskipCm: 0.20),

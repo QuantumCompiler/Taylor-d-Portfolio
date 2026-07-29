@@ -212,6 +212,47 @@ nonisolated enum LaTeXFontFamily: String, Sendable, Codable, CaseIterable, Ident
         case .sourceSansPro: return "SourceSansPro"
         }
     }
+
+    /// The file extension the bundled faces use — Roboto ships as TrueType, Source Sans as OpenType.
+    /// Passed to `fontspec` explicitly so it resolves the exact bundled file rather than guessing.
+    var fileExtension: String? {
+        switch self {
+        case .templateDefault: return nil
+        case .roboto: return ".ttf"
+        case .sourceSansPro: return ".otf"
+        }
+    }
+
+    /// The four face suffixes of one weight group, as `fontspec`'s `*-…` patterns.
+    struct Faces: Sendable, Equatable {
+        var upright: String
+        var italic: String
+        var bold: String
+        var boldItalic: String
+    }
+
+    /// The regular weight group (drives `\bodyfont`). `nil` for the template default.
+    var regularFaces: Faces? {
+        switch self {
+        case .templateDefault: return nil
+        case .roboto: return Faces(upright: "*-Regular", italic: "*-Italic",
+                                   bold: "*-Bold", boldItalic: "*-BoldItalic")
+        case .sourceSansPro: return Faces(upright: "*-Regular", italic: "*-It",
+                                          bold: "*-Bold", boldItalic: "*-BoldIt")
+        }
+    }
+
+    /// The light weight group (drives `\bodyfontlight`, which awesome-cv uses for body copy and
+    /// entry descriptions). `nil` for the template default.
+    var lightFaces: Faces? {
+        switch self {
+        case .templateDefault: return nil
+        case .roboto: return Faces(upright: "*-Light", italic: "*-LightItalic",
+                                   bold: "*-Medium", boldItalic: "*-MediumItalic")
+        case .sourceSansPro: return Faces(upright: "*-Light", italic: "*-LightIt",
+                                          bold: "*-Semibold", boldItalic: "*-SemiboldIt")
+        }
+    }
 }
 
 /// The `\documentclass` base font sizes, **per document**.

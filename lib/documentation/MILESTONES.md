@@ -3067,3 +3067,48 @@ descriptor whose default style names its own template; availability against a fi
 missing-class tree, and the **real app bundle**. Suite green (758 cases), build warning-free.
 
 **On-device.** n/a — pure value types, no model calls, no compile.
+
+## Milestone B — Parameterize `TexDocumentBuilder` typography, geometry, colour & page size  ✅ done  (`Infrastructure/Tex/TexDocumentBuilder` + `LaTeXStyle`/`LaTeXTemplateRegistry`, `Business/UseCases/ExportApplicationUseCase`; tests in `lib/tests/Infrastructure/Tex`, `lib/tests/Business/UseCases`)
+
+**The gap.** `resumePreamble(headline:)` and `coverLetterPreamble(headline:)` were two literal blocks —
+`\documentclass[6pt]{Class/Resume}` / `\documentclass[11pt, a4paper]{Class/CoverLetter}`, a hardcoded
+`\geometry`, `\fontdir[fonts/]`, and no colour or font control at all.
+
+**What landed.** Both preambles now come from a **shared** `preambleHead(for:style:)`: the document class and its
+options from the style's template descriptor + per-document base size + page size, `\geometry` from the style's
+margins, then the optional font-family and accent overrides. `resume(fromMarkdown:style:)` /
+`coverLetter(fromMarkdown:style:)` take the style (defaulted to `.default`), and
+`ExportApplicationUseCase.texSource(_:_:style:)` / `.latexPDF(_:_:style:)` thread it from Business — Presentation
+is untouched until E supplies the user's pick.
+
+- **Page size unifies what was divergent.** The résumé passed no paper option and the letter passed `a4paper`;
+  that asymmetry is the *template's*, so it moved to `LaTeXTemplateDescriptor.templateDefaultPaperOptions` and is
+  consulted only while the style says `.templateDefault`. Choosing US Letter or A4 applies it to **both**
+  documents — the unification the release promised, without forcing a choice on anyone who never opens the picker.
+- **Font family repoints the class's own commands.** A chosen family emits two `\newfontfamily` declarations
+  (regular + light weight groups, with per-family face suffixes — Roboto's `-Italic` vs Source Sans' `-It`) and
+  `\renewcommand*{\bodyfont}` / `\bodyfontlight`, with an explicit `Extension=` so `fontspec` resolves the exact
+  bundled file. Only **bundled** families are selectable, so `Path=fonts/` always resolves inside the staged
+  compile directory. The literal path is used rather than `\@fontdir` — the latter would need `\makeatletter`
+  in a document preamble.
+- **Accent** emits `\colorlet{awesome}{awesome-red}` for a palette colour (already defined by the class) or
+  `\definecolor{awesome}{HTML}{…}` for a custom one; a malformed hex emits **nothing** rather than LaTeX that
+  would fail the compile.
+- The letter's body spacing (`\parskip`, `\linespread`) now comes from the style too.
+
+**Proving "no change by default" properly.** The pre-change output was captured from the builder *before* it was
+touched (a throwaway test dumping both documents), and that capture is embedded in
+`TexDocumentBuilderStyleTests` as a **whole-document** golden — not just the preamble, so a stray change anywhere
+in the emitted `.tex` trips it. Two details the golden caught: the original preamble had **no** blank line
+between `\pageHeader` and `\position`, and the résumé's class options are `[6pt]` alone.
+
+**Tests.** Whole-document goldens for both deliverables (`resume(fromMarkdown:)` with no style argument, and the
+explicit `.default`, both byte-identical); the default emits no `\newfontfamily`, no `\colorlet`/`\definecolor`,
+and no `letterpaper`; font sizes / page size / margins / accent / font family each drive their own line and
+nothing else; the **body is identical across styles**; the compact built-in brings its own geometry over the same
+classes; `ExportApplicationUseCase` forwards the style through both entry points and is unchanged when omitted.
+The integration test compiles a **fully styled** document (custom hex accent, Roboto body, US Letter, non-default
+sizes and margins) and a Source Sans / named-accent letter under real `lualatex` — so the emitted overrides are
+verified to compile, not merely to look right. Suite green (773 cases), build warning-free.
+
+**On-device.** n/a — no model calls. The compile is the same optional `lualatex` dependency as before.

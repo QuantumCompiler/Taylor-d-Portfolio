@@ -1,0 +1,303 @@
+//
+//  TexDocumentBuilderStyleTests.swift
+//  Taylor'd PortfolioTests
+//
+//  Tests · Infrastructure · Tex — style-driven preambles (v0.7.0 Milestone B).
+//
+
+import Testing
+import Foundation
+@testable import Taylor_d_Portfolio
+
+@Suite("TexDocumentBuilder · style")
+struct TexDocumentBuilderStyleTests {
+
+    private let resumeMarkdown = """
+    # Taylor J. Larrechea
+    **iOS Engineer — SwiftUI · MVVM · Applied AI**
+
+    ## Summary
+    Mid-level iOS engineer shipping production SwiftUI features & 100% ownership.
+
+    ## Core Skills
+    iOS Engineering: SwiftUI, MVVM, async/await
+
+    ## Experience
+    ### iOS Engineer — NRG Energy
+    Lehi, UT · Jun. 2025 – Present
+    - Design & implement production SwiftUI features.
+    """
+
+    private let coverMarkdown = """
+    ## About Me
+    My name is Taylor, a full-stack engineer with 100% commitment & drive.
+    """
+
+    // MARK: The golden regression — the default style reproduces the pre-v0.7.0 output
+
+    /// The **whole document**, captured from the builder *before* Milestone B parameterized it —
+    /// not just the preamble, so a stray change anywhere in the emitted `.tex` trips this. If a
+    /// change to the style system alters the default look, this fails; that's the point of
+    /// `LaTeXStyle.default` existing at all.
+    private let goldenResume = #"""
+    \documentclass[6pt]{Class/Resume}
+    \geometry{left=0.50cm, top=0.50cm, right=0.50cm, bottom=0.75cm, footskip=0.25cm}
+    \nonstopmode
+    \fontdir[fonts/]
+    \pageHeader
+    \position{iOS Engineer — SwiftUI · MVVM · Applied AI}
+    \pageFooter{Résumé}
+
+    % Generated helpers (Taylor'd Portfolio): dash-free entry rows with awesome-cv spacing.
+    \newcommand{\cventrysolo}[4]{%
+      \vspace{-2.0mm}\setlength\tabcolsep{0pt}\setlength{\extrarowheight}{0pt}%
+      \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} L{\dimexpr\textwidth-6.0cm} r}%
+        \entrytitlestyle{#1} & {\entrylocationstyle{#2}\entrydatestyle{ - #3}} \\%
+        \multicolumn{2}{L{\textwidth}}{\vspace{0mm}\descriptionstyle{#4}}%
+      \end{tabular*}%
+    }
+    \newcommand{\cvprojectsolo}[2]{%
+      \vspace{-2.0mm}\setlength\tabcolsep{0pt}\setlength{\extrarowheight}{0pt}%
+      \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} L{\textwidth}}%
+        \entrytitlestyle{#1} \\%
+        \multicolumn{1}{L{\textwidth}}{\descriptionstyle{#2}}%
+      \end{tabular*}%
+    }
+    \begin{document}
+
+    \makecvheader
+
+    \vspace{-0.5em}
+    \begin{justify}{\paragraphstyle Mid-level iOS engineer shipping production SwiftUI features \& 100\% ownership.}\end{justify}
+
+    \vspace{-1.5em}
+    \cvsection{Experience}
+
+    \begin{cventries}
+
+        \cventry
+        {iOS Engineer}
+        {NRG Energy}
+        {Lehi, UT}
+        {Jun. 2025 – Present}
+        {
+        \begin{cvitems}
+            \item {Design \& implement production SwiftUI features.}
+        \end{cvitems}
+        }
+
+    \end{cventries}
+
+    \vspace{-0.5em}
+    \cvsection{Core Skills}
+
+    \renewcommand{\arraystretch}{0.7}
+    \begin{cvskills}
+        \cvskill
+        {iOS Engineering}
+        {SwiftUI, MVVM, async/await}
+    \end{cvskills}
+
+    \end{document}
+
+    """#
+
+    private let goldenCoverLetter = #"""
+    \documentclass[11pt, a4paper]{Class/CoverLetter}
+    \geometry{left=0.50cm, top=0.50cm, right=0.50cm, bottom=0.75cm, footskip=0.25cm}
+    \nonstopmode
+    \fontdir[fonts/]
+    \pageHeader
+    \pageFooter{Cover Letter}
+
+    \begin{document}
+
+    \makecvheader
+
+    \setlength{\parskip}{1.0em}
+    \linespread{1.08}\selectfont
+
+    \begin{cvletter}
+
+    \lettersection{About Me}
+
+    My name is Taylor, a full-stack engineer with 100\% commitment \& drive.
+
+    \end{cvletter}
+
+    \makeletterclosing
+
+    \end{document}
+
+    """#
+
+    @Test func defaultStyleReproducesThePreviousResumeExactly() {
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown) == goldenResume)
+        // …and the explicit default is the same call.
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: .default) == goldenResume)
+    }
+
+    @Test func defaultStyleReproducesThePreviousCoverLetterExactly() {
+        #expect(TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown) == goldenCoverLetter)
+        #expect(TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown, style: .default) == goldenCoverLetter)
+    }
+
+    /// The default emits **no** font-family, colour, or résumé paper option — the three
+    /// `.templateDefault` cases exist so "unchanged" stays representable.
+    @Test func defaultStyleEmitsNoOverrides() {
+        let tex = TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown)
+        #expect(!tex.contains("\\newfontfamily"))
+        #expect(!tex.contains("\\colorlet{awesome}"))
+        #expect(!tex.contains("\\definecolor{awesome}"))
+        #expect(!tex.contains("letterpaper"))
+    }
+
+    // MARK: The body never depends on the style
+
+    /// A style themes the preamble; the document body is app-generated and escaped, identically
+    /// under every style. (Section *order* is Milestone C's; this asserts B changed nothing there.)
+    @Test func bodyIsIdenticalAcrossStyles() {
+        var style = LaTeXStyle.default
+        style.fontFamily = .roboto
+        style.accent = .named(.red)
+        style.pageSize = .usLetter
+        style.fontSizes = LaTeXFontSizes(resumePt: 8, coverLetterPt: 12)
+        style.margins = LaTeXMargins(leftCm: 1.25, topCm: 1, rightCm: 1.25, bottomCm: 1, footskipCm: 0.5)
+
+        func body(_ tex: String) -> String {
+            guard let range = tex.range(of: "\\begin{document}") else { return tex }
+            return String(tex[range.lowerBound...])
+        }
+
+        #expect(body(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style))
+            == body(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown)))
+        #expect(body(TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown, style: style))
+            .contains("100\\% commitment \\& drive"))
+    }
+
+    // MARK: Typography / geometry / colour / page size
+
+    @Test func fontSizesDriveTheDocumentClassOptions() {
+        var style = LaTeXStyle.default
+        style.fontSizes = LaTeXFontSizes(resumePt: 7.5, coverLetterPt: 12)
+
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+            .hasPrefix("\\documentclass[7.5pt]{Class/Resume}"))
+        #expect(TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown, style: style)
+            .hasPrefix("\\documentclass[12pt, a4paper]{Class/CoverLetter}"))
+    }
+
+    /// A chosen page size applies to **both** documents — the unification of today's divergent
+    /// résumé (no paper option) and letter (`a4paper`) geometry.
+    @Test func aChosenPageSizeAppliesToBothDocuments() {
+        var style = LaTeXStyle.default
+        style.pageSize = .usLetter
+
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+            .hasPrefix("\\documentclass[6pt, letterpaper]{Class/Resume}"))
+        #expect(TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown, style: style)
+            .hasPrefix("\\documentclass[11pt, letterpaper]{Class/CoverLetter}"))
+
+        style.pageSize = .a4
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+            .hasPrefix("\\documentclass[6pt, a4paper]{Class/Resume}"))
+    }
+
+    @Test func marginsDriveTheGeometryLineOnBothDocuments() {
+        var style = LaTeXStyle.default
+        style.margins = LaTeXMargins(leftCm: 1.25, topCm: 1, rightCm: 1.25, bottomCm: 2, footskipCm: 0.5)
+        let expected = "\\geometry{left=1.25cm, top=1.00cm, right=1.25cm, bottom=2.00cm, footskip=0.50cm}"
+
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style).contains(expected))
+        #expect(TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown, style: style).contains(expected))
+    }
+
+    @Test func aNamedAccentIsEmittedByNameAndACustomOneAsHex() {
+        var style = LaTeXStyle.default
+        style.accent = .named(.red)
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+            .contains("\\colorlet{awesome}{awesome-red}"))
+
+        style.accent = .custom(hex: "#123abc")
+        let tex = TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+        #expect(tex.contains("\\definecolor{awesome}{HTML}{123ABC}"))
+        #expect(!tex.contains("\\colorlet{awesome}"))
+    }
+
+    /// A malformed custom hex degrades to no override rather than emitting broken LaTeX that would
+    /// fail the compile.
+    @Test func aMalformedAccentEmitsNothing() {
+        var style = LaTeXStyle.default
+        style.accent = .custom(hex: "nope")
+        let tex = TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+        #expect(!tex.contains("definecolor{awesome}"))
+        #expect(!tex.contains("\\colorlet{awesome}"))
+    }
+
+    @Test func aChosenFontFamilyRepointsTheClassBodyFonts() {
+        var style = LaTeXStyle.default
+        style.fontFamily = .roboto
+        let tex = TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+
+        #expect(tex.contains("\\newfontfamily\\styleBodyFont["))
+        #expect(tex.contains("Path=fonts/"))
+        #expect(tex.contains("Extension=.ttf"))
+        #expect(tex.contains("]{Roboto}"))
+        #expect(tex.contains("\\renewcommand*{\\bodyfont}{\\styleBodyFont}"))
+        #expect(tex.contains("\\renewcommand*{\\bodyfontlight}{\\styleBodyFontLight}"))
+
+        style.fontFamily = .sourceSansPro
+        let sourceSans = TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown, style: style)
+        #expect(sourceSans.contains("Extension=.otf"))
+        #expect(sourceSans.contains("ItalicFont=*-It,"))     // Source Sans' suffix, not Roboto's
+        #expect(sourceSans.contains("]{SourceSansPro}"))
+    }
+
+    /// The letter's body spacing comes from the style too.
+    @Test func letterBodySpacingComesFromTheStyle() {
+        var style = LaTeXStyle.default
+        style.letterParagraphSkipEm = 0.8
+        style.letterLineSpread = 1.0
+
+        let tex = TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown, style: style)
+        #expect(tex.contains("\\setlength{\\parskip}{0.8em}"))
+        #expect(tex.contains("\\linespread{1}\\selectfont"))
+    }
+
+    /// A style's template chooses the classes — the compact built-in reuses the same ones but
+    /// brings its own geometry.
+    @Test func theTemplateChoosesTheClassesAndItsDefaults() {
+        let compact = LaTeXTemplateDescriptor.awesomeCVCompact.defaultStyle
+        let tex = TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: compact)
+
+        #expect(tex.hasPrefix("\\documentclass[6pt]{Class/Resume}"))
+        #expect(tex.contains("\\geometry{left=0.35cm, top=0.35cm, right=0.35cm, bottom=0.55cm, footskip=0.20cm}"))
+    }
+
+    // MARK: Integration — a styled document still compiles
+
+    @Test func aFullyStyledDocumentCompilesUnderLualatex() async throws {
+        let client = LaTeXProcessClient()
+        guard client.isAvailable, client.assets?.isComplete == true else {
+            return   // no TeX install / assets — don't fail the suite
+        }
+        var style = LaTeXStyle.default
+        style.fontFamily = .roboto
+        style.accent = .custom(hex: "DC3522")
+        style.pageSize = .usLetter
+        style.fontSizes = LaTeXFontSizes(resumePt: 7, coverLetterPt: 12)
+        style.margins = LaTeXMargins(leftCm: 1, topCm: 1, rightCm: 1, bottomCm: 1.25, footskipCm: 0.3)
+
+        let resumePDF = try await client.compile(
+            tex: TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style), jobName: "styled resume")
+        #expect(resumePDF.prefix(4).elementsEqual(Data("%PDF".utf8)))
+
+        var letterStyle = style
+        letterStyle.fontFamily = .sourceSansPro
+        letterStyle.accent = .named(.nephritis)
+        let coverPDF = try await client.compile(
+            tex: TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown, style: letterStyle),
+            jobName: "styled cover letter")
+        #expect(coverPDF.prefix(4).elementsEqual(Data("%PDF".utf8)))
+    }
+}
