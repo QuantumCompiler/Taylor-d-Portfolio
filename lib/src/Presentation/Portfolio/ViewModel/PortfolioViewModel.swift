@@ -176,6 +176,24 @@ final class PortfolioViewModel {
         supportingDocuments.removeAll { $0.id == id }
     }
 
+    // MARK: Clearing an imported document (v0.6.2 Milestone D)
+
+    /// Drops the imported résumé/portfolio, returning the slot to its **paste** state (an
+    /// import is otherwise un-undoable in-slot, since importing is what hides the editor).
+    /// Deliberately leaves `sourceText` / `readableText` alone — those belong to the profile
+    /// that was *built*, not to the slot; a rebuild replaces them.
+    func clearDocument() {
+        portfolioText = ""
+        sourceFileName = nil
+    }
+
+    /// The cover-letter equivalent. `build()` already clears the letter's captured text when
+    /// the slot is empty, so a cleared slot can't leave a stale letter on the next build.
+    func clearCoverLetter() {
+        coverLetterText = ""
+        coverLetterFileName = nil
+    }
+
     private static func message(for error: DocumentExtractionError) -> String {
         switch error {
         case .unsupportedType(let ext):

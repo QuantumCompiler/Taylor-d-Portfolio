@@ -267,6 +267,71 @@ struct PortfolioViewModelTests {
         #expect(vm.readableText == "TIDY:\nEXTRACTED RESUME")
     }
 
+    // MARK: Clearing an imported document (v0.6.2 Milestone D)
+
+    /// Clear returns the slot to its **paste** state — `fileName` nil is exactly what the view
+    /// branches on to bring the editor back, and the stale text goes with it.
+    @Test func clearDocumentReturnsTheSlotToPaste() async {
+        let vm = makePersistingVM(importText: "EXTRACTED")
+        await vm.importDocument(from: URL(fileURLWithPath: "/tmp/resume.pdf"))
+        #expect(vm.sourceFileName == "resume.pdf")
+        #expect(vm.canBuild)
+
+        vm.clearDocument()
+
+        #expect(vm.sourceFileName == nil)        // → the paste editor returns
+        #expect(vm.portfolioText.isEmpty)        // and no orphaned text is left behind
+        #expect(vm.canBuild == false)
+
+        vm.portfolioText = "typed instead"       // pasting still works after clearing
+        #expect(vm.canBuild)
+    }
+
+    @Test func clearCoverLetterReturnsItsOwnSlotOnly() async {
+        let vm = makePersistingVM(importText: "TEXT")
+        await vm.importDocument(from: URL(fileURLWithPath: "/tmp/resume.pdf"))
+        await vm.importCoverLetter(from: URL(fileURLWithPath: "/tmp/letter.docx"))
+
+        vm.clearCoverLetter()
+
+        #expect(vm.coverLetterFileName == nil)
+        #expect(vm.coverLetterText.isEmpty)
+        #expect(vm.sourceFileName == "resume.pdf")   // the résumé slot is untouched
+        #expect(vm.portfolioText.isEmpty == false)
+    }
+
+    /// A cleared cover letter can't leave a stale letter on the next build — `build()` already
+    /// resets the captured text when the slot is empty, so clearing composes with it.
+    @Test func buildingAfterClearingTheCoverLetterDropsIt() async {
+        let vm = makePersistingVM(importText: "TEXT")
+        vm.portfolioText = "resume"
+        await vm.importCoverLetter(from: URL(fileURLWithPath: "/tmp/letter.docx"))
+        await vm.build()
+        #expect(vm.coverLetterReadableText.isEmpty == false)
+
+        vm.clearCoverLetter()
+        await vm.build()
+
+        #expect(vm.coverLetterSourceText.isEmpty)
+        #expect(vm.coverLetterReadableText.isEmpty)
+        #expect(vm.profile != nil)                   // the résumé still built fine
+    }
+
+    /// Clearing the slot doesn't disturb what a **previous build** captured — those belong to
+    /// the built profile, not the slot.
+    @Test func clearingAfterABuildLeavesTheBuiltDocumentIntact() async {
+        let vm = makePersistingVM(importText: "EXTRACTED RESUME")
+        await vm.importDocument(from: URL(fileURLWithPath: "/tmp/cv.pdf"))
+        await vm.build()
+        #expect(vm.sourceText == "EXTRACTED RESUME")
+
+        vm.clearDocument()
+
+        #expect(vm.sourceText == "EXTRACTED RESUME")
+        #expect(vm.readableText == "TIDY:\nEXTRACTED RESUME")
+        #expect(vm.profile != nil)
+    }
+
     // MARK: T-A — optional cover letter
 
     @Test func importCoverLetterFillsItsOwnSlotNotThePortfolio() async {

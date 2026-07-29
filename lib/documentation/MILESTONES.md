@@ -2776,3 +2776,230 @@ rank-target loop, both directly and through `ApplicationViewModel`. Full suite g
 **On-device.** `.application`-task LLM work on the existing engine and prompt path — no new engine, task, or seam.
 The emphasis is prompt-driven, so both engines stay in lockstep. *(Visual/behavioural check pending — see the
 device-checks note in `TODO.md`.)*
+
+---
+
+# v0.6.2 — list actions, sorting & document previews
+
+A **patch release** on shipped v0.6.0/v0.6.1, scheduled out of `PLANNED.md` (all five of its `Target: v0.6.2`
+entries, 2026-07-28). The theme is **the two list tabs and the Portfolio document previews**. Five milestones
+**A–E**; milestones restart at **A**; commit as `v0.6.2 : Milestone X Completed`.
+
+## Milestone A — Discoverable remove-from-Tracker  ✅ done  (`Presentation/Tracker/View/TrackerView`, `Presentation/Results/View/JobDetailView`, `Presentation/App/JobDetailWindow` + `Composition`; tests in `lib/tests/Presentation/Tracker`)
+
+A **discoverability fix, not a behaviour change**. The Tracker already supported both removals — leading-swipe
+"To Results" → `TrackerViewModel.returnToResults` (via `UntrackJobUseCase`) and trailing-swipe "Delete" → `.delete`
+(via `DeleteSavedJobUseCase`), both shipped in v0.5.0 — but they were **swipe-only**, an iOS pattern with no visible
+affordance on macOS, where users right-click or expect controls. In practice that read as *"there's no way to remove
+a result from the Tracker."* This milestone adds the affordances and leaves the logic untouched: **no Business or
+Data change**, no new use case, no `LLMProvider` change.
+
+- [x] **Three ways to reach the same two actions**, in [`TrackerView.trackerRow`](../src/Presentation/Tracker/View/TrackerView.swift):
+      **always-visible row icons** (`arrow.uturn.backward` + `trash`) in a new `rowActions(_:)`, a right-click
+      **`contextMenu`** ("Return to Results" / "Delete", divider between), and the original **swipes**, kept as the
+      secondary path. All three call the same `TrackerViewModel` methods.
+- [x] **Always-visible icons rather than hover-revealed.** `PLANNED.md` suggested hover-revealed buttons "mirroring
+      the Results tab's visible save/delete row icons" — but [`ResultsView.rowActions`](../src/Presentation/Results/View/ResultsView.swift:175)
+      renders its icons **unconditionally**, so mirroring it *is* always-visible. Hover-only would also still be a
+      semi-hidden affordance, which is the exact problem being fixed. The row was restructured into the same
+      `HStack { RankedRow …; rowActions }` shape Results uses, so the two tabs are now structurally identical.
+- [x] **One confirmation, shared by every delete path.** A `pendingDelete: RankedJob?` holds the job awaiting
+      confirmation and a single `.confirmationDialog` on the view body resolves it — so the row icon, the context
+      menu **and the swipe** all confirm identically (the swipe previously deleted outright). The message names the
+      job, spells out what's forgotten (listing + status + generated materials), says it can't be undone, and points
+      at "Return to Results" as the non-destructive alternative. **Return to Results is not confirmed** — it keeps
+      the listing and materials, so there's nothing to lose.
+- [x] **Reachable with the job open, not only from its row.** [`JobDetailView`](../src/Presentation/Results/View/JobDetailView.swift)
+      takes two new optional closures (`onReturnToResults` / `onDelete`) and renders a **"Remove" menu** in the
+      footer, on the leading side so the primary Generate/View button stays the visual focus and a destructive
+      action isn't a stray click from it. Delete confirms with the same wording, then dismisses — the window's job
+      no longer exists in the list behind it.
+- [x] **Wiring.** [`JobDetailWindow`](../src/Presentation/App/JobDetailWindow.swift) supplies both closures only when
+      `canRemove` — the **Tracker** context (a Results job isn't tracked yet) **and** both use cases available,
+      mirroring `TrackerViewModel.supportsRowActions`. `Composition.untrackJob` / `.deleteSavedJob` changed from
+      `private` to internal for this; they stay use cases, so the window never touches a repository.
+
+**Tests.** `rowActionsRequireBothUseCases` extended to all four wirings (neither / untrack-only / delete-only /
+both), since one half-wired use case would otherwise show an affordance that silently does nothing.
+`removalsAreNoOpsWhenUnwired` pins both methods as safe no-ops without persistence, and
+`removingOneJobLeavesTheOthers` covers the multi-row case for both removals plus the listing-survives-untrack /
+listing-gone-after-delete distinction. Full suite green; build warning-free. The menu, hover and dialog rendering
+itself is a device check.
+
+**On-device.** n/a — pure Presentation over the existing persistence use cases. No model call, no new seam.
+
+## Milestone B — Multi-select results: bulk save-to-Tracker / delete  ✅ done  (`Presentation/Results/{ViewModel,View}`, `Presentation/Tracker/{ViewModel,View}`; tests in `lib/tests/Presentation/Results` + `…/Tracker`)
+
+Both list tabs were **one row at a time** — after a search returns 30 results, triaging them meant 30 individual
+saves or deletes. Both now support **multi-select with bulk actions**, reusing the existing per-row logic and
+persistence: **no new use case, no Business/Data change**.
+
+- [x] **Selection state.** `selectedIDs: Set<String>` on [`ResultsViewModel`](../src/Presentation/Results/ViewModel/ResultsViewModel.swift)
+      — ids, not jobs, so a selection survives the list being re-derived (a filter change, an enrichment swap).
+      Distinct from `selectedJob`, which is the one job open for detail.
+- [x] **Selection can only act on what's shown.** `selectedJobs` derives from `filteredResults`, and
+      `selectionCount` counts *that* rather than `selectedIDs.count` — so a row the filter has since hidden can't be
+      silently saved or deleted, and the bar's promise ("3 selected") can't disagree with what the button does. The
+      Tracker's equivalents are `section`-scoped (`selectedJobs(in:)`), so a selection made under **All** can't be
+      acted on from a different stage tab.
+- [x] **Bulk methods.** `saveSelectedToTracker()` batches the listings through `SaveResultsUseCase([RankedJob])` in
+      **one** write, loops the per-id `MarkStatusUseCase`, refreshes history **once** (so the saved rows drop out of
+      Results together), then enriches. It keeps the per-row **no-downgrade** rule — an already-`.interviewing` job
+      isn't knocked back to `.saved`. `deleteSelected()` drops the rows first (immediate feedback) then clears each
+      from the store. The Tracker gets `returnSelectedToResults(in:)` / `deleteSelected(in:)` over one shared
+      `removeSelected(in:using:)` runner, since both its removals are per-id use cases.
+- [x] **⚠️ Bounded bulk enrichment — the real cost.** `saveToTracker` fires `enrichSavedJob` (a page fetch + LLM
+      pass) per job, so bulk-saving N would have kicked off N at once. `enrichSavedJob` became **`enrichSavedJobs([RankedJob])`**
+      running the batch through the same **sliding window** the search-side digest uses
+      (`SearchAndRankUseCase.digestStream`), at most 4 in flight, with the enriched jobs written back in one batch.
+      A single-row save is now just the one-element case — one code path, not two. It still runs *after* history
+      refreshes, so the list never waits on it.
+- [x] **The selection affordance (the milestone's primary open call) — resolved as recommended: native
+      `List(selection:)`.** ⌘/shift-click extend, which is what a Mac user expects, and it costs no custom
+      selection chrome. The consequence: **single-click now selects, so opening the detail moved to double-click**.
+      The former `.onTapGesture { openDetail }` would have swallowed every selection click, so it became a
+      `simultaneousGesture(TapGesture(count: 2))` — `onTapGesture(count: 2)` would have competed with the List for
+      the single click, while a simultaneous gesture lets it through. A row `.help` spells out both interactions.
+- [x] **Bulk action bar**, shown only while rows are selected: **"N selected · Save to Tracker · Delete · Clear"**
+      in Results, **"N selected · Return to Results · Delete · Clear"** in the Tracker, with an inline
+      `ProgressView` and the whole bar disabled while `isBulkActing` (so a slow batch can't be fired twice).
+- [x] **Counted confirmation on bulk delete** ("Delete 7 results?"), spelling out that listings, statuses and
+      generated materials all go. Bulk save isn't confirmed (it's reversible from the Tracker), and neither is bulk
+      Return to Results (nothing is lost) — matching Milestone A's rule.
+- [x] **The Tracker open call — resolved as recommended (yes).** The same pattern is mirrored there, so both list
+      tabs now share one interaction model rather than the Tracker being the odd one out one milestone after A made
+      its row actions match. The other open call (bulk actions beyond save/delete) stays deferred: save + delete
+      first, bulk status-mark only if it proves useful.
+
+**Tests.** Results: selection round-trip + clear, the filter-hides-a-selected-row guarantee, bulk save (persisted,
+marked, dropped from the list, selection cleared) and its no-downgrade case, bulk delete (all three stores cleared
+for the selected, the unselected job untouched *including* its kit), the empty-selection no-op — the guard that
+stops "Delete" with nothing selected from wiping the list — and that a bulk save enriches **every** job it saved.
+Tracker: stage-tab-scoped selection, bulk untrack (statuses gone, listings kept), bulk delete, empty-selection
+no-op. Full suite green (686 tests); build warning-free.
+
+**On-device.** Selection and the bars are pure Presentation. The bulk save's enrichment is `.extraction`-task LLM
+work on the existing engine — unchanged per job, now capped at 4 concurrent instead of unbounded.
+
+## Milestone C — Results sort + Tracker filter: sort/filter parity across both tabs  ✅ done  (`Presentation/Results/View/ResultsSort` (new) + `Presentation/Components/ListFilterBar` (new), both list `View`s + `ViewModel`s; tests in `lib/tests/Presentation/Results` + `…/Tracker`)
+
+The two list tabs each had **one** of the pair — Results a live `ResultsFilter` (Milestone W) but no sort, the
+Tracker a live `TrackerSort` (v0.5.1 Milestone H) but no filter. Both now sort **and** filter. The asymmetry in how
+that was done is the interesting part: one side **reuses**, the other **parallels**, and which is which follows
+from the data, not from taste.
+
+- [x] **Tracker filter — the *same* `ResultsFilter`, not a copy.** `matches(_ job: RankedJob, isTracked:)` is
+      generic over a `RankedJob` and a `TrackedJob` **wraps** one, so it applies directly to `tracked.job`. A
+      `filter` property on [`TrackerViewModel`](../src/Presentation/Tracker/ViewModel/TrackerViewModel.swift) runs
+      **alongside the stage predicate inside `jobs(in:)`, before the sort** — resolving the scope open call as
+      recommended: the filter narrows **within the selected tab** rather than reaching across tabs, matching how the
+      sort already worked per section. `isTracked` is hard-`true` there (everything in the Tracker is tracked),
+      which is also why the UI hides that facet.
+- [x] **Results sort — a *new*, parallel [`ResultsSort`](../src/Presentation/Results/View/ResultsSort.swift).**
+      `TrackerSort` couldn't be reused: it sorts `[TrackedJob]` on **status-based** keys (recent activity / date
+      applied / stage) that don't exist for an un-triaged `RankedJob`. So `ResultsSort` mirrors its shape — same
+      `Key` / `Direction` / `apply(to:)`, pure, `Sendable`, `Equatable`, title tie-break for stability — with
+      RankedJob-appropriate keys: **match score (default)**, company, role title, salary, posted date. Applied in
+      `filteredResults` **after** the filter, with a `sortBar` mirroring `TrackerView.sortBar`.
+- [x] **The default changes nothing.** `ResultsSort.default` is match-score-descending — the order the ranker
+      already returns — so an untouched Results list is exactly what it was before this milestone. Pinned by a test.
+- [x] **Unknowns sort last in *both* directions.** A listing with no salary or no `postedDate` goes to the end
+      whichever way the arrow points — the same rule `TrackerSort` uses for undated jobs, so "unknown" never
+      masquerades as the best or the worst value. Salary ranks on the top of the range, falling back to the floor
+      (matching how `ResultsFilter`'s salary facet reads a range).
+- [x] **One filter bar, not two.** `ResultsView.filterBar` was extracted to a shared
+      [`ListFilterBar`](../src/Presentation/Components/ListFilterBar.swift) (Presentation · Components) that both
+      tabs now render, with the option-list duplication behind a shared `ListFilterOptions.distinct`. Giving both
+      tabs the same capability would otherwise have meant two copies of the same controls, free to drift. The
+      `trackedStatus` facet is exposed by neither — moot in the Tracker, and Results hasn't shown tracked jobs since
+      v0.4.1 Milestone C.
+- [x] **A filtered-empty tab is not an empty stage.** `TrackerView`'s "No *stage* applications" branch keyed off
+      `jobs`, which is now filtered — so a filter that hid every row would have shown that message **with the
+      filter bar gone**, stranding the user with no way to clear it. The branch now keys off the **unfiltered**
+      count, and a filtered-empty tab gets its own state with a **Clear filters** button, mirroring Results'
+      `isFilteredEmpty`.
+- [x] **Sort bars stay separate.** Sharing them would mean a protocol over both sort types with an associated
+      `Key` and a hoisted `Direction` — churning `TrackerSort` and its tests to save ~30 lines of view code. Not
+      worth it; the two ~30-line bars stay.
+
+**Tests.** A new `ResultsSortTests` suite mirroring `TrackerSortTests`: every key in both directions, the
+default-reproduces-ranking-order guarantee, salary's top-then-floor rule, unknowns-last in both directions, title
+tie-break stability, empty/single input, and that every key is labelled for the picker. Plus VM-level wiring —
+Results: filter-then-sort composition, `resetSort`, and that sorting never mutates `results`; Tracker: the filter
+applying within a stage tab and before the sort, the tracked facet's behaviour on an all-tracked list, counts and
+picker options coming from the **unfiltered** tab, and `isFilteredEmpty` firing only when a filter hides real rows.
+Full suite green (703 tests); build warning-free.
+
+**On-device.** n/a — pure Presentation value types, session-only and non-destructive. No persistence, no re-load,
+no model call.
+
+## Milestone D — Hide the raw-text preview for imported source documents (keep paste)  ✅ done  (`Presentation/Portfolio/{View,ViewModel}`; tests in `lib/tests/Presentation/Portfolio`)
+
+Each Portfolio → Profile résumé/cover-letter slot had a **"Show text"** toggle revealing a raw `TextEditor` of the
+document's extracted text. For an **imported file** that raw text is noise — the view worth reading is the
+**tidied** one on the Source Documents tab after Build Profile. The editor still has to exist for the **paste**
+path, though, since typing is the only way to get text in without a file. So the slot now has two states, keyed on
+the `fileName: String?` it already knew.
+
+- [x] **Imported (`fileName != nil`) — no raw preview.** The "Show text" toggle and the `TextEditor` are gone,
+      replaced by a one-line summary: the file name, its character count, and where to read it properly
+      ("Build Profile to read it tidied on the Source Documents tab"). This makes the résumé/cover-letter slots
+      match the **supporting-documents** slot (v0.6.0 Milestone I), which has never had an editor.
+- [x] **Pasted (`fileName == nil`) — unchanged.** Toggle, editor, and the existing `collapsedSummary` all behave
+      exactly as before, so the paste path is untouched.
+- [x] **Clear, resolving the open call as recommended.** An import was otherwise **un-undoable in-slot** — importing
+      is precisely what hides the editor, so without this a mis-picked file could only be replaced, never removed.
+      `clearDocument()` / `clearCoverLetter()` on [`PortfolioViewModel`](../src/Presentation/Portfolio/ViewModel/PortfolioViewModel.swift)
+      drop the file name **and** its text, and the slot falls back to the paste editor. They deliberately **don't**
+      touch `sourceText` / `readableText`: those belong to the profile that was *built*, not to the slot.
+- [x] **Import… becomes Replace… once a file is in**, so the two buttons read as what they now do.
+- [x] **The second open call resolved as recommended: no snippet.** Name + character count only — a read-only
+      preview of the raw text is exactly what's being removed.
+
+**Tests.** That Clear returns the slot to the paste state (`fileName` nil — what the view branches on — with no
+orphaned text, `canBuild` back to false, and pasting working afterwards); that clearing one slot leaves the other
+alone; that a cleared cover letter composes with `build()`'s own reset so no stale letter survives the next build;
+and that clearing after a build leaves the built `sourceText` / `readableText` / profile intact. Full suite green
+(707 tests); build warning-free. The rendering fork itself is a device check.
+
+**On-device.** n/a — a conditional in one view helper plus two view-model setters. No model call, no persistence
+change.
+
+## Milestone E — Full source-document preview: remove both truncations  ✅ done  (`Presentation/Portfolio/View/PortfolioView`, `Business/UseCases/TidyDocumentUseCase`, `Data/LLM/Prompts`; tests in `lib/tests/Business/UseCases` + `…/Data/LLM`)
+
+"The source-document preview truncates" was **two** faults wearing one symptom, and only one of them was visual.
+
+- [x] **The UI cap (cosmetic).** `documentDisclosure` rendered the text in a nested `ScrollView` capped at
+      `.frame(maxHeight: 220)` — every character was present, but confined to a ~220pt box that reads as cut off.
+      The inner scroll view is **removed entirely** rather than enlarged: the tab already scrolls
+      (`scrollableScreen`), and it was the nesting that made the content feel boxed in. `Text` doesn't line-limit,
+      so it now renders in full. Resolves the inline-expand-vs-window open call as recommended: inline, no separate
+      "View full document" window.
+- [x] **The content truncation (the real one).** `Prompts.tidyDocument(rawText:)` truncated its input to
+      `maxPortfolioCharacters` (6 000), so for a long document the **stored** `readableText` was genuinely shorter
+      than the original — dropping the UI cap alone would have revealed nothing, because the tail had never been
+      tidied. Fixed as recommended, in two parts:
+      - **Its own, larger bound.** New `Prompts.maxTidyDocumentCharacters` (12 000, matching `maxPageCharacters` —
+        the existing precedent for "one long document, on its own"). Deliberately **not** a raise of
+        `maxPortfolioCharacters`: that cap also bounds text injected *alongside* other content (profile build,
+        generation grounding, at four other call sites), where the on-device context budget is shared. A test pins
+        that the shared budget was left at 6 000.
+      - **A completeness guarantee.** [`TidyDocumentUseCase`](../src/Business/UseCases/TidyDocumentUseCase.swift)
+        now splits the document itself: it tidies the head up to the bound and **appends anything beyond it
+        as-extracted**, behind a short notice ("the rest of this document was too long to tidy and is shown exactly
+        as extracted"). So the stored readable text is tidied where it could be and **complete regardless** — never
+        silently short. It splits explicitly rather than leaning on the prompt's own `truncate`, so what the model
+        saw and what gets appended can't drift apart; the prompt-level truncation stays as a backstop.
+- [x] **Chunked tidy stays the follow-on.** Tidying the tail in segments would be nicer still, but costs one LLM
+      call per chunk and has to keep structure consistent across boundaries — out of scope for a patch.
+
+**Tests.** A new `TidyDocumentUseCaseTests`: short / exactly-at-bound / past-the-old-6 000-cap documents all tidy
+whole with no notice; a long document keeps its remainder verbatim behind the notice; **nothing is dropped however
+long the document** (the regression this milestone exists for); the remainder is never sent to the model (exactly
+one tidy pass); a failing engine still propagates so `PortfolioViewModel.build` can fall back to raw; and empty
+input is handled. Plus `Prompts` coverage for the new bound and for the shared 6 000 budget being untouched. Full
+suite green (719 tests); build warning-free.
+
+**On-device.** The UI change is free. Tidying now sends up to 12 000 characters instead of 6 000 on the
+`.profile` task — twice the input for one document, still bounded, and the remainder path costs **no** extra model
+work (it's appended locally, not generated).

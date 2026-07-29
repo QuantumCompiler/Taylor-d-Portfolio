@@ -17,6 +17,15 @@ nonisolated enum Prompts {
 
     /// Character caps to respect the on-device model's limited context window.
     static let maxPortfolioCharacters = 6_000
+    /// Cap on the raw document text sent to **tidying** (v0.6.2 Milestone E). Deliberately its
+    /// own, larger cap rather than `maxPortfolioCharacters`: tidying reflows *one* document into
+    /// the readable copy the user actually reads, so it should cover a typical résumé/portfolio
+    /// **in full**, whereas the 6 000 cap also bounds text that is injected *alongside* other
+    /// content (profile build, generation grounding) where the budget is shared. Matches
+    /// `maxPageCharacters`, the existing precedent for "one long document, on its own".
+    /// Anything beyond this is not dropped — `TidyDocumentUseCase` appends the untidied
+    /// remainder, so the stored readable text is always complete.
+    static let maxTidyDocumentCharacters = 12_000
     static let maxDescriptionCharacters = 2_000
     /// Cap on the (stripped) web-page text fed to posting extraction.
     static let maxPageCharacters = 12_000
@@ -72,7 +81,7 @@ nonisolated enum Prompts {
         - Output ONLY the cleaned text — no commentary, no preamble, no code fences.
 
         Raw document text:
-        \(truncate(rawText, to: maxPortfolioCharacters))
+        \(truncate(rawText, to: maxTidyDocumentCharacters))
         """
     }
 

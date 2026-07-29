@@ -842,6 +842,85 @@ open calls.
       (`GenerationSettings` + `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device:
       `.application`-task LLM work on the existing engine — no new engine or seam.
 
+## v0.6.2 — list actions, sorting & document previews  (complete)
+
+A **patch release** on shipped v0.6.0/v0.6.1, scheduled out of `PLANNED.md` (all five of its `Target: v0.6.2`
+entries, 2026-07-28). The theme is **the two list tabs and the Portfolio document previews**: the Tracker's
+removals already work but are swipe-only and undiscoverable on macOS; Results can only act one row at a time; each
+list tab has exactly one of sort/filter and not the other; and the source-document previews are truncated twice
+over (a 220pt UI cap *and* a real content truncation at tidy time). Five milestones **A–E**; milestones restart at
+**A** and commit as `v0.6.2 : Milestone X Completed`. **Almost entirely Presentation** — the sole exception is E's
+content fix (`Prompts` / `TidyDocumentUseCase`). **No new seam and no `LLMProvider` change.** `TODO.md` has the
+granular breakdown + open calls.
+
+- [x] **Milestone A — Discoverable remove-from-Tracker.** ✅ **Done.** The Tracker *already* supports both removals —
+      leading-swipe "To Results" → `TrackerViewModel.returnToResults` (via `UntrackJobUseCase`) and trailing-swipe
+      "Delete" → `.delete` (via `DeleteSavedJobUseCase`) — but they're **swipe-only**, an iOS pattern that's
+      undiscoverable on macOS, so in practice there's "no way to remove a result from the Tracker." The gap is the
+      **affordance, not the behaviour**: a right-click `contextMenu` (Return to Results / Delete), **always-visible**
+      row icons matching the Results tab (mirroring it *is* always-visible — its icons render unconditionally — and
+      hover-only would still be semi-hidden, the very problem), a "Remove" menu in the open job's detail footer, and
+      the swipes kept as a secondary path. One shared `.confirmationDialog` now backs **every** delete path
+      including the swipe, which previously deleted outright; Return to Results stays unconfirmed (nothing is lost).
+      Seam: **Presentation only** (`TrackerView` / `JobDetailView` / `JobDetailWindow` over the existing VM + use
+      cases; `Composition.untrackJob` / `.deleteSavedJob` un-privated) — no Business/Data change. On-device: n/a.
+
+- [x] **Milestone B — Multi-select results: bulk save-to-Tracker / delete.** ✅ **Done.** Both list tabs acted one
+      row at a time, so triaging a 30-result search meant 30 individual saves or deletes. `selectedIDs: Set<String>`
+      + `saveSelectedToTracker()` / `deleteSelected()` on `ResultsViewModel` (batching the listings through
+      `SaveResultsUseCase`, looping the per-id status/delete use cases, keeping the per-row no-downgrade rule), plus
+      a bulk action bar — "N selected · Save to Tracker · Delete · Clear" — with a **counted** confirm on delete.
+      Selection acts only on **shown** rows (`selectedJobs` derives from `filteredResults`), so a row the filter has
+      hidden can't be silently removed. The primary open call resolved as recommended — **native
+      `List(selection:)`** (⌘/shift-click), which moves opening the detail to **double-click** via a
+      `simultaneousGesture` so the single click still reaches the List. The Tracker open call also resolved as
+      recommended: the same pattern is **mirrored there** (bulk Return to Results / Delete), so both tabs share one
+      interaction model. **Bulk-save enrichment is bounded** — `enrichSavedJob` became `enrichSavedJobs([RankedJob])`
+      running the batch through the same sliding window as `SearchAndRankUseCase.digestStream` (≤4 in flight), with
+      the single-row save now its one-element case. Seam: **Presentation only** over existing use cases. On-device:
+      `.extraction` enrichment per saved job, unchanged in cost but capped in concurrency.
+
+- [x] **Milestone C — Results sort + Tracker filter (parity across both tabs).** ✅ **Done.** Each list tab had one
+      half of the pair: Results a live `ResultsFilter` but no sort, the Tracker a live `TrackerSort` but no filter.
+      A useful asymmetry decided the approach — `ResultsFilter.matches(_:isTracked:)` is already `RankedJob`-generic
+      and `TrackedJob` wraps one, so the Tracker **reuses** it (filter alongside the stage predicate in `jobs(in:)`,
+      before the sort, with the moot `trackedStatus` facet hidden); `TrackerSort`'s status keys don't exist for
+      Results, so Results got a **parallel `ResultsSort`** — same shape, keys match score (default = the ranker's
+      own order, so an untouched list is unchanged), company, title, salary, posted date — applied after the filter
+      in `filteredResults`. Unknown salary/date sorts **last in both directions**, matching `TrackerSort`'s undated
+      rule. `ResultsView.filterBar` was extracted to a shared **`ListFilterBar`** (Presentation · Components) both
+      tabs render, so the parity can't drift into two diverging copies; the Tracker's "no rows" state now
+      distinguishes a **filtered-empty tab** (bar stays, Clear offered) from an **empty stage**. The two sort bars
+      stay separate — sharing them would mean churning `TrackerSort` for ~30 lines. Seam: **Presentation** only —
+      both are pure, session-only, non-destructive view state. On-device: n/a.
+
+- [x] **Milestone D — Hide the raw-text preview for imported source documents (keep paste).** ✅ **Done.** Each
+      Portfolio résumé/cover-letter slot (`documentSlot`) had a "Show text" toggle revealing a raw `TextEditor` of
+      the extracted text — noise for an **imported** file, where the user only wants the tidied Source Documents
+      view after Build Profile. The editor is now gated on the `fileName: String?` the slot already knew: imported →
+      a one-line summary (name, character count, and where the tidied form appears) with **Clear** and
+      **Replace…**; pasted (`fileName == nil`) → the editor unchanged, so pasting still works. Clear was the open
+      call, resolved as recommended — without it an import is **un-undoable in-slot**, since importing is what hides
+      the editor; `clearDocument()` / `clearCoverLetter()` drop the file name and its text but deliberately leave a
+      previous build's `sourceText` / `readableText` alone (those belong to the built profile). No read-only snippet
+      of the raw text, per the second open call. Brings these slots in line with the already-editorless
+      supporting-documents slot (v0.6.0 I). Seam: **Presentation only** (view conditional + two VM setters) — no
+      Business/Data change. On-device: n/a.
+
+- [x] **Milestone E — Full source-document preview (remove both truncations).** ✅ **Done.** The preview truncated
+      **twice**: a `.frame(maxHeight: 220)` in `documentDisclosure` that merely *looked* cut off, and the real one —
+      `Prompts.tidyDocument(rawText:)` bounded its input to `maxPortfolioCharacters` (6 000), so a long document's
+      stored `readableText` was genuinely shorter than the original and dropping the UI cap alone would have
+      revealed nothing. Both fixed: the nested `ScrollView` is **removed** (the tab already scrolls, and the
+      nesting was what boxed the text in), and tidying gets **its own larger bound** —
+      `Prompts.maxTidyDocumentCharacters` (12 000, matching `maxPageCharacters`) rather than a global raise, since
+      the 6 000 cap also bounds text injected alongside other content at four other call sites.
+      `TidyDocumentUseCase` now splits the document itself, tidying the head and **appending anything beyond the
+      bound as-extracted** behind a short notice — so the stored text is tidied where it could be and **complete
+      regardless**, never silently short. A chunked full-tidy remains the nicer-but-larger follow-on. Seam:
+      Presentation + Data/LLM (`Prompts`) + Business (`TidyDocumentUseCase`). On-device: twice the input for one
+      document on the `.profile` task, still bounded; the appended remainder costs no model work.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
@@ -853,9 +932,12 @@ open calls.
   selector — the last two on H-A's data-driven provider registry, I supporting profile documents, J LLM job source,
   K standardized result descriptions). **v0.6.1 (keyword match & ATS coverage) is complete** — Milestones
   **A–D** above: a pure `KeywordCoverage` computation, the `TargetBrief` carried out of generation and persisted
-  with the kit, the coverage panel, and the opt-in keyword-emphasis control. **The next version is unstarted**;
-  its number and theme are chosen when development on it
-  begins (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: an
+  with the kit, the coverage panel, and the opt-in keyword-emphasis control. **v0.6.2 (list actions, sorting &
+  document previews) is complete** — Milestones **A–E** above (A discoverable remove-from-Tracker, B multi-select
+  bulk actions, C sort/filter parity, D no raw preview for imports, E full source-document preview), scheduled out
+  of `PLANNED.md`'s five `Target: v0.6.2` entries. **The next version is unstarted**; its number and theme are
+  chosen when development on it begins (see `CLAUDE.md` → "Never pre-name the next version"). Candidate
+  fast-follows / themes: an
   **ATS-friendly export mode** (the companion noted but deliberately left out of v0.6.1 — standard headings,
   single-column, selectable text, which is what decides whether an ATS can *parse* a résumé at all); full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"

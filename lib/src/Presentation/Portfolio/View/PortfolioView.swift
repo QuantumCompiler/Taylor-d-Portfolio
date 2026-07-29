@@ -46,7 +46,8 @@ struct PortfolioView: View {
             fileName: viewModel.sourceFileName,
             text: $viewModel.portfolioText,
             isExpanded: $showResumeText,
-            minHeight: 180
+            minHeight: 180,
+            onClear: { viewModel.clearDocument() }
         ) { showResumeImporter = true }
         .fileImporter(
             isPresented: $showResumeImporter,
@@ -63,7 +64,8 @@ struct PortfolioView: View {
             fileName: viewModel.coverLetterFileName,
             text: $viewModel.coverLetterText,
             isExpanded: $showCoverLetterText,
-            minHeight: 120
+            minHeight: 120,
+            onClear: { viewModel.clearCoverLetter() }
         ) { showCoverLetterImporter = true }
         .fileImporter(
             isPresented: $showCoverLetterImporter,
@@ -147,14 +149,23 @@ struct PortfolioView: View {
         }
     }
 
-    /// A labelled import-or-paste slot for one document (résumé or cover letter). The raw
-    /// text editor is **hidden by default** and revealed with the "Show text" toggle.
+    /// A labelled import-or-paste slot for one document (résumé or cover letter), in one of
+    /// **two states** (v0.6.2 Milestone D):
+    ///
+    /// - **Imported** (`fileName != nil`) — no raw-text preview at all: just the file name and
+    ///   its size, plus **Clear** (which returns the slot to the paste state) and **Import…**
+    ///   (which replaces the file). A file's raw extracted text is noisy and not worth reading;
+    ///   the view that matters is the **tidied** one on the Source Documents tab after Build
+    ///   Profile. This mirrors the supporting-documents slot, which has never had an editor.
+    /// - **Pasted** (`fileName == nil`) — unchanged: the "Show text" toggle over a `TextEditor`,
+    ///   since typing/pasting is the only way to get text in without a file.
     private func documentSlot(
         title: String,
         fileName: String?,
         text: Binding<String>,
         isExpanded: Binding<Bool>,
         minHeight: CGFloat,
+        onClear: @escaping () -> Void,
         onImport: @escaping () -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -164,25 +175,42 @@ struct PortfolioView: View {
                     Text("· \(fileName)").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) { isExpanded.wrappedValue.toggle() }
-                } label: {
-                    Label(isExpanded.wrappedValue ? "Hide text" : "Show text",
-                          systemImage: isExpanded.wrappedValue ? "chevron.up" : "chevron.down")
-                        .font(.callout)
+                if fileName == nil {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) { isExpanded.wrappedValue.toggle() }
+                    } label: {
+                        Label(isExpanded.wrappedValue ? "Hide text" : "Show text",
+                              systemImage: isExpanded.wrappedValue ? "chevron.up" : "chevron.down")
+                            .font(.callout)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .clickableCursor()
+                } else {
+                    Button(role: .destructive, action: onClear) {
+                        Label("Clear", systemImage: "xmark.circle")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .disabled(viewModel.isBusy)
+                    .help("Remove this file — the slot returns to typing or pasting text")
+                    .clickableCursor()
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .clickableCursor()
 
                 Button(action: onImport) {
-                    Label("Import…", systemImage: "doc.badge.plus")
+                    Label(fileName == nil ? "Import…" : "Replace…", systemImage: "doc.badge.plus")
                 }
                 .disabled(viewModel.isBusy)
                 .clickableCursor()
             }
 
-            if isExpanded.wrappedValue {
+            if let fileName {
+                // Imported: name + size only. No raw preview — the tidied form is the one to
+                // read, and it's on the Source Documents tab once the profile is built.
+                Text(importedSummary(fileName: fileName, text: text.wrappedValue))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if isExpanded.wrappedValue {
                 TextEditor(text: text)
                     .font(.body.monospaced())
                     .frame(minHeight: minHeight)
@@ -243,13 +271,20 @@ struct PortfolioView: View {
         }
     }
 
-    /// A one-line summary shown when a document's editor is collapsed.
+    /// A one-line summary shown when a **pasted** document's editor is collapsed.
     private func collapsedSummary(for text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             return "No text yet — Import a file, or tap Show text to paste."
         }
         return "\(trimmed.count) characters — tap Show text to view or edit."
+    }
+
+    /// The summary shown for an **imported** file (v0.6.2 Milestone D) — what's in the slot and
+    /// where its readable form will appear, in place of the raw-text preview.
+    private func importedSummary(fileName: String, text: String) -> String {
+        let count = text.trimmingCharacters(in: .whitespacesAndNewlines).count
+        return "\(fileName) — \(count) characters. Build Profile to read it tidied on the Source Documents tab."
     }
 
     /// Whether there's at least one saved profile whose source documents we can browse.
@@ -306,19 +341,22 @@ struct PortfolioView: View {
         }
     }
 
-    /// One collapsed, scrollable readable-document disclosure. Whole header row toggles.
+    /// One collapsed readable-document disclosure. Whole header row toggles.
+    ///
+    /// Expands to the **full** text (v0.6.2 Milestone E). It used to sit in a nested `ScrollView`
+    /// capped at `maxHeight: 220`, which read as "the document is cut off" even though every
+    /// character was there. The tab already scrolls (`scrollableScreen`), so the inner scroll
+    /// view is removed rather than just enlarged — nesting one inside another is what made the
+    /// content feel confined. `Text` doesn't line-limit, so it renders in full.
     private func documentDisclosure(label: String, text: String) -> some View {
         ExpandableRow {
             Label(label, systemImage: "doc.text").font(.headline)
         } content: {
-            ScrollView {
-                Text(text)
-                    .font(.callout)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 4)
-            }
-            .frame(maxHeight: 220)
+            Text(text)
+                .font(.callout)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 4)
         }
     }
 

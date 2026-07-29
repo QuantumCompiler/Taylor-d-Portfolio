@@ -168,10 +168,27 @@ stuffing, which backfires (screeners parse to plain text, and recruiters see it)
   can't claim in the **Gaps** note instead of writing it into the résumé. Off by default; it changes emphasis,
   never latitude, so the grounded default still can't invent. *(Milestones A–D.)*
 
+### v0.6.2 — list actions, sorting & document previews
+A patch release on v0.6.0/v0.6.1, tidying up how the two list tabs and the Portfolio document previews behave:
+- **Removals you can find (A):** the Tracker could always send a job back to Results or delete it, but only by
+  swiping — an iOS gesture with no visible affordance on macOS. Both are now on the row as **visible icons** and a
+  **right-click menu**, and in the open job's own view; deleting confirms from every path.
+- **Multi-select and bulk actions (B):** ⌘/shift-click to select several results, then **save them all to the
+  Tracker** or **delete them** at once (the Tracker gets the same, for bulk **Return to Results**). Opening a job
+  is now a **double-click**, since a single click selects. Bulk saving fetches the postings a few at a time rather
+  than all at once.
+- **Sort and filter on both tabs (C):** Results had a filter but no sort, the Tracker a sort but no filter. Now
+  both do both — Results sorts by match score, company, role title, salary or date posted; the Tracker filters by
+  rank, keywords, location, company or salary, within the open stage tab.
+- **Source documents you can actually read (D–E):** importing a résumé or cover letter no longer shows a raw
+  extraction preview — just the file, with **Clear** to go back to typing — and the tidied copy under Source
+  Documents is no longer cut off, either by the box it sat in **or** by a length limit that quietly dropped the
+  end of a long document. *(Milestones A–E.)*
+
 **Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
 from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
 layer — or a specced `PLANNED.md` item (e.g. customizable LaTeX styles, or the **ATS-friendly export mode** noted
-alongside this release).
+alongside v0.6.1).
 
 ## Build & run
 
