@@ -9,10 +9,10 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.2 — list actions, sorting & document previews (in progress). Next: Milestone B.**
+> **Current focus. v0.6.2 — list actions, sorting & document previews (in progress). Next: Milestone C.**
 > See "v0.6.2" below: five milestones **A–E**, scheduled out of `PLANNED.md` (its five `Target: v0.6.2` entries)
-> on 2026-07-28. **Milestone A (discoverable remove-from-Tracker) is done** — write-up in `MILESTONES.md`, ticked
-> in `ROADMAP.md`; **B–E remain**. **v0.6.1 (keyword match & ATS coverage) is complete and merge-ready** — all four milestones
+> on 2026-07-28. **Milestones A (discoverable remove-from-Tracker) and B (multi-select bulk actions) are done** —
+> write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`; **C–E remain**. **v0.6.1 (keyword match & ATS coverage) is complete and merge-ready** — all four milestones
 > **A–D** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs, `README.md`, and
 > `MARKETING_VERSION = 0.6.1` are done. Only the **device checks** below remain before that branch merges.
 >
@@ -23,6 +23,13 @@ doing.
 >   all three paths** (and the dialog names the job), Return to Results doesn't. With a job open, the footer's
 >   **Remove** menu offers both and the window **dismisses** after either. Return to Results puts the job back in
 >   Results with its listing intact; Delete removes it from both tabs and its generated materials are gone.
+> - **v0.6.2 B** — **⚠️ the interaction change to check first: a single click now selects a row and opening the
+>   detail is a double-click**, in **both** Results and the Tracker. Confirm ⌘-click / shift-click extend the
+>   selection, the row **icons and swipes still work** while rows are selected, and the **action bar** appears with
+>   the right count ("N selected"), disabling itself mid-batch. Bulk **Save to Tracker** moves them all out of
+>   Results at once (and their enrichment fills in after, without freezing the list — try ~10 at once); bulk
+>   **Delete** confirms with a count; the Tracker's bulk **Return to Results** puts them all back with listings
+>   intact. Selecting under **All** then switching stage tabs must not let another tab act on those rows.
 > - **v0.6.1 C** — generate an application for a real posting: the **coverage panel** appears below the two
 >   documents with the covered (green) / missing (amber) keyword capsules, the must-have headline count is right,
 >   it updates on Regenerate, it **survives reopening** the saved result, and it's **absent** for a result
@@ -66,49 +73,6 @@ the tidied one). **Almost entirely Presentation** — the one exception is Miles
 - [x] `# v0.6.2` release header added to `MILESTONES.md`.
 - [ ] Update `README.md`'s **Next:** line (still says the next version's number and theme are undecided) and add
       v0.6.2's summary under "Version history" when the release wraps.
-
----
-
-## Milestone B — Multi-select results: bulk save-to-Tracker / delete
-
-**What's wanted.** Results row actions are **one-at-a-time** today — `saveToTracker` / `delete` per row (swipe or
-icon). After a search returns many results, saving or clearing several is tedious. Add **multi-select** on the
-Results list plus **bulk actions** (save selected to Tracker, delete selected).
-
-**Seam + files (Presentation — reuse the existing per-item logic + batch repos).**
-- **Selection state.** Add `selectedIDs: Set<String>` to
-  [`ResultsViewModel`](../src/Presentation/Results/ViewModel/ResultsViewModel.swift) — distinct from `selectedJob`
-  (`:19`), which is the single job open for detail.
-- **Bulk methods.** `saveSelectedToTracker()` / `deleteSelected()` iterate `selectedIDs`, reusing the existing
-  `saveToTracker` (`:125`) / `delete` (`:152`) paths. Batch is already available where it helps:
-  `SaveResultsUseCase([RankedJob])` persists a batch; `MarkStatusUseCase` / `DeleteSavedJobUseCase` are per-id
-  (loop, or add a batch-delete overload).
-- **UI.** [`ResultsView`](../src/Presentation/Results/View/ResultsView.swift:53) is a plain `List` with
-  **tap-to-open-detail** (`onTapGesture`, `:151`) + swipe row actions — so adding selection **conflicts with
-  tap-to-open**.
-
-- [ ] Add `selectedIDs` + `saveSelectedToTracker()` / `deleteSelected()` to `ResultsViewModel`; clear the
-      selection after either completes.
-- [ ] **(open call) The selection affordance — the primary UX decision.** *Recommended:* native
-      **`List(selection: $selectedIDs)`** (⌘/shift-click, macOS-idiomatic) with **double-click to open detail**
-      (single-click now selects). Alternatives if that feels off: a **"Select" mode toggle** with per-row
-      checkboxes, or an **always-visible leading checkbox** (row tap still opens detail).
-- [ ] Add a **bulk action bar** shown when `!selectedIDs.isEmpty`: **"N selected" · Save to Tracker · Delete
-      (destructive) · Clear**, wired to the bulk methods.
-- [ ] **Confirm bulk Delete** with a count in the prompt ("Delete 7 results?"); bulk save needs no confirmation.
-- [ ] **⚠️ Bound the bulk-save enrichment.** `saveToTracker` triggers per-job enrichment (`enrichSavedJob`), so
-      **bulk-saving N** kicks off N enrichments — reuse the existing concurrency posture (composes with v0.6.0
-      **Milestone K**'s standardized-digest pipeline). Bulk delete is cheap.
-- [ ] **(open call) Multi-select in the Tracker too?** *Recommended:* **yes**, same pattern for bulk **Return to
-      Results** / **Delete** — composes with Milestone A. Do it after Results works.
-- [ ] **(open call) Bulk actions beyond save/delete?** *Recommended:* save + delete first; bulk status-mark later
-      if it proves useful.
-
-**Tests.** Unit-test the VM bulk methods against stub use cases: selection round-trip, that N selected ids produce
-N (or one batched) persistence calls, that the selection clears afterward, and that a partial failure doesn't
-strand the selection.
-
-**On-device.** n/a for selection/UI; bulk-save enrichment is `.extraction` LLM work — bound it (see above).
 
 ---
 

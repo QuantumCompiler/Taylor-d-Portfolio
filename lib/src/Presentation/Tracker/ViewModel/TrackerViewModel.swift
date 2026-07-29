@@ -23,6 +23,12 @@ final class TrackerViewModel {
     /// The cross-screen history per job id — so Tracker rows can show the same
     /// "generated" badge as Results (Milestone S-C).
     private(set) var historyByID: [String: JobHistory] = [:]
+    /// The rows multi-selected for a bulk action (v0.6.2 Milestone B) — the Tracker half of
+    /// the Results selection, over the same two removals its rows already offer. Distinct from
+    /// ``selectedJob`` (the single job open for detail).
+    var selectedIDs: Set<String> = []
+    /// True while a bulk removal is in flight, so the action bar can't fire the batch twice.
+    private(set) var isBulkActing = false
 
     private let loadTrackedJobs: LoadTrackedJobsUseCase?
     private let loadJobHistory: LoadJobHistoryUseCase?
@@ -65,6 +71,40 @@ final class TrackerViewModel {
         try? await deleteSavedJob(jobID: job.id)
         trackedJobs.removeAll { $0.id == job.id }
         historyByID[job.id] = nil
+    }
+
+    // MARK: Multi-select + bulk actions (v0.6.2 Milestone B)
+
+    /// The selected jobs **within the shown stage tab** — a selection made in one tab can't be
+    /// acted on from another, and the count in the bar always matches the rows in front of you.
+    func selectedJobs(in section: TrackerSection) -> [RankedJob] {
+        jobs(in: section).filter { selectedIDs.contains($0.id) }.map(\.job)
+    }
+    func selectionCount(in section: TrackerSection) -> Int { selectedJobs(in: section).count }
+    func hasSelection(in section: TrackerSection) -> Bool { !selectedJobs(in: section).isEmpty }
+
+    func clearSelection() { selectedIDs.removeAll() }
+
+    /// Returns every selected job to Results — clears their statuses, keeping the listings and
+    /// any generated materials. Non-destructive, so it isn't confirmed.
+    func returnSelectedToResults(in section: TrackerSection) async {
+        await removeSelected(in: section, using: returnToResults)
+    }
+
+    /// Fully forgets every selected job (listing + status + materials).
+    func deleteSelected(in section: TrackerSection) async {
+        await removeSelected(in: section, using: delete)
+    }
+
+    /// Shared batch runner for the two removals: both are per-id use cases, so they loop,
+    /// and each already drops its own row and history entry.
+    private func removeSelected(in section: TrackerSection, using remove: (RankedJob) async -> Void) async {
+        let jobs = selectedJobs(in: section)
+        guard !jobs.isEmpty else { clearSelection(); return }
+        isBulkActing = true
+        defer { isBulkActing = false }
+        clearSelection()
+        for job in jobs { await remove(job) }
     }
 
     /// The tracked jobs that fall under `section`'s stage filter (`All` returns every

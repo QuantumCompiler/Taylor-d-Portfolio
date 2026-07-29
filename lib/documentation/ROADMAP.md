@@ -865,15 +865,20 @@ granular breakdown + open calls.
       Seam: **Presentation only** (`TrackerView` / `JobDetailView` / `JobDetailWindow` over the existing VM + use
       cases; `Composition.untrackJob` / `.deleteSavedJob` un-privated) — no Business/Data change. On-device: n/a.
 
-- [ ] **Milestone B — Multi-select results: bulk save-to-Tracker / delete.** Results acts one row at a time
-      (`saveToTracker` / `delete` per row), so clearing or saving several after a search is tedious. Add
-      `selectedIDs: Set<String>` + `saveSelectedToTracker()` / `deleteSelected()` to `ResultsViewModel` (reusing
-      the per-item paths and `SaveResultsUseCase`'s batch), a selection affordance on `ResultsView`'s `List`
-      (recommended: native `List(selection:)` with double-click to open detail — it conflicts with today's
-      tap-to-open, the main design fork), and a bulk action bar ("N selected · Save to Tracker · Delete · Clear")
-      with a counted confirm on delete. **Bound the bulk-save enrichment** — `saveToTracker` fires `enrichSavedJob`
-      per job. Seam: **Presentation** over existing logic. On-device: bulk-save enrichment is `.extraction` work;
-      bound it.
+- [x] **Milestone B — Multi-select results: bulk save-to-Tracker / delete.** ✅ **Done.** Both list tabs acted one
+      row at a time, so triaging a 30-result search meant 30 individual saves or deletes. `selectedIDs: Set<String>`
+      + `saveSelectedToTracker()` / `deleteSelected()` on `ResultsViewModel` (batching the listings through
+      `SaveResultsUseCase`, looping the per-id status/delete use cases, keeping the per-row no-downgrade rule), plus
+      a bulk action bar — "N selected · Save to Tracker · Delete · Clear" — with a **counted** confirm on delete.
+      Selection acts only on **shown** rows (`selectedJobs` derives from `filteredResults`), so a row the filter has
+      hidden can't be silently removed. The primary open call resolved as recommended — **native
+      `List(selection:)`** (⌘/shift-click), which moves opening the detail to **double-click** via a
+      `simultaneousGesture` so the single click still reaches the List. The Tracker open call also resolved as
+      recommended: the same pattern is **mirrored there** (bulk Return to Results / Delete), so both tabs share one
+      interaction model. **Bulk-save enrichment is bounded** — `enrichSavedJob` became `enrichSavedJobs([RankedJob])`
+      running the batch through the same sliding window as `SearchAndRankUseCase.digestStream` (≤4 in flight), with
+      the single-row save now its one-element case. Seam: **Presentation only** over existing use cases. On-device:
+      `.extraction` enrichment per saved job, unchanged in cost but capped in concurrency.
 
 - [ ] **Milestone C — Results sort + Tracker filter (parity across both tabs).** Each list tab has one half of the
       pair: Results has a live `ResultsFilter` but no sort, the Tracker a live `TrackerSort` but no filter. A

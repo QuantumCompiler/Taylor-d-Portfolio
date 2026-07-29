@@ -23,6 +23,9 @@ struct TrackerView: View {
     /// icon, context menu, swipe — routes through here, so the destructive action is
     /// confirmed once, consistently, wherever it was triggered from.
     @State private var pendingDelete: RankedJob?
+    /// Whether the **bulk** delete is awaiting confirmation (v0.6.2 Milestone B) — separate
+    /// from `pendingDelete`, since it names a count rather than one job.
+    @State private var confirmingBulkDelete = false
 
     /// The tracked jobs shown for the selected stage filter.
     private var jobs: [TrackedJob] { viewModel.jobs(in: section) }
@@ -50,7 +53,8 @@ struct TrackerView: View {
             } else {
                 VStack(spacing: 0) {
                     sortBar
-                    List(jobs) { tracked in
+                    if viewModel.hasSelection(in: section) { bulkActionBar }
+                    List(jobs, selection: $viewModel.selectedIDs) { tracked in
                         trackerRow(tracked)
                     }
                 }
@@ -67,6 +71,53 @@ struct TrackerView: View {
         } message: { job in
             Text("“\(job.listing.title)” at \(job.listing.company) will be forgotten — the saved listing, its application status, and any generated résumé & cover letter. This can't be undone.\n\nTo keep the job and just take it off the Tracker, use “Return to Results” instead.")
         }
+        .confirmationDialog(
+            "Delete \(viewModel.selectionCount(in: section)) tracked \(viewModel.selectionCount(in: section) == 1 ? "application" : "applications")?",
+            isPresented: $confirmingBulkDelete
+        ) {
+            Button("Delete \(viewModel.selectionCount(in: section))", role: .destructive) {
+                Task { await viewModel.deleteSelected(in: section); session.dataChanged() }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("They'll be forgotten — the saved listings, their application statuses, and any generated résumés & cover letters. This can't be undone.\n\nTo keep them and just take them off the Tracker, use “Return to Results” instead.")
+        }
+    }
+
+    /// Appears only while rows are selected (v0.6.2 Milestone B): the same two removals the
+    /// rows offer, applied to the whole selection. Delete confirms with a count; Return to
+    /// Results doesn't (nothing is lost).
+    private var bulkActionBar: some View {
+        HStack(spacing: 12) {
+            Text("\(viewModel.selectionCount(in: section)) selected")
+                .font(.callout).monospacedDigit()
+
+            if viewModel.supportsRowActions {
+                Button {
+                    Task { await viewModel.returnSelectedToResults(in: section); session.dataChanged() }
+                } label: {
+                    Label("Return to Results", systemImage: "arrow.uturn.backward")
+                }
+                .clickableCursor()
+
+                Button(role: .destructive) {
+                    confirmingBulkDelete = true
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .clickableCursor()
+            }
+
+            Spacer()
+            if viewModel.isBulkActing { ProgressView().controlSize(.small) }
+            Button("Clear") { viewModel.clearSelection() }
+                .buttonStyle(.borderless)
+                .clickableCursor()
+        }
+        .disabled(viewModel.isBulkActing)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.selection.opacity(0.15))
     }
 
     /// A compact, live sort control above the list (Milestone H) — the Tracker analogue of the
@@ -119,7 +170,10 @@ struct TrackerView: View {
             RankedRow(ranked: tracked.job, history: viewModel.history(for: tracked.job))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
-                .onTapGesture { openDetail(tracked.job) }
+                // Double-click opens the detail; single click belongs to the List's multi-select
+                // (v0.6.2 Milestone B), same as Results.
+                .simultaneousGesture(TapGesture(count: 2).onEnded { openDetail(tracked.job) })
+                .help("Double-click to open · ⌘-click or shift-click to select several")
                 .clickableCursor()
             if viewModel.supportsRowActions {
                 rowActions(tracked.job)

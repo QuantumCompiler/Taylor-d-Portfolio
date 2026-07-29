@@ -2827,3 +2827,56 @@ listing-gone-after-delete distinction. Full suite green; build warning-free. The
 itself is a device check.
 
 **On-device.** n/a — pure Presentation over the existing persistence use cases. No model call, no new seam.
+
+## Milestone B — Multi-select results: bulk save-to-Tracker / delete  ✅ done  (`Presentation/Results/{ViewModel,View}`, `Presentation/Tracker/{ViewModel,View}`; tests in `lib/tests/Presentation/Results` + `…/Tracker`)
+
+Both list tabs were **one row at a time** — after a search returns 30 results, triaging them meant 30 individual
+saves or deletes. Both now support **multi-select with bulk actions**, reusing the existing per-row logic and
+persistence: **no new use case, no Business/Data change**.
+
+- [x] **Selection state.** `selectedIDs: Set<String>` on [`ResultsViewModel`](../src/Presentation/Results/ViewModel/ResultsViewModel.swift)
+      — ids, not jobs, so a selection survives the list being re-derived (a filter change, an enrichment swap).
+      Distinct from `selectedJob`, which is the one job open for detail.
+- [x] **Selection can only act on what's shown.** `selectedJobs` derives from `filteredResults`, and
+      `selectionCount` counts *that* rather than `selectedIDs.count` — so a row the filter has since hidden can't be
+      silently saved or deleted, and the bar's promise ("3 selected") can't disagree with what the button does. The
+      Tracker's equivalents are `section`-scoped (`selectedJobs(in:)`), so a selection made under **All** can't be
+      acted on from a different stage tab.
+- [x] **Bulk methods.** `saveSelectedToTracker()` batches the listings through `SaveResultsUseCase([RankedJob])` in
+      **one** write, loops the per-id `MarkStatusUseCase`, refreshes history **once** (so the saved rows drop out of
+      Results together), then enriches. It keeps the per-row **no-downgrade** rule — an already-`.interviewing` job
+      isn't knocked back to `.saved`. `deleteSelected()` drops the rows first (immediate feedback) then clears each
+      from the store. The Tracker gets `returnSelectedToResults(in:)` / `deleteSelected(in:)` over one shared
+      `removeSelected(in:using:)` runner, since both its removals are per-id use cases.
+- [x] **⚠️ Bounded bulk enrichment — the real cost.** `saveToTracker` fires `enrichSavedJob` (a page fetch + LLM
+      pass) per job, so bulk-saving N would have kicked off N at once. `enrichSavedJob` became **`enrichSavedJobs([RankedJob])`**
+      running the batch through the same **sliding window** the search-side digest uses
+      (`SearchAndRankUseCase.digestStream`), at most 4 in flight, with the enriched jobs written back in one batch.
+      A single-row save is now just the one-element case — one code path, not two. It still runs *after* history
+      refreshes, so the list never waits on it.
+- [x] **The selection affordance (the milestone's primary open call) — resolved as recommended: native
+      `List(selection:)`.** ⌘/shift-click extend, which is what a Mac user expects, and it costs no custom
+      selection chrome. The consequence: **single-click now selects, so opening the detail moved to double-click**.
+      The former `.onTapGesture { openDetail }` would have swallowed every selection click, so it became a
+      `simultaneousGesture(TapGesture(count: 2))` — `onTapGesture(count: 2)` would have competed with the List for
+      the single click, while a simultaneous gesture lets it through. A row `.help` spells out both interactions.
+- [x] **Bulk action bar**, shown only while rows are selected: **"N selected · Save to Tracker · Delete · Clear"**
+      in Results, **"N selected · Return to Results · Delete · Clear"** in the Tracker, with an inline
+      `ProgressView` and the whole bar disabled while `isBulkActing` (so a slow batch can't be fired twice).
+- [x] **Counted confirmation on bulk delete** ("Delete 7 results?"), spelling out that listings, statuses and
+      generated materials all go. Bulk save isn't confirmed (it's reversible from the Tracker), and neither is bulk
+      Return to Results (nothing is lost) — matching Milestone A's rule.
+- [x] **The Tracker open call — resolved as recommended (yes).** The same pattern is mirrored there, so both list
+      tabs now share one interaction model rather than the Tracker being the odd one out one milestone after A made
+      its row actions match. The other open call (bulk actions beyond save/delete) stays deferred: save + delete
+      first, bulk status-mark only if it proves useful.
+
+**Tests.** Results: selection round-trip + clear, the filter-hides-a-selected-row guarantee, bulk save (persisted,
+marked, dropped from the list, selection cleared) and its no-downgrade case, bulk delete (all three stores cleared
+for the selected, the unselected job untouched *including* its kit), the empty-selection no-op — the guard that
+stops "Delete" with nothing selected from wiping the list — and that a bulk save enriches **every** job it saved.
+Tracker: stage-tab-scoped selection, bulk untrack (statuses gone, listings kept), bulk delete, empty-selection
+no-op. Full suite green (686 tests); build warning-free.
+
+**On-device.** Selection and the bars are pure Presentation. The bulk save's enrichment is `.extraction`-task LLM
+work on the existing engine — unchanged per job, now capped at 4 concurrent instead of unbounded.

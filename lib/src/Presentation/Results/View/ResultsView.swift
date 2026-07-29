@@ -16,6 +16,9 @@ struct ResultsView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.openWindow) private var openWindow
     @State private var showFilters = false
+    /// Whether the bulk delete is awaiting confirmation (v0.6.2 Milestone B) — it forgets
+    /// several listings + statuses + materials at once, so it confirms with a count.
+    @State private var confirmingBulkDelete = false
 
     var body: some View {
         Group {
@@ -50,7 +53,8 @@ struct ResultsView: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)   // center below the filter bar (v0.4.1 Milestone E)
                     } else {
-                        List(viewModel.filteredResults) { ranked in
+                        if viewModel.hasSelection { bulkActionBar }
+                        List(viewModel.filteredResults, selection: $viewModel.selectedIDs) { ranked in
                             resultRow(ranked)
                         }
                     }
@@ -58,6 +62,54 @@ struct ResultsView: View {
             }
         }
         .task { await viewModel.loadSavedIfNeeded() }
+        .confirmationDialog(
+            "Delete \(viewModel.selectionCount) \(viewModel.selectionCount == 1 ? "result" : "results")?",
+            isPresented: $confirmingBulkDelete
+        ) {
+            Button("Delete \(viewModel.selectionCount)", role: .destructive) {
+                Task { await viewModel.deleteSelected() }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("They'll be forgotten — the saved listings, any application status, and any generated résumé & cover letter. This can't be undone.")
+        }
+    }
+
+    // MARK: Bulk actions (v0.6.2 Milestone B)
+
+    /// Appears only while rows are selected: what's selected, and the two bulk actions over it.
+    /// Delete confirms with a count; Save doesn't (it's reversible from the Tracker).
+    private var bulkActionBar: some View {
+        HStack(spacing: 12) {
+            Text("\(viewModel.selectionCount) selected")
+                .font(.callout).monospacedDigit()
+
+            if viewModel.supportsBulkActions {
+                Button {
+                    Task { await viewModel.saveSelectedToTracker() }
+                } label: {
+                    Label("Save to Tracker", systemImage: "bookmark")
+                }
+                .clickableCursor()
+
+                Button(role: .destructive) {
+                    confirmingBulkDelete = true
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .clickableCursor()
+            }
+
+            Spacer()
+            if viewModel.isBulkActing { ProgressView().controlSize(.small) }
+            Button("Clear") { viewModel.clearSelection() }
+                .buttonStyle(.borderless)
+                .clickableCursor()
+        }
+        .disabled(viewModel.isBulkActing)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.selection.opacity(0.15))
     }
 
     /// Opens the shared detail window for `ranked` in the Results context (read + save, no
@@ -142,13 +194,19 @@ struct ResultsView: View {
     /// the detail moved to a window (v0.5.0). Both reuse the same view-model methods as the icons.
     /// Delete uses `allowsFullSwipe: false` (reveal + tap) since it also clears saved status +
     /// materials; save is a safe full-swipe.
+    ///
+    /// **Opening the detail is a double-click** as of v0.6.2 Milestone B: the enclosing `List`
+    /// now owns single-click for multi-select (⌘/shift-click extend), so the former
+    /// single-`onTapGesture` would have swallowed every selection. A `simultaneousGesture`
+    /// (rather than `onTapGesture(count: 2)`) keeps the single click reaching the List.
     @ViewBuilder
     private func resultRow(_ ranked: RankedJob) -> some View {
         let row = HStack(spacing: 8) {
             RankedRow(ranked: ranked, history: viewModel.history(for: ranked))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
-                .onTapGesture { openDetail(ranked) }
+                .simultaneousGesture(TapGesture(count: 2).onEnded { openDetail(ranked) })
+                .help("Double-click to open · ⌘-click or shift-click to select several")
                 .clickableCursor()
             if viewModel.supportsRowActions {
                 rowActions(ranked)

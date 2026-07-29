@@ -215,6 +215,94 @@ struct TrackerViewModelTests {
         ).supportsRowActions)
     }
 
+    // MARK: Multi-select + bulk actions (v0.6.2 Milestone B)
+
+    /// Selection is scoped to the **shown** stage tab, so a row selected under All can't be
+    /// removed while a different tab is open.
+    @Test func selectionIsScopedToTheShownStageTab() async throws {
+        let vm = try await makeVM { jobs, statuses in
+            try await jobs.save([self.ranked("ap"), self.ranked("iv")])
+            try await statuses.save(ApplicationStatus(stage: .applied), forJobID: "ap")
+            try await statuses.save(ApplicationStatus(stage: .interviewing), forJobID: "iv")
+        }
+        await vm.load()
+        vm.selectedIDs = ["ap", "iv"]
+
+        #expect(vm.selectionCount(in: .all) == 2)
+        #expect(vm.selectionCount(in: .applied) == 1)
+        #expect(vm.selectedJobs(in: .applied).map(\.id) == ["ap"])
+        #expect(vm.hasSelection(in: .offer) == false)
+    }
+
+    @Test func bulkReturnToResultsUntracksEverySelectedJob() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        try await jobs.save([ranked("a"), ranked("b"), ranked("c")])
+        for id in ["a", "b", "c"] {
+            try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 100)), forJobID: id)
+        }
+        let vm = makeActionableVM(store: store, jobs: jobs, statuses: statuses, applications: apps)
+        await vm.load()
+        vm.selectedIDs = ["a", "c"]
+
+        await vm.returnSelectedToResults(in: .all)
+
+        #expect(vm.jobs(in: .all).map(\.id) == ["b"])
+        // Untracked, so their statuses are gone but every listing is kept.
+        #expect(try await statuses.status(forJobID: "a") == nil)
+        #expect(try await statuses.status(forJobID: "c") == nil)
+        #expect(try await statuses.status(forJobID: "b")?.stage == .applied)
+        #expect(Set(try await jobs.savedJobs().map(\.id)) == ["a", "b", "c"])
+        #expect(vm.selectedIDs.isEmpty)
+        #expect(vm.isBulkActing == false)
+    }
+
+    @Test func bulkDeleteForgetsEverySelectedJobOnly() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        try await jobs.save([ranked("a"), ranked("b"), ranked("c")])
+        for id in ["a", "b", "c"] {
+            try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 100)), forJobID: id)
+            try await apps.save(ApplicationKit(resumeMarkdown: "R", coverLetter: "", gapNote: ""), forJobID: id)
+        }
+        let vm = makeActionableVM(store: store, jobs: jobs, statuses: statuses, applications: apps)
+        await vm.load()
+        vm.selectedIDs = ["a", "c"]
+
+        await vm.deleteSelected(in: .all)
+
+        #expect(vm.jobs(in: .all).map(\.id) == ["b"])
+        for id in ["a", "c"] {
+            #expect(try await jobs.savedJobs().contains { $0.id == id } == false)
+            #expect(try await statuses.status(forJobID: id) == nil)
+            #expect(try await apps.kit(forJobID: id) == nil)
+        }
+        #expect(try await apps.kit(forJobID: "b") != nil)     // untouched
+        #expect(vm.selectedIDs.isEmpty)
+    }
+
+    /// An empty selection is a no-op, not a wipe.
+    @Test func bulkRemovalsWithNothingSelectedDoNothing() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        try await jobs.save([ranked("a")])
+        try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 100)), forJobID: "a")
+        let vm = makeActionableVM(store: store, jobs: jobs, statuses: statuses, applications: apps)
+        await vm.load()
+
+        await vm.returnSelectedToResults(in: .all)
+        await vm.deleteSelected(in: .all)
+
+        #expect(vm.jobs(in: .all).map(\.id) == ["a"])
+        #expect(try await statuses.status(forJobID: "a")?.stage == .applied)
+    }
+
     /// Both removals are unwired no-ops rather than crashes when persistence is unavailable —
     /// the affordances are hidden then, but the VM methods must stay safe to call.
     @Test func removalsAreNoOpsWhenUnwired() async {

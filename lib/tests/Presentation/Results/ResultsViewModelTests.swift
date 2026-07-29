@@ -109,6 +109,132 @@ struct ResultsViewModelTests {
     @Test func rowActionsUnavailableWithoutWiring() {
         let vm = ResultsViewModel(results: [ranked("a")])
         #expect(vm.supportsRowActions == false)
+        #expect(vm.supportsBulkActions == false)
+    }
+
+    // MARK: Multi-select + bulk actions (v0.6.2 Milestone B)
+
+    @Test func selectionStartsEmptyAndClears() {
+        let vm = ResultsViewModel(results: [ranked("a"), ranked("b")])
+        #expect(vm.hasSelection == false)
+        #expect(vm.selectionCount == 0)
+
+        vm.selectedIDs = ["a", "b"]
+        #expect(vm.hasSelection)
+        #expect(vm.selectionCount == 2)
+        #expect(vm.selectedJobs.map(\.id) == ["a", "b"])
+
+        vm.clearSelection()
+        #expect(vm.hasSelection == false)
+    }
+
+    /// The bar's count comes from what's **shown**, so a selected row a filter has since
+    /// hidden can't be silently saved or deleted by the bulk action.
+    @Test func selectionIgnoresIDsTheFilterHides() {
+        let vm = ResultsViewModel(results: [ranked("a", score: 90), ranked("b", score: 10)])
+        vm.selectedIDs = ["a", "b"]
+        #expect(vm.selectionCount == 2)
+
+        vm.filter.minScore = 50                          // hides b
+        #expect(vm.filteredResults.map(\.id) == ["a"])
+        #expect(vm.selectionCount == 1)
+        #expect(vm.selectedJobs.map(\.id) == ["a"])
+    }
+
+    @Test func bulkSaveTracksEverySelectedJobAndClearsSelection() async throws {
+        let (vm, jobs, statuses, _) = makeRowActionVM(results: [ranked("a"), ranked("b"), ranked("c")])
+        vm.selectedIDs = ["a", "c"]
+
+        await vm.saveSelectedToTracker()
+
+        // Both selected jobs are persisted + marked, and drop out of Results (tracked jobs
+        // live in the Tracker); the unselected one is untouched.
+        #expect(try await statuses.status(forJobID: "a")?.stage == .saved)
+        #expect(try await statuses.status(forJobID: "c")?.stage == .saved)
+        #expect(try await statuses.status(forJobID: "b") == nil)
+        #expect(try await jobs.contains(jobID: "a"))
+        #expect(try await jobs.contains(jobID: "c"))
+        #expect(vm.filteredResults.map(\.id) == ["b"])
+        #expect(vm.hasSelection == false)                // selection cleared after the batch
+        #expect(vm.isBulkActing == false)
+    }
+
+    /// Bulk save is the per-row save applied N times, including its no-downgrade rule.
+    @Test func bulkSaveDoesNotDowngradeAnAlreadyAdvancedJob() async throws {
+        let (vm, jobs, statuses, _) = makeRowActionVM(results: [ranked("a"), ranked("b")])
+        try await jobs.save([ranked("a")])
+        try await statuses.save(ApplicationStatus(stage: .interviewing), forJobID: "a")
+        await vm.refreshHistory()
+
+        vm.selectedIDs = ["a", "b"]
+        await vm.saveSelectedToTracker()
+
+        #expect(try await statuses.status(forJobID: "a")?.stage == .interviewing)   // not knocked back
+        #expect(try await statuses.status(forJobID: "b")?.stage == .saved)
+    }
+
+    @Test func bulkDeleteForgetsEverySelectedJobOnly() async throws {
+        let (vm, jobs, statuses, apps) = makeRowActionVM(results: [ranked("a"), ranked("b"), ranked("c")])
+        for id in ["a", "b", "c"] {
+            try await jobs.save([ranked(id)])
+            try await statuses.save(ApplicationStatus(stage: .applied), forJobID: id)
+            try await apps.save(ApplicationKit(resumeMarkdown: "R", coverLetter: "", gapNote: ""), forJobID: id)
+        }
+        vm.selectedIDs = ["a", "c"]
+
+        await vm.deleteSelected()
+
+        #expect(vm.results.map(\.id) == ["b"])
+        for id in ["a", "c"] {
+            #expect(try await jobs.contains(jobID: id) == false)
+            #expect(try await statuses.status(forJobID: id) == nil)
+            #expect(try await apps.kit(forJobID: id) == nil)
+        }
+        #expect(try await jobs.contains(jobID: "b"))     // the unselected job survives intact
+        #expect(try await apps.kit(forJobID: "b") != nil)
+        #expect(vm.hasSelection == false)
+    }
+
+    /// An empty selection is a no-op, not a wipe — the guard that stops "Delete" with nothing
+    /// selected from clearing the list.
+    @Test func bulkActionsWithNothingSelectedDoNothing() async throws {
+        let (vm, jobs, statuses, _) = makeRowActionVM(results: [ranked("a"), ranked("b")])
+
+        await vm.saveSelectedToTracker()
+        await vm.deleteSelected()
+
+        #expect(vm.results.map(\.id) == ["a", "b"])
+        #expect(try await jobs.contains(jobID: "a") == false)
+        #expect(try await statuses.status(forJobID: "a") == nil)
+    }
+
+    /// Bulk save enriches **every** job it saved (bounded concurrency, so the batch can't fan
+    /// out one fetch+LLM call per row at once) — the same enrichment the single-row save does.
+    @Test func bulkSaveEnrichesEverySavedJob() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        let provider = EnrichingStubProvider(details: PostingDetails(workTypeRaw: "remote", aboutCompany: "Fintech."))
+        let vm = ResultsViewModel(
+            results: [ranked("a"), ranked("b"), ranked("c")],
+            loadTrackedJobs: LoadTrackedJobsUseCase(jobs: jobs, statuses: statuses),
+            loadJobHistory: LoadJobHistoryUseCase(jobs: jobs, statuses: statuses, applications: apps),
+            markStatus: MarkStatusUseCase(repository: statuses, now: { Date(timeIntervalSince1970: 0) }),
+            saveResults: SaveResultsUseCase(repository: jobs),
+            deleteSavedJob: DeleteSavedJobUseCase(jobs: jobs, statuses: statuses, applications: apps),
+            enrichPosting: EnrichPostingUseCase(provider: provider, postingSource: nil)   // snippet-only
+        )
+        vm.selectedIDs = ["a", "b", "c"]
+
+        await vm.saveSelectedToTracker()
+
+        let saved = try await jobs.savedJobs()
+        #expect(saved.count == 3)
+        for job in saved {
+            #expect(job.listing.details?.workType == .remote)
+            #expect(job.listing.details?.aboutCompany == "Fintech.")
+        }
     }
 
     // MARK: Filtering (Milestone W)

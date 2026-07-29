@@ -25,6 +25,17 @@ final class ResultsViewModel {
     private(set) var isLoading = false
     /// The live, non-destructive view filter over `results` (Milestone W).
     var filter = ResultsFilter()
+    /// The rows the user has multi-selected for a bulk action (v0.6.2 Milestone B). Distinct
+    /// from ``selectedJob``, which is the single job open for detail. Holds ids rather than
+    /// jobs so it survives the list being re-derived (filter change, enrichment swap).
+    var selectedIDs: Set<String> = []
+    /// True while a bulk save/delete is in flight — the action bar disables itself so the
+    /// same batch can't be fired twice.
+    private(set) var isBulkActing = false
+    /// How many postings a bulk save enriches at once. Bulk-saving N jobs would otherwise kick
+    /// off N fetch+LLM enrichments at once, so it reuses the same window as the search-side
+    /// digest (`SearchAndRankUseCase.maxConcurrentSearches`).
+    private let maxConcurrentEnrichments = 4
 
     private let loadSavedJobs: LoadSavedJobsUseCase?
     private let loadTrackedJobs: LoadTrackedJobsUseCase?
@@ -115,6 +126,57 @@ final class ResultsViewModel {
     /// Whether `job` is already tracked (its save icon reflects the tracked state).
     func isTracked(_ job: RankedJob) -> Bool { historyByID[job.id]?.status != nil }
 
+    // MARK: Multi-select + bulk actions (v0.6.2 Milestone B)
+
+    /// The selected jobs, **as currently shown** — derived from `filteredResults`, so an id
+    /// that a filter change (or a save) has taken off the list can't be acted on by a later
+    /// bulk action. The count in the action bar is this, not `selectedIDs.count`, so what the
+    /// bar promises and what the button does can't disagree.
+    var selectedJobs: [RankedJob] { filteredResults.filter { selectedIDs.contains($0.id) } }
+    var selectionCount: Int { selectedJobs.count }
+    var hasSelection: Bool { !selectedJobs.isEmpty }
+    /// Whether the bulk actions are wired in this build — the same use cases the per-row
+    /// actions need, since the bulk paths reuse them.
+    var supportsBulkActions: Bool { supportsRowActions }
+
+    func clearSelection() { selectedIDs.removeAll() }
+
+    /// Saves every selected, not-yet-tracked job to the Tracker. The listings go in **one**
+    /// batch write (`SaveResultsUseCase` takes an array); statuses are per-id, so they loop.
+    /// History refreshes once at the end — so the saved rows drop out of Results together —
+    /// and enrichment runs after that, bounded, never blocking the list update.
+    func saveSelectedToTracker() async {
+        guard let markStatus else { return }
+        let jobs = selectedJobs.filter { !isTracked($0) }    // don't downgrade a later stage
+        guard !jobs.isEmpty else { clearSelection(); return }
+        isBulkActing = true
+        defer { isBulkActing = false }
+
+        try? await saveResults?(jobs)                        // one batch write for the listings
+        for job in jobs {
+            _ = try? await markStatus(jobID: job.id, stage: .saved)
+        }
+        await refreshHistory()
+        clearSelection()
+        await enrichSavedJobs(jobs)
+    }
+
+    /// Fully forgets every selected job — the list rows, the saved listings, their statuses and
+    /// any generated materials. Drops them from the list first so the UI responds immediately,
+    /// then clears each from the store.
+    func deleteSelected() async {
+        let jobs = selectedJobs
+        guard !jobs.isEmpty else { clearSelection(); return }
+        isBulkActing = true
+        defer { isBulkActing = false }
+
+        let ids = Set(jobs.map(\.id))
+        results.removeAll { ids.contains($0.id) }
+        for id in ids { historyByID[id] = nil }
+        clearSelection()
+        for id in ids { try? await deleteSavedJob?(jobID: id) }
+    }
+
     // MARK: Row actions (Milestone V)
 
     /// Saves `job` to the Tracker by marking it `.saved` (Milestone V-B). Persists the
@@ -128,22 +190,51 @@ final class ResultsViewModel {
         try? await saveResults?([job])                     // ensure the listing is persisted
         _ = try? await markStatus(jobID: job.id, stage: .saved)
         await refreshHistory()
-        await enrichSavedJob(job)
+        await enrichSavedJobs([job])
     }
 
-    /// Best-effort enrichment of a just-saved job (v0.6.0 Milestone A-D + E): fetches the full
+    /// Best-effort enrichment of just-saved jobs (v0.6.0 Milestone A-D + E): fetches each full
     /// posting page and re-persists the job carrying its **full text** (`fullDescription`, E)
     /// and/or structured **detail** (A), so the Tracker and generation have richer signal to
-    /// work from. Skipped when enrichment isn't wired or the job is already captured; a
-    /// fetch/LLM failure leaves the plain saved job untouched.
-    private func enrichSavedJob(_ job: RankedJob) async {
-        guard let enrichPosting,
-              job.listing.details == nil, job.listing.fullDescription == nil else { return }
-        guard let listing = try? await enrichPosting(job.listing), listing != job.listing else { return }
-        let enriched = RankedJob(listing: listing, match: job.match)
-        try? await saveResults?([enriched])
-        if let index = results.firstIndex(where: { $0.id == enriched.id }) {
-            results[index] = enriched                       // reflect enrichment in the in-memory list
+    /// work from. Skipped when enrichment isn't wired or a job is already captured; a
+    /// fetch/LLM failure leaves that plain saved job untouched.
+    ///
+    /// Takes an array so a **bulk** save (v0.6.2 Milestone B) can't fan out one fetch+LLM call
+    /// per selected job at once: they run through the same **sliding window** the search-side
+    /// digest uses (`SearchAndRankUseCase.digestStream`), at most `maxConcurrentEnrichments` in
+    /// flight. A single save is just the one-element case. Runs *after* the rows have dropped
+    /// out of Results, so nothing waits on it.
+    private func enrichSavedJobs(_ jobs: [RankedJob]) async {
+        guard let enrichPosting else { return }
+        let pending = jobs.filter { $0.listing.details == nil && $0.listing.fullDescription == nil }
+        guard !pending.isEmpty else { return }
+
+        let window = max(1, min(maxConcurrentEnrichments, pending.count))
+        let enriched: [RankedJob] = await withTaskGroup(of: RankedJob?.self) { group in
+            var next = 0
+            func schedule(_ index: Int) {
+                let job = pending[index]
+                group.addTask {
+                    guard let listing = try? await enrichPosting(job.listing),
+                          listing != job.listing else { return nil }   // unchanged → nothing to swap
+                    return RankedJob(listing: listing, match: job.match)
+                }
+            }
+            while next < window { schedule(next); next += 1 }
+            var found: [RankedJob] = []
+            while let result = await group.next() {
+                if let result { found.append(result) }
+                if next < pending.count { schedule(next); next += 1 }
+            }
+            return found
+        }
+
+        guard !enriched.isEmpty else { return }
+        try? await saveResults?(enriched)                   // one batch write
+        for job in enriched {
+            if let index = results.firstIndex(where: { $0.id == job.id }) {
+                results[index] = job                        // reflect enrichment in the in-memory list
+            }
         }
     }
 
