@@ -135,14 +135,15 @@ struct Composition {
         guard let savedJobsRepository, let savedStatusRepository, let savedApplicationsRepository else { return nil }
         return LoadJobHistoryUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository, applications: savedApplicationsRepository)
     }
-    /// Fully-forget a saved job (job + status + kit) — Milestone V-A.
-    private var deleteSavedJob: DeleteSavedJobUseCase? {
+    /// Fully-forget a saved job (job + status + kit) — Milestone V-A. Read by the detail
+    /// window too, which offers the same removal with the job open (v0.6.2 Milestone A).
+    var deleteSavedJob: DeleteSavedJobUseCase? {
         guard let savedJobsRepository, let savedStatusRepository, let savedApplicationsRepository else { return nil }
         return DeleteSavedJobUseCase(jobs: savedJobsRepository, statuses: savedStatusRepository, applications: savedApplicationsRepository)
     }
     /// Remove a job from the Tracker without forgetting it — clears only its status so it
-    /// returns to Results (v0.5.0).
-    private var untrackJob: UntrackJobUseCase? { savedStatusRepository.map(UntrackJobUseCase.init(statuses:)) }
+    /// returns to Results (v0.5.0). Also read by the detail window (v0.6.2 Milestone A).
+    var untrackJob: UntrackJobUseCase? { savedStatusRepository.map(UntrackJobUseCase.init(statuses:)) }
 
     // MARK: Gateways (read settings live, so Settings edits take effect immediately)
 

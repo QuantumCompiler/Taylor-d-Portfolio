@@ -853,14 +853,17 @@ over (a 220pt UI cap *and* a real content truncation at tidy time). Five milesto
 content fix (`Prompts` / `TidyDocumentUseCase`). **No new seam and no `LLMProvider` change.** `TODO.md` has the
 granular breakdown + open calls.
 
-- [ ] **Milestone A — Discoverable remove-from-Tracker.** The Tracker *already* supports both removals —
+- [x] **Milestone A — Discoverable remove-from-Tracker.** ✅ **Done.** The Tracker *already* supports both removals —
       leading-swipe "To Results" → `TrackerViewModel.returnToResults` (via `UntrackJobUseCase`) and trailing-swipe
       "Delete" → `.delete` (via `DeleteSavedJobUseCase`) — but they're **swipe-only**, an iOS pattern that's
       undiscoverable on macOS, so in practice there's "no way to remove a result from the Tracker." The gap is the
-      **affordance, not the behaviour**: add a right-click `contextMenu` (Return to Results / Delete) plus
-      hover-revealed row icons mirroring the Results tab, expose both from the open job's detail/toolbar, confirm
-      on Delete only, and keep the swipes as a secondary path. Seam: **Presentation only** (`TrackerView` over the
-      existing VM methods) — no Business/Data change. On-device: n/a.
+      **affordance, not the behaviour**: a right-click `contextMenu` (Return to Results / Delete), **always-visible**
+      row icons matching the Results tab (mirroring it *is* always-visible — its icons render unconditionally — and
+      hover-only would still be semi-hidden, the very problem), a "Remove" menu in the open job's detail footer, and
+      the swipes kept as a secondary path. One shared `.confirmationDialog` now backs **every** delete path
+      including the swipe, which previously deleted outright; Return to Results stays unconfirmed (nothing is lost).
+      Seam: **Presentation only** (`TrackerView` / `JobDetailView` / `JobDetailWindow` over the existing VM + use
+      cases; `Composition.untrackJob` / `.deleteSavedJob` un-privated) — no Business/Data change. On-device: n/a.
 
 - [ ] **Milestone B — Multi-select results: bulk save-to-Tracker / delete.** Results acts one row at a time
       (`saveToTracker` / `delete` per row), so clearing or saving several after a search is tedious. Add

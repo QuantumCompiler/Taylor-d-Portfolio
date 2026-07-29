@@ -2776,3 +2776,54 @@ rank-target loop, both directly and through `ApplicationViewModel`. Full suite g
 **On-device.** `.application`-task LLM work on the existing engine and prompt path — no new engine, task, or seam.
 The emphasis is prompt-driven, so both engines stay in lockstep. *(Visual/behavioural check pending — see the
 device-checks note in `TODO.md`.)*
+
+---
+
+# v0.6.2 — list actions, sorting & document previews
+
+A **patch release** on shipped v0.6.0/v0.6.1, scheduled out of `PLANNED.md` (all five of its `Target: v0.6.2`
+entries, 2026-07-28). The theme is **the two list tabs and the Portfolio document previews**. Five milestones
+**A–E**; milestones restart at **A**; commit as `v0.6.2 : Milestone X Completed`.
+
+## Milestone A — Discoverable remove-from-Tracker  ✅ done  (`Presentation/Tracker/View/TrackerView`, `Presentation/Results/View/JobDetailView`, `Presentation/App/JobDetailWindow` + `Composition`; tests in `lib/tests/Presentation/Tracker`)
+
+A **discoverability fix, not a behaviour change**. The Tracker already supported both removals — leading-swipe
+"To Results" → `TrackerViewModel.returnToResults` (via `UntrackJobUseCase`) and trailing-swipe "Delete" → `.delete`
+(via `DeleteSavedJobUseCase`), both shipped in v0.5.0 — but they were **swipe-only**, an iOS pattern with no visible
+affordance on macOS, where users right-click or expect controls. In practice that read as *"there's no way to remove
+a result from the Tracker."* This milestone adds the affordances and leaves the logic untouched: **no Business or
+Data change**, no new use case, no `LLMProvider` change.
+
+- [x] **Three ways to reach the same two actions**, in [`TrackerView.trackerRow`](../src/Presentation/Tracker/View/TrackerView.swift):
+      **always-visible row icons** (`arrow.uturn.backward` + `trash`) in a new `rowActions(_:)`, a right-click
+      **`contextMenu`** ("Return to Results" / "Delete", divider between), and the original **swipes**, kept as the
+      secondary path. All three call the same `TrackerViewModel` methods.
+- [x] **Always-visible icons rather than hover-revealed.** `PLANNED.md` suggested hover-revealed buttons "mirroring
+      the Results tab's visible save/delete row icons" — but [`ResultsView.rowActions`](../src/Presentation/Results/View/ResultsView.swift:175)
+      renders its icons **unconditionally**, so mirroring it *is* always-visible. Hover-only would also still be a
+      semi-hidden affordance, which is the exact problem being fixed. The row was restructured into the same
+      `HStack { RankedRow …; rowActions }` shape Results uses, so the two tabs are now structurally identical.
+- [x] **One confirmation, shared by every delete path.** A `pendingDelete: RankedJob?` holds the job awaiting
+      confirmation and a single `.confirmationDialog` on the view body resolves it — so the row icon, the context
+      menu **and the swipe** all confirm identically (the swipe previously deleted outright). The message names the
+      job, spells out what's forgotten (listing + status + generated materials), says it can't be undone, and points
+      at "Return to Results" as the non-destructive alternative. **Return to Results is not confirmed** — it keeps
+      the listing and materials, so there's nothing to lose.
+- [x] **Reachable with the job open, not only from its row.** [`JobDetailView`](../src/Presentation/Results/View/JobDetailView.swift)
+      takes two new optional closures (`onReturnToResults` / `onDelete`) and renders a **"Remove" menu** in the
+      footer, on the leading side so the primary Generate/View button stays the visual focus and a destructive
+      action isn't a stray click from it. Delete confirms with the same wording, then dismisses — the window's job
+      no longer exists in the list behind it.
+- [x] **Wiring.** [`JobDetailWindow`](../src/Presentation/App/JobDetailWindow.swift) supplies both closures only when
+      `canRemove` — the **Tracker** context (a Results job isn't tracked yet) **and** both use cases available,
+      mirroring `TrackerViewModel.supportsRowActions`. `Composition.untrackJob` / `.deleteSavedJob` changed from
+      `private` to internal for this; they stay use cases, so the window never touches a repository.
+
+**Tests.** `rowActionsRequireBothUseCases` extended to all four wirings (neither / untrack-only / delete-only /
+both), since one half-wired use case would otherwise show an affordance that silently does nothing.
+`removalsAreNoOpsWhenUnwired` pins both methods as safe no-ops without persistence, and
+`removingOneJobLeavesTheOthers` covers the multi-row case for both removals plus the listing-survives-untrack /
+listing-gone-after-delete distinction. Full suite green; build warning-free. The menu, hover and dialog rendering
+itself is a device check.
+
+**On-device.** n/a — pure Presentation over the existing persistence use cases. No model call, no new seam.

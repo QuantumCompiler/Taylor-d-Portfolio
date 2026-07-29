@@ -33,6 +33,8 @@ struct JobDetailWindow: View {
                     canGenerate: session.detailContext == .tracker,
                     onSaveToTracker: session.detailContext == .results ? { saveToTracker(ranked) } : nil,
                     loadApplication: composition.loadApplication,
+                    onReturnToResults: canRemove ? { returnToResults(ranked) } : nil,
+                    onDelete: canRemove ? { delete(ranked) } : nil,
                     allowsSwipe: false,
                     regenerateResult: composition.regenerateResult,
                     loadProfiles: composition.loadProfiles,
@@ -60,6 +62,33 @@ struct JobDetailWindow: View {
                 ContentUnavailableView("No job selected", systemImage: "doc.text")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+        }
+    }
+
+    /// Whether the detail can offer the remove actions: the **Tracker** context (a Results job
+    /// isn't tracked yet), and only when persistence wired both use cases — mirroring
+    /// `TrackerViewModel.supportsRowActions` (v0.6.2 Milestone A).
+    private var canRemove: Bool {
+        session.detailContext == .tracker && composition.untrackJob != nil && composition.deleteSavedJob != nil
+    }
+
+    /// Tracker context: clear the job's status so it returns to Results, keeping the listing
+    /// and any generated materials. The detail view dismisses itself after calling this.
+    private func returnToResults(_ ranked: RankedJob) {
+        guard let untrackJob = composition.untrackJob else { return }
+        Task {
+            try? await untrackJob(jobID: ranked.id)
+            session.dataChanged()
+        }
+    }
+
+    /// Tracker context: forget the job entirely (listing + status + materials). Confirmed in
+    /// the detail view before it calls this.
+    private func delete(_ ranked: RankedJob) {
+        guard let deleteSavedJob = composition.deleteSavedJob else { return }
+        Task {
+            try? await deleteSavedJob(jobID: ranked.id)
+            session.dataChanged()
         }
     }
 

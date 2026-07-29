@@ -19,6 +19,11 @@ struct TrackerView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.openWindow) private var openWindow
 
+    /// The job awaiting delete confirmation (v0.6.2 Milestone A). Every delete path — row
+    /// icon, context menu, swipe — routes through here, so the destructive action is
+    /// confirmed once, consistently, wherever it was triggered from.
+    @State private var pendingDelete: RankedJob?
+
     /// The tracked jobs shown for the selected stage filter.
     private var jobs: [TrackedJob] { viewModel.jobs(in: section) }
 
@@ -52,6 +57,16 @@ struct TrackerView: View {
             }
         }
         .task { await viewModel.load() }
+        .confirmationDialog(
+            "Delete this tracked application?",
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+            presenting: pendingDelete
+        ) { job in
+            Button("Delete", role: .destructive) { remove(job) }
+            Button("Cancel", role: .cancel) { pendingDelete = nil }
+        } message: { job in
+            Text("“\(job.listing.title)” at \(job.listing.company) will be forgotten — the saved listing, its application status, and any generated résumé & cover letter. This can't be undone.\n\nTo keep the job and just take it off the Tracker, use “Return to Results” instead.")
+        }
     }
 
     /// A compact, live sort control above the list (Milestone H) — the Tracker analogue of the
@@ -90,33 +105,89 @@ struct TrackerView: View {
         .padding(.vertical, 6)
     }
 
-    /// One tracked-job row with **swipe-to-Results** (leading / swipe right — clears the
-    /// status so it returns to Results) and **swipe-to-delete** (trailing / swipe left —
-    /// forgets it entirely). Delete uses `allowsFullSwipe: false` (reveal + tap) since it
-    /// removes the listing + status + materials. Both signal the shared session so Results
-    /// updates (v0.5.0).
+    /// One tracked-job row. Both removals are reachable three ways (v0.6.2 Milestone A):
+    /// **visible row icons** (mirroring the Results tab, so the two list tabs match),
+    /// a right-click **context menu** (the native macOS pattern), and the original
+    /// **swipes** — leading/right = back to Results, trailing/left = delete. The swipe-only
+    /// affordance shipped in v0.5.0 was undiscoverable on macOS; the behaviour is unchanged,
+    /// only how you find it. Delete keeps `allowsFullSwipe: false` and now also confirms,
+    /// since it removes the listing + status + materials. Every path signals the shared
+    /// session so Results updates.
     @ViewBuilder
     private func trackerRow(_ tracked: TrackedJob) -> some View {
-        let row = RankedRow(ranked: tracked.job, history: viewModel.history(for: tracked.job))
-            .contentShape(Rectangle())
-            .onTapGesture { openDetail(tracked.job) }
-            .clickableCursor()
+        let row = HStack(spacing: 8) {
+            RankedRow(ranked: tracked.job, history: viewModel.history(for: tracked.job))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture { openDetail(tracked.job) }
+                .clickableCursor()
+            if viewModel.supportsRowActions {
+                rowActions(tracked.job)
+            }
+        }
         if viewModel.supportsRowActions {
             row
+                .contextMenu { rowMenu(tracked.job) }
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    Button { Task { await viewModel.returnToResults(tracked.job); session.dataChanged() } } label: {
+                    Button { returnToResults(tracked.job) } label: {
                         Label("To Results", systemImage: "arrow.uturn.backward")
                     }
                     .tint(.blue)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) { Task { await viewModel.delete(tracked.job); session.dataChanged() } } label: {
+                    Button(role: .destructive) { pendingDelete = tracked.job } label: {
                         Label("Delete", systemImage: "trash")
                     }
                 }
         } else {
             row
         }
+    }
+
+    /// Always-visible per-row icons, matching the Results tab's save/delete pair so the two
+    /// list tabs feel the same. Each intercepts its own tap (the row tap opens the detail).
+    private func rowActions(_ job: RankedJob) -> some View {
+        HStack(spacing: 10) {
+            Button { returnToResults(job) } label: {
+                Image(systemName: "arrow.uturn.backward")
+            }
+            .buttonStyle(.plain).foregroundStyle(.tint)
+            .help("Return to Results — keeps the job, just clears its status")
+            .clickableCursor()
+
+            Button(role: .destructive) { pendingDelete = job } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.plain).foregroundStyle(.secondary)
+            .help("Delete — forgets the listing, its status, and any generated materials")
+            .clickableCursor()
+        }
+    }
+
+    /// The right-click menu — the same two actions, in the pattern Mac users reach for first.
+    @ViewBuilder
+    private func rowMenu(_ job: RankedJob) -> some View {
+        Button { returnToResults(job) } label: {
+            Label("Return to Results", systemImage: "arrow.uturn.backward")
+        }
+        Divider()
+        Button(role: .destructive) { pendingDelete = job } label: {
+            Label("Delete", systemImage: "trash")
+        }
+    }
+
+    // MARK: Actions
+
+    /// Clears the job's status so it returns to Results. Non-destructive (the listing and any
+    /// generated materials are kept), so it isn't confirmed.
+    private func returnToResults(_ job: RankedJob) {
+        Task { await viewModel.returnToResults(job); session.dataChanged() }
+    }
+
+    /// Performs the confirmed delete and clears the pending job.
+    private func remove(_ job: RankedJob) {
+        pendingDelete = nil
+        Task { await viewModel.delete(job); session.dataChanged() }
     }
 
     /// Opens the shared detail window for `ranked` in the Tracker context. The window reloads

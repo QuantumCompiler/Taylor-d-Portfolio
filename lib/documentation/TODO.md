@@ -9,14 +9,20 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.2 — list actions, sorting & document previews (in progress). Start at Milestone A.**
+> **Current focus. v0.6.2 — list actions, sorting & document previews (in progress). Next: Milestone B.**
 > See "v0.6.2" below: five milestones **A–E**, scheduled out of `PLANNED.md` (its five `Target: v0.6.2` entries)
-> on 2026-07-28. **v0.6.1 (keyword match & ATS coverage) is complete and merge-ready** — all four milestones
+> on 2026-07-28. **Milestone A (discoverable remove-from-Tracker) is done** — write-up in `MILESTONES.md`, ticked
+> in `ROADMAP.md`; **B–E remain**. **v0.6.1 (keyword match & ATS coverage) is complete and merge-ready** — all four milestones
 > **A–D** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs, `README.md`, and
 > `MARKETING_VERSION = 0.6.1` are done. Only the **device checks** below remain before that branch merges.
 >
 > **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
-> milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.6.1**.
+> milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.6.2**.
+> - **v0.6.2 A** — a Tracker row shows the **Return to Results + trash icons** without hovering, matching the
+>   Results rows; **right-clicking** a row offers the same two; both **swipes** still work. **Delete confirms from
+>   all three paths** (and the dialog names the job), Return to Results doesn't. With a job open, the footer's
+>   **Remove** menu offers both and the window **dismisses** after either. Return to Results puts the job back in
+>   Results with its listing intact; Delete removes it from both tabs and its generated materials are gone.
 > - **v0.6.1 C** — generate an application for a real posting: the **coverage panel** appears below the two
 >   documents with the covered (green) / missing (amber) keyword capsules, the must-have headline count is right,
 >   it updates on Regenerate, it **survives reopening** the saved result, and it's **absent** for a result
@@ -53,48 +59,13 @@ other already has, and fix the source-document previews (drop the noisy raw prev
 the tidied one). **Almost entirely Presentation** — the one exception is Milestone E's content fix, which touches
 `Prompts` / `TidyDocumentUseCase`. Milestones restart at **A** and commit as `v0.6.2 : Milestone X Completed`.
 
-**Release hygiene (do this at kickoff).**
+**Release hygiene.**
 
-- [ ] Set **every `MARKETING_VERSION` to `0.6.2`** — 4 copies in `Taylor'd Portfolio.xcodeproj/project.pbxproj`
-      (Debug/Release × app/test; currently `0.6.1` at `:392`, `:440`, `:467`, `:493`) so Settings → About reports
-      the real version.
-- [ ] Add the `## v0.6.2 —` release header to `MILESTONES.md` when the first milestone lands.
-
----
-
-## Milestone A — Discoverable remove-from-Tracker (surface the existing untrack / delete actions)
-
-**What's wrong (read this — the logic already exists).** The Tracker *already* supports both removals; they're
-just **undiscoverable**. Leading-swipe a Tracker row = **"To Results"** → `returnToResults` (clears the job's
-status so it returns to the general Results list); trailing-swipe = **"Delete"** → `delete` (forgets the listing +
-status + any generated materials). Both are wired. But they're **swipe-only**, and swipe-to-reveal-row-actions is
-an iOS pattern that's **undiscoverable on macOS** (no visible affordance; Mac users right-click or expect visible
-controls) — so in practice there's "no way to remove a result from the Tracker." **The gap is the affordance, not
-the behaviour.**
-
-**Seam + files (Presentation only — reuse the existing VM methods).**
-[`TrackerViewModel.returnToResults(_:)`](../src/Presentation/Tracker/ViewModel/TrackerViewModel.swift:54) (via
-`UntrackJobUseCase`) and `.delete(_:)` (`:63`, via `DeleteSavedJobUseCase`) are gated by `supportsRowActions`
-(`:47`) and injected in `Composition.makeTrackerViewModel`. **No Business/Data change needed** — this adds
-affordances in [`TrackerView`](../src/Presentation/Tracker/View/TrackerView.swift:48) alongside the existing
-`.swipeActions` (`:106` / `:112`).
-
-- [ ] Add a right-click **`contextMenu`** on the Tracker row (the native macOS pattern): **"Return to Results"** +
-      **"Delete"** (`role: .destructive`), both calling the existing VM methods.
-- [ ] Add **hover-revealed row buttons** (`arrow.uturn.backward` + `trash`), mirroring the **Results tab's visible
-      save/delete row icons** so the two tabs feel consistent.
-- [ ] Keep the existing swipe actions as a secondary path (don't remove them).
-- [ ] Confirm on **Delete** (it also forgets generated materials); **no** confirmation for Return to Results
-      (non-destructive — the job just moves back).
-- [ ] Expose both actions from the **Tracker detail view / toolbar** too, so they're reachable when a job is open
-      and not only from the row.
-- [ ] **(open call) Context menu, hover buttons, or both?** *Recommended:* **both** — `contextMenu` (native +
-      discoverable) plus hover icons (mirrors Results). If only one, the context menu.
-
-**Tests.** Presentation-affordance work; cover what's testable at the VM level (`supportsRowActions` gating, that
-both paths call through to the same `returnToResults` / `delete`). The menu/hover rendering itself is a device check.
-
-**On-device.** n/a — pure Presentation over the existing persistence use cases.
+- [x] **Every `MARKETING_VERSION` set to `0.6.2`** — all 4 copies in `Taylor'd Portfolio.xcodeproj/project.pbxproj`
+      (Debug/Release × app/test), so Settings → About reports the real version. Done with Milestone A.
+- [x] `# v0.6.2` release header added to `MILESTONES.md`.
+- [ ] Update `README.md`'s **Next:** line (still says the next version's number and theme are undecided) and add
+      v0.6.2's summary under "Version history" when the release wraps.
 
 ---
 

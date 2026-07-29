@@ -196,7 +196,53 @@ struct TrackerViewModelTests {
         #expect(try await apps.kit(forJobID: "a") == nil)
     }
 
-    @Test func rowActionsRequireBothUseCases() {
+    /// The gate the row icons, context menu and swipes all share (v0.6.2 Milestone A) — every
+    /// affordance appears only when **both** use cases are wired, so no path can half-work.
+    @Test func rowActionsRequireBothUseCases() async throws {
         #expect(TrackerViewModel().supportsRowActions == false)
+
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        #expect(TrackerViewModel(untrackJob: UntrackJobUseCase(statuses: statuses)).supportsRowActions == false)
+        #expect(TrackerViewModel(
+            deleteSavedJob: DeleteSavedJobUseCase(jobs: jobs, statuses: statuses, applications: apps)
+        ).supportsRowActions == false)
+        #expect(TrackerViewModel(
+            untrackJob: UntrackJobUseCase(statuses: statuses),
+            deleteSavedJob: DeleteSavedJobUseCase(jobs: jobs, statuses: statuses, applications: apps)
+        ).supportsRowActions)
+    }
+
+    /// Both removals are unwired no-ops rather than crashes when persistence is unavailable —
+    /// the affordances are hidden then, but the VM methods must stay safe to call.
+    @Test func removalsAreNoOpsWhenUnwired() async {
+        let vm = TrackerViewModel()
+        await vm.returnToResults(ranked("a"))
+        await vm.delete(ranked("a"))
+        #expect(vm.trackedJobs.isEmpty)
+    }
+
+    /// Whichever affordance triggers it — row icon, context menu or swipe — a removal drops
+    /// only its own row; the rest of the Tracker is untouched.
+    @Test func removingOneJobLeavesTheOthers() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        try await jobs.save([ranked("a"), ranked("b")])
+        try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 100)), forJobID: "a")
+        try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 200)), forJobID: "b")
+        let vm = makeActionableVM(store: store, jobs: jobs, statuses: statuses, applications: apps)
+        await vm.load()
+
+        await vm.returnToResults(ranked("b"))
+        #expect(vm.jobs(in: .all).map(\.id) == ["a"])
+
+        await vm.delete(ranked("a"))
+        #expect(vm.jobs(in: .all).isEmpty)
+        // "b" was only untracked, so its listing survives; "a" was deleted outright.
+        #expect(try await jobs.savedJobs().map(\.id) == ["b"])
     }
 }

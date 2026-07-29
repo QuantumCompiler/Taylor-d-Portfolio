@@ -29,6 +29,12 @@ struct JobDetailView: View {
     /// Loads a previously-generated kit so the Tracker footer can offer **View** alongside
     /// Generate when materials already exist (v0.5.0 Milestone A).
     var loadApplication: LoadApplicationUseCase? = nil
+    /// Remove-from-Tracker actions, supplied in the **Tracker** context (v0.6.2 Milestone A)
+    /// so both removals are reachable with the job open, not only from its row.
+    /// `onReturnToResults` clears the status (the job returns to Results); `onDelete` forgets
+    /// it entirely. Both `nil` in the Results context, where the job isn't tracked yet.
+    var onReturnToResults: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
     /// Whether the horizontal save/dismiss swipe is enabled. Off when hosted in a window
     /// (v0.5.0 Milestone B) — a window has no card to swipe.
     var allowsSwipe: Bool = true
@@ -68,6 +74,9 @@ struct JobDetailView: View {
     @State private var regenContext = ""
     @State private var isRegenerating = false
     @State private var regenError: String?
+    /// Whether the detail's Delete is awaiting confirmation (v0.6.2 Milestone A) — it matches
+    /// the Tracker row's confirm, since it forgets the listing, status and materials alike.
+    @State private var confirmingDelete = false
 
     /// The result currently shown — the re-ranked one after "Regenerate result", else the one
     /// passed in (v0.6.0 Milestone C).
@@ -398,6 +407,7 @@ struct JobDetailView: View {
                 }
                 .clickableCursor()
             }
+            if onReturnToResults != nil || onDelete != nil { removeMenu }
             Spacer()
             switch JobDetailFooter.resolve(
                 canGenerate: canGenerate,
@@ -435,6 +445,38 @@ struct JobDetailView: View {
                     .disabled(profile == nil)
                     .clickableCursor()
             }
+        }
+    }
+
+    /// The Tracker context's remove actions, with the job open (v0.6.2 Milestone A). Kept in a
+    /// menu on the leading side so the primary Generate/View button stays the visual focus, and
+    /// so a destructive action isn't a stray click away from it. Both dismiss the window
+    /// afterwards — the job it was showing is no longer in the list behind it.
+    private var removeMenu: some View {
+        Menu {
+            if let onReturnToResults {
+                Button { onReturnToResults(); dismiss() } label: {
+                    Label("Return to Results", systemImage: "arrow.uturn.backward")
+                }
+            }
+            if onDelete != nil {
+                Divider()
+                Button(role: .destructive) { confirmingDelete = true } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+        } label: {
+            Label("Remove", systemImage: "ellipsis.circle")
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .clickableCursor()
+        .help("Return this job to Results, or delete it entirely")
+        .confirmationDialog("Delete this tracked application?", isPresented: $confirmingDelete) {
+            Button("Delete", role: .destructive) { onDelete?(); dismiss() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("“\(listing.title)” at \(listing.company) will be forgotten — the saved listing, its application status, and any generated résumé & cover letter. This can't be undone.\n\nTo keep the job and just take it off the Tracker, use “Return to Results” instead.")
         }
     }
 
