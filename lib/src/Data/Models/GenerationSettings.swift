@@ -56,6 +56,18 @@ nonisolated struct GenerationSettings: Codable, Equatable, Sendable {
     var aspects: Set<TailoredAspect>
     /// A target fit score 0–100 (Milestone D-F); `nil` = off. When set, overrides the above.
     var desiredRankMatch: Int?
+    /// Opt-in keyword emphasis (v0.6.1 Milestone D): weave the posting's **must-have** keywords
+    /// into the résumé's **visible** text wherever they are genuinely true for this candidate,
+    /// and route the ones that aren't into `gapNote` so the user sees them and decides.
+    ///
+    /// Deliberately **not** a ``TailoredAspect`` case: those are résumé *sections*, and
+    /// `Prompts.generationControls` renders the selection as "tailor ONLY these résumé
+    /// sections — …", which a non-section case would corrupt.
+    ///
+    /// It is an **alignment** control, not a latitude one — the fidelity band still governs how
+    /// much the model may add, so at the grounded default this can only surface keywords the
+    /// candidate truly matches. Never hidden text: emphasis lands in the document a human reads.
+    var emphasizeKeywords: Bool = false
     /// Free-text guidance the user types to steer emphasis/framing on the next
     /// generate/regenerate (Milestone I) — e.g. "lean into the API-gateway angle". It steers
     /// which true experience to foreground, never licenses invention (the grounding + fidelity
@@ -65,17 +77,31 @@ nonisolated struct GenerationSettings: Codable, Equatable, Sendable {
     var additionalContext: String = ""
 
     init(fidelity: Double = 0, aspects: Set<TailoredAspect> = [], desiredRankMatch: Int? = nil,
-         additionalContext: String = "") {
+         emphasizeKeywords: Bool = false, additionalContext: String = "") {
         self.fidelity = fidelity
         self.aspects = aspects
         self.desiredRankMatch = desiredRankMatch
+        self.emphasizeKeywords = emphasizeKeywords
         self.additionalContext = additionalContext
     }
 
     /// Persisted keys — `additionalContext` is intentionally omitted, so presets store only the
     /// fidelity/aspect/target controls and legacy blobs (which never had it) still decode.
     private enum CodingKeys: String, CodingKey {
-        case fidelity, aspects, desiredRankMatch
+        case fidelity, aspects, desiredRankMatch, emphasizeKeywords
+    }
+
+    /// Decoded by hand only so `emphasizeKeywords` can be **optional on the wire**: synthesized
+    /// decoding requires every non-optional key, which would break every preset saved before
+    /// v0.6.1. Absent ⇒ `false`, so a legacy preset still produces the prompt it always did.
+    /// Encoding stays synthesized, so new presets do persist the flag.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        fidelity = try container.decode(Double.self, forKey: .fidelity)
+        aspects = try container.decode(Set<TailoredAspect>.self, forKey: .aspects)
+        desiredRankMatch = try container.decodeIfPresent(Int.self, forKey: .desiredRankMatch)
+        emphasizeKeywords = try container.decodeIfPresent(Bool.self, forKey: .emphasizeKeywords) ?? false
+        additionalContext = ""   // per-job, never persisted (see the property's note)
     }
 
     static let `default` = GenerationSettings()
@@ -85,10 +111,12 @@ nonisolated struct GenerationSettings: Codable, Equatable, Sendable {
     /// the grounded base).
     var isDefault: Bool { self == .default }
 
-    /// Whether the fidelity/aspect/target controls are all at their defaults — ignores the
-    /// free-text `additionalContext`, so context-only generation keeps the base latitude prompt
-    /// and merely appends the user's guidance.
-    var hasDefaultControls: Bool { fidelity == 0 && aspects.isEmpty && desiredRankMatch == nil }
+    /// Whether the fidelity/aspect/target/keyword controls are all at their defaults — ignores
+    /// the free-text `additionalContext`, so context-only generation keeps the base latitude
+    /// prompt and merely appends the user's guidance.
+    var hasDefaultControls: Bool {
+        fidelity == 0 && aspects.isEmpty && desiredRankMatch == nil && !emphasizeKeywords
+    }
 
     /// The latitude band `fidelity` falls into (drives prompt latitude + disclosure).
     var band: FidelityBand {

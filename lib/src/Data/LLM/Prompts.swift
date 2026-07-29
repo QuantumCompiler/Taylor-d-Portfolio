@@ -557,6 +557,19 @@ nonisolated enum Prompts {
         lines.append("- Objective: tailor each targeted section to MATCH THIS JOB POST'S keywords and "
             + "description — foreground the brief's must-have and nice-to-have keywords and the posting's own "
             + "language wherever they are genuinely supported for this candidate.")
+        // Keyword emphasis (v0.6.1 Milestone D) — sharpens the Objective above from "foreground
+        // the keywords where supported" into an explicit cover-it-or-declare-it instruction, and
+        // states the one hard rule: the emphasis is visible prose, never hidden text.
+        if settings.emphasizeKeywords {
+            lines.append("- Keyword coverage: work the brief's MUST-HAVE keywords into the résumé's visible text "
+                + "wherever they are genuinely true for this candidate — describe that real experience in the "
+                + "posting's own words rather than a synonym. Any must-have keyword the candidate cannot "
+                + "truthfully claim must NOT appear as experience; name it in gapNote instead, so they can see "
+                + "what's missing and decide. Never emit a hidden, decorative, or bulk keyword list, and never "
+                + "pad with terms the candidate can't back up — the résumé must still read as prose written for "
+                + "a human. Nice-to-have and tech-stack keywords are not to be forced.")
+        }
+
         // The cover letter is derived from the tailored résumé, not tailored on its own (D-C).
         lines.append("- Cover letter: write it FROM the tailored résumé above so it inherits the same keyword "
             + "alignment (plus the candidate's voice exemplar) — do not tailor it as a separate section.")

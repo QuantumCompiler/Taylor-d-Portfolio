@@ -2727,3 +2727,50 @@ build warning-free.
 
 **On-device.** n/a — pure local rendering over Milestone A's string matching. *(Visual check pending — see the
 device-checks note in `TODO.md`.)*
+
+## Milestone D — Optional keyword-emphasis generation control  ✅ done  (`Data`: `GenerationSettings` + `LLM/Prompts`; `Business`: `GenerateToTargetUseCase`; `Presentation`: `ApplicationViewModel`, `ApplicationSheet`)
+
+The only part of v0.6.1 that changes what generation *produces*. A–C report coverage; D lets the user act on it —
+an **opt-in** control telling generation to weave the posting's must-have keywords into the **visible** résumé
+where they truthfully apply, and route the rest into `gapNote`. Report-only remains the default.
+
+- [x] **A dedicated flag, not a `TailoredAspect` case.** `GenerationSettings.emphasizeKeywords: Bool = false`.
+      `PLANNED.md` recommended a `TailoredAspect` case for the free checkbox UI, but the code says otherwise:
+      `TailoredAspect` is documented *and prompted* as a résumé **section**, and `Prompts.generationControls`
+      renders the selection as "tailor ONLY these résumé sections — …" — a non-section case would corrupt that
+      sentence and the preset semantics. A flag costs one checkbox and keeps both clean.
+- [x] **Persisted into presets, back-compatible.** Added to `CodingKeys` so new presets carry it, with a
+      hand-written `init(from:)` that `decodeIfPresent`s it — synthesized decoding requires every non-optional
+      key, which would have broken **every preset saved before v0.6.1**. Absent ⇒ `false`, so a legacy preset
+      still produces exactly the prompt it always did. Encoding stays synthesized.
+- [x] **Counted as a control.** Folded into `hasDefaultControls`, so the flag alone turns on the GENERATION
+      CONTROLS block; with it off the prompt is **byte-for-byte** what it was. `isDefault` follows from
+      `Equatable` for free.
+- [x] **The prompt clause.** `Prompts.generationControls` gains one line when the flag is on, sharpening the
+      existing Objective line from "foreground the keywords where supported" into an explicit
+      **cover-it-or-declare-it** instruction: use the posting's own wording for experience the candidate genuinely
+      has; any must-have keyword they cannot truthfully claim must **not** appear as experience and is named in
+      `gapNote` instead. It states the rule the feature exists for — *never emit a hidden, decorative, or bulk
+      keyword list*, the résumé must still read as prose written for a human — and scopes the push to
+      **must-haves** so nice-to-have and tech-stack terms aren't forced (the recommended resolution of that open
+      call).
+- [x] **Survives the rank-target loop (open call, resolved as recommended).** `GenerateToTargetUseCase` builds
+      fresh settings each round, discarding the user's fidelity and aspects; `emphasizeKeywords` is now threaded in
+      exactly as `additionalContext` already was, because the target overrides **latitude** controls and this isn't
+      one. The checkbox is correspondingly left **enabled** under a rank target, outside the `rankTargetOn` disable
+      that greys the fidelity slider and aspect checkboxes.
+- [x] **UI.** A checkbox in the generation-options panel — "Match the posting's must-have keywords" — with a
+      caption naming both halves of the deal: the posting's wording for experience you genuinely have, anything
+      you can't claim listed in Gaps, visible text only.
+
+**Tests.** `Data/Models` — off by default; the flag counts as a control but not as latitude (`band` stays
+`.authentic`, `mayEmbellish` false); round-trips into a preset; and a v0.6.0-era blob with no
+`emphasizeKeywords` key still decodes, to `false`, with its other controls intact. `Data/LLM` — with the flag off
+the prompt is byte-for-byte unchanged; with it on the clause appears **exactly once**, carries the gap-note routing
+and the no-hidden-list rule, and turning it on alone emits the controls block while keeping the grounded
+"REAL experience only" latitude (no `EMBELLISHED:` disclosure). `Business` — the flag reaches every round of the
+rank-target loop, both directly and through `ApplicationViewModel`. Full suite green; build warning-free.
+
+**On-device.** `.application`-task LLM work on the existing engine and prompt path — no new engine, task, or seam.
+The emphasis is prompt-driven, so both engines stay in lockstep. *(Visual/behavioural check pending — see the
+device-checks note in `TODO.md`.)*

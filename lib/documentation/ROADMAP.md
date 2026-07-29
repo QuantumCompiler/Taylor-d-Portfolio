@@ -824,20 +824,23 @@ open calls.
       all-tier count when a brief named no must-haves. Seam: **Presentation only**. On-device: n/a — local
       rendering.
 
-- [ ] **Milestone D — Optional keyword-emphasis generation control.** An **opt-in** control telling generation
-      to weave the posting's must-have keywords into the **visible** résumé **where they truthfully apply**, and
-      route the rest into `gapNote` so the user sees what's missing and decides. Report-only stays the default
-      (A–C change nothing about what's generated). A dedicated `GenerationSettings.emphasizeKeywords` flag —
-      **not** a `TailoredAspect` case as `PLANNED.md` suggested, because `TailoredAspect` is documented and
+- [x] **Milestone D — Optional keyword-emphasis generation control.** ✅ **Done.** An **opt-in** control telling
+      generation to weave the posting's must-have keywords into the **visible** résumé **where they truthfully
+      apply**, and route the rest into `gapNote` so the user sees what's missing and decides. Report-only stays the
+      default (A–C change nothing about what's generated). A dedicated `GenerationSettings.emphasizeKeywords` flag
+      — **not** a `TailoredAspect` case as `PLANNED.md` suggested, because `TailoredAspect` is documented and
       prompted as a *résumé section* ("tailor ONLY these résumé sections — …") and a non-section case would
-      corrupt that sentence and the preset semantics — added to `CodingKeys` (presets persist it, legacy blobs
-      decode to `false`) and to `hasDefaultControls` so the default prompt stays byte-for-byte. `Prompts
-      .generationControls` sharpens its existing keyword Objective line into an explicit cover-it-or-declare-it
-      instruction; a checkbox joins the generation-options panel. Open calls: thread the flag through the
-      rank-target loop (recommended, as `additionalContext` already is) and push **must-have** keywords only.
+      corrupt that sentence and the preset semantics — added to `CodingKeys` and to `hasDefaultControls` so the
+      default prompt stays byte-for-byte. Presets persist it via a hand-written `init(from:)` that
+      `decodeIfPresent`s the key, since synthesized decoding would have broken every pre-v0.6.1 preset.
+      `Prompts.generationControls` sharpens its existing keyword Objective line into an explicit
+      cover-it-or-declare-it instruction that also forbids hidden/bulk keyword lists; a checkbox joins the
+      generation-options panel. Both open calls resolved as recommended: the flag is threaded through the
+      rank-target loop (as `additionalContext` already was — the target overrides *latitude*, and this isn't a
+      latitude control, so the checkbox also stays enabled there), and only **must-have** keywords are pushed.
       **No hidden text** — the deliberate opposite of the invisible-ink idea this replaces. Seam: Data
-      (`GenerationSettings` + `Prompts`) + Presentation. On-device: `.application`-task LLM work on the existing
-      engine — no new engine or seam.
+      (`GenerationSettings` + `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device:
+      `.application`-task LLM work on the existing engine — no new engine or seam.
 
 ## Fast follow (next up)
 

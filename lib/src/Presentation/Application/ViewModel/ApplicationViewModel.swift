@@ -334,7 +334,8 @@ final class ApplicationViewModel {
             if let target = generationSettings.desiredRankMatch, let generateToTarget {
                 let outcome = try await generateToTarget(job: job, profile: profile, grounding: grounding,
                                                          target: target,
-                                                         additionalContext: generationSettings.additionalContext)
+                                                         additionalContext: generationSettings.additionalContext,
+                                                         emphasizeKeywords: generationSettings.emphasizeKeywords)
                 produced = outcome.kit
                 producedBrief = outcome.brief
                 rankOutcome = outcome

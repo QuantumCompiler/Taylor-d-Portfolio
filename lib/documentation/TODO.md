@@ -9,13 +9,12 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.1 — keyword match & ATS coverage (in progress) → Milestone D (the last one).** A **patch
-> release** on shipped v0.6.0, scheduled out of `PLANNED.md` (the *keyword match / ATS coverage at generation*
-> entry, its sole `Target: v0.6.1`). Four milestones **A–D**: ~~**A** (pure `KeywordCoverage` value type)~~,
-> ~~**B** (surface the `TargetBrief`)~~ and ~~**C** (the coverage panel)~~ **✅ done — write-ups in
-> `MILESTONES.md`** → **D** (the optional keyword-emphasis generation control). **Pick up at Milestone D** —
-> reporting is complete and shipped; D is the only part that changes what generation *produces*. Milestones
-> restart at **A** and commit as `v0.6.1 : Milestone X Completed`.
+> **Current focus. v0.6.1 — keyword match & ATS coverage: code-complete → the merge-ready wrap.** All four
+> milestones **A–D** are done (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`), the full suite is green, and
+> `MARKETING_VERSION` is already `0.6.1`. **Nothing is left to build.** What remains is the shipping pass in
+> `CLAUDE.md` → "Making a branch merge-ready": flip the `## v0.6.1 —` headers to **(complete)**, add the
+> `README.md` version summary and point its **Next:** line forward *without* naming a version, and clear this
+> file down to the next version's placeholder — plus the **device checks** below, which need a real run.
 >
 > **v0.6.0 (richer grounding, job detail & sources) shipped** — all eleven milestones **A–K** are written up
 > in `MILESTONES.md` and ticked in `ROADMAP.md`.
@@ -26,6 +25,10 @@ doing.
 >   documents with the covered (green) / missing (amber) keyword capsules, the must-have headline count is right,
 >   it updates on Regenerate, it **survives reopening** the saved result, and it's **absent** for a result
 >   generated before this version (a legacy record with no stored brief) and for a thin posting with no keywords.
+> - **v0.6.1 D** — the **"Match the posting's must-have keywords"** checkbox: off leaves output as before; on
+>   visibly raises coverage on the next Generate **without inventing** — anything unclaimable shows up in **Gaps**,
+>   and no keyword list is dumped into the résumé. It stays enabled (and still applies) under a rank target, saves
+>   into a preset, and a preset saved before this version still loads with it off.
 > - **v0.5.0** — detail + Application as separate windows; cross-window list refresh; explicit Generate + options
 >   panel (fidelity / aspects / presets / embellished disclosures / rank-target loop); Results swipe + remove-from-Tracker; no spurious Photos/Music prompts.
 > - **v0.5.1** — awesome-cv LaTeX **PDF / `.tex`** export (needs `lualatex`; item hidden when TeX is absent); résumé
@@ -70,60 +73,12 @@ résumé at all. Natural pairing with keyword coverage, but it's an export/templ
 `ExportTemplate` / `TexDocumentBuilder`, not this release. If Taylor wants it, spec it as its own `PLANNED.md`
 entry with its own `Target:`.
 
-## Milestone D — Optional keyword-emphasis generation control
-
-**What's wanted.** An **opt-in** control that tells generation to weave the posting's must-have keywords into
-the **visible** résumé **where they truthfully apply**, and route the ones that don't fit into `gapNote` — so
-the user sees what's missing and decides. **Report-only stays the default** (A–C alone change nothing about
-what's generated).
-
-**Seam + files (Data + Presentation).**
-- [`GenerationSettings`](../src/Data/Models/GenerationSettings.swift) gains a dedicated
-  `emphasizeKeywords: Bool = false`.
-  **⚠️ Not a `TailoredAspect` case** — `PLANNED.md` recommended one, but the real code says otherwise:
-  `TailoredAspect` is documented and *prompted* as a **résumé section** (`:10`–`:16`), and
-  [`Prompts.generationControls`](../src/Data/LLM/Prompts.swift:546) renders the selection as
-  *"tailor ONLY these résumé sections — …"* (`:553`). A non-section case would corrupt that sentence and the
-  preset semantics. A flag costs one checkbox and keeps both clean.
-- Add the flag to `CodingKeys` (`:77`) so it persists into a `GenerationPreset`, defaulting `false` so legacy
-  preset blobs still decode; include it in `hasDefaultControls` (`:91`) so the default path stays
-  **byte-for-byte** the base prompt.
-- `Prompts.generationControls(_:)` (`:525`) appends the keyword clause when the flag is on. Note it **sharpens**
-  the existing Objective line (`:557`), which already says to foreground the brief's keywords "wherever they are
-  genuinely supported" — D turns that into an explicit *cover-it-or-declare-it* instruction rather than
-  duplicating it.
-- A checkbox in `generationControlsPanel`
-  ([`ApplicationSheet.swift:143`](../src/Presentation/Application/View/ApplicationSheet.swift:143)), near the
-  tailored-aspect checkboxes (`:167`–`:176`).
-
-**Sub-tasks.**
-- [ ] `GenerationSettings.emphasizeKeywords` + `CodingKeys` + `hasDefaultControls`; legacy-decode default.
-- [ ] `Prompts.generationControls` keyword clause: weave the **must-have** keywords into the visible résumé
-      **only where they're genuinely true** for this candidate; every keyword that can't be truthfully claimed
-      goes into `gapNote`. Explicitly **no hidden/white text, no keyword lists appended for the parser** — the
-      résumé stays a document a human reads.
-- [ ] The checkbox in `generationControlsPanel`, with a one-line caption naming what it does.
-- [ ] **(open call) Behaviour under a rank target?** `GenerateToTargetUseCase` builds its own
-      `GenerationSettings` per round (`:55`), discarding the user's fidelity/aspects — so the flag is dropped
-      unless threaded. *Recommended:* **thread it through**, exactly as `additionalContext` already rides along
-      (`:56`), and leave the checkbox enabled under a rank target (it's an alignment/honesty control, not a
-      latitude one) — unlike the fidelity slider and aspect checkboxes, which are correctly disabled by
-      `rankTargetOn` (`:260`).
-- [ ] **(open call) Which tiers does the prompt push?** *Recommended:* **must-have only** — nice-to-have and
-      tech-stack keywords stay reported (C) but unpushed, so the résumé isn't stuffed with marginal terms.
-
-**Tests.** `lib/tests/Data/LLM/` — with the flag off the prompt is **byte-for-byte** the current output; with it
-on the keyword clause appears exactly once and the gap-note routing instruction is present. `lib/tests/Data/Models/`
-— `GenerationSettings` Codable round-trip with the flag, and a legacy blob (no key) decoding to `false`;
-`hasDefaultControls` / `isDefault` unaffected when the flag is off.
-
-**On-device.** The optional emphasis is `.application`-task LLM work on the **existing** engine and prompt path —
-no new engine, task, or seam.
-
 ## Release hygiene (v0.6.1)
 
 - [x] **`MARKETING_VERSION` → `0.6.1`** in all **4** copies in `project.pbxproj` (Debug/Release × app/test), so
       Settings → About reports the real version (`CLAUDE.md` → "Keep the project version in sync").
-- [ ] On wrap: move each completed milestone's write-up into `MILESTONES.md`, tick it in `ROADMAP.md`, flip the
-      `## v0.6.1 —` header to **(complete)**, add the `README.md` version summary, and point the `README.md`
-      **Next:** line forward **without naming** the next version.
+- [x] Each completed milestone's write-up moved into `MILESTONES.md` and ticked in `ROADMAP.md` (A–D).
+- [ ] **The merge-ready wrap** (`CLAUDE.md` → "Making a branch merge-ready"): flip the `## v0.6.1 —` headers in
+      `ROADMAP.md` / `MILESTONES.md` to **(complete)**, add v0.6.1's one-paragraph summary to `README.md` under
+      "Version history" and point its **Next:** line forward **without naming** the next version, and clear this
+      file down to the next version's un-numbered placeholder + the carried-forward device-checks note.

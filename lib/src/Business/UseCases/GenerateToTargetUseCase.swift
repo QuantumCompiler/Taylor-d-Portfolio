@@ -43,7 +43,8 @@ nonisolated struct GenerateToTargetUseCase: Sendable {
         profile: CandidateProfile,
         grounding: PortfolioGrounding? = nil,
         target: Int,
-        additionalContext: String = ""
+        additionalContext: String = "",
+        emphasizeKeywords: Bool = false
     ) async throws -> Outcome {
         let brief = try await provider.buildTargetBrief(for: job)
         var bestKit: ApplicationKit?
@@ -54,8 +55,11 @@ nonisolated struct GenerateToTargetUseCase: Sendable {
         for round in 0..<maxRounds {
             rounds = round + 1
             // Target overrides fidelity + aspects: climb latitude, tailor all sections. The
-            // user's free-text guidance (Milestone I) still rides along each round.
+            // user's free-text guidance (Milestone I) and keyword emphasis (v0.6.1 Milestone D)
+            // still ride along each round — neither is a latitude control, so neither is
+            // something the target should override.
             let settings = GenerationSettings(fidelity: escalatedFidelity(round: round),
+                                              emphasizeKeywords: emphasizeKeywords,
                                               additionalContext: additionalContext)
             do {
                 let kit = try await provider.generateApplication(

@@ -174,6 +174,19 @@ struct ApplicationSheet: View {
                 }
                 .disabled(rankTargetOn)
                 .opacity(rankTargetOn ? 0.5 : 1)
+                // Keyword emphasis (v0.6.1 Milestone D). Deliberately outside the rank-target
+                // disable above: this is an alignment control, not a latitude one, so it stays
+                // available and rides along each round of the outcome-driven loop.
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Match the posting's must-have keywords",
+                           isOn: $viewModel.generationSettings.emphasizeKeywords)
+                        .toggleStyle(.checkbox)
+                        .clickableCursor()
+                    Text("Uses the posting's wording for experience you genuinely have; anything you can't "
+                         + "claim is listed in Gaps instead. Visible text only — never hidden keywords.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
                 // Free-text steering (Milestone I). Stays enabled under a rank target — the
                 // guidance is honoured on both the single-pass and outcome-driven paths.
                 VStack(alignment: .leading, spacing: 4) {

@@ -374,6 +374,44 @@ struct PromptsTests {
         #expect(!withDefault.contains("GENERATION CONTROLS"))
     }
 
+    // MARK: v0.6.1 Milestone D — keyword emphasis
+
+    @Test func keywordEmphasisOffLeavesThePromptByteForByteUnchanged() {
+        let base = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief,
+                                               settings: GenerationSettings(fidelity: 0.5))
+        let explicitlyOff = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(fidelity: 0.5, emphasizeKeywords: false)
+        )
+        #expect(base == explicitlyOff)
+        #expect(!base.contains("Keyword coverage:"))
+    }
+
+    @Test func keywordEmphasisAddsOneCoverItOrDeclareItClause() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(emphasizeKeywords: true)
+        )
+        // Emitted exactly once, and only at the must-have tier.
+        #expect(prompt.components(separatedBy: "Keyword coverage:").count == 2)
+        #expect(prompt.contains("MUST-HAVE keywords"))
+        #expect(prompt.contains("genuinely true"))
+        // The routing half: what can't be claimed goes to the gap note, not into experience.
+        #expect(prompt.contains("name it in gapNote instead"))
+        // And the rule the whole feature exists for.
+        #expect(prompt.contains("Never emit a hidden, decorative, or bulk keyword list"))
+    }
+
+    @Test func keywordEmphasisAloneTurnsOnTheControlsBlockAtTheGroundedBand() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(emphasizeKeywords: true)
+        )
+        #expect(prompt.contains("GENERATION CONTROLS"))
+        #expect(prompt.contains("reorder and rephrase the candidate's REAL experience only"))   // still grounded
+        #expect(!prompt.contains("EMBELLISHED:"))   // emphasis is not a licence to invent
+    }
+
     @Test func curatedFidelityAppendsALatitudeClause() {
         let prompt = Prompts.generateApplication(
             job: job, profile: sampleProfile, brief: sampleBrief,
