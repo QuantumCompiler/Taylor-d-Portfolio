@@ -216,6 +216,8 @@ lib/src/
       View/           the SwiftUI view(s)                  — PortfolioView
       ViewModel/      the @MainActor @Observable ViewModel — PortfolioViewModel
     Search/, Results/, Application/, Tracker/, Settings/  (same View/ + ViewModel/ shape;
+                  Settings holds two panes' worth: SettingsView/SettingsViewModel plus
+                  DocumentStylesView/DocumentStylesViewModel — the v0.7.0 LaTeX style manager;
                   e.g. Results/View holds ResultsView + RankedRow + JobDetailView + StatusBadge,
                   Tracker/View holds TrackerView, Application/View the sheet)
     Components/     shared view helpers — ScrollableScreen (scroll wrapper), ExportFileDocument,

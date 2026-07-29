@@ -3243,3 +3243,79 @@ decoder's own pins, including the empty-vs-absent distinction and that a non-obj
 (849 cases), build warning-free.
 
 **On-device.** n/a — no model calls.
+
+## Milestone E — Style-manager UI + export-time picker  ✅ done  (`Presentation/Settings/{View,ViewModel}/DocumentStyles*`, `ShellNavigation` + `SettingsView` + `RootView` + `Composition`, `Presentation/Application` export menu + VM, `Business/UseCases/ExportApplicationUseCase`, `Infrastructure/Tex/TexDocumentBuilder`; tests in `lib/tests/Presentation`, `lib/tests/Infrastructure/Tex`)
+
+**The gap.** Everything A–D built was unreachable: no way to create a style, name it, keep it, or choose one
+when exporting. This is the release's only Presentation milestone and the first one a user can see.
+
+**The manager** is a fourth Settings pane (`SettingsSection.documentStyles`, appended **last** — the raw value is
+the segmented-control index, so inserting one would renumber every later pane). `DocumentStylesViewModel` is its
+own view model rather than part of `SettingsViewModel`: that one loads synchronously and defers writes to an
+explicit Save, which is right for engine settings and wrong for a library — a user who edits a style and switches
+sub-tab must not lose it. It writes through on every action, mirroring the saved-profile library it's modelled
+on: load-on-appear, save-or-update-in-place, duplicate (with `"Compact copy 2"` disambiguation), delete, and a
+star toggle for the default. Deleting the default **clears the pointer on disk**, so it can't dangle.
+
+**Every numeric control is bounded, and that is the safety mechanism.** Measured under `lualatex`: absurd
+geometry doesn't fail — 1.6cm text width, twelve pages, even negative margins all **exit 0** and produce a wrecked
+PDF. There is no compile error to catch and no banner to show, so the control's range is the only protection.
+`Slider`/`Stepper` ranges (never a free text field, and never clamping the value — `LaTeXStyle` deliberately
+refuses to rewrite what a user typed): section spacing **−1.5 … +3.0 em** (−1.5 is exactly the value C measured
+as a visible collision and reverted; the heading structurally crosses the summary at −1.86em), margins
+**0 … 4 cm** (the classes reserve a fixed 6cm column for dates, and 4+4 on A4 still leaves 13cm), footskip
+**0 … 2 cm**, letter paragraph gap **0 … 3 em** (a negative one renders paragraphs out of order, on top of the
+header, exit 0), letter line spread **0.8 … 2.0** (below 0.8 TeX's `\lineskip` floor absorbs it and the control
+silently lies). One uniform spacing range for all five buckets, because *which* bucket renders first is
+user-controlled — there is no reliably-non-first section.
+
+**The base-size control is a discrete picker, not a number field.** `[6pt]` is an *unused* option: the classes
+forward it to `article`, which honours only 10/11/12pt, and every text size in both classes is set absolutely.
+So the control offers Template default / 10 / 11 / 12 and is labelled as what it actually does — scale vertical
+spacing, not text.
+
+**The export picker** offers built-ins and saved styles in one list, tagged by a `StyleChoice` (they have
+separate id spaces). Two things it deliberately does: `nil` stays a **live** "follow my default" state rather
+than being seeded once, so changing the default in Settings immediately changes what an unpicked export
+produces; and a **dangling** default resolves to the built-in look, never to another saved style — silently
+applying a style the user never chose changes the document they're about to send. It's grouped under a
+`Section("Portfolio (LaTeX)")` header and the native picker was relabelled **"PDF / Word template"**, because two
+bare pickers in one menu render identically and the milestone required them to read as different things. It's
+gated on `canExport`, not `canExportLaTeX`: the `.tex` source export works with no TeX install and must stay
+styleable.
+
+**Preview** compiles a bundled sample through a new `ExportApplicationUseCase.previewPDF(style:)` — the sample
+lives in Business so the view carries no content and never touches the compiler. Measured: **~4.0s** warm and
+**~8.2s** on a cold font cache, which is what settles the open call for a button over a live preview; the button
+shows a spinner plus "Compiling with lualatex…" for exactly that reason. Sample content is chosen for coverage,
+not brevity (compile time is font loading, not typesetting): a lead summary, one section per bucket including an
+unrecognised one, a dated `\cventry`, and a skills grid. Page 1 renders as a PDFKit thumbnail — nothing in the
+app could display a PDF before, and one page is all a style preview needs. With no `lualatex`, the button is
+**visible but disabled** with the About pane's exact wording, which is the first place that message actually
+renders. `describeExport` was lifted from `private` to shared rather than copied, so the two compile paths can't
+drift.
+
+**The carried-over `\arraystretch` fix landed here** (it had to, before a user could reorder sections). The
+`\renewcommand{\arraystretch}{0.7}` is now wrapped in a `{…}` group — grouping rather than resetting to `1`, so
+it restores whatever the ambient value was. Measured on the same fixture: ungrouped, the following entry's
+title→bullet gap compressed to **6.99pt**; grouped it is **10.860pt**, against **10.859pt** for a document with
+no skills grid at all. This is the **second sanctioned golden exemption** and a deliberate change to the default
+look: under the canonical order `.other` renders after `.skills`, so every résumé with an Awards / Publications /
+Certifications section regains the row height the leak was compressing. Both goldens were amended by targeted
+edit rather than blind re-capture — anything else that had moved would have failed them.
+
+**Also fixed in passing:** `latexResumePages` survived a kit change and a style change, so the "compiled to N
+pages" advisory could be measured under one style and shown under another.
+
+**Known, accepted:** styles saved in Settings don't appear in an already-open Application window until it
+reloads — its `.task` doesn't re-run on `requestID`. Identical to how generation presets behave today; the
+alternative is an `AppSession.dataChanged()` bump, deferred rather than left undecided.
+
+**Tests.** 21 `DocumentStylesViewModelTests` (library CRUD, blank-name refusal, save-failure message, duplicate
+naming, the default pointer surviving a "relaunch" and clearing on delete, the auto-load-once latch not
+clobbering edits, section moves preserving all five buckets exactly once, and the three preview paths including
+the `lualatex` log surfacing) plus seven `ApplicationViewModelTests` for the picker — the selection reaching both
+export routes, the default pointer, the dangling-pointer fallback, a built-in template, the no-library case being
+byte-identical to pre-v0.7.0, and the stale page count clearing. Suite green (879 cases), build warning-free.
+
+**On-device.** n/a — no model calls. Preview needs `lualatex`, the same optional dependency as the export route.

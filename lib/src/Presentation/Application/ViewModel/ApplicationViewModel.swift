@@ -53,6 +53,24 @@ final class ApplicationViewModel {
     /// default, so generation is unchanged until the user picks another. Session-only.
     var selectedProfileID: String?
 
+    /// The user's saved document styles (v0.7.0 Milestone D), newest first — empty when the
+    /// library isn't wired in this build.
+    private(set) var savedStyles: [SavedDocumentStyle] = []
+    /// The built-in templates whose class files actually shipped, resolved in the composition
+    /// root (checking that is file I/O, which Presentation doesn't do).
+    let availableTemplates: [LaTeXTemplateDescriptor]
+    /// Which document style the LaTeX exports use. `nil` = **follow the user's default** (and the
+    /// built-in look when no default resolves), kept as a live state rather than seeded once, so
+    /// changing the default in Settings immediately changes what an unpicked export produces.
+    /// Session-only and sticky across jobs, like ``exportTemplate``.
+    var selectedStyleChoice: StyleChoice? {
+        didSet {
+            // The "compiled to N pages" advisory was measured under the old style.
+            latexResumePages = 0
+            exportError = nil
+        }
+    }
+
     /// The outcome of the last rank-target generation (Milestone D-F), if that path was used.
     private(set) var rankOutcome: GenerateToTargetUseCase.Outcome?
 
@@ -65,6 +83,8 @@ final class ApplicationViewModel {
     private let loadGenerationPresets: LoadGenerationPresetsUseCase?
     private let deleteGenerationPreset: DeleteGenerationPresetUseCase?
     private let loadProfiles: LoadProfilesUseCase?
+    private let loadDocumentStyles: LoadDocumentStylesUseCase?
+    private let defaultDocumentStyleStore: DefaultDocumentStyleStore?
 
     init(
         generateApplication: GenerateApplicationUseCase,
@@ -75,7 +95,10 @@ final class ApplicationViewModel {
         saveGenerationPreset: SaveGenerationPresetUseCase? = nil,
         loadGenerationPresets: LoadGenerationPresetsUseCase? = nil,
         deleteGenerationPreset: DeleteGenerationPresetUseCase? = nil,
-        loadProfiles: LoadProfilesUseCase? = nil
+        loadProfiles: LoadProfilesUseCase? = nil,
+        loadDocumentStyles: LoadDocumentStylesUseCase? = nil,
+        defaultDocumentStyleStore: DefaultDocumentStyleStore? = nil,
+        availableTemplates: [LaTeXTemplateDescriptor] = LaTeXTemplateRegistry.all
     ) {
         self.generateApplication = generateApplication
         self.generateToTarget = generateToTarget
@@ -86,6 +109,9 @@ final class ApplicationViewModel {
         self.loadGenerationPresets = loadGenerationPresets
         self.deleteGenerationPreset = deleteGenerationPreset
         self.loadProfiles = loadProfiles
+        self.loadDocumentStyles = loadDocumentStyles
+        self.defaultDocumentStyleStore = defaultDocumentStyleStore
+        self.availableTemplates = availableTemplates
     }
 
     // MARK: Profile selection (v0.6.0 Milestone B)
@@ -197,6 +223,48 @@ final class ApplicationViewModel {
     /// install was found) — drives whether the Export menu shows the LaTeX items.
     var canExportLaTeX: Bool { kit != nil && (exportApplication?.isLaTeXAvailable ?? false) }
 
+    // MARK: Document styles (v0.7.0 Milestone E)
+
+    /// Which style the LaTeX route uses — a built-in template or one of the user's saved styles.
+    /// The two have separate id spaces, so the picker's selection is this tagged choice rather
+    /// than a bare id.
+    nonisolated enum StyleChoice: Hashable, Sendable {
+        case builtIn(LaTeXTemplateID)
+        case saved(String)
+    }
+
+    /// Loads the user's saved styles (newest first). A no-op when the library isn't wired.
+    func loadDocumentStyles() async {
+        guard let loadDocumentStyles else { return }
+        savedStyles = (try? await loadDocumentStyles()) ?? []
+    }
+
+    /// The style the LaTeX exports actually use. Pure given `savedStyles`, so it's testable
+    /// without the view.
+    ///
+    /// A **dangling** default (its style was deleted) falls back to the built-in look, never to
+    /// "some other saved style" — see ``DefaultDocumentStyleStore/resolved(in:)``. Silently
+    /// applying a style the user never chose would change the document they're about to send.
+    var resolvedStyle: LaTeXStyle {
+        switch selectedStyleChoice {
+        case let .saved(id)?:
+            return savedStyles.first { $0.id == id }?.style ?? LaTeXTemplateRegistry.fallback.defaultStyle
+        case let .builtIn(template)?:
+            return (LaTeXTemplateRegistry.descriptor(for: template) ?? LaTeXTemplateRegistry.fallback).defaultStyle
+        case nil:
+            return defaultDocumentStyleStore?.resolved(in: savedStyles)?.style
+                ?? LaTeXTemplateRegistry.fallback.defaultStyle
+        }
+    }
+
+    /// The label on the picker's "follow my default" row — it names what that currently means.
+    var defaultStyleRowLabel: String {
+        if let resolved = defaultDocumentStyleStore?.resolved(in: savedStyles) {
+            return "Default — \(resolved.name)"
+        }
+        return "Default — \(LaTeXTemplateRegistry.fallback.displayName)"
+    }
+
     /// Whether a document can be exported as an awesome-cv PDF (present **and** `lualatex` found).
     func canExportLaTeX(_ document: ApplicationDocument) -> Bool {
         guard let kit, let exportApplication, exportApplication.isLaTeXAvailable else { return false }
@@ -211,7 +279,7 @@ final class ApplicationViewModel {
         exportError = nil
         defer { isCompilingLaTeX = false }
         do {
-            let pdf = try await exportApplication.latexPDF(kit, document)
+            let pdf = try await exportApplication.latexPDF(kit, document, style: resolvedStyle)
             if document == .resume { latexResumePages = Self.pdfPageCount(pdf) }
             return pdf
         } catch {
@@ -225,7 +293,7 @@ final class ApplicationViewModel {
     func exportTexSource(_ document: ApplicationDocument) -> Data? {
         guard let kit, let exportApplication,
               ExportApplicationUseCase.isPresent(document, in: kit) else { return nil }
-        return Data(exportApplication.texSource(kit, document).utf8)
+        return Data(exportApplication.texSource(kit, document, style: resolvedStyle).utf8)
     }
 
     /// The suggested `.tex` filename for one document.
@@ -242,7 +310,10 @@ final class ApplicationViewModel {
 
     /// A user-facing message for an export failure — surfaces the real `lualatex` log so a
     /// compile error is diagnosable, not hidden behind a generic "try again".
-    private static func describeExport(_ error: Error) -> String {
+    ///
+    /// Not private: the style manager's Preview (v0.7.0 Milestone E) compiles through the same
+    /// port and needs the same five-case mapping. One copy, so the two can't drift.
+    static func describeExport(_ error: Error) -> String {
         guard let latexError = error as? LaTeXProcessError else {
             return "Couldn't export.\n\n(\(String(describing: error)))"
         }
@@ -298,6 +369,7 @@ final class ApplicationViewModel {
     /// view never auto-generates — generation is user-initiated so options can be set first
     /// (v0.5.0).
     func loadSaved(for job: JobListing) async {
+        latexResumePages = 0        // the advisory belongs to the kit it was measured on
         self.job = job
         errorMessage = nil
         exportError = nil

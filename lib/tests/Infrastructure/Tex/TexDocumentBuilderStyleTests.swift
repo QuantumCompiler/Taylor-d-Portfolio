@@ -45,6 +45,12 @@ struct TexDocumentBuilderStyleTests {
     /// "Work History" now takes the experience `-1.5em` rather than the old generic `-1em` (the two
     /// pre-v0.7.0 classifiers disagreed about those titles). See
     /// `TexDocumentBuilderSectionTests.experienceSynonymsTakeTheExperienceSpacingInTheEmittedTex`.
+    ///
+    /// **Second sanctioned exemption (v0.7.0 Milestone E).** The skills grid's `\arraystretch` is
+    /// now wrapped in a `{…}` group, so these two lines gained a brace. That is a deliberate,
+    /// measured change to the default output: ungrouped, the 0.7 stretch leaked into every
+    /// `tabular*` after the grid, compressing the following entry's rows by ~3.9pt. Everything
+    /// else here is still the pre-v0.7.0 capture.
     private let goldenResume = #"""
     \documentclass[6pt]{Class/Resume}
     \geometry{left=0.50cm, top=0.50cm, right=0.50cm, bottom=0.75cm, footskip=0.25cm}
@@ -97,12 +103,12 @@ struct TexDocumentBuilderStyleTests {
     \vspace{-0.5em}
     \cvsection{Core Skills}
 
-    \renewcommand{\arraystretch}{0.7}
+    {\renewcommand{\arraystretch}{0.7}
     \begin{cvskills}
         \cvskill
         {iOS Engineering}
         {SwiftUI, MVVM, async/await}
-    \end{cvskills}
+    \end{cvskills}}
 
     \end{document}
 

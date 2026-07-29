@@ -9,16 +9,17 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone E** (style-manager UI + export-time
-> picker). **Milestones A–D are done** — the style model + registry, style-driven preambles, style-driven section
-> order/visibility/spacing, and the persisted styles library + default pointer (write-ups in `MILESTONES.md`,
-> ticked in `ROADMAP.md`). E is the first Presentation work of the release and the first time a user can reach any
-> of it; D's repository/use cases are wired in `Composition` but private, waiting for E to consume them. Six milestones **A–F**,
+> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone F** (raw-LaTeX preamble override +
+> graceful compile failure) — **the last milestone of the release**. **Milestones A–E are done**: the style model
+> + registry, style-driven preambles, style-driven sections, the persisted library, and the manager UI + export
+> picker (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`). F lands on a working style system, so it's the
+> escape hatch plus its failure path — and `LaTeXStyle.customPreamble` has existed since A, unused, waiting for
+> it. Six milestones **A–F**,
 > scheduled out of `PLANNED.md`'s `Target: v0.7.0` entry (2026-07-28); see the v0.7.0 section at the bottom of
 > this file. **v0.6.2 (list actions, sorting & document previews) is
 > complete and merge-ready** — all five milestones
 > **A–E** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs and `README.md`
-> are done, and the full suite is green (849 cases, no warnings). **v0.6.1 (keyword
+> are done, and the full suite is green (879 cases, no warnings). **v0.6.1 (keyword
 > match & ATS coverage) is likewise complete.** Only the **device checks** below remain before the branch merges.
 >
 > **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
@@ -120,44 +121,6 @@ is the one call site that threads a style through (`texSource` / `latexPDF`).
 **Release hygiene (do once, at kickoff).**
 - [x] Bump every `MARKETING_VERSION` to `0.7.0` (4 copies in `project.pbxproj` — Debug/Release × app/test) so
       Settings → About reports the real version.
-
----
-
-## Milestone E — Style-manager UI + export-time picker
-
-**Seam + files.** `Presentation` — a **"Document styles"** manager (create / name / duplicate / edit / delete,
-the four control groups) and a **style picker** on the LaTeX export route in
-[`ApplicationSheet`](../src/Presentation/Application/View/ApplicationSheet.swift) (the Export menu, which today
-offers "PDF — Portfolio (LaTeX)" / "LaTeX source (.tex)" plus the native `ExportTemplate` picker), backed by
-`ApplicationViewModel.exportLaTeXPDF(_:)` / `.exportTexSource(_:)`. **LaTeX-only** — the native exports keep
-`ExportTemplate`, and the two pickers must read as clearly different things in that menu.
-
-- [ ] Manager screen with the four control groups (typography / colour / geometry + page size / section order).
-- [ ] Export-time picker defaulting to the default style; the chosen style flows
-      view → `ApplicationViewModel` → `ExportApplicationUseCase` → `TexDocumentBuilder`.
-- [ ] **(open call)** Where the manager lives. *Recommended:* a new `SettingsSection` case in
-      [`ShellNavigation`](../src/Presentation/App/ShellNavigation.swift) (today `engines` / `adzuna` / `about`) —
-      cheaper than a new sidebar area and it's a preference, not a workflow.
-- [ ] **(open call)** Live preview vs. a Preview button. *Recommended:* a **Preview button** that compiles a
-      sample — a live preview pays the `lualatex` latency on every keystroke. Disabled when `lualatex` is absent
-      (the route already degrades that way).
-- [ ] Views stay dumb — all state on the VM; no `Process` or file I/O in Presentation.
-- [ ] **Bound the spacing / margin inputs.** Measured in C under `lualatex`: the shipped look already runs the
-      first section's rule ~2.6pt into the lead paragraph's glyph box, so more-negative section spacing collides
-      visibly (Compact's own values hit ~7.6pt and were reverted). The editor must bound what can be entered —
-      non-finite values are already neutralised in `LaTeXStyle.number`, but magnitude deliberately isn't clamped
-      there, because silently rewriting a typed number would hide it.
-- [ ] **Carried over from C — fix the `\arraystretch` leak before or with this milestone.** `renderSkills`
-      (`TexDocumentBuilder`) emits an ungrouped `\renewcommand{\arraystretch}{0.7}` that is never restored, so
-      it leaks into every section rendered after the skills grid (~3.15pt of row height). Pre-existing and
-      out of C's contract — it moves the golden's bytes — but **C made it reachable**: a user can now move skills
-      to the top or hide it, silently changing unrelated sections' row heights. Group it or reset after
-      `\end{cvskills}`, and re-capture both goldens in the same change (the only sanctioned re-capture).
-
-**Tests.** `lib/tests/Presentation/` — VM-level: the picker's selection reaches the export call; the manager's
-create/duplicate/delete drive the repository; deleting the default style clears/reassigns the pointer.
-
-**On-device.** n/a. A Preview compile needs `lualatex`, same optional dependency as the export route.
 
 ---
 

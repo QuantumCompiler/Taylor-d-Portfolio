@@ -166,6 +166,14 @@ nonisolated enum TexDocumentBuilder {
 
     /// A section rendered as `cvskills` (with the résumé's `\arraystretch{0.7}`) — each non-empty
     /// line becomes a `\cvskill{bucket}{items}` (split on the first ": ").
+    ///
+    /// The `\arraystretch` change is wrapped in a **group**, so it applies to this grid and nothing
+    /// after it. Ungrouped, it stayed in force to `\end{document}` and compressed the row height of
+    /// every later `tabular*` — every `\cventry` that followed the skills section. That was
+    /// invisible while the section order was fixed (skills sat last); v0.7.0 Milestone C made the
+    /// order the user's, so "move skills up" silently restyled unrelated sections. Grouping rather
+    /// than resetting to `1` restores whatever the ambient value was, without asserting a default
+    /// the class might one day change.
     static func renderSkills(_ blocks: [MarkdownBlock]) -> String {
         let lines: [String] = blocks.compactMap {
             switch $0 {
@@ -184,7 +192,7 @@ nonisolated enum TexDocumentBuilder {
                 rows += "    \\cvskill\n    {}\n    {\(inlineLaTeX(line))}\n"
             }
         }
-        return "\\renewcommand{\\arraystretch}{0.7}\n\\begin{cvskills}\n\(rows)\\end{cvskills}\n"
+        return "{\\renewcommand{\\arraystretch}{0.7}\n\\begin{cvskills}\n\(rows)\\end{cvskills}}\n"
     }
 
     // MARK: Entry parsing

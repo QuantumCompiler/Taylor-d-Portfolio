@@ -70,6 +70,60 @@ nonisolated struct ExportApplicationUseCase: Sendable {
                                           jobName: document.displayName)
     }
 
+    /// Compiles a **bundled sample résumé** under `style` — the style manager's Preview
+    /// (v0.7.0 Milestone E). The sample lives here rather than in Presentation so views stay
+    /// free of content and of the compiler.
+    func previewPDF(style: LaTeXStyle) async throws -> Data {
+        try await latexPDF(Self.sampleKit, .resume, style: style)
+    }
+
+    /// The Preview's sample content. Deliberately **not** minimal: a compile costs the same
+    /// either way (the time is font loading, not typesetting), so the sample exercises every
+    /// control the style manager exposes — a lead summary (what section spacing collides with),
+    /// one section per bucket **including an unrecognised one** so the catch-all renders, a
+    /// dated `\cventry` (whose fixed 6cm column is what the margin bounds protect), and a skills
+    /// grid (whose `\arraystretch` group must not leak into the sections after it).
+    nonisolated static let sampleKit = ApplicationKit(
+        resumeMarkdown: """
+        # Alex Sample
+        **Senior iOS Engineer — SwiftUI · Distributed Systems**
+
+        ## Summary
+        Senior engineer with a decade of shipping native Apple platforms, most recently leading a \
+        SwiftUI rewrite that cut crash rates by half.
+
+        ## Education
+        ### B.S. Computer Science — State University
+        Springfield · 2014
+        - Graduated with honours.
+
+        ## Experience
+        ### Senior iOS Engineer — Northwind Systems
+        Remote · Mar. 2021 – Present
+        - Led the SwiftUI rewrite of a 400k-line codebase.
+        - Cut median cold-start time from 1.9s to 0.8s.
+
+        ### iOS Engineer — Contoso
+        Springfield · 2016 – 2021
+        - Shipped the offline sync layer used by every client.
+
+        ## Projects
+        ### Fieldbook
+        - An offline-first field notes app; 30k downloads.
+
+        ## Core Skills
+        Platforms: Swift, SwiftUI, UIKit, Core Data
+        Practices: TDD, CI/CD, code review, mentoring
+
+        ## Awards
+        ### Engineering Excellence Award
+        Northwind Systems · 2023
+        - For the rewrite's reliability record.
+        """,
+        coverLetter: "",
+        gapNote: ""
+    )
+
     /// Exports a **single** document (résumé or cover letter) — the primary path. Each file
     /// contains only that document's Markdown (no combined wrapper heading).
     func callAsFunction(_ kit: ApplicationKit, _ document: ApplicationDocument,

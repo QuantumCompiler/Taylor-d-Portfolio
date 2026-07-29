@@ -76,8 +76,30 @@ struct ApplicationSheet: View {
                             Divider()
                             Text("Portfolio PDF needs a TeX install (lualatex)")
                         }
+                        // Two template pickers now share this menu and must not read as one
+                        // control: the LaTeX one is grouped under its own header and lists
+                        // user-named styles; the native one is relabelled to say what it themes.
                         Divider()
-                        Picker("PDF template", selection: $viewModel.exportTemplate) {
+                        Section("Portfolio (LaTeX)") {
+                            Picker("Style", selection: $viewModel.selectedStyleChoice) {
+                                Text(viewModel.defaultStyleRowLabel)
+                                    .tag(ApplicationViewModel.StyleChoice?.none)
+                                if !viewModel.savedStyles.isEmpty {
+                                    Divider()
+                                    ForEach(viewModel.savedStyles) { saved in
+                                        Text(saved.name)
+                                            .tag(ApplicationViewModel.StyleChoice?.some(.saved(saved.id)))
+                                    }
+                                }
+                                Divider()
+                                ForEach(viewModel.availableTemplates) { descriptor in
+                                    Text(descriptor.displayName)
+                                        .tag(ApplicationViewModel.StyleChoice?.some(.builtIn(descriptor.template)))
+                                }
+                            }
+                        }
+                        Divider()
+                        Picker("PDF / Word template", selection: $viewModel.exportTemplate) {
                             ForEach(ExportTemplate.allCases) { template in
                                 Text(template.displayName).tag(template)
                             }
@@ -124,6 +146,7 @@ struct ApplicationSheet: View {
             await viewModel.loadSaved(for: job)
             await viewModel.loadPresets()
             await viewModel.loadSavedProfiles()
+            await viewModel.loadDocumentStyles()
         }
         .onChange(of: requestID) { _, _ in Task { await viewModel.loadSaved(for: job) } }
         // The one-page gate is template-dependent — remeasure when the user switches template.

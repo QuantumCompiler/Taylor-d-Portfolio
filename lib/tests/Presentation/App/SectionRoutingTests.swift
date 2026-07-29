@@ -19,7 +19,7 @@ struct SectionRoutingTests {
         #expect(MainArea.search.subViews == ["New Search", "Saved Searches", "From a Link"])
         #expect(MainArea.results.subViews == ["Ranked"])
         #expect(MainArea.tracker.subViews == ["All", "Saved", "Applied", "Interviewing", "Offer", "Accepted", "Declined", "Rejected", "Withdrawn"])
-        #expect(MainArea.settings.subViews == ["Engines", "Sources", "About"])
+        #expect(MainArea.settings.subViews == ["Engines", "Sources", "About", "Document Styles"])
     }
 
     @Test func sectionLabelsMatchTheSubViewOrder() {

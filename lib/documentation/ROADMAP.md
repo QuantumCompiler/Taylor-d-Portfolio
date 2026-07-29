@@ -999,14 +999,22 @@ inject content. `TODO.md` has the granular breakdown + open calls.
       change the document the user sends. Seam: **Data/Persistence** + Business use cases + `Composition`, plus
       the decoder in **Infrastructure/Tex**. On-device: n/a.
 
-- [ ] **Milestone E — Style-manager UI + export-time picker.** A "Document styles" manager (create / name /
+- [x] **Milestone E — Style-manager UI + export-time picker.** ✅ **Done.** A "Document styles" manager (create / name /
       duplicate / edit / delete, the four control groups) and a style picker on the LaTeX route in
       `ApplicationSheet`'s Export menu, defaulting to the default style and flowing view → `ApplicationViewModel`
       → `ExportApplicationUseCase` → `TexDocumentBuilder`. **LaTeX-only** — the native exports keep
       `ExportTemplate`, and the two pickers must not read as the same control. Open calls: the manager lives in a
       new `SettingsSection` (recommended, over a new sidebar area), and styling previews via a **Preview button**
-      rather than live (recommended — a live preview pays the `lualatex` latency per keystroke). Seam:
-      **Presentation**. On-device: n/a.
+      rather than live (recommended — a live preview pays the `lualatex` latency per keystroke); both resolved as
+      recommended, the second with a number behind it (~4.0s warm, ~8.2s cold). **Every numeric control is
+      bounded** and that is the whole safety mechanism: measured, `lualatex` exits 0 on absurd geometry —
+      1.6cm text width, twelve pages, negative margins — so there is no compile error to catch. Base size became
+      a discrete picker because `[6pt]` is an unused option the classes forward to `article`, which honours only
+      10/11/12pt. The picker's `nil` stays a live "follow my default" and a dangling default falls back to the
+      built-in look, never to another saved style. The carried-over **`\arraystretch` fix** landed here (grouped,
+      not reset — measured 6.99pt → 10.860pt against a 10.859pt no-skills reference), the release's second
+      sanctioned golden exemption. Seam: **Presentation** + a Business preview method + the Infra fix.
+      On-device: n/a.
 
 - [ ] **Milestone F — Raw-LaTeX preamble override + graceful compile failure.** When `customPreamble` is set it
       replaces the *generated* preamble verbatim while the body stays app-generated and escaped (presentation

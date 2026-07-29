@@ -303,11 +303,50 @@ struct TexDocumentBuilderSectionTests {
         #expect(tex.contains("\\begin{cvskills}"))                                     // renders as a grid
     }
 
+    // MARK: The skills grid's \arraystretch stays inside its own group
+
+    /// `\renewcommand{\arraystretch}{0.7}` used to be emitted ungrouped, so it stayed in force to
+    /// `\end{document}` and compressed every later `tabular*` — i.e. every `\cventry` after the
+    /// skills section. Invisible while skills sat last by construction; Milestone C made the order
+    /// the user's, so "move skills up" silently restyled unrelated sections.
+    ///
+    /// Measured under `lualatex` on this fixture: ungrouped, the following entry's title→bullet gap
+    /// compressed to **6.99pt**; grouped, it is **10.86pt** — matching a document with no skills
+    /// grid at all (10.859pt) to within a hundredth of a point.
+    @Test func theSkillsGridsArrayStretchIsScopedToItsOwnGroup() throws {
+        let tex = TexDocumentBuilder.resume(fromMarkdown: fixture)
+        #expect(tex.contains("{\\renewcommand{\\arraystretch}{0.7}\n\\begin{cvskills}"))
+        #expect(tex.contains("\\end{cvskills}}"))
+
+        // The group closes before anything else is emitted — nothing after the grid inherits it.
+        let grid = try #require(tex.range(of: "{\\renewcommand{\\arraystretch}{0.7}"))
+        let close = try #require(tex.range(of: "\\end{cvskills}}"))
+        #expect(grid.lowerBound < close.lowerBound)
+        #expect(TexDocumentBuilder.renderSkills([.paragraph(text: "iOS: SwiftUI")]).hasPrefix("{"))
+        #expect(TexDocumentBuilder.renderSkills([.paragraph(text: "iOS: SwiftUI")]).hasSuffix("}\n"))
+    }
+
+    /// The reordered case the fix exists for: skills first, then an entries section.
+    @Test func aSectionAfterTheSkillsGridIsOutsideItsGroup() throws {
+        var style = LaTeXStyle.default
+        style.sectionOrder = [.skills, .experience, .education, .projects, .other]
+        let tex = TexDocumentBuilder.resume(fromMarkdown: fixture, style: style)
+
+        let close = try #require(tex.range(of: "\\end{cvskills}}"))
+        let nextSection = try #require(tex.range(of: "\\cvsection{Experience}"))
+        #expect(close.upperBound < nextSection.lowerBound)
+    }
+
     // MARK: Goldens
 
     /// Captured from the builder **before** Milestone C touched it, over a fixture covering every
     /// canonical bucket plus an unknown one. Milestone B's golden has one section per bucket, so
     /// this is what proves ordering, spacing and rendering are all unchanged by default.
+    ///
+    /// One documented amendment since (v0.7.0 Milestone E): the skills grid's `\arraystretch` is
+    /// wrapped in a `{…}` group, so those two lines gained a brace and the **Awards** section that
+    /// follows the grid regained the row height the leak had been compressing. Deliberate and
+    /// measured; nothing else in this capture moved.
     private let goldenDefaultSections = #"""
     \documentclass[6pt]{Class/Resume}
     \geometry{left=0.50cm, top=0.50cm, right=0.50cm, bottom=0.75cm, footskip=0.25cm}
@@ -393,12 +432,12 @@ struct TexDocumentBuilderSectionTests {
     \vspace{-0.5em}
     \cvsection{Core Skills}
 
-    \renewcommand{\arraystretch}{0.7}
+    {\renewcommand{\arraystretch}{0.7}
     \begin{cvskills}
         \cvskill
         {iOS Engineering}
         {SwiftUI, MVVM, async/await}
-    \end{cvskills}
+    \end{cvskills}}
 
     \vspace{-1em}
     \cvsection{Awards}
