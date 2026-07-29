@@ -15,7 +15,6 @@ struct ResultsView: View {
     /// Opens the detached job-detail window (v0.5.0 Milestone B) instead of a sheet.
     @Environment(AppSession.self) private var session
     @Environment(\.openWindow) private var openWindow
-    @State private var showFilters = false
     /// Whether the bulk delete is awaiting confirmation (v0.6.2 Milestone B) — it forgets
     /// several listings + statuses + materials at once, so it confirms with a count.
     @State private var confirmingBulkDelete = false
@@ -43,6 +42,7 @@ struct ResultsView: View {
             } else {
                 VStack(spacing: 0) {
                     filterBar
+                    sortBar
                     if viewModel.isFilteredEmpty {
                         ContentUnavailableView {
                             Label("No results match your filters", systemImage: "line.3.horizontal.decrease.circle")
@@ -119,73 +119,55 @@ struct ResultsView: View {
         openWindow(id: JobDetailWindow.id)
     }
 
-    // MARK: Filter bar (Milestone W)
+    // MARK: Filter bar (Milestone W) + sort bar (v0.6.2 Milestone C)
 
+    /// The shared `ListFilterBar` — the same control the Tracker now uses (v0.6.2 Milestone C).
+    /// (No "Tracked" facet: tracked jobs no longer appear in Results; they live in the Tracker
+    /// as of v0.4.1 Milestone C.)
     private var filterBar: some View {
-        DisclosureGroup(isExpanded: $showFilters) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Minimum rank").frame(width: 120, alignment: .leading).foregroundStyle(.secondary)
-                    Slider(
-                        value: Binding(
-                            get: { Double(viewModel.filter.minScore ?? 0) },
-                            set: { viewModel.filter.minScore = $0 >= 1 ? Int($0) : nil }
-                        ),
-                        in: 0...100, step: 5
-                    ).frame(maxWidth: 200).clickableCursor()
-                    Text(viewModel.filter.minScore.map { "\($0)+" } ?? "Any").monospacedDigit()
-                }
-                filterField("Keywords") {
-                    TextField("Any", text: $viewModel.filter.keywords).textFieldStyle(.roundedBorder).frame(maxWidth: 220)
-                }
-                filterField("Location") {
-                    optionPicker(selection: $viewModel.filter.location, options: viewModel.locationOptions)
-                }
-                filterField("Company") {
-                    optionPicker(selection: $viewModel.filter.company, options: viewModel.companyOptions)
-                }
-                filterField("Min salary") {
-                    TextField("Any", text: Binding(
-                        get: { viewModel.filter.salaryMin.map { String(Int($0)) } ?? "" },
-                        set: { viewModel.filter.salaryMin = Double($0.filter(\.isNumber)) }
-                    )).textFieldStyle(.roundedBorder).frame(maxWidth: 140)
-                }
-                // (No "Tracked" filter — tracked jobs no longer appear in Results; they live
-                //  in the Tracker as of v0.4.1 Milestone C.)
-            }
-            .padding(.top, 6)
-        } label: {
-            HStack {
-                Label("Filters", systemImage: "line.3.horizontal.decrease.circle")
-                Spacer()
-                Text("Showing \(viewModel.visibleCount) of \(viewModel.totalCount)")
-                    .font(.caption).foregroundStyle(.secondary)
-                if viewModel.filter.isActive {
-                    Button("Clear") { viewModel.clearFilter() }.font(.caption).clickableCursor()
-                }
-            }
-        }
-        .padding(.horizontal, 16).padding(.vertical, 8)
+        ListFilterBar(
+            filter: $viewModel.filter,
+            locationOptions: viewModel.locationOptions,
+            companyOptions: viewModel.companyOptions,
+            visibleCount: viewModel.visibleCount,
+            totalCount: viewModel.totalCount,
+            onClear: { viewModel.clearFilter() }
+        )
     }
 
-    private func filterField<Controls: View>(_ label: String, @ViewBuilder controls: () -> Controls) -> some View {
+    /// A compact, live sort control above the list — the Results counterpart of
+    /// `TrackerView.sortBar` (v0.6.2 Milestone C). Reorders the shown rows without reloading;
+    /// "Reset" restores the default (match-score-descending = the ranker's own order).
+    private var sortBar: some View {
         HStack(spacing: 8) {
-            Text(label).frame(width: 120, alignment: .leading).foregroundStyle(.secondary)
-            controls()
-            Spacer(minLength: 0)
-        }
-    }
+            Image(systemName: "arrow.up.arrow.down").font(.caption).foregroundStyle(.secondary)
+            Picker("Sort", selection: $viewModel.sort.key) {
+                ForEach(ResultsSort.Key.allCases) { key in
+                    Text(key.displayName).tag(key)
+                }
+            }
+            .labelsHidden()
+            .fixedSize()
+            .help("Sort the ranked results")
 
-    /// A picker over `options` (plus "Any") bound to an optional string.
-    private func optionPicker(selection: Binding<String?>, options: [String]) -> some View {
-        Picker("", selection: Binding(
-            get: { selection.wrappedValue ?? "" },
-            set: { selection.wrappedValue = $0.isEmpty ? nil : $0 }
-        )) {
-            Text("Any").tag("")
-            ForEach(options, id: \.self) { Text($0).tag($0) }
+            Button {
+                viewModel.sort.direction = viewModel.sort.direction == .ascending ? .descending : .ascending
+            } label: {
+                Image(systemName: viewModel.sort.direction == .ascending ? "arrow.up" : "arrow.down")
+            }
+            .buttonStyle(.borderless)
+            .help(viewModel.sort.direction.displayName)
+            .clickableCursor()
+
+            if !viewModel.sort.isDefault {
+                Button("Reset") { viewModel.resetSort() }
+                    .buttonStyle(.borderless)
+                    .clickableCursor()
+            }
+            Spacer()
         }
-        .labelsHidden().fixedSize().clickableCursor()
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
     }
 
     /// Per-row Save-to-Tracker + Delete icons (Milestone V-A/V-B); each intercepts its own tap.

@@ -9,10 +9,10 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.2 — list actions, sorting & document previews (in progress). Next: Milestone C.**
+> **Current focus. v0.6.2 — list actions, sorting & document previews (in progress). Next: Milestone D.**
 > See "v0.6.2" below: five milestones **A–E**, scheduled out of `PLANNED.md` (its five `Target: v0.6.2` entries)
-> on 2026-07-28. **Milestones A (discoverable remove-from-Tracker) and B (multi-select bulk actions) are done** —
-> write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`; **C–E remain**. **v0.6.1 (keyword match & ATS coverage) is complete and merge-ready** — all four milestones
+> on 2026-07-28. **Milestones A (discoverable remove-from-Tracker), B (multi-select bulk actions) and C (sort /
+> filter parity) are done** — write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`; **D–E remain**. **v0.6.1 (keyword match & ATS coverage) is complete and merge-ready** — all four milestones
 > **A–D** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs, `README.md`, and
 > `MARKETING_VERSION = 0.6.1` are done. Only the **device checks** below remain before that branch merges.
 >
@@ -30,6 +30,13 @@ doing.
 >   Results at once (and their enrichment fills in after, without freezing the list — try ~10 at once); bulk
 >   **Delete** confirms with a count; the Tracker's bulk **Return to Results** puts them all back with listings
 >   intact. Selecting under **All** then switching stage tabs must not let another tab act on those rows.
+> - **v0.6.2 C** — Results now has a **sort bar** (match score / company / role title / salary / date posted, both
+>   directions, Reset) and the Tracker a **filter bar** (min rank / keywords / location / company / min salary — no
+>   "Tracked" facet). Untouched, the Results order must look **exactly as before**. Check the Tracker filter narrows
+>   **within** the open stage tab and composes with its sort; that a filter hiding every row shows "No tracked
+>   applications match your filters" **with the bar still visible** and Clear working (not the "No applied
+>   applications" stage-empty message); and that both tabs' filter bars look and behave identically (they're now one
+>   shared control). Listings with no salary / no posted date sort **last** either direction.
 > - **v0.6.1 C** — generate an application for a real posting: the **coverage panel** appears below the two
 >   documents with the covered (green) / missing (amber) keyword capsules, the must-have headline count is right,
 >   it updates on Regenerate, it **survives reopening** the saved result, and it's **absent** for a result
@@ -73,50 +80,6 @@ the tidied one). **Almost entirely Presentation** — the one exception is Miles
 - [x] `# v0.6.2` release header added to `MILESTONES.md`.
 - [ ] Update `README.md`'s **Next:** line (still says the next version's number and theme are undecided) and add
       v0.6.2's summary under "Version history" when the release wraps.
-
----
-
-## Milestone C — Results sort + Tracker filter (sort/filter parity across both tabs)
-
-**What's wanted.** The two list tabs each have **one** of the pair: Results has a live **filter**
-([`ResultsFilter`](../src/Presentation/Results/View/ResultsFilter.swift)) but no sort; the Tracker has a live
-**sort** ([`TrackerSort`](../src/Presentation/Tracker/View/TrackerSort.swift) — built as "the Tracker analogue of
-`ResultsFilter`") but no filter. Give each tab the capability the other already has. Both existing types are pure,
-non-destructive and session-only — this is mostly lifting each pattern across.
-
-**Seam + files (a useful asymmetry — one side reuses, the other parallels).**
-- **Tracker filter — *reuse* `ResultsFilter`.** `ResultsFilter.matches(_ job: RankedJob, isTracked:)` (`:55`) is
-  generic over a `RankedJob`, and a `TrackedJob` **wraps** one — so the Tracker can apply the existing filter
-  directly to `tracked.job`.
-- **Results sort — a *new* `ResultsSort` mirroring `TrackerSort`.** `TrackerSort` sorts `[TrackedJob]` with
-  **status-based keys** (recentActivity / dateApplied / stage) that **don't exist** for Results (`[RankedJob]`, no
-  status), so Results needs a parallel type rather than the same one.
-
-- [ ] Add `var filter = ResultsFilter()` to `TrackerViewModel` and apply it **before** the sort in
-      [`jobs(in:)`](../src/Presentation/Tracker/ViewModel/TrackerViewModel.swift:73) —
-      `sort.apply(to: trackedJobs.filter { filter.matches($0.job, isTracked: { _ in true }) && section.includes($0.status.stage) })`.
-- [ ] Add a **filter bar** to `TrackerView` mirroring the Results `filterBar`
-      ([`ResultsView.swift:72`](../src/Presentation/Results/View/ResultsView.swift:72)). **Hide the
-      `trackedStatus` facet** (moot — everything in the Tracker is tracked); expose minScore / keywords /
-      location / company / salaryMin.
-- [ ] Add a **`ResultsSort`** (Presentation/Results) with the same `Key` + `Direction` + `apply(to:)` shape as
-      `TrackerSort`, pure and `Sendable`, with **RankedJob-appropriate keys**: **match score (default = the current
-      ranking order)**, company, role title, salary, posted date (`JobListing.postedDate`).
-- [ ] Add `var sort = ResultsSort.default` to `ResultsViewModel` and apply it in `filteredResults` (`:75`)
-      **after** the filter — `sort.apply(to: filter.apply(...))`; add a sort bar to `ResultsView` mirroring
-      [`TrackerView.sortBar`](../src/Presentation/Tracker/View/TrackerView.swift:61).
-- [ ] **(open call) Filter scope in the Tracker — within the stage tab or across all?** *Recommended:* **within
-      the selected tab** (matches how `jobs(in:)` already applies the sort per section).
-- [ ] **(open call) Share the types or keep them parallel?** *Recommended:* **reuse `ResultsFilter`** in the
-      Tracker (trivial — it's already `RankedJob`-generic) and **add a parallel `ResultsSort`**. Relocating both to
-      `Presentation/Components/` as a shared list-filter / list-sort is a later cleanup; reusing a Results-folder
-      type from the Tracker is legal (same layer) but crosses feature folders.
-
-**Tests.** Unit-test `ResultsSort` like `TrackerSort` — each key in both directions, stable ordering for ties, the
-default key reproducing the incoming ranking order — plus `TrackerViewModel.jobs(in:)` with a filter active
-(filter-then-sort order, section still respected, empty result when nothing matches).
-
-**On-device.** n/a — pure Presentation value types, session-only and non-destructive (no persistence, no re-load).
 
 ---
 

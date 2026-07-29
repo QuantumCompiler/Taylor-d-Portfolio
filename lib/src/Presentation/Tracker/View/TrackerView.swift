@@ -43,7 +43,9 @@ struct TrackerView: View {
                     description: Text("Save a job from the Results area (the bookmark icon, or swipe a result right) to track it here, then generate its résumé & cover letter.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if jobs.isEmpty {
+            } else if viewModel.totalCount(in: section) == 0 {
+                // The *stage* is empty — distinct from "a filter hid this tab's rows", which
+                // keeps the bars visible below so the filter can be cleared (v0.6.2 C).
                 ContentUnavailableView(
                     "No \(section.title.lowercased()) applications",
                     systemImage: "briefcase",
@@ -52,10 +54,22 @@ struct TrackerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VStack(spacing: 0) {
+                    filterBar
                     sortBar
                     if viewModel.hasSelection(in: section) { bulkActionBar }
-                    List(jobs, selection: $viewModel.selectedIDs) { tracked in
-                        trackerRow(tracked)
+                    if viewModel.isFilteredEmpty(in: section) {
+                        ContentUnavailableView {
+                            Label("No tracked applications match your filters", systemImage: "line.3.horizontal.decrease.circle")
+                        } description: {
+                            Text("Clear or loosen your filters to see this stage's applications.")
+                        } actions: {
+                            Button("Clear filters") { viewModel.clearFilter() }.clickableCursor()
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        List(jobs, selection: $viewModel.selectedIDs) { tracked in
+                            trackerRow(tracked)
+                        }
                     }
                 }
             }
@@ -82,6 +96,20 @@ struct TrackerView: View {
         } message: {
             Text("They'll be forgotten — the saved listings, their application statuses, and any generated résumés & cover letters. This can't be undone.\n\nTo keep them and just take them off the Tracker, use “Return to Results” instead.")
         }
+    }
+
+    /// The shared `ListFilterBar` — the same control Results uses (v0.6.2 Milestone C), scoped
+    /// to the selected stage tab. The `trackedStatus` facet stays hidden: everything here is
+    /// tracked, and the stage tabs already segment by stage.
+    private var filterBar: some View {
+        ListFilterBar(
+            filter: $viewModel.filter,
+            locationOptions: viewModel.locationOptions(in: section),
+            companyOptions: viewModel.companyOptions(in: section),
+            visibleCount: viewModel.visibleCount(in: section),
+            totalCount: viewModel.totalCount(in: section),
+            onClear: { viewModel.clearFilter() }
+        )
     }
 
     /// Appears only while rows are selected (v0.6.2 Milestone B): the same two removals the

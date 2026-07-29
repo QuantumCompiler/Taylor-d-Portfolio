@@ -13,10 +13,12 @@ import Foundation
 @Suite("TrackerViewModel")
 struct TrackerViewModelTests {
 
-    private func ranked(_ id: String) -> RankedJob {
+    /// A ranked job. The company / location / score defaults keep the older tests unchanged;
+    /// the filter tests (v0.6.2 Milestone C) vary them.
+    private func ranked(_ id: String, company: String = "c", location: String = "l", score: Int = 50) -> RankedJob {
         RankedJob(
-            listing: JobListing(id: id, title: "t-\(id)", company: "c", location: "l", description: "d"),
-            match: JobMatch(jobId: id, score: 50, reason: "", matchedSkills: [], missingSkills: [])
+            listing: JobListing(id: id, title: "t-\(id)", company: company, location: location, description: "d"),
+            match: JobMatch(jobId: id, score: score, reason: "", matchedSkills: [], missingSkills: [])
         )
     }
 
@@ -213,6 +215,93 @@ struct TrackerViewModelTests {
             untrackJob: UntrackJobUseCase(statuses: statuses),
             deleteSavedJob: DeleteSavedJobUseCase(jobs: jobs, statuses: statuses, applications: apps)
         ).supportsRowActions)
+    }
+
+    // MARK: Filter (v0.6.2 Milestone C — the reused ResultsFilter)
+
+    /// The filter narrows rows **within** the selected stage tab, and composes with the sort
+    /// (filter first, then order what survives).
+    @Test func filterAppliesWithinTheStageTabAndBeforeTheSort() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        try await jobs.save([
+            ranked("a", company: "Alpha", score: 90),
+            ranked("b", company: "Beta", score: 30),
+            ranked("c", company: "Alpha", score: 60),
+        ])
+        try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 100)), forJobID: "a")
+        try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 200)), forJobID: "b")
+        try await statuses.save(ApplicationStatus(stage: .interviewing, interviewDate: Date(timeIntervalSince1970: 300)), forJobID: "c")
+        let vm = TrackerViewModel(loadTrackedJobs: LoadTrackedJobsUseCase(jobs: jobs, statuses: statuses))
+        await vm.load()
+
+        vm.filter.company = "Alpha"
+        #expect(vm.jobs(in: .all).map(\.id) == ["c", "a"])       // default sort: most recent first
+        #expect(vm.jobs(in: .applied).map(\.id) == ["a"])        // and only within the tab
+        #expect(vm.jobs(in: .interviewing).map(\.id) == ["c"])
+
+        vm.sort = TrackerSort(key: .matchScore, direction: .ascending)
+        #expect(vm.jobs(in: .all).map(\.id) == ["c", "a"])       // 60 then 90, filter still applied
+    }
+
+    /// Everything in the Tracker is tracked, so the (hidden) tracked facet must not exclude
+    /// rows if a filter carrying it is ever applied.
+    @Test func trackedFacetNeverHidesTrackedRows() async throws {
+        let vm = try await makeVM { jobs, statuses in
+            try await jobs.save([self.ranked("a")])
+            try await statuses.save(ApplicationStatus(stage: .applied), forJobID: "a")
+        }
+        await vm.load()
+        vm.filter.trackedStatus = .tracked
+        #expect(vm.jobs(in: .all).map(\.id) == ["a"])
+        vm.filter.trackedStatus = .untracked                    // would hide everything…
+        #expect(vm.jobs(in: .all).isEmpty)                       // …which is why the UI hides the facet
+    }
+
+    /// Counts and options drive the bar: the denominator and the pickers come from the tab's
+    /// rows **before** filtering, so choosing one option doesn't erase the others.
+    @Test func countsAndOptionsComeFromTheUnfilteredTab() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        try await jobs.save([
+            ranked("a", company: "Alpha", location: "Denver"),
+            ranked("b", company: "Beta", location: "Remote"),
+        ])
+        for id in ["a", "b"] {
+            try await statuses.save(ApplicationStatus(stage: .applied, appliedDate: Date(timeIntervalSince1970: 100)), forJobID: id)
+        }
+        let vm = TrackerViewModel(loadTrackedJobs: LoadTrackedJobsUseCase(jobs: jobs, statuses: statuses))
+        await vm.load()
+
+        vm.filter.company = "Alpha"
+        #expect(vm.visibleCount(in: .applied) == 1)
+        #expect(vm.totalCount(in: .applied) == 2)
+        #expect(vm.companyOptions(in: .applied) == ["Alpha", "Beta"])     // both still offered
+        #expect(vm.locationOptions(in: .applied) == ["Denver", "Remote"])
+        #expect(vm.isFilteredEmpty(in: .applied) == false)
+    }
+
+    /// "A filter hid this tab's rows" is a distinct state from "this stage is empty" — the one
+    /// that keeps the filter bar reachable so it can be cleared.
+    @Test func isFilteredEmptyOnlyWhenAFilterHidesRealRows() async throws {
+        let vm = try await makeVM { jobs, statuses in
+            try await jobs.save([self.ranked("a", company: "Alpha")])
+            try await statuses.save(ApplicationStatus(stage: .applied), forJobID: "a")
+        }
+        await vm.load()
+
+        #expect(vm.isFilteredEmpty(in: .applied) == false)      // no filter active
+        #expect(vm.isFilteredEmpty(in: .offer) == false)        // genuinely empty stage, not filtered
+
+        vm.filter.company = "Nope"
+        #expect(vm.isFilteredEmpty(in: .applied))               // rows exist but are hidden
+        #expect(vm.isFilteredEmpty(in: .offer) == false)        // still just an empty stage
+
+        vm.clearFilter()
+        #expect(vm.filter.isActive == false)
+        #expect(vm.jobs(in: .applied).map(\.id) == ["a"])
     }
 
     // MARK: Multi-select + bulk actions (v0.6.2 Milestone B)

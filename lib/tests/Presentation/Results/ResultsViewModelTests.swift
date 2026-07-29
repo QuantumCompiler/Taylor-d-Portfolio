@@ -112,6 +112,42 @@ struct ResultsViewModelTests {
         #expect(vm.supportsBulkActions == false)
     }
 
+    // MARK: Sort (v0.6.2 Milestone C)
+
+    /// The sort runs **after** the filter, and the default reproduces the ranker's order — so
+    /// an untouched Results list is byte-for-byte what it was before the sort existed.
+    @Test func filterThenSortAndDefaultKeepsRankingOrder() {
+        let vm = ResultsViewModel(results: [
+            ranked("mid", score: 50, company: "Beta"),
+            ranked("top", score: 90, company: "Alpha"),
+            ranked("low", score: 10, company: "Gamma"),
+        ])
+        #expect(vm.filteredResults.map(\.id) == ["top", "mid", "low"])   // default = score desc
+
+        vm.filter.minScore = 40                                          // drops "low"
+        vm.sort = ResultsSort(key: .company, direction: .ascending)
+        #expect(vm.filteredResults.map(\.id) == ["top", "mid"])          // Alpha, Beta — "low" already gone
+        #expect(vm.visibleCount == 2)
+        #expect(vm.totalCount == 3)
+    }
+
+    @Test func resetSortRestoresTheDefault() {
+        let vm = ResultsViewModel(results: [ranked("a", score: 10), ranked("b", score: 90)])
+        vm.sort = ResultsSort(key: .title, direction: .ascending)
+        #expect(vm.sort.isDefault == false)
+        vm.resetSort()
+        #expect(vm.sort.isDefault)
+        #expect(vm.filteredResults.map(\.id) == ["b", "a"])
+    }
+
+    /// Sorting is a view concern only — it never touches the underlying results.
+    @Test func sortingLeavesTheResultsArrayUntouched() {
+        let vm = ResultsViewModel(results: [ranked("a", score: 10), ranked("b", score: 90)])
+        vm.sort = ResultsSort(key: .matchScore, direction: .descending)
+        #expect(vm.filteredResults.map(\.id) == ["b", "a"])
+        #expect(vm.results.map(\.id) == ["a", "b"])                      // stored order unchanged
+    }
+
     // MARK: Multi-select + bulk actions (v0.6.2 Milestone B)
 
     @Test func selectionStartsEmptyAndClears() {

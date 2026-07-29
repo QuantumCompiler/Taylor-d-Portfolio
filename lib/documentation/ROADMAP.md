@@ -880,14 +880,19 @@ granular breakdown + open calls.
       the single-row save now its one-element case. Seam: **Presentation only** over existing use cases. On-device:
       `.extraction` enrichment per saved job, unchanged in cost but capped in concurrency.
 
-- [ ] **Milestone C — Results sort + Tracker filter (parity across both tabs).** Each list tab has one half of the
-      pair: Results has a live `ResultsFilter` but no sort, the Tracker a live `TrackerSort` but no filter. A
-      useful asymmetry decides the approach — `ResultsFilter.matches(_:isTracked:)` is already `RankedJob`-generic
-      and `TrackedJob` wraps one, so the Tracker **reuses** it (filter before sort in `jobs(in:)`, with the moot
-      `trackedStatus` facet hidden); `TrackerSort`'s status keys don't exist for Results, so Results gets a
-      **parallel `ResultsSort`** with RankedJob-appropriate keys (match score = today's order, company, title,
-      salary, posted date) applied after the filter in `filteredResults`. Seam: **Presentation** only — both are
-      pure, session-only, non-destructive view state. On-device: n/a.
+- [x] **Milestone C — Results sort + Tracker filter (parity across both tabs).** ✅ **Done.** Each list tab had one
+      half of the pair: Results a live `ResultsFilter` but no sort, the Tracker a live `TrackerSort` but no filter.
+      A useful asymmetry decided the approach — `ResultsFilter.matches(_:isTracked:)` is already `RankedJob`-generic
+      and `TrackedJob` wraps one, so the Tracker **reuses** it (filter alongside the stage predicate in `jobs(in:)`,
+      before the sort, with the moot `trackedStatus` facet hidden); `TrackerSort`'s status keys don't exist for
+      Results, so Results got a **parallel `ResultsSort`** — same shape, keys match score (default = the ranker's
+      own order, so an untouched list is unchanged), company, title, salary, posted date — applied after the filter
+      in `filteredResults`. Unknown salary/date sorts **last in both directions**, matching `TrackerSort`'s undated
+      rule. `ResultsView.filterBar` was extracted to a shared **`ListFilterBar`** (Presentation · Components) both
+      tabs render, so the parity can't drift into two diverging copies; the Tracker's "no rows" state now
+      distinguishes a **filtered-empty tab** (bar stays, Clear offered) from an **empty stage**. The two sort bars
+      stay separate — sharing them would mean churning `TrackerSort` for ~30 lines. Seam: **Presentation** only —
+      both are pure, session-only, non-destructive view state. On-device: n/a.
 
 - [ ] **Milestone D — Hide the raw-text preview for imported source documents (keep paste).** Each Portfolio
       résumé/cover-letter slot (`documentSlot`) has a "Show text" toggle revealing a raw `TextEditor` of the

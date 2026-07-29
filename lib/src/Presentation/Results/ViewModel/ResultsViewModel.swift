@@ -25,6 +25,10 @@ final class ResultsViewModel {
     private(set) var isLoading = false
     /// The live, non-destructive view filter over `results` (Milestone W).
     var filter = ResultsFilter()
+    /// The live, non-destructive sort over the filtered results (v0.6.2 Milestone C) — the
+    /// capability the Tracker already had. `.default` is match-score-descending, i.e. the
+    /// ranker's own order, so an untouched sort changes nothing.
+    var sort: ResultsSort = .default
     /// The rows the user has multi-selected for a bulk action (v0.6.2 Milestone B). Distinct
     /// from ``selectedJob``, which is the single job open for detail. Holds ids rather than
     /// jobs so it survives the list being re-derived (filter change, enrichment swap).
@@ -81,10 +85,12 @@ final class ResultsViewModel {
 
     // MARK: Filtering (Milestone W — view-only, non-destructive)
 
-    /// The (un-tracked) results after applying the live `filter` — what the list shows.
-    /// Tracked jobs are already excluded, so no row is tracked here.
+    /// The (un-tracked) results after applying the live `filter`, then the live `sort` — what
+    /// the list shows. Tracked jobs are already excluded, so no row is tracked here.
+    /// **Filter first, then sort** (mirroring `TrackerViewModel.jobs(in:)`): sorting only what
+    /// survives the filter is the cheaper order and keeps the two tabs' pipelines identical.
     var filteredResults: [RankedJob] {
-        filter.apply(to: untrackedResults, isTracked: { _ in false })
+        sort.apply(to: filter.apply(to: untrackedResults, isTracked: { _ in false }))
     }
     var visibleCount: Int { filteredResults.count }
     var totalCount: Int { untrackedResults.count }
@@ -92,22 +98,13 @@ final class ResultsViewModel {
     var isFilteredEmpty: Bool { !untrackedResults.isEmpty && filter.isActive && filteredResults.isEmpty }
 
     /// Distinct locations present in the shown (un-tracked) results, for the location picker.
-    var locationOptions: [String] { distinct(untrackedResults.map(\.listing.location)) }
+    /// Derived **before** the filter, so choosing one option doesn't erase the others.
+    var locationOptions: [String] { ListFilterOptions.distinct(untrackedResults.map(\.listing.location)) }
     /// Distinct companies present in the shown (un-tracked) results, for the company picker.
-    var companyOptions: [String] { distinct(untrackedResults.map(\.listing.company)) }
+    var companyOptions: [String] { ListFilterOptions.distinct(untrackedResults.map(\.listing.company)) }
 
     func clearFilter() { filter = ResultsFilter() }
-
-    private func distinct(_ values: [String]) -> [String] {
-        var seen = Set<String>()
-        var result = [String]()
-        for value in values {
-            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { continue }
-            result.append(trimmed)
-        }
-        return result.sorted()
-    }
+    func resetSort() { sort = .default }
 
     func select(_ job: RankedJob) {
         selectedJob = job

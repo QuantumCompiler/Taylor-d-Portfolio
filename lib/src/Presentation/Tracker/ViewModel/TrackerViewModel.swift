@@ -17,6 +17,11 @@ final class TrackerViewModel {
     /// The live sort applied to each stage tab's rows (Milestone H). `.default` reproduces
     /// the historic most-recent-activity order; the view can change it without reloading.
     var sort: TrackerSort = .default
+    /// The live filter applied to each stage tab's rows (v0.6.2 Milestone C) — the capability
+    /// Results already had. This is **the same `ResultsFilter` type**, not a parallel one:
+    /// `matches(_:isTracked:)` is generic over a `RankedJob` and a `TrackedJob` wraps one, so it
+    /// applies directly to `tracked.job`. Session-only and non-destructive, like the sort.
+    var filter = ResultsFilter()
     /// True while the tracked-jobs load is in flight — the view shows a spinner instead of
     /// flashing the "No tracked applications" empty state (Milestone S-B).
     private(set) var isLoading = false
@@ -108,10 +113,42 @@ final class TrackerViewModel {
     }
 
     /// The tracked jobs that fall under `section`'s stage filter (`All` returns every
-    /// tracked job), ordered by the active ``sort`` (Milestone H). Drives the Tracker
-    /// inner-nav sub-views (v0.4.0 Milestone B).
+    /// tracked job), narrowed by the live ``filter`` (v0.6.2 Milestone C) and ordered by the
+    /// active ``sort`` (Milestone H). Drives the Tracker inner-nav sub-views (v0.4.0 B).
+    ///
+    /// **Filter within the tab, then sort.** The filter runs alongside the stage predicate — so
+    /// it narrows the rows the selected tab shows rather than reaching across tabs, matching how
+    /// the sort already works per section. `isTracked` is `true` by definition here (everything
+    /// in the Tracker is tracked), which is also why the view hides that facet.
     func jobs(in section: TrackerSection) -> [TrackedJob] {
-        sort.apply(to: trackedJobs.filter { section.includes($0.status.stage) })
+        sort.apply(to: trackedJobs.filter {
+            section.includes($0.status.stage) && filter.matches($0.job, isTracked: { _ in true })
+        })
+    }
+
+    /// Whether the live filter is hiding rows the selected tab would otherwise show — the
+    /// Tracker's analogue of `ResultsViewModel.isFilteredEmpty`, for a distinct empty state.
+    func isFilteredEmpty(in section: TrackerSection) -> Bool {
+        filter.isActive && jobs(in: section).isEmpty && !unfilteredJobs(in: section).isEmpty
+    }
+
+    func clearFilter() { filter = ResultsFilter() }
+
+    /// Rows in the selected tab **before** the filter — the "Showing X of Y" denominator, and
+    /// the set the location/company options are drawn from (so picking one doesn't erase the
+    /// rest).
+    private func unfilteredJobs(in section: TrackerSection) -> [TrackedJob] {
+        trackedJobs.filter { section.includes($0.status.stage) }
+    }
+    func totalCount(in section: TrackerSection) -> Int { unfilteredJobs(in: section).count }
+    func visibleCount(in section: TrackerSection) -> Int { jobs(in: section).count }
+
+    /// Distinct locations / companies among the selected tab's tracked jobs, for the pickers.
+    func locationOptions(in section: TrackerSection) -> [String] {
+        ListFilterOptions.distinct(unfilteredJobs(in: section).map(\.job.listing.location))
+    }
+    func companyOptions(in section: TrackerSection) -> [String] {
+        ListFilterOptions.distinct(unfilteredJobs(in: section).map(\.job.listing.company))
     }
 
     func select(_ job: RankedJob) { selectedJob = job }

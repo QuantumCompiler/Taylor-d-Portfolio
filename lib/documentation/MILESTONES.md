@@ -2880,3 +2880,55 @@ no-op. Full suite green (686 tests); build warning-free.
 
 **On-device.** Selection and the bars are pure Presentation. The bulk save's enrichment is `.extraction`-task LLM
 work on the existing engine — unchanged per job, now capped at 4 concurrent instead of unbounded.
+
+## Milestone C — Results sort + Tracker filter: sort/filter parity across both tabs  ✅ done  (`Presentation/Results/View/ResultsSort` (new) + `Presentation/Components/ListFilterBar` (new), both list `View`s + `ViewModel`s; tests in `lib/tests/Presentation/Results` + `…/Tracker`)
+
+The two list tabs each had **one** of the pair — Results a live `ResultsFilter` (Milestone W) but no sort, the
+Tracker a live `TrackerSort` (v0.5.1 Milestone H) but no filter. Both now sort **and** filter. The asymmetry in how
+that was done is the interesting part: one side **reuses**, the other **parallels**, and which is which follows
+from the data, not from taste.
+
+- [x] **Tracker filter — the *same* `ResultsFilter`, not a copy.** `matches(_ job: RankedJob, isTracked:)` is
+      generic over a `RankedJob` and a `TrackedJob` **wraps** one, so it applies directly to `tracked.job`. A
+      `filter` property on [`TrackerViewModel`](../src/Presentation/Tracker/ViewModel/TrackerViewModel.swift) runs
+      **alongside the stage predicate inside `jobs(in:)`, before the sort** — resolving the scope open call as
+      recommended: the filter narrows **within the selected tab** rather than reaching across tabs, matching how the
+      sort already worked per section. `isTracked` is hard-`true` there (everything in the Tracker is tracked),
+      which is also why the UI hides that facet.
+- [x] **Results sort — a *new*, parallel [`ResultsSort`](../src/Presentation/Results/View/ResultsSort.swift).**
+      `TrackerSort` couldn't be reused: it sorts `[TrackedJob]` on **status-based** keys (recent activity / date
+      applied / stage) that don't exist for an un-triaged `RankedJob`. So `ResultsSort` mirrors its shape — same
+      `Key` / `Direction` / `apply(to:)`, pure, `Sendable`, `Equatable`, title tie-break for stability — with
+      RankedJob-appropriate keys: **match score (default)**, company, role title, salary, posted date. Applied in
+      `filteredResults` **after** the filter, with a `sortBar` mirroring `TrackerView.sortBar`.
+- [x] **The default changes nothing.** `ResultsSort.default` is match-score-descending — the order the ranker
+      already returns — so an untouched Results list is exactly what it was before this milestone. Pinned by a test.
+- [x] **Unknowns sort last in *both* directions.** A listing with no salary or no `postedDate` goes to the end
+      whichever way the arrow points — the same rule `TrackerSort` uses for undated jobs, so "unknown" never
+      masquerades as the best or the worst value. Salary ranks on the top of the range, falling back to the floor
+      (matching how `ResultsFilter`'s salary facet reads a range).
+- [x] **One filter bar, not two.** `ResultsView.filterBar` was extracted to a shared
+      [`ListFilterBar`](../src/Presentation/Components/ListFilterBar.swift) (Presentation · Components) that both
+      tabs now render, with the option-list duplication behind a shared `ListFilterOptions.distinct`. Giving both
+      tabs the same capability would otherwise have meant two copies of the same controls, free to drift. The
+      `trackedStatus` facet is exposed by neither — moot in the Tracker, and Results hasn't shown tracked jobs since
+      v0.4.1 Milestone C.
+- [x] **A filtered-empty tab is not an empty stage.** `TrackerView`'s "No *stage* applications" branch keyed off
+      `jobs`, which is now filtered — so a filter that hid every row would have shown that message **with the
+      filter bar gone**, stranding the user with no way to clear it. The branch now keys off the **unfiltered**
+      count, and a filtered-empty tab gets its own state with a **Clear filters** button, mirroring Results'
+      `isFilteredEmpty`.
+- [x] **Sort bars stay separate.** Sharing them would mean a protocol over both sort types with an associated
+      `Key` and a hoisted `Direction` — churning `TrackerSort` and its tests to save ~30 lines of view code. Not
+      worth it; the two ~30-line bars stay.
+
+**Tests.** A new `ResultsSortTests` suite mirroring `TrackerSortTests`: every key in both directions, the
+default-reproduces-ranking-order guarantee, salary's top-then-floor rule, unknowns-last in both directions, title
+tie-break stability, empty/single input, and that every key is labelled for the picker. Plus VM-level wiring —
+Results: filter-then-sort composition, `resetSort`, and that sorting never mutates `results`; Tracker: the filter
+applying within a stage tab and before the sort, the tracked facet's behaviour on an all-tracked list, counts and
+picker options coming from the **unfiltered** tab, and `isFilteredEmpty` firing only when a filter hides real rows.
+Full suite green (703 tests); build warning-free.
+
+**On-device.** n/a — pure Presentation value types, session-only and non-destructive. No persistence, no re-load,
+no model call.
