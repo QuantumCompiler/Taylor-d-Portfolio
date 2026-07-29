@@ -120,6 +120,33 @@ struct ExportApplicationUseCaseTests {
         #expect(useCase.texSource(kit, .coverLetter).contains("{Class/CoverLetter}"))
     }
 
+    /// The chosen document style reaches the builder through both LaTeX entry points — the `.tex`
+    /// source and the compiled PDF (v0.7.0 Milestone B; Milestone E supplies the user's pick).
+    @Test func forwardsTheChosenStyleToTheTexBuilder() async throws {
+        var style = LaTeXStyle.default
+        style.pageSize = .usLetter
+        style.accent = .named(.red)
+        style.margins = LaTeXMargins(leftCm: 1, topCm: 1, rightCm: 1, bottomCm: 1, footskipCm: 0.25)
+
+        let compiler = RecordingCompiler(result: .success(Data("%PDF-1.5".utf8)))
+        let useCase = ExportApplicationUseCase(exporter: RecordingExporter(), compiler: compiler)
+
+        let source = useCase.texSource(kit, .resume, style: style)
+        #expect(source.contains("\\documentclass[6pt, letterpaper]{Class/Resume}"))
+        #expect(source.contains("\\colorlet{awesome}{awesome-red}"))
+        #expect(source.contains("\\geometry{left=1.00cm, top=1.00cm, right=1.00cm, bottom=1.00cm, footskip=0.25cm}"))
+
+        _ = try await useCase.latexPDF(kit, .coverLetter, style: style)
+        #expect(compiler.lastTex?.contains("\\documentclass[11pt, letterpaper]{Class/CoverLetter}") == true)
+    }
+
+    /// Omitting the style keeps the original look, so existing callers are unaffected until E.
+    @Test func omittingTheStyleKeepsTheOriginalLook() {
+        let useCase = ExportApplicationUseCase(exporter: RecordingExporter())
+        #expect(useCase.texSource(kit, .resume) == useCase.texSource(kit, .resume, style: .default))
+        #expect(!useCase.texSource(kit, .resume).contains("letterpaper"))
+    }
+
     @Test func latexAvailabilityReflectsTheCompiler() {
         #expect(ExportApplicationUseCase(exporter: RecordingExporter()).isLaTeXAvailable == false)      // no compiler
         #expect(ExportApplicationUseCase(exporter: RecordingExporter(), compiler: RecordingCompiler(available: false)).isLaTeXAvailable == false)

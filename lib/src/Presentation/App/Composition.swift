@@ -232,6 +232,24 @@ struct Composition {
     private var deleteGenerationPreset: DeleteGenerationPresetUseCase? {
         generationPresetsRepository.map(DeleteGenerationPresetUseCase.init(repository:))
     }
+    private var savedDocumentStylesRepository: SavedDocumentStylesRepository? {
+        recordStore.map(SavedDocumentStylesRepository.init(store:))
+    }
+    private var saveDocumentStyle: SaveDocumentStyleUseCase? {
+        savedDocumentStylesRepository.map { SaveDocumentStyleUseCase(repository: $0) }
+    }
+    private var loadDocumentStyles: LoadDocumentStylesUseCase? {
+        savedDocumentStylesRepository.map(LoadDocumentStylesUseCase.init(repository:))
+    }
+    private var deleteDocumentStyle: DeleteDocumentStyleUseCase? {
+        savedDocumentStylesRepository.map(DeleteDocumentStyleUseCase.init(repository:))
+    }
+    /// The built-in templates whose class files actually shipped. Resolved **here** because
+    /// checking is `FileManager` I/O, which the Presentation layer doesn't do; the view models
+    /// receive the answer as data.
+    private var availableLaTeXTemplates: [LaTeXTemplateDescriptor] {
+        TexAssets().map(LaTeXTemplateRegistry.available(in:)) ?? LaTeXTemplateRegistry.all
+    }
     private var saveProfile: SaveProfileUseCase? {
         savedProfilesRepository.map { SaveProfileUseCase(repository: $0) }
     }
@@ -300,6 +318,20 @@ struct Composition {
               latexAvailable: LaTeXProcessClient().isAvailable,
               llmSourceAvailable: isLLMJobSearchAvailable)
     }
+    /// The document-style manager (v0.7.0 Milestone E). `DefaultDocumentStyleStore` is built
+    /// inline at the use site, mirroring `DefaultProfileStore` — a pointer store isn't a graph
+    /// node.
+    func makeDocumentStylesViewModel() -> DocumentStylesViewModel {
+        .init(
+            saveDocumentStyle: saveDocumentStyle,
+            loadDocumentStyles: loadDocumentStyles,
+            deleteDocumentStyle: deleteDocumentStyle,
+            defaultDocumentStyleStore: DefaultDocumentStyleStore(store: UserDefaultsStore()),
+            exportApplication: exportApplication,
+            templates: availableLaTeXTemplates,
+            latexAvailable: LaTeXProcessClient().isAvailable
+        )
+    }
     func makeApplicationViewModel() -> ApplicationViewModel {
         .init(
             generateApplication: generateApplication,
@@ -310,7 +342,10 @@ struct Composition {
             saveGenerationPreset: saveGenerationPreset,
             loadGenerationPresets: loadGenerationPresets,
             deleteGenerationPreset: deleteGenerationPreset,
-            loadProfiles: loadProfiles
+            loadProfiles: loadProfiles,
+            loadDocumentStyles: loadDocumentStyles,
+            defaultDocumentStyleStore: DefaultDocumentStyleStore(store: UserDefaultsStore()),
+            availableTemplates: availableLaTeXTemplates
         )
     }
 }

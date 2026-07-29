@@ -10,13 +10,36 @@ line in `ROADMAP.md`, in the same change. This file should only ever contain wor
 doing.
 
 > **Current focus. The next version (unstarted) — number + theme TBD.** See "Next version" at the bottom of this
-> file. **v0.6.2 (list actions, sorting & document previews) is complete and merge-ready** — all five milestones
-> **A–E** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs, `README.md`, and
-> `MARKETING_VERSION = 0.6.2` are done, and the full suite is green (719 tests, no warnings). **v0.6.1 (keyword
-> match & ATS coverage) is likewise complete.** Only the **device checks** below remain before the branch merges.
+> file. **v0.7.0 (customizable LaTeX document styles) is complete and merge-ready** — all six milestones **A–F**
+> shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs and `README.md` are done, every
+> `MARKETING_VERSION` reads `0.7.0`, and the full suite is green (904 cases, no warnings). Only the **device
+> checks** below remain before the branch merges.
 >
 > **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
-> milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.6.2**.
+> milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.7.0**; the v0.6.x items were
+> written against a 0.6.2 build and are carried forward unverified.
+> - **v0.7.0 A–D** — Settings gains a **Document Styles** pane. Create a style, name it, Save; **star** it as the
+>   default; **duplicate** it (the copy is named "… copy"); **delete** it — and confirm deleting the default
+>   un-stars everything rather than leaving a pointer behind. Quit and relaunch: the library and the default
+>   survive. With no styles saved, an export must look **exactly as it did in v0.6.2**.
+> - **v0.7.0 E** — the four control groups: change the **body font**, **accent**, **page size**, **margins** and
+>   the **section order / visibility / spacing**, then **Preview** (a few seconds; noticeably longer the first
+>   time). Reorder so **Skills** comes first and confirm the sections after it aren't visibly compressed (the
+>   `\arraystretch` fix). Hide **Other sections** and confirm the summary paragraph at the top **survives**. In a
+>   job's Application window, the Export menu shows a **Style** picker under "Portfolio (LaTeX)" separate from
+>   "PDF / Word template" — pick a saved style and confirm the exported PDF/`.tex` uses it; leave it on
+>   **Default** and confirm it follows the starred style. Without MacTeX, Preview is **visible but disabled**
+>   with an explanation.
+> - **v0.7.0 F** — under **Advanced**, switch on **"Replace the generated preamble with my own LaTeX"**: the
+>   editor seeds with the real generated block, and the Template/Typography/Accent/Page controls dim while the
+>   cover-letter and section controls stay live. Add
+>   `\renewcommand{\pageHeader}{\name{Your}{Name}\email{you@example.com}}` and Preview — **the header should
+>   read your name** (this is the reason the escape hatch exists). Then break it deliberately (e.g.
+>   `\thisIsNotACommand{}`): Preview shows the **real lualatex log** in the Preview section and keeps the last
+>   good render; **"Use the generated preamble"** and **"Revert to a built-in…"** each fix it *and persist* —
+>   re-export from the job window without re-saving to confirm. Export the same broken style from a job: the
+>   banner names the custom preamble, **"Use the built-in style for this export"** unblocks it without changing
+>   the saved style, and **"Export .tex source"** still works.
 > - **v0.6.2 A** — a Tracker row shows the **Return to Results + trash icons** without hovering, matching the
 >   Results rows; **right-clicking** a row offers the same two; both **swipes** still work. **Delete confirms from
 >   all three paths** (and the dialog names the job), Return to Results doesn't. With a job open, the footer's
@@ -75,14 +98,22 @@ down only).
 
 # Next version — (unstarted; number + theme TBD)
 
-**Nothing is scheduled yet** — v0.6.2 is complete (see "Current focus" above) and the next version is unstarted.
+**Nothing is scheduled yet** — v0.7.0 is complete (see "Current focus" above) and the next version is unstarted.
 
-**Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its number
-and theme aren't chosen until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At
-kickoff, pick a theme from `ROADMAP.md`'s Backlog (native `LanguageModel` provider seam, on-device embedding RAG,
-optional MCP tools) or a `PLANNED.md` entry — one remains, **customizable LaTeX styles** (`Target: v0.7.0`, a
-large ~6-milestone feature). Two candidates are **unspecced** and need a `PLANNED.md` entry with a `Target:`
-first: the **ATS-friendly export mode** noted alongside v0.6.1, and the **chunked full tidy** noted as v0.6.2
-Milestone E's follow-on (tidy a long document in segments so its readable copy is complete *and* formatted
-throughout, rather than tidied-then-raw). Assign the version number, bump `MARKETING_VERSION`, and break it into
-Milestone A, B, C… here.
+**Milestones restart at Milestone A** (see the versioning note in `CLAUDE.md`). The number and theme aren't chosen
+until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At kickoff, pick a theme from
+`ROADMAP.md`'s Backlog (native `LanguageModel` provider seam, on-device embedding RAG, optional MCP tools) or spec
+a `PLANNED.md` entry — that file is currently **empty**. Four candidates are known but unspecced and each needs a
+`PLANNED.md` entry with a `Target:` first:
+
+- **ATS-friendly export mode** — noted alongside v0.6.1: standard headings, single-column, selectable text, which
+  is what decides whether an ATS can *parse* a résumé at all.
+- **Chunked full tidy** — v0.6.2 Milestone E's follow-on: tidy a long document in segments so its readable copy is
+  complete *and* formatted throughout, rather than tidied-then-raw.
+- **Custom accent colours in the manager UI** — v0.7.0 models `LaTeXAccent.custom(hex:)` and it survives a
+  round-trip, but Milestone E's picker offers only the bundled palette.
+- **Cross-window style refresh** — a style saved in Settings doesn't reach an already-open Application window
+  until it reloads (v0.7.0 E, accepted deliberately; generation presets behave the same). An
+  `AppSession.dataChanged()` bump would fix both.
+
+Assign the version number, bump `MARKETING_VERSION`, and break it into Milestone A, B, C… here.

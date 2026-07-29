@@ -52,12 +52,17 @@ private actor CoverageStubProvider: LLMProvider {
 private final class VMStubCompiler: LaTeXCompiling, @unchecked Sendable {
     let available: Bool
     let result: Result<Data, Error>
+    /// The last `.tex` compiled — how the style tests prove the picker's choice reached here.
+    private(set) var lastTex: String?
     init(available: Bool = true, result: Result<Data, Error> = .success(Data("%PDF".utf8))) {
         self.available = available
         self.result = result
     }
     var isAvailable: Bool { available }
-    func compile(tex: String, jobName: String) async throws -> Data { try result.get() }
+    func compile(tex: String, jobName: String) async throws -> Data {
+        lastTex = tex
+        return try result.get()
+    }
 }
 
 @MainActor
@@ -500,6 +505,164 @@ struct ApplicationViewModelTests {
         await vm.generate(for: job, profile: profile)
         #expect(vm.canExportLaTeX == false)
         #expect(vm.canExportLaTeX(.resume) == false)
+    }
+
+    // MARK: Document styles at export time (v0.7.0 Milestone E)
+
+    /// A VM with a styles library behind it, so the picker has something to pick.
+    private func styledVM(compiler: VMStubCompiler,
+                          styles: [SavedDocumentStyle],
+                          defaultID: String? = nil) async -> ApplicationViewModel {
+        let store = InMemoryRecordStore()
+        let repo = SavedDocumentStylesRepository(store: store)
+        for style in styles { try? await repo.save(style) }
+        let defaults = PresentationMemoryStore()
+        let pointer = DefaultDocumentStyleStore(store: defaults)
+        pointer.save(defaultID)
+
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(
+                provider: PresentationStubProvider(kitResume: "# Resume\nSwift dev")),
+            exportApplication: ExportApplicationUseCase(exporter: MarkdownDocumentExporter(), compiler: compiler),
+            loadDocumentStyles: LoadDocumentStylesUseCase(repository: repo),
+            defaultDocumentStyleStore: pointer
+        )
+        await vm.generate(for: job, profile: profile)
+        await vm.loadDocumentStyles()
+        return vm
+    }
+
+    private func savedStyle(_ id: String, leftCm: Double) -> SavedDocumentStyle {
+        var style = LaTeXStyle.default
+        style.margins = LaTeXMargins(leftCm: leftCm, topCm: 1, rightCm: 1, bottomCm: 1, footskipCm: 0.25)
+        return SavedDocumentStyle(id: id, name: "Style \(id)", style: style,
+                                  createdAt: Date(timeIntervalSince1970: 1))
+    }
+
+    /// The core contract of the milestone: what the picker selects is what the export compiles.
+    @Test func latexPDFExportUsesTheSelectedSavedStyle() async {
+        let compiler = VMStubCompiler()
+        let vm = await styledVM(compiler: compiler, styles: [savedStyle("s1", leftCm: 2)])
+        vm.selectedStyleChoice = .saved("s1")
+        _ = await vm.exportLaTeXPDF(.resume)
+
+        #expect(compiler.lastTex?.contains("left=2.00cm") == true)
+    }
+
+    /// …and through the `.tex` source route, which needs no TeX install at all.
+    @Test func texSourceExportUsesTheSelectedSavedStyle() async {
+        let vm = await styledVM(compiler: VMStubCompiler(available: false),
+                                styles: [savedStyle("s1", leftCm: 2)])
+        vm.selectedStyleChoice = .saved("s1")
+        let tex = String(decoding: vm.exportTexSource(.resume) ?? Data(), as: UTF8.self)
+
+        #expect(tex.contains("left=2.00cm"))
+    }
+
+    @Test func styleSelectionDefaultsToTheDefaultPointer() async {
+        let vm = await styledVM(compiler: VMStubCompiler(),
+                                styles: [savedStyle("s1", leftCm: 2), savedStyle("s2", leftCm: 3)],
+                                defaultID: "s2")
+        #expect(vm.selectedStyleChoice == nil)
+        #expect(vm.resolvedStyle.margins.leftCm == 3)
+        #expect(vm.defaultStyleRowLabel == "Default — Style s2")
+    }
+
+    /// A pointer to a deleted style falls back to the **built-in** look — never to another saved
+    /// style, which would silently restyle the document the user is about to send.
+    @Test func aDanglingDefaultPointerFallsBackToTheBuiltInStyle() async {
+        let vm = await styledVM(compiler: VMStubCompiler(),
+                                styles: [savedStyle("s1", leftCm: 2)],
+                                defaultID: "deleted-id")
+        #expect(vm.resolvedStyle == .default)
+        #expect(vm.resolvedStyle.margins.leftCm != 2)
+        #expect(vm.defaultStyleRowLabel == "Default — \(LaTeXTemplateRegistry.fallback.displayName)")
+    }
+
+    @Test func pickingABuiltInTemplateUsesItsDefaultStyle() async {
+        let compiler = VMStubCompiler()
+        let vm = await styledVM(compiler: compiler, styles: [])
+        vm.selectedStyleChoice = .builtIn(.awesomeCVCompact)
+        _ = await vm.exportLaTeXPDF(.resume)
+
+        #expect(compiler.lastTex?.contains("left=0.35cm") == true)
+    }
+
+    /// With no library wired at all, the export is byte-for-byte the pre-v0.7.0 output.
+    @Test func withoutAStylesLibraryTheExportIsTheBuiltInDefault() async {
+        let vm = latexVM(compiler: VMStubCompiler(available: false))
+        await vm.generate(for: job, profile: profile)
+        let tex = String(decoding: vm.exportTexSource(.resume) ?? Data(), as: UTF8.self)
+
+        #expect(vm.savedStyles.isEmpty)
+        #expect(vm.resolvedStyle == .default)
+        #expect(tex == TexDocumentBuilder.resume(fromMarkdown: "# Resume\nSwift dev"))
+    }
+
+    /// The "compiled to N pages" advisory was measured under the old style — changing style must
+    /// retire it rather than leave it advising against a style the user no longer has selected.
+    @Test func changingTheStyleClearsTheStaleCompiledPageCount() async throws {
+        let realPDF = try PDFDocumentExporter().export(markdown: "# R\n\nbody", as: .pdf)
+        let vm = await styledVM(compiler: VMStubCompiler(result: .success(realPDF)),
+                                styles: [savedStyle("s1", leftCm: 2)])
+        _ = await vm.exportLaTeXPDF(.resume)
+        #expect(vm.latexResumePages == 1)
+
+        vm.selectedStyleChoice = .saved("s1")
+        #expect(vm.latexResumePages == 0)
+        #expect(vm.exportError == nil)
+    }
+
+    // MARK: The custom-preamble escape at export time (v0.7.0 Milestone F)
+
+    private func overriddenStyle(_ id: String) -> SavedDocumentStyle {
+        var style = LaTeXStyle.default
+        style.customPreamble = "\\thisIsNotACommand{}"
+        return SavedDocumentStyle(id: id, name: "Broken", style: style,
+                                  createdAt: Date(timeIntervalSince1970: 1))
+    }
+
+    /// A compile failure under a custom preamble names it as the likely cause — the log alone
+    /// doesn't tell a user which of their choices did this.
+    @Test func aCompileFailureUnderAnOverrideNamesThePreamble() async {
+        let vm = await styledVM(compiler: VMStubCompiler(
+            result: .failure(LaTeXProcessError.nonZeroExit(code: 1, log: "! Undefined control sequence"))),
+            styles: [overriddenStyle("s1")])
+        vm.selectedStyleChoice = .saved("s1")
+        _ = await vm.exportLaTeXPDF(.resume)
+
+        #expect(vm.exportUsedCustomPreamble)
+        #expect(vm.exportError?.contains("! Undefined control sequence") == true)
+        #expect(vm.exportError?.contains("custom LaTeX preamble") == true)
+    }
+
+    /// …and the one-click escape unblocks the send without editing or deleting the style.
+    @Test func theBuiltInEscapeUnblocksTheExportWithoutTouchingTheStyle() async {
+        let compiler = VMStubCompiler()
+        let vm = await styledVM(compiler: compiler, styles: [overriddenStyle("s1")])
+        vm.selectedStyleChoice = .saved("s1")
+        #expect(vm.exportUsedCustomPreamble)
+
+        vm.useBuiltInStyleForExport()
+
+        #expect(!vm.exportUsedCustomPreamble)
+        #expect(vm.resolvedStyle == LaTeXStyle.default)
+        _ = await vm.exportLaTeXPDF(.resume)
+        #expect(compiler.lastTex?.contains("thisIsNotACommand") == false)
+        // The user's style is untouched — the escape is session-only.
+        #expect(vm.savedStyles.first?.style.customPreamble != nil)
+    }
+
+    /// The `.tex` source keeps working when the PDF route can't — that's how a broken preamble
+    /// gets debugged.
+    @Test func theTexSourceStillExportsUnderABrokenOverride() async {
+        let vm = await styledVM(compiler: VMStubCompiler(available: false),
+                                styles: [overriddenStyle("s1")])
+        vm.selectedStyleChoice = .saved("s1")
+        let tex = String(decoding: vm.exportTexSource(.resume) ?? Data(), as: UTF8.self)
+
+        #expect(tex.contains("\\thisIsNotACommand{}"))
+        #expect(tex.contains("\\begin{document}"))
     }
 
     @Test func exportLaTeXPDFReturnsBytesAndRecordsRealPageCount() async throws {

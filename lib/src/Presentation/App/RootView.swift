@@ -27,6 +27,7 @@ struct RootView: View {
     @State private var results: ResultsViewModel
     @State private var tracker: TrackerViewModel
     @State private var settings: SettingsViewModel
+    @State private var documentStyles: DocumentStylesViewModel
 
     init(composition: Composition) {
         _portfolio = State(initialValue: composition.makePortfolioViewModel())
@@ -34,6 +35,7 @@ struct RootView: View {
         _results = State(initialValue: composition.makeResultsViewModel())
         _tracker = State(initialValue: composition.makeTrackerViewModel())
         _settings = State(initialValue: composition.makeSettingsViewModel())
+        _documentStyles = State(initialValue: composition.makeDocumentStylesViewModel())
     }
 
     var body: some View {
@@ -208,7 +210,8 @@ struct RootView: View {
         case .tracker:
             TrackerView(viewModel: tracker, section: TrackerSection(index: nav.selectedSubView))
         case .settings:
-            SettingsView(viewModel: settings, section: SettingsSection(index: nav.selectedSubView))
+            SettingsView(viewModel: settings, styles: documentStyles,
+                         section: SettingsSection(index: nav.selectedSubView))
         }
     }
 }

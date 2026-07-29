@@ -921,6 +921,121 @@ granular breakdown + open calls.
       Presentation + Data/LLM (`Prompts`) + Business (`TidyDocumentUseCase`). On-device: twice the input for one
       document on the `.profile` task, still bounded; the appended remainder costs no model work.
 
+## v0.7.0 — customizable LaTeX document styles  (complete)
+
+A **feature release**, scheduled out of `PLANNED.md`'s single `Target: v0.7.0` entry (2026-07-28). The theme is
+**user-owned document presentation**: the awesome-cv LaTeX route (v0.5.1) is one fixed template with every
+presentation choice hardcoded in `TexDocumentBuilder` — class + font size, `\geometry`, `\fontdir`, section order
+and spacing, and a separate cover-letter documentclass. This release replaces those literals with **named,
+reusable `LaTeXStyle`s** chosen at export time, backed by an enumerable built-in template registry, plus a
+**raw-LaTeX preamble escape hatch** for power users. Six milestones **A–F**; milestones restart at **A** and
+commit as `v0.7.0 : Milestone X Completed`. **Not Presentation-only** — A–C + F are Infrastructure/Tex, D is
+Data/Persistence, E is Presentation. Distinct from the native `ExportTemplate` (Core Text PDF/DOCX), which is
+untouched. Styles theme **presentation only** on the generated path — the body is always app-generated and escaped, and the
+app never writes user or model data into a preamble. (Milestone F's hand-written override is user-authored LaTeX
+and *can* affect typeset content; it can't run shell commands.) `TODO.md` has the granular breakdown + open calls.
+
+- [x] **Milestone A — `LaTeXStyle` model + built-in template registry.** ✅ **Done.** The style had no home —
+      every choice was a literal in `TexDocumentBuilder`'s preamble builders. Added a pure
+      `nonisolated`/`Sendable`/`Codable` `LaTeXStyle` (template id, font family, per-document base sizes, accent,
+      page size, margins, the letter's `parskip`/`linespread`, `sectionOrder` / `hiddenSections` /
+      `sectionSpacingEm`, optional `customPreamble`) plus the formatting helpers B/C consume, and a data-driven
+      `LaTeXTemplateRegistry` in the `JobProviderRegistry` shape — descriptors pairing the bundled classes (via
+      `TexAssets`) with a default style, `descriptor(for:)` total, `available(in:)` fail-soft. Two templates ship:
+      the shipped awesome-cv look, whose default **is** `LaTeXStyle.default` (byte-identical to today, which is
+      what makes B and C safe), and a **Compact** variant reusing the same classes. Font family / accent / page
+      size each carry an explicit `.templateDefault` case so "unchanged" is a real state rather than a forced
+      choice. Font size stays **per document** (6pt résumé / 11pt letter): the two classes scale off their base
+      differently, so one shared number would render as two unrelated sizes. The tests surfaced one **deliberate
+      divergence** — the builder sorts "Employment"/"Work History" as experience but spaces them as "other", and a
+      style's single bucket unifies that — pinned by its own test so C's byte-for-byte claim stays honest.
+      **No behaviour change yet**; the builder is untouched. Seam: **Infrastructure/Tex**. On-device: n/a.
+
+- [x] **Milestone B — Parameterize `TexDocumentBuilder` typography, geometry, colour & page size.** ✅ **Done.**
+      Both preambles now come from a shared `preambleHead(for:style:)` — document class + options from the
+      template descriptor and the style's per-document base size and page size, `\geometry` from its margins, then
+      optional font-family and accent overrides — with the letter's `\parskip`/`\linespread` style-driven too.
+      **One style covers both documents:** the résumé-vs-letter paper asymmetry moved to the *template*
+      (`templateDefaultPaperOptions`), consulted only while the style says "template default", so choosing US
+      Letter or A4 applies to both. A chosen family emits `\newfontfamily` + `\renewcommand*{\bodyfont}` with
+      per-family face suffixes and an explicit `Extension=`; a named accent emits `\colorlet{awesome}{awesome-…}`
+      and a custom one `\definecolor`, with a malformed hex emitting nothing rather than an uncompilable line.
+      Threaded through `ExportApplicationUseCase.texSource` / `.latexPDF` with a `.default`, so Presentation is
+      untouched until E. **No change by default, proven properly:** the pre-change output was captured first and
+      is asserted as a **whole-document** golden for both deliverables, and a fully-styled document (custom
+      accent, Roboto, US Letter, non-default sizes/margins) is compiled under real `lualatex`. Seam:
+      **Infrastructure/Tex** + Business call site. On-device: n/a.
+
+- [x] **Milestone C — Section order & visibility from the style.** ✅ **Done.** `canonicalOrder` and
+      `sectionVSpace` were hardcoded to the hand-authored résumé; both are now style-driven (reorder, show/hide,
+      per-bucket spacing) and the two statics were **deleted** rather than kept as delegates — their coverage
+      ported to `LaTeXStyleTests` expectation for expectation. Ordering is a **partition** over `sectionOrder`
+      (`LaTeXStyle.orderedSections`), not a `sorted(by:)`: the comparator's index tiebreak is undetectable by
+      test, whereas the partition makes document order structural and handles a duplicated bucket, an empty
+      order, and unnamed buckets by construction (mutation-verified — reversing within-bucket order now fails
+      four tests). Open call resolved as recommended: unknown/unnamed buckets **append stably**, never dropped;
+      only `hiddenSections` removes anything. Hiding leaves **no double gap** by construction (the `\vspace` is a
+      per-iteration prefix), pinned as byte equality against Markdown that never had the section. The lead
+      summary stays out of the style's reach — hiding `.other` must not delete it. One deliberate default change:
+      "Employment"/"Work History" take the experience `-1.5em` (the old builder's classifiers disagreed);
+      Milestone B's golden is otherwise byte-identical and was not regenerated. The **Compact** template's
+      tighter section spacing — inert until now — was measured under `lualatex` (it ran the first section's rule
+      ~7.6pt into the lead paragraph vs the default's ~2.6pt) and **reverted to canonical**; margins stay its
+      differentiator, and E must bound user-entered spacing. Non-finite spacing now formats as `0` rather than
+      emitting an uncompilable `\vspace{nanem}`. Seam: **Infrastructure/Tex**. On-device: n/a.
+
+- [x] **Milestone D — Persistence: styles library + default pointer.** ✅ **Done.** `SavedDocumentStyle`
+      (id / name / style / `createdAt` — the store guarantees no ordering, so the library sorts for itself)
+      through `PersistentRecordStore` via `SavedDocumentStylesRepository` (`kind = "documentStyle"`, mirrors
+      `SavedProfilesRepository`), plus a single-id `DefaultDocumentStyleStore` on `KeyValueStore` so "exactly one
+      default" holds by construction, three use cases carrying the id/timestamp policy, and private `Composition`
+      wiring. Built-ins stay in the registry; the repository holds only user styles. The substance was **tolerant
+      decoding**: synthesized `Codable` is all-or-nothing, and because `all()` is best-effort a style that throws
+      doesn't error — it vanishes from the library while its row stays in the store, undeletable. `LaTeXStyle`
+      (and its two nested value types) gained a field-by-field `init(from:)` — `(try? decode) ?? default` rather
+      than `decodeIfPresent`, which still throws on an invalid raw value; collections degrade element-wise; a
+      present-but-empty collection is honoured rather than treated as missing; and a `style` that isn't an object
+      still throws so `SavedDocumentStyle` can load it as a named, deletable row. A dangling default pointer
+      resolves to `nil` rather than falling back to some other style — silently applying an unchosen style would
+      change the document the user sends. Seam: **Data/Persistence** + Business use cases + `Composition`, plus
+      the decoder in **Infrastructure/Tex**. On-device: n/a.
+
+- [x] **Milestone E — Style-manager UI + export-time picker.** ✅ **Done.** A "Document styles" manager (create / name /
+      duplicate / edit / delete, the four control groups) and a style picker on the LaTeX route in
+      `ApplicationSheet`'s Export menu, defaulting to the default style and flowing view → `ApplicationViewModel`
+      → `ExportApplicationUseCase` → `TexDocumentBuilder`. **LaTeX-only** — the native exports keep
+      `ExportTemplate`, and the two pickers must not read as the same control. Open calls: the manager lives in a
+      new `SettingsSection` (recommended, over a new sidebar area), and styling previews via a **Preview button**
+      rather than live (recommended — a live preview pays the `lualatex` latency per keystroke); both resolved as
+      recommended, the second with a number behind it (~4.0s warm, ~8.2s cold). **Every numeric control is
+      bounded** and that is the whole safety mechanism: measured, `lualatex` exits 0 on absurd geometry —
+      1.6cm text width, twelve pages, negative margins — so there is no compile error to catch. Base size became
+      a discrete picker because `[6pt]` is an unused option the classes forward to `article`, which honours only
+      10/11/12pt. The picker's `nil` stays a live "follow my default" and a dangling default falls back to the
+      built-in look, never to another saved style. The carried-over **`\arraystretch` fix** landed here (grouped,
+      not reset — measured 6.99pt → 10.860pt against a 10.859pt no-skills reference), the release's second
+      sanctioned golden exemption. Seam: **Presentation** + a Business preview method + the Infra fix.
+      On-device: n/a.
+
+- [x] **Milestone F — Raw-LaTeX preamble override + graceful compile failure.** ✅ **Done.** `customPreamble`
+      replaces the **style block** — the `\geometry` line plus the font and accent overrides — not everything
+      before `\begin{document}`. Three verified reasons: `\documentclass` differs per document while one
+      override serves both; `\cventrysolo`/`\cvprojectsolo` live only in the generated preamble and the body
+      emits them *data-dependently*, so a displaced definition would compile one résumé and hard-fail the next;
+      and `\position`/`\pageFooter` are generated content. The escape hatch still does what it exists for —
+      `\pageHeader` is a `\newcommand` and the override precedes it, so `\renewcommand{\pageHeader}{\name{…}}`
+      replaces the classes' hardcoded contact details (verified by a real compile). Under the default style the
+      block collapses to the same `\geometry` line in the same position, so **both goldens stayed
+      byte-identical**. Failure is graceful in three layers: a blank override falls back to the generated block;
+      the compile can't hang (`-halt-on-error` is the real guard, and stdin is now `nullDevice`); and the message
+      names the preamble as the likely cause. Nobody strands — the manager offers "use the generated preamble"
+      and "revert to a built-in" (keeping the row's id, **writing through** because exports read the store), and
+      the export banner offers a session-only built-in escape plus the `.tex` source, which is never gated on a
+      test compile. **A doc claim was corrected rather than left overpromising**: a hand-written preamble *can*
+      affect typeset content; the guarantee is that the body is app-generated and escaped and the app never
+      writes user data into the preamble. Seam: **Infrastructure/Tex** + Presentation (manager + export banner).
+      On-device: n/a.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old
@@ -935,9 +1050,9 @@ granular breakdown + open calls.
   with the kit, the coverage panel, and the opt-in keyword-emphasis control. **v0.6.2 (list actions, sorting &
   document previews) is complete** — Milestones **A–E** above (A discoverable remove-from-Tracker, B multi-select
   bulk actions, C sort/filter parity, D no raw preview for imports, E full source-document preview), scheduled out
-  of `PLANNED.md`'s five `Target: v0.6.2` entries. **The next version is unstarted**; its number and theme are
-  chosen when development on it begins (see `CLAUDE.md` → "Never pre-name the next version"). Candidate
-  fast-follows / themes: an
+  of `PLANNED.md`'s five `Target: v0.6.2` entries. **v0.7.0 (customizable LaTeX document styles) is in progress** —
+  Milestones **A–F** above, scheduled out of `PLANNED.md`'s last remaining entry, which is now empty. Candidate
+  fast-follows / later themes: an
   **ATS-friendly export mode** (the companion noted but deliberately left out of v0.6.1 — standard headings,
   single-column, selectable text, which is what decides whether an ATS can *parse* a résumé at all); full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"

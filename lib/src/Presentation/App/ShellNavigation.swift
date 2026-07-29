@@ -121,15 +121,18 @@ enum TrackerSection: Int, CaseIterable {
     }
 }
 
-/// Settings sub-views: per-task engines, the Adzuna country/credentials, and About.
+/// Settings sub-views: per-task engines, the Adzuna country/credentials, About, and the
+/// document-style manager. **Append new cases last** — the raw value *is* the segmented-control
+/// index, so inserting one renumbers every later pane.
 enum SettingsSection: Int, CaseIterable {
-    case engines, adzuna, about
+    case engines, adzuna, about, documentStyles
 
     var title: String {
         switch self {
         case .engines: "Engines"
         case .adzuna: "Sources"
         case .about: "About"
+        case .documentStyles: "Document Styles"
         }
     }
 

@@ -3003,3 +3003,397 @@ suite green (719 tests); build warning-free.
 **On-device.** The UI change is free. Tidying now sends up to 12 000 characters instead of 6 000 on the
 `.profile` task — twice the input for one document, still bounded, and the remainder path costs **no** extra model
 work (it's appended locally, not generated).
+
+---
+
+# v0.7.0 — customizable LaTeX document styles
+
+A **feature release**, scheduled out of `PLANNED.md`'s single `Target: v0.7.0` entry (2026-07-28). The theme is
+**user-owned document presentation** for the awesome-cv LaTeX route. Six milestones **A–F**; milestones restart
+at **A**; commit as `v0.7.0 : Milestone X Completed`.
+
+## Milestone A — `LaTeXStyle` model + built-in template registry  ✅ done  (`Infrastructure/Tex/LaTeXStyle`, `Infrastructure/Tex/LaTeXTemplateRegistry`; tests in `lib/tests/Infrastructure/Tex`)
+
+**The gap.** Every presentation choice the LaTeX route makes lived as a string literal inside
+`TexDocumentBuilder`'s two preamble builders — class + base size, `\geometry`, `\fontdir`, section order
+(`canonicalOrder`) and per-section `\vspace` (`sectionVSpace`) — with the cover letter carrying its own,
+divergent set. There was nothing for a user setting to *be*.
+
+**What landed.** Two pure, `nonisolated`/`Sendable`/`Codable` files in Infrastructure · Tex, and **no behaviour
+change** — the builder still emits exactly what it did, so B and C can replace its literals behind a regression
+rather than in the same breath.
+
+- **`LaTeXStyle`** — `template`, `fontFamily`, `fontSizes`, `accent`, `pageSize`, `margins`, the letter's
+  `parskip` / `linespread`, `sectionOrder` + `hiddenSections` + `sectionSpacingEm`, and F's optional
+  `customPreamble`. Plus the small formatting helpers the builder will need (`geometryOptions` renders
+  `left=0.50cm, …` exactly as today; `sectionVSpace(forSectionTitled:)` renders `-1.5em`), so B/C consume a
+  string rather than re-deriving formats.
+- **`LaTeXStyle.default` reproduces today's output.** Three controls carry an explicit **`.templateDefault`**
+  case — font family, accent, page size — precisely because the current builder emits *no* `\newfontfamily`, no
+  `\colorlet`, and no paper option on the résumé (the letter's `a4paper` is the class's own). Modelling
+  "unchanged" as a first-class case is what keeps the default byte-identical instead of forcing a choice on the
+  user; picking `.usLetter` / `.a4` then applies to **both** documents, which is the unification B promises.
+- **Font size is the one per-document control** (`LaTeXFontSizes.resumePt` = 6, `.coverLetterPt` = 11). The two
+  classes scale everything off their base very differently, so a single shared number would render as two
+  unrelated text sizes. One style still, carrying the two bases.
+- **Accent** is `.templateDefault` / `.named(LaTeXAwesomeColor)` / `.custom(hex:)`, the named palette mirroring
+  the nine `awesome-*` colours the bundled classes define. A malformed custom hex resolves to **no override**
+  rather than emitting broken LaTeX.
+- **`LaTeXResumeSection`** (education / experience / projects / skills / other) is the vocabulary a style orders,
+  hides, and spaces; `classify(_:)` mirrors the builder's own title heuristics. A bucket left **out** of
+  `sectionOrder` sorts last rather than vanishing — only `hiddenSections` hides, so C can't silently drop a
+  model-invented section.
+- **`LaTeXTemplateRegistry`** — descriptors (identity, display name, summary, class names, required `.cls`
+  files, default style) in the `JobProviderRegistry` shape (v0.6.0 H-A), so adding a template is one appended
+  descriptor, never a view edit. `descriptor(for: style)` is **total** (falls back to the shipped template);
+  `available(in: assets)` filters to templates whose classes actually shipped, the same fail-soft posture as
+  `TexAssets.isComplete`. Two entries ship: **Portfolio (awesome-cv)**, whose default *is* `LaTeXStyle.default`,
+  and **Portfolio — Compact**, which reuses the same bundled classes with tighter margins and section spacing —
+  no new assets, and it keeps the registry (and E's picker) from being a list of one.
+
+**One deliberate divergence, found by the tests.** The builder's two classifiers disagree with each other:
+`canonicalOrder(_:)` treats "Employment" / "Work History" as *experience* (sorting them second), but
+`sectionVSpace(_:)` never lists those synonyms, so they fall through to the generic `-1em`. A style has one
+bucket per section, so the bucket wins and those titles pick up the experience `-1.5em`. C's byte-for-byte claim
+therefore holds **except** for a résumé whose experience section is titled "Employment" or "Work History" — the
+divergence is pinned by its own test (`experienceSynonymsGainTheExperienceSpacing`) rather than left to surface
+as a mystery diff.
+
+**Tests.** `LaTeXStyleTests` + `LaTeXTemplateRegistryTests` — the default style matches every value the builder
+hardcodes (asserted against `TexDocumentBuilder` itself, so the two can't drift); classification and order
+indices match `canonicalOrder`; reorder / hide / missing-spacing fallbacks; accent normalization and malformed
+hex; `Codable` round-trips including the associated-value accent; every `LaTeXTemplateID` has exactly one
+descriptor whose default style names its own template; availability against a fixture asset tree, a
+missing-class tree, and the **real app bundle**. Suite green (758 cases), build warning-free.
+
+**On-device.** n/a — pure value types, no model calls, no compile.
+
+## Milestone B — Parameterize `TexDocumentBuilder` typography, geometry, colour & page size  ✅ done  (`Infrastructure/Tex/TexDocumentBuilder` + `LaTeXStyle`/`LaTeXTemplateRegistry`, `Business/UseCases/ExportApplicationUseCase`; tests in `lib/tests/Infrastructure/Tex`, `lib/tests/Business/UseCases`)
+
+**The gap.** `resumePreamble(headline:)` and `coverLetterPreamble(headline:)` were two literal blocks —
+`\documentclass[6pt]{Class/Resume}` / `\documentclass[11pt, a4paper]{Class/CoverLetter}`, a hardcoded
+`\geometry`, `\fontdir[fonts/]`, and no colour or font control at all.
+
+**What landed.** Both preambles now come from a **shared** `preambleHead(for:style:)`: the document class and its
+options from the style's template descriptor + per-document base size + page size, `\geometry` from the style's
+margins, then the optional font-family and accent overrides. `resume(fromMarkdown:style:)` /
+`coverLetter(fromMarkdown:style:)` take the style (defaulted to `.default`), and
+`ExportApplicationUseCase.texSource(_:_:style:)` / `.latexPDF(_:_:style:)` thread it from Business — Presentation
+is untouched until E supplies the user's pick.
+
+- **Page size unifies what was divergent.** The résumé passed no paper option and the letter passed `a4paper`;
+  that asymmetry is the *template's*, so it moved to `LaTeXTemplateDescriptor.templateDefaultPaperOptions` and is
+  consulted only while the style says `.templateDefault`. Choosing US Letter or A4 applies it to **both**
+  documents — the unification the release promised, without forcing a choice on anyone who never opens the picker.
+- **Font family repoints the class's own commands.** A chosen family emits two `\newfontfamily` declarations
+  (regular + light weight groups, with per-family face suffixes — Roboto's `-Italic` vs Source Sans' `-It`) and
+  `\renewcommand*{\bodyfont}` / `\bodyfontlight`, with an explicit `Extension=` so `fontspec` resolves the exact
+  bundled file. Only **bundled** families are selectable, so `Path=fonts/` always resolves inside the staged
+  compile directory. The literal path is used rather than `\@fontdir` — the latter would need `\makeatletter`
+  in a document preamble.
+- **Accent** emits `\colorlet{awesome}{awesome-red}` for a palette colour (already defined by the class) or
+  `\definecolor{awesome}{HTML}{…}` for a custom one; a malformed hex emits **nothing** rather than LaTeX that
+  would fail the compile.
+- The letter's body spacing (`\parskip`, `\linespread`) now comes from the style too.
+
+**Proving "no change by default" properly.** The pre-change output was captured from the builder *before* it was
+touched (a throwaway test dumping both documents), and that capture is embedded in
+`TexDocumentBuilderStyleTests` as a **whole-document** golden — not just the preamble, so a stray change anywhere
+in the emitted `.tex` trips it. Two details the golden caught: the original preamble had **no** blank line
+between `\pageHeader` and `\position`, and the résumé's class options are `[6pt]` alone.
+
+**Tests.** Whole-document goldens for both deliverables (`resume(fromMarkdown:)` with no style argument, and the
+explicit `.default`, both byte-identical); the default emits no `\newfontfamily`, no `\colorlet`/`\definecolor`,
+and no `letterpaper`; font sizes / page size / margins / accent / font family each drive their own line and
+nothing else; the **body is identical across styles**; the compact built-in brings its own geometry over the same
+classes; `ExportApplicationUseCase` forwards the style through both entry points and is unchanged when omitted.
+The integration test compiles a **fully styled** document (custom hex accent, Roboto body, US Letter, non-default
+sizes and margins) and a Source Sans / named-accent letter under real `lualatex` — so the emitted overrides are
+verified to compile, not merely to look right. Suite green (773 cases), build warning-free.
+
+**On-device.** n/a — no model calls. The compile is the same optional `lualatex` dependency as before.
+
+## Milestone C — Section order & visibility driven by the style  ✅ done  (`Infrastructure/Tex/TexDocumentBuilder` + `LaTeXStyle` + `LaTeXTemplateRegistry`; tests in `lib/tests/Infrastructure/Tex`)
+
+**The gap.** The résumé's section order and per-section spacing were two hardcoded statics on the builder —
+`canonicalOrder(_:)` (Education → Experience → Projects → Skills → everything else) and `sectionVSpace(_:)`. A
+user could change the fonts and margins but not what their résumé led with, or drop a section they didn't want.
+
+**What landed.** Ordering, visibility and spacing all read the style. `hiddenSections` filters whole sections out
+**before** the emit loop, `sectionOrder` arranges what's left, and each `\vspace` comes from `sectionSpacingEm`.
+The two statics were **deleted, not kept as delegates** — two live classifiers of the same thing is precisely the
+drift Milestone A found, and a delegate would have left tests asserting values no document contains. Their
+coverage was ported to `LaTeXStyleTests`, expectation for expectation, rather than dropped.
+
+- **Ordering is a partition, not a sort.** The obvious `sorted(by:)` needs an index tiebreak to keep same-bucket
+  sections in document order — and the absence of that tiebreak is **undetectable by test** (the current stdlib
+  sort happens to be stable, so the mutation passes green). `LaTeXStyle.orderedSections(_:titledBy:)` groups by
+  bucket instead, which makes document order structural and kills three edge cases by construction: a **duplicated**
+  bucket in the order can't duplicate sections, an **empty** order degrades to document order, and unnamed buckets
+  append last. Verified by mutation: reversing within-bucket order now fails four tests; the equivalent mutation
+  against the sort version failed none.
+- **Omitting a bucket means "put it last", never "drop it"** — the open call, resolved as recommended. Only
+  `hiddenSections` removes anything.
+- **Hiding leaves no double gap** — true *by construction*, not by new code: the `\vspace` is a prefix inside the
+  section's own loop iteration, so it leaves with the section. An orphaned `\vspace` would be silent (TeX
+  accumulates vertical glue without warning), so it's pinned as **byte equality**: hiding Projects produces
+  exactly the document you get from Markdown that never had a Projects section.
+- **The lead summary is out of the style's reach** — always first, never ordered, never hidden. "Summary"
+  classifies as `.other`, so filtering one line too early would silently delete the user's opening paragraph when
+  they hid `.other`; `leadSummary` deliberately reads the **unfiltered** sections, with a test for it.
+- **`.other` is a deliberate bulk hide.** Hiding it removes Awards, Publications, Certifications and Volunteering
+  together — the one place the "a model-invented section can't vanish" promise is in tension. Milestone E's
+  toggle must be labelled as the catch-all it is.
+- **Spacing is per *bucket*, not per section title**, and rendering still keys on the title (`isSkillsSection`):
+  "Educational Qualifications" sorts as education but renders as a skills grid. That split is pre-existing and
+  pinned by a test rather than quietly unified, which would have changed how sections render.
+
+**The one default-style change.** "Employment" / "Work History" sections now take the experience `-1.5em` rather
+than the generic `-1em`, because the old builder's two classifiers disagreed about them (it *sorted* them as
+experience but *spaced* them as "other"). Recorded in Milestone A, pinned at document level here, and noted as
+the single exemption on Milestone B's golden — which otherwise stays byte-identical and was **not** regenerated.
+
+**Compact's spacing was measured and reverted.** The Compact built-in carried tighter per-section values from
+Milestone A that were inert until this milestone made them live. Compiled under `lualatex` and measured with
+`pdftotext -bbox`: the shipped look already runs the first section's rule ~2.6pt into the lead paragraph's glyph
+box, and Compact's values pushed that to ~7.6pt — a visible collision. Compact's *margins alone* reproduce the
+default's 2.6pt, so it keeps the canonical section spacing and margins remain its differentiator. Two
+consequences worth carrying forward: negative section spacing is bounded by the lead paragraph, so **Milestone E
+must bound what a user can enter**, and a future template that tightens spacing has to be measured, not eyeballed.
+
+**Also hardened here** (both surfaced by the review pass): a non-finite spacing value now formats as `0` instead
+of emitting `\vspace{nanem}`, which fails the compile outright — reachable from any numeric field E adds.
+Magnitude is deliberately *not* clamped: bounding input is E's job, and silently rewriting a number would hide
+what the user typed.
+
+**Known follow-on, not fixed here.** `renderSkills` emits an ungrouped `\renewcommand{\arraystretch}{0.7}` that
+is never restored, so it leaks into every section rendered after the skills grid (~3.15pt of row height). It's
+pre-existing and changing it moves the golden's bytes, but C is what makes it *reachable* — a user can now move
+skills to the top. It must land before or with Milestone E; a checkbox is recorded there.
+
+**Tests.** A new `TexDocumentBuilderSectionTests` (21 tests) over a fixture covering all four canonical buckets
+plus an unknown one in scrambled order: emitted-section **sequence** assertions for the default, reordered,
+partial and unknown-bucket cases; hidden sections gone with their content; the byte-equality "no double gap"
+test; the lead-summary guard; every-section-hidden still emitting a valid document; per-bucket spacing including
+the fallback and the `0em` (not `-0em`) case; the Employment/Work History divergence; the cover letter proven
+**immune** to section fields; and the converse guard that section fields never reach the preamble. Plus a second
+whole-document golden captured **before** the change over the five-bucket fixture, unit tests for the ordering
+partition in `LaTeXStyleTests`, and a real `lualatex` compile of a reordered + partly hidden résumé. Suite green
+(801 cases), build warning-free.
+
+**On-device.** n/a — no model calls.
+
+## Milestone D — Persistence: the styles library + default pointer  ✅ done  (`Data/Models/SavedDocumentStyle`, `Data/Persistence/SavedDocumentStylesRepository` + `DefaultDocumentStyleStore`, `Business/UseCases/DocumentStyleUseCases`, `Composition`, `Infrastructure/Tex/LaTeXStyle`; tests in `lib/tests/Data/Persistence`, `lib/tests/Infrastructure/Tex`)
+
+**The gap.** A style existed only for the length of one export. Nothing could name one, keep it, or reuse it.
+
+**What landed**, mirroring the saved-profiles trio exactly: `SavedDocumentStyle` (id / name / style / `createdAt`),
+`SavedDocumentStylesRepository` (`kind = "documentStyle"`, upsert-by-id / `all()` newest-first / `delete(id:)`
+over `PersistentRecordStore`), and `DefaultDocumentStyleStore` — a single scalar pointer on `KeyValueStore` under
+`com.veritum.taylordportfolio.defaultDocumentStyleID`, so "exactly one default" is true by construction rather
+than an invariant something has to maintain. Three use cases (`Save` / `Load` / `Delete`) carry the id and
+timestamp policy that the profile and preset precedents keep in Business, and `Composition` wires all four
+privately. `createdAt` is an addition to the milestone's stated "(id / name / style)": `PersistentRecordStore`
+documents no ordering, so every library repository sorts for itself and needs a key to sort on.
+
+**The real work was making `LaTeXStyle` survive being read back.** Synthesized `Codable` is all-or-nothing: any
+absent key, or any raw value this build doesn't recognise, throws — and because `all()` is best-effort
+(`compactMap { try? … }`), a style that throws doesn't surface an error, it **disappears from the library while
+its row stays in the store**, with nothing in the list to delete it by — `all()` reads `records(ofKind:)`, which
+returns blobs without their ids. The
+trigger is ordinary: appending one `LaTeXTemplateID` case is exactly how the registry says to add a template, and
+Milestone E adds a template picker. So `LaTeXStyle` (and `LaTeXFontSizes` / `LaTeXMargins`) gained a
+field-by-field `init(from:)`:
+
+- **`(try? decode) ?? default` per field, not `decodeIfPresent`.** The `SavedProfile` recipe is all
+  `decodeIfPresent ?? default`, which tolerates absence and null but still **throws on an invalid raw value** —
+  it would have protected against only one of the two real failure modes.
+- **Collections degrade element-wise**: an unknown section bucket is dropped rather than fatal to the whole
+  arrangement, and `sectionSpacingEm` — which encodes as a flat *alternating array*, not an object, because a
+  raw-value enum key isn't `CodingKeyRepresentable` — is read pairwise, so a malformed tail costs its own
+  entries only.
+- **Present-but-empty is honoured, not "missing".** The fallback is gated on `container.contains(_:)`, not on
+  emptiness: `orderedSections` documents an empty order as a legitimate state, so an emptiness check would
+  resurrect the canonical order a user deliberately cleared.
+- **Deliberately not total.** A `style` that isn't a JSON object still throws, and `SavedDocumentStyle` catches
+  *that* one layer up, loading the record as a named, deletable row with a default style. A missing field is
+  drift; a wrong-shaped blob is an error, and the two deserve different answers. Encoding stays synthesized, so
+  the wire format is unchanged and the existing round-trip fixtures pass untouched.
+
+**Where the tolerance lives, and why.** In `LaTeXStyle` (Infrastructure), not in `SavedDocumentStyle` (Data).
+`LaTeXStyle` decodes atomically, so an envelope-level `?? .default` is all-or-nothing too — one unknown template
+string would silently discard the user's fonts, colour, margins and section arrangement. Making it *granular*
+from Data would mean re-declaring the style's twelve keys and their defaults across the seam, which is the actual
+layering violation. Holding an Infrastructure value in a Data model is the legal direction (Data → Infrastructure).
+
+**A pointer that dangles resolves to `nil`, deliberately.** `resolved(in:)` does **not** copy the profile call
+site's `?? profiles.first`: for a profile any grounding beats none, but silently applying a style the user never
+chose changes the document they're about to send. E clears the pointer when its style is deleted.
+
+**Tests.** `SavedDocumentStylesRepositoryTests` — the canonical four (round-trip newest-first, upsert-not-
+duplicate, delete, empty); a **fully customised** style surviving the store with named per-field assertions; every
+accent case; the two flat-array collections; a legacy blob missing later fields; a style from a *later* build
+degrading field by field; the anti-zombie case (unusable style → still a named, deletable row); a corrupt blob
+skipped without losing its neighbours; same-name and same-`createdAt` edges; cross-kind isolation; and a guard
+that **every repository `kind` is distinct** (nothing checked that before D added the seventh). Plus a test that a
+store round-trip produces byte-identical `.tex` — D is the first milestone where a *decoded* style reaches the
+builder. `DefaultDocumentStyleStoreTests` covers load/save/clear/replace, corrupt data, the exact namespaced key,
+non-interference with the profile pointer, and all three `resolved(in:)` outcomes. `LaTeXStyleTests` gained the
+decoder's own pins, including the empty-vs-absent distinction and that a non-object still throws. Suite green
+(849 cases), build warning-free.
+
+**On-device.** n/a — no model calls.
+
+## Milestone E — Style-manager UI + export-time picker  ✅ done  (`Presentation/Settings/{View,ViewModel}/DocumentStyles*`, `ShellNavigation` + `SettingsView` + `RootView` + `Composition`, `Presentation/Application` export menu + VM, `Business/UseCases/ExportApplicationUseCase`, `Infrastructure/Tex/TexDocumentBuilder`; tests in `lib/tests/Presentation`, `lib/tests/Infrastructure/Tex`)
+
+**The gap.** Everything A–D built was unreachable: no way to create a style, name it, keep it, or choose one
+when exporting. This is the release's only Presentation milestone and the first one a user can see.
+
+**The manager** is a fourth Settings pane (`SettingsSection.documentStyles`, appended **last** — the raw value is
+the segmented-control index, so inserting one would renumber every later pane). `DocumentStylesViewModel` is its
+own view model rather than part of `SettingsViewModel`: that one loads synchronously and defers writes to an
+explicit Save, which is right for engine settings and wrong for a library — a user who edits a style and switches
+sub-tab must not lose it. It writes through on every action, mirroring the saved-profile library it's modelled
+on: load-on-appear, save-or-update-in-place, duplicate (with `"Compact copy 2"` disambiguation), delete, and a
+star toggle for the default. Deleting the default **clears the pointer on disk**, so it can't dangle.
+
+**Every numeric control is bounded, and that is the safety mechanism.** Measured under `lualatex`: absurd
+geometry doesn't fail — 1.6cm text width, twelve pages, even negative margins all **exit 0** and produce a wrecked
+PDF. There is no compile error to catch and no banner to show, so the control's range is the only protection.
+`Slider`/`Stepper` ranges (never a free text field, and never clamping the value — `LaTeXStyle` deliberately
+refuses to rewrite what a user typed): section spacing **−1.5 … +3.0 em** (−1.5 is exactly the value C measured
+as a visible collision and reverted; the heading structurally crosses the summary at −1.86em), margins
+**0 … 4 cm** (the classes reserve a fixed 6cm column for dates, and 4+4 on A4 still leaves 13cm), footskip
+**0 … 2 cm**, letter paragraph gap **0 … 3 em** (a negative one renders paragraphs out of order, on top of the
+header, exit 0), letter line spread **0.8 … 2.0** (below 0.8 TeX's `\lineskip` floor absorbs it and the control
+silently lies). One uniform spacing range for all five buckets, because *which* bucket renders first is
+user-controlled — there is no reliably-non-first section.
+
+**The base-size control is a discrete picker, not a number field.** `[6pt]` is an *unused* option: the classes
+forward it to `article`, which honours only 10/11/12pt, and every text size in both classes is set absolutely.
+So the control offers Template default / 10 / 11 / 12 and is labelled as what it actually does — scale vertical
+spacing, not text.
+
+**The export picker** offers built-ins and saved styles in one list, tagged by a `StyleChoice` (they have
+separate id spaces). Two things it deliberately does: `nil` stays a **live** "follow my default" state rather
+than being seeded once, so changing the default in Settings immediately changes what an unpicked export
+produces; and a **dangling** default resolves to the built-in look, never to another saved style — silently
+applying a style the user never chose changes the document they're about to send. It's grouped under a
+`Section("Portfolio (LaTeX)")` header and the native picker was relabelled **"PDF / Word template"**, because two
+bare pickers in one menu render identically and the milestone required them to read as different things. It's
+gated on `canExport`, not `canExportLaTeX`: the `.tex` source export works with no TeX install and must stay
+styleable.
+
+**Preview** compiles a bundled sample through a new `ExportApplicationUseCase.previewPDF(style:)` — the sample
+lives in Business so the view carries no content and never touches the compiler. Measured: **~4.0s** warm and
+**~8.2s** on a cold font cache, which is what settles the open call for a button over a live preview; the button
+shows a spinner plus "Compiling with lualatex…" for exactly that reason. Sample content is chosen for coverage,
+not brevity (compile time is font loading, not typesetting): a lead summary, one section per bucket including an
+unrecognised one, a dated `\cventry`, and a skills grid. Page 1 renders as a PDFKit thumbnail — nothing in the
+app could display a PDF before, and one page is all a style preview needs. With no `lualatex`, the button is
+**visible but disabled** with the About pane's exact wording, which is the first place that message actually
+renders. `describeExport` was lifted from `private` to shared rather than copied, so the two compile paths can't
+drift.
+
+**The carried-over `\arraystretch` fix landed here** (it had to, before a user could reorder sections). The
+`\renewcommand{\arraystretch}{0.7}` is now wrapped in a `{…}` group — grouping rather than resetting to `1`, so
+it restores whatever the ambient value was. Measured on the same fixture: ungrouped, the following entry's
+title→bullet gap compressed to **6.99pt**; grouped it is **10.860pt**, against **10.859pt** for a document with
+no skills grid at all. This is the **second sanctioned golden exemption** and a deliberate change to the default
+look: under the canonical order `.other` renders after `.skills`, so every résumé with an Awards / Publications /
+Certifications section regains the row height the leak was compressing. Both goldens were amended by targeted
+edit rather than blind re-capture — anything else that had moved would have failed them.
+
+**Also fixed in passing:** `latexResumePages` survived a kit change and a style change, so the "compiled to N
+pages" advisory could be measured under one style and shown under another.
+
+**Known, accepted:** styles saved in Settings don't appear in an already-open Application window until it
+reloads — its `.task` doesn't re-run on `requestID`. Identical to how generation presets behave today; the
+alternative is an `AppSession.dataChanged()` bump, deferred rather than left undecided.
+
+**Tests.** 21 `DocumentStylesViewModelTests` (library CRUD, blank-name refusal, save-failure message, duplicate
+naming, the default pointer surviving a "relaunch" and clearing on delete, the auto-load-once latch not
+clobbering edits, section moves preserving all five buckets exactly once, and the three preview paths including
+the `lualatex` log surfacing) plus seven `ApplicationViewModelTests` for the picker — the selection reaching both
+export routes, the default pointer, the dangling-pointer fallback, a built-in template, the no-library case being
+byte-identical to pre-v0.7.0, and the stale page count clearing. Suite green (879 cases), build warning-free.
+
+**On-device.** n/a — no model calls. Preview needs `lualatex`, the same optional dependency as the export route.
+
+## Milestone F — Raw-LaTeX preamble override + graceful compile failure  ✅ done  (`Infrastructure/Tex/TexDocumentBuilder` + `LaTeXStyle` + `LaTeXProcessClient`, `Presentation/Settings` manager, `Presentation/Application` VM + sheet; tests in `lib/tests/Infrastructure/Tex`, `lib/tests/Presentation`)
+
+**The gap.** `customPreamble` had existed on `LaTeXStyle` since Milestone A, read by nothing. A power user who
+wanted a look the four control groups can't express had no way to write it — and, more pressingly, **the bundled
+classes hardcode Taylor's name and contact details** in `\pageHeader`, so anyone else's export carried the wrong
+identity with no control to fix it.
+
+**What the override replaces — the decision that shapes the milestone.** Not "everything before
+`\begin{document}`", but the **style block**: the `\geometry` line plus the font-family and accent overrides,
+i.e. exactly what the Milestone B controls write. Three things force that cut, each verified by compiling:
+
+- **`\documentclass` differs per document** (`Class/Resume` at 6pt vs `Class/CoverLetter` at 11pt/a4paper) while
+  `customPreamble` is one string on a style that covers both. An override containing `\documentclass` is
+  structurally wrong for one of the two, always — and yields `Two \documentclass commands`.
+- **`\cventrysolo` / `\cvprojectsolo` exist only in the generated preamble**, and the body emits them
+  **data-dependently** (an entry with no org, or no subtitle). If an override could displace them, the same
+  style would compile one résumé and hard-fail the next. Verified: exit 1, `! Undefined control sequence`, no PDF.
+- **`\position{…}` and `\pageFooter{…}` are generated content.** Letting an override delete them would make a
+  presentation feature subtract content.
+
+And the thing that cut appears to cost, it doesn't: `\pageHeader` is a `\newcommand`, and the override is
+emitted *before* the frame invokes it — so `\renewcommand{\pageHeader}{\name{Alex}{Sample}…}` works, which is the
+whole product story. Verified end to end: a real compile produces a PDF headed "Alex Sample" whose role line is
+still the app's generated `\position`.
+
+Under `LaTeXStyle.default` the style block collapses to the same single `\geometry` line in the same byte
+position, so **both goldens stayed byte-identical** — and caught it when a first attempt added a stray blank
+line, which is exactly what they're for.
+
+**Graceful failure, three layers.**
+1. A **blank** override is treated as no override (`effectiveCustomPreamble`), the same fail-soft rule as a
+   malformed accent hex — an empty preamble compiles to `\normalsize is not defined`, which tells a user nothing.
+2. The compile **cannot hang**: `-halt-on-error` is the real guard (not the `\nonstopmode` the docs credited),
+   and the child process now gets `FileHandle.nullDevice` on stdin, so a preamble that makes TeX prompt for a
+   file can't block on a prompt no one can answer. Structural rather than flag-dependent.
+3. The error **names the likely cause** — `describeExport(_:customPreamble:)` appends one sentence when the
+   failing style carries an override, as an overload so the manager and the export share one copy.
+
+**Nobody gets stranded**, which needed answers in two windows:
+- In the manager: **"Use the generated preamble"** (drops the override, keeps every other choice) and **"Revert
+  to a built-in…"** (adopts a template's defaults while **keeping the style's id and name**, so Save updates the
+  same row instead of leaving the broken one on disk beside a copy). Both **write through** when a saved style is
+  open — the exports read the *store*, so a revert that only touched the draft would leave the manager looking
+  fixed while every export still failed. Typed text is stashed on toggle-off, so nothing the user wrote is
+  destroyed.
+- At the export, a **different window** with no route to Settings: **"Use the built-in style for this export"**
+  (session-only, touches neither the saved style nor the default pointer) and **"Export .tex source"**, promoted
+  out of a per-document submenu because that is what a user needs after a compile error. The `.tex` route needs
+  no TeX install and is never gated on a test compile — it is how a preamble gets debugged.
+
+**The editor** is an eighth Settings section, sited between the section controls and Preview — after the controls
+that build a preamble, immediately before the button that proves one compiles. It's gated by **conditional
+rendering, not `.disabled`**: a disabled `TextEditor` still accepts typing on macOS 26. The controls an override
+makes inert (template, typography, accent, margins) are dimmed; the ones that keep working are not — which is why
+the cover letter's paragraph gap and line spacing **moved out of "Page & margins"** into their own section, since
+they're emitted in the body and survive an override. Compile errors now render **in the Preview section** rather
+than in the library footer six sections above, and a failed preview keeps the last good render on screen.
+
+**A documentation claim was wrong and is now corrected.** A/B/C wrote that a style "themes presentation, it can't
+inject content". That's true of the generated path and **false** of a hand-written preamble: LaTeX in the
+preamble can typeset content (`\AtBeginDocument`), suppress generated content, and read files. The invariant the
+app actually guarantees is narrower — the *body* is app-generated and escaped, and the app never writes user or
+model data into the preamble. It cannot run shell commands (no `--shell-escape`). Corrected in `LaTeXStyle`,
+`TODO.md` and `ROADMAP.md` rather than left overpromising.
+
+**Tests.** Builder: the override replaces the style block verbatim (geometry, font and accent all gone); the
+frame survives with every part the body depends on, and lands *after* the override so `\renewcommand` works; the
+body is byte-identical with and without; one override serves both documents with their own classes; blank
+overrides fall back; a `%`-comment ending doesn't swallow the next line; the `.tex` carries an uncompilable
+override. Two **real `lualatex`** tests: a realistic override (custom `\pageHeader`, accent, geometry) compiles to
+a PDF, and a broken one fails with an error rather than hanging. VM: seeding, stash/restore across a toggle,
+blank reporting, re-seed, both reverts writing through to the saved row, an unsaved draft touching no storage, and
+the failed-preview-keeps-the-render rule. Export side: the failure names the preamble, the built-in escape
+unblocks without touching the saved style, and the `.tex` still exports. Suite green (904 cases), build
+warning-free.
+
+**On-device.** n/a — no model calls.

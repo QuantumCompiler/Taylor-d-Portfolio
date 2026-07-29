@@ -161,6 +161,10 @@ nonisolated struct LaTeXProcessClient: LaTeXCompiling {
                 process.environment = environment
                 let stdout = Pipe()
                 let stderr = Pipe()
+                // TeX prompts on stdin when it can't resolve a file; the child inherits the app's
+                // otherwise, so a malformed custom preamble (v0.7.0 F) could block on a prompt no one
+                // can answer. `-halt-on-error` already covers it — this makes it structural.
+                process.standardInput = FileHandle.nullDevice
                 process.standardOutput = stdout
                 process.standardError = stderr
 

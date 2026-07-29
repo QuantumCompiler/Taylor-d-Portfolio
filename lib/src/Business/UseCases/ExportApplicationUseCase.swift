@@ -50,20 +50,79 @@ nonisolated struct ExportApplicationUseCase: Sendable {
     var isLaTeXAvailable: Bool { compiler?.isAvailable ?? false }
 
     /// The awesome-cv `.tex` **source** for one document — deterministic, no compile, so it works
-    /// even without a TeX install (a handoff into the manual `PortfolioBuddy` pipeline).
-    func texSource(_ kit: ApplicationKit, _ document: ApplicationDocument) -> String {
+    /// even without a TeX install (a handoff into the manual `PortfolioBuddy` pipeline). `style`
+    /// carries the user's document style (v0.7.0); the default reproduces the original look, and
+    /// Milestone E supplies the style the user picked at export time.
+    func texSource(_ kit: ApplicationKit, _ document: ApplicationDocument,
+                   style: LaTeXStyle = .default) -> String {
         switch document {
-        case .resume: return TexDocumentBuilder.resume(fromMarkdown: kit.resumeMarkdown)
-        case .coverLetter: return TexDocumentBuilder.coverLetter(fromMarkdown: kit.coverLetter)
+        case .resume: return TexDocumentBuilder.resume(fromMarkdown: kit.resumeMarkdown, style: style)
+        case .coverLetter: return TexDocumentBuilder.coverLetter(fromMarkdown: kit.coverLetter, style: style)
         }
     }
 
     /// Compiles one document into an awesome-cv **PDF** via `lualatex`. Throws
     /// ``LaTeXProcessError/notInstalled`` when no compiler is wired/available.
-    func latexPDF(_ kit: ApplicationKit, _ document: ApplicationDocument) async throws -> Data {
+    func latexPDF(_ kit: ApplicationKit, _ document: ApplicationDocument,
+                  style: LaTeXStyle = .default) async throws -> Data {
         guard let compiler else { throw LaTeXProcessError.notInstalled }
-        return try await compiler.compile(tex: texSource(kit, document), jobName: document.displayName)
+        return try await compiler.compile(tex: texSource(kit, document, style: style),
+                                          jobName: document.displayName)
     }
+
+    /// Compiles a **bundled sample résumé** under `style` — the style manager's Preview
+    /// (v0.7.0 Milestone E). The sample lives here rather than in Presentation so views stay
+    /// free of content and of the compiler.
+    func previewPDF(style: LaTeXStyle) async throws -> Data {
+        try await latexPDF(Self.sampleKit, .resume, style: style)
+    }
+
+    /// The Preview's sample content. Deliberately **not** minimal: a compile costs the same
+    /// either way (the time is font loading, not typesetting), so the sample exercises every
+    /// control the style manager exposes — a lead summary (what section spacing collides with),
+    /// one section per bucket **including an unrecognised one** so the catch-all renders, a
+    /// dated `\cventry` (whose fixed 6cm column is what the margin bounds protect), and a skills
+    /// grid (whose `\arraystretch` group must not leak into the sections after it).
+    nonisolated static let sampleKit = ApplicationKit(
+        resumeMarkdown: """
+        # Alex Sample
+        **Senior iOS Engineer — SwiftUI · Distributed Systems**
+
+        ## Summary
+        Senior engineer with a decade of shipping native Apple platforms, most recently leading a \
+        SwiftUI rewrite that cut crash rates by half.
+
+        ## Education
+        ### B.S. Computer Science — State University
+        Springfield · 2014
+        - Graduated with honours.
+
+        ## Experience
+        ### Senior iOS Engineer — Northwind Systems
+        Remote · Mar. 2021 – Present
+        - Led the SwiftUI rewrite of a 400k-line codebase.
+        - Cut median cold-start time from 1.9s to 0.8s.
+
+        ### iOS Engineer — Contoso
+        Springfield · 2016 – 2021
+        - Shipped the offline sync layer used by every client.
+
+        ## Projects
+        ### Fieldbook
+        - An offline-first field notes app; 30k downloads.
+
+        ## Core Skills
+        Platforms: Swift, SwiftUI, UIKit, Core Data
+        Practices: TDD, CI/CD, code review, mentoring
+
+        ## Awards
+        ### Engineering Excellence Award
+        Northwind Systems · 2023
+        - For the rewrite's reliability record.
+        """,
+        coverLetter: "",
+        gapNote: ""
+    )
 
     /// Exports a **single** document (résumé or cover letter) — the primary path. Each file
     /// contains only that document's Markdown (no combined wrapper heading).

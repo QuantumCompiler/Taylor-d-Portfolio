@@ -12,11 +12,14 @@ import Foundation
 /// domain-agnostic — Markdown `String` in, `.tex` `String` out — so it's fully unit-testable
 /// and never imports upward. Reuses the shared `MarkdownBlockParser` / `MarkdownInline`.
 ///
-/// **Fidelity (C-parse):** the output mirrors the **exact macro structure, section order, and
-/// spacing** of Taylor's hand-authored résumé — `\begin{cventries}` + `\cventry`/`\cvproject`
-/// wrapped entries, the Education → Experience → Projects → Qualifications order, the per-section
-/// `\vspace` tweaks, and `\arraystretch` before the skills grid — so generated content adopts the
-/// same look. The generated Markdown is loose (no explicit org/location/date fields), so entry
+/// **Fidelity (C-parse):** the output mirrors the **exact macro structure** of Taylor's
+/// hand-authored résumé — `\begin{cventries}` + `\cventry`/`\cvproject` wrapped entries, and
+/// `\arraystretch` before the skills grid — so generated content adopts the same look. Section
+/// **order, visibility and spacing** are no longer fixed here: they come from the ``LaTeXStyle``
+/// passed in (v0.7.0 Milestone C), whose default is the hand-authored Education → Experience →
+/// Projects → Qualifications order with its per-section `\vspace` tweaks.
+///
+/// The generated Markdown is loose (no explicit org/location/date fields), so entry
 /// metadata is split heuristically from the "Title — Org" / "Location · Date" shapes the app's own
 /// generation produces. All interpolated text is LaTeX-escaped; only the FontAwesome icons already
 /// in the classes are used (none are introduced), so the output compiles under `lualatex`.
@@ -24,33 +27,50 @@ nonisolated enum TexDocumentBuilder {
 
     // MARK: Public API (mirrors the DocumentExporter shape: Markdown in, .tex out)
 
-    /// A complete résumé `.tex` document driving `Class/Resume`.
-    static func resume(fromMarkdown markdown: String) -> String {
+    /// A complete résumé `.tex` document driving the style's résumé class (`Class/Resume` by default).
+    /// The `style` supplies every presentation choice (v0.7.0 Milestone B); ``LaTeXStyle/default``
+    /// reproduces the hand-authored look this builder used to hardcode.
+    static func resume(fromMarkdown markdown: String, style: LaTeXStyle = .default) -> String {
         let blocks = MarkdownBlockParser.blocks(from: markdown)
         let level = sectionLevel(of: blocks)
         let (preamble, sections) = split(blocks, atHeadingLevel: level)
 
         // A "Summary/Profile" section renders as a lead paragraph (the résumé opens with prose,
-        // not a titled section); the rest sort into the canonical résumé order.
-        let contentSections = sections.filter { !isSummarySection($0.title) }
-        let ordered = contentSections.enumerated()
-            .sorted { (canonicalOrder($0.element.title), $0.offset) < (canonicalOrder($1.element.title), $1.offset) }
-            .map(\.element)
+        // not a titled section); the rest sort into the style's section order (v0.7.0 Milestone C).
+        // Hiding happens **here**, before the loop, so a hidden section takes its own `\vspace`
+        // with it and leaves no gap behind. `leadSummary` below reads the *unfiltered* `sections`,
+        // so the lead paragraph can be neither reordered nor hidden — hiding `.other` (which is
+        // what "Summary" classifies as) must never delete the user's opening paragraph.
+        let contentSections = sections
+            .filter { !isSummarySection($0.title) }
+            .filter { style.isVisible(sectionTitled: $0.title) }
+        // A partition by bucket, not a sort — see `LaTeXStyle.orderedSections(_:titledBy:)`, which
+        // owns the rule that same-bucket sections keep document order and unnamed buckets go last.
+        let ordered = style.orderedSections(contentSections, titledBy: \.title)
 
         var body = "\\makecvheader\n\n"
         if let lead = leadSummary(preamble: preamble, sections: sections) {
             body += "\\vspace{-0.5em}\n\\begin{justify}{\\paragraphstyle \(inlineLaTeX(lead))}\\end{justify}\n\n"
         }
         for section in ordered {
-            body += "\\vspace{\(sectionVSpace(section.title))}\n\\cvsection{\(plainLaTeX(section.title))}\n\n"
+            // The `\vspace` is a **prefix of this iteration**, never a separator emitted between
+            // sections — that's what makes "hiding leaves no double gap" true by construction.
+            body += "\\vspace{\(style.sectionVSpace(forSectionTitled: section.title))}\n"
+                + "\\cvsection{\(plainLaTeX(section.title))}\n\n"
+            // Rendering stays keyed on the *title* (`isSkillsSection`), not the style's bucket:
+            // the two disagree for titles like "Educational Qualifications", which sorts as
+            // education but has always rendered as a skills grid. Changing that is not this
+            // milestone's business.
             body += isSkillsSection(section.title) ? renderSkills(section.blocks) : renderEntries(section.blocks)
             body += "\n"
         }
-        return resumePreamble(headline: headline(in: preamble)) + "\\begin{document}\n\n" + body + "\\end{document}\n"
+        return resumePreamble(headline: headline(in: preamble), style: style)
+            + "\\begin{document}\n\n" + body + "\\end{document}\n"
     }
 
-    /// A complete cover-letter `.tex` document driving `Class/CoverLetter`.
-    static func coverLetter(fromMarkdown markdown: String) -> String {
+    /// A complete cover-letter `.tex` document driving the style's letter class. The **same** style
+    /// as the résumé — one look across both deliverables (v0.7.0 Milestone B).
+    static func coverLetter(fromMarkdown markdown: String, style: LaTeXStyle = .default) -> String {
         let blocks = MarkdownBlockParser.blocks(from: markdown)
         let (preamble, sections) = split(blocks, atHeadingLevel: sectionLevel(of: blocks))
 
@@ -65,9 +85,10 @@ nonisolated enum TexDocumentBuilder {
             }
         }
 
-        return coverLetterPreamble(headline: headline(in: preamble))
+        return coverLetterPreamble(headline: headline(in: preamble), style: style)
             + "\\begin{document}\n\n\\makecvheader\n\n"
-            + "\\setlength{\\parskip}{1.0em}\n\\linespread{1.08}\\selectfont\n\n"
+            + "\\setlength{\\parskip}{\(style.letterParagraphSkipArgument)}\n"
+            + "\\linespread{\(style.letterLineSpreadArgument)}\\selectfont\n\n"
             + "\\begin{cvletter}\n\n\(letter)\\end{cvletter}\n\n"
             + "\\makeletterclosing\n\n\\end{document}\n"
     }
@@ -145,6 +166,14 @@ nonisolated enum TexDocumentBuilder {
 
     /// A section rendered as `cvskills` (with the résumé's `\arraystretch{0.7}`) — each non-empty
     /// line becomes a `\cvskill{bucket}{items}` (split on the first ": ").
+    ///
+    /// The `\arraystretch` change is wrapped in a **group**, so it applies to this grid and nothing
+    /// after it. Ungrouped, it stayed in force to `\end{document}` and compressed the row height of
+    /// every later `tabular*` — every `\cventry` that followed the skills section. That was
+    /// invisible while the section order was fixed (skills sat last); v0.7.0 Milestone C made the
+    /// order the user's, so "move skills up" silently restyled unrelated sections. Grouping rather
+    /// than resetting to `1` restores whatever the ambient value was, without asserting a default
+    /// the class might one day change.
     static func renderSkills(_ blocks: [MarkdownBlock]) -> String {
         let lines: [String] = blocks.compactMap {
             switch $0 {
@@ -163,7 +192,7 @@ nonisolated enum TexDocumentBuilder {
                 rows += "    \\cvskill\n    {}\n    {\(inlineLaTeX(line))}\n"
             }
         }
-        return "\\renewcommand{\\arraystretch}{0.7}\n\\begin{cvskills}\n\(rows)\\end{cvskills}\n"
+        return "{\\renewcommand{\\arraystretch}{0.7}\n\\begin{cvskills}\n\(rows)\\end{cvskills}}\n"
     }
 
     // MARK: Entry parsing
@@ -206,27 +235,12 @@ nonisolated enum TexDocumentBuilder {
         return (entries, leadingProse)
     }
 
-    // MARK: Ordering / spacing (to match the hand-authored résumé)
+    // MARK: Lead summary
 
-    /// The canonical résumé section order: Education, Experience, Projects, Qualifications/Skills,
-    /// then anything else (stable). Mirrors the manual `Resume.tex` `\input` order.
-    static func canonicalOrder(_ title: String) -> Int {
-        let lower = title.lowercased()
-        if lower.contains("education") { return 0 }
-        if lower.contains("experience") || lower.contains("employment") || lower.contains("work history") { return 1 }
-        if lower.contains("project") { return 2 }
-        if isSkillsSection(title) { return 3 }
-        return 4
-    }
-
-    /// The `\vspace` before each `\cvsection`, matching the hand-authored section files.
-    static func sectionVSpace(_ title: String) -> String {
-        let lower = title.lowercased()
-        if lower.contains("education") { return "-1em" }
-        if lower.contains("experience") || lower.contains("project") { return "-1.5em" }
-        if isSkillsSection(title) { return "-0.5em" }
-        return "-1em"
-    }
+    // Section ordering and per-section spacing used to live here as `canonicalOrder(_:)` /
+    // `sectionVSpace(_:)`. They moved into `LaTeXStyle` in v0.7.0 (Milestone A defined them,
+    // Milestone C made them live) and were deleted rather than kept as delegates — two live
+    // classifiers of the same thing is exactly the drift that let them disagree with each other.
 
     /// The lead summary text — a preamble summary, or the prose of a "Summary/Profile" section.
     static func leadSummary(preamble: [MarkdownBlock], sections: [Section]) -> String? {
@@ -239,15 +253,95 @@ nonisolated enum TexDocumentBuilder {
 
     // MARK: Preambles
 
-    private static func resumePreamble(headline: String?) -> String {
-        var out = """
-        \\documentclass[6pt]{Class/Resume}
-        \\geometry{left=0.50cm, top=0.50cm, right=0.50cm, bottom=0.75cm, footskip=0.25cm}
-        \\nonstopmode
-        \\fontdir[fonts/]
-        \\pageHeader
+    /// The bundled font directory, as `\fontdir` and `fontspec`'s `Path=` both want it (relative to
+    /// the staged compile directory — see `LaTeXProcessClient`).
+    static let fontDirectory = "fonts/"
 
-        """
+    /// The shared head of both preambles: the document **frame** — `\documentclass`,
+    /// `\nonstopmode`, `\fontdir`, `\pageHeader` — wrapped around the style block. Under
+    /// ``LaTeXStyle/default`` that block collapses to the same single `\geometry` line in the same
+    /// position, so this stays byte-for-byte what the builder emitted before v0.7.0.
+    static func preambleHead(for document: LaTeXDocumentKind, style: LaTeXStyle) -> String {
+        let descriptor = LaTeXTemplateRegistry.descriptor(for: style)
+        let options = [style.fontSizes.classOption(for: document),
+                       descriptor.paperOption(for: document, style: style)]
+            .compactMap { $0 }
+            .joined(separator: ", ")
+
+        return "\\documentclass[\(options)]{\(descriptor.documentClass(for: document))}\n"
+            + styleBlock(style)
+            + "\\nonstopmode\n"
+            + "\\fontdir[\(fontDirectory)]\n"
+            + "\\pageHeader\n"
+    }
+
+    /// The **style-driven block** of the preamble: the `\geometry` line plus the optional
+    /// font-family and accent overrides — precisely the region ``LaTeXStyle/customPreamble``
+    /// replaces (v0.7.0 Milestone F). Internal, because the style manager's advanced editor seeds
+    /// itself from it: "what you are replacing" has to be byte-identical to what the builder would
+    /// otherwise emit.
+    ///
+    /// An override is emitted **verbatim** — never escaped, never validated, never gated on a test
+    /// compile. A broken override has to reach `lualatex` and the `.tex` export intact, because
+    /// that is the only way a user can debug it.
+    static func styleBlock(_ style: LaTeXStyle) -> String {
+        if let override = style.effectiveCustomPreamble {
+            // The trailing newline is the app's, not the user's: without it a preamble ending in a
+            // `%` comment would swallow the `\nonstopmode` on the next line.
+            return override.hasSuffix("\n") ? override : override + "\n"
+        }
+        return "\\geometry{\(style.margins.geometryOptions)}\n"
+            + fontFamilyOverride(style)
+            + accentOverride(style)
+    }
+
+    /// Repoints awesome-cv's `\bodyfont` / `\bodyfontlight` at a bundled family, or `""` for the
+    /// template's own faces. Only **bundled** families are selectable, so the `Path=` always
+    /// resolves inside the staged compile directory.
+    static func fontFamilyOverride(_ style: LaTeXStyle) -> String {
+        guard let family = style.fontFamily.faceNamePrefix,
+              let fileExtension = style.fontFamily.fileExtension,
+              let regular = style.fontFamily.regularFaces,
+              let light = style.fontFamily.lightFaces
+        else { return "" }
+
+        func declaration(_ command: String, _ faces: LaTeXFontFamily.Faces) -> String {
+            """
+            \\newfontfamily\\\(command)[
+              Path=\(fontDirectory),
+              Extension=\(fileExtension),
+              UprightFont=\(faces.upright),
+              ItalicFont=\(faces.italic),
+              BoldFont=\(faces.bold),
+              BoldItalicFont=\(faces.boldItalic),
+            ]{\(family)}
+
+            """
+        }
+
+        return declaration("styleBodyFont", regular)
+            + declaration("styleBodyFontLight", light)
+            + "\\renewcommand*{\\bodyfont}{\\styleBodyFont}\n"
+            + "\\renewcommand*{\\bodyfontlight}{\\styleBodyFontLight}\n\n"
+    }
+
+    /// Repoints the class's `awesome` colour, or `""` for the template's own (`awesome-cyan`).
+    /// A named palette colour is emitted by name — it's already defined by the class — and a custom
+    /// one as a hex `\definecolor`. A malformed custom hex resolves to no override at all.
+    static func accentOverride(_ style: LaTeXStyle) -> String {
+        switch style.accent {
+        case .templateDefault:
+            return ""
+        case let .named(colour):
+            return "\\colorlet{awesome}{\(colour.latexName)}\n\n"
+        case .custom:
+            guard let hex = style.accent.hex else { return "" }
+            return "\\definecolor{awesome}{HTML}{\(hex)}\n\n"
+        }
+    }
+
+    private static func resumePreamble(headline: String?, style: LaTeXStyle) -> String {
+        var out = preambleHead(for: .resume, style: style)
         if let headline, !headline.isEmpty { out += "\\position{\(plainLaTeX(headline))}\n" }
         out += "\\pageFooter{Résumé}\n\n"
         out += Self.entryHelpers + "\n"
@@ -275,15 +369,8 @@ nonisolated enum TexDocumentBuilder {
     }
     """
 
-    private static func coverLetterPreamble(headline: String?) -> String {
-        var out = """
-        \\documentclass[11pt, a4paper]{Class/CoverLetter}
-        \\geometry{left=0.50cm, top=0.50cm, right=0.50cm, bottom=0.75cm, footskip=0.25cm}
-        \\nonstopmode
-        \\fontdir[fonts/]
-        \\pageHeader
-
-        """
+    private static func coverLetterPreamble(headline: String?, style: LaTeXStyle) -> String {
+        var out = preambleHead(for: .coverLetter, style: style)
         if let headline, !headline.isEmpty { out += "\\position{\(plainLaTeX(headline))}\n" }
         out += "\\pageFooter{Cover Letter}\n\n"
         return out

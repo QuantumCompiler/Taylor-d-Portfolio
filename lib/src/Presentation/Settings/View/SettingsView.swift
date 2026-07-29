@@ -13,6 +13,9 @@ import AppKit
 /// keychain, falling back to any build-time keys.
 struct SettingsView: View {
     @Bindable var viewModel: SettingsViewModel
+    /// The document-style manager's own view model (v0.7.0 Milestone E) — a separate VM because
+    /// the style library is async and write-through, unlike these deferred-save settings.
+    var styles: DocumentStylesViewModel = DocumentStylesViewModel()
     /// Which settings sub-view to show (v0.4.0 Milestone B). Defaults to the engines
     /// pane, so `#Preview`s and any direct callers keep their prior behaviour.
     var section: SettingsSection = .engines
@@ -23,6 +26,7 @@ struct SettingsView: View {
             case .engines: enginesSection
             case .adzuna: sourcesSection
             case .about: aboutSection
+            case .documentStyles: DocumentStylesView(viewModel: styles)
             }
         }
         .formStyle(.grouped)

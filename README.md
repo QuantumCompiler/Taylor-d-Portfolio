@@ -185,10 +185,24 @@ A patch release on v0.6.0/v0.6.1, tidying up how the two list tabs and the Portf
   Documents is no longer cut off, either by the box it sat in **or** by a length limit that quietly dropped the
   end of a long document. *(Milestones A–E.)*
 
+### v0.7.0 — customizable LaTeX document styles
+The awesome-cv PDF route had exactly one look, hardcoded down to the font size and margins. It's now yours:
+- **Named styles you create and pick at export time (A–D):** font, accent colour, margins, page size (US Letter /
+  A4), and which résumé sections appear and in what order. Two built-in templates to start from, and your styles
+  are saved, reusable, and one can be starred as the default.
+- **A Document Styles pane in Settings (E)** with a **Preview** that compiles a sample so you can see a style
+  before you use it, and controls bounded to ranges that were measured rather than guessed — LaTeX will happily
+  produce an unreadable page without ever reporting an error.
+- **A raw-LaTeX escape hatch (F)** for anyone who wants to write the preamble themselves — including replacing
+  the résumé header's built-in name and contact details. If it doesn't compile you get the real log, the `.tex`
+  source still exports so you can debug it, and one click puts you back on a style that works.
+- Also fixed: a stray LaTeX setting from the skills grid had been quietly compressing every section printed after
+  it. *(Milestones A–F.)*
+
 **Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
 from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
-layer — or a specced `PLANNED.md` item (e.g. customizable LaTeX styles, or the **ATS-friendly export mode** noted
-alongside v0.6.1).
+layer — or one of the unspecced ideas noted in `lib/documentation/TODO.md` (an ATS-friendly export mode, a chunked
+full tidy for long documents).
 
 ## Build & run
 
