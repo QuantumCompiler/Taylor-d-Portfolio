@@ -7,7 +7,9 @@ and how it was built. For the product spec see `SPEC.md`; for the high-level pla
 these docs fit together.
 
 Grouped by release: **v0.1.0 — foundation**, **v0.2.0 — reliability**, **v0.3.0 — output & polish**,
-**v0.4.0 — navigation & shell**, **v0.4.1 — fixes & refinements** (the first patch release), then
+**v0.4.0 — navigation & shell**, **v0.4.1 — fixes & refinements** (the first patch release),
+**v0.5.0 — document generation fixes**, **v0.5.1 — LaTeX résumé & cover letter output**,
+**v0.6.0 — richer grounding, job detail & sources**, and **v0.6.1 — keyword match & ATS coverage**, plus
 **ad-hoc / quality-of-life** enhancements. (A former Milestone L —
 "prefer AFM 3 Core Advanced on-device" — was dropped: on-device tier selection has no developer API;
 see `CLAUDE.md` → Stack.)

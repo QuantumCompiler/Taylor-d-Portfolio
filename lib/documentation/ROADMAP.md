@@ -771,7 +771,7 @@ breakdown + open calls.
       Results). On-device: `.extraction` LLM + page-fetch; the digest **normalizes** the posting (a normalized digest,
       not verbatim, where the source is thin). Scheduled 2026-07-15.
 
-## v0.6.1 — keyword match & ATS coverage  (in progress)
+## v0.6.1 — keyword match & ATS coverage  (complete)
 
 A **patch release** on shipped v0.6.0, scheduled out of `PLANNED.md` (its sole `Target: v0.6.1` entry). The
 theme: ATS / AI résumé screeners filter on a posting's keywords, and good candidates get auto-rejected for
@@ -851,9 +851,13 @@ open calls.
   — v0.6.0 shipped **A–K** (A richer job postings, B profile-at-generation, C regenerate result, D user-editable
   credentials, E full posting text, F multi-source search, G per-provider credential-setup help, H Search provider
   selector — the last two on H-A's data-driven provider registry, I supporting profile documents, J LLM job source,
-  K standardized result descriptions). **v0.6.1 (keyword match & ATS coverage) is in progress** — Milestones
-  **A–D** above. The version **after** it is unstarted; its number and theme are chosen when development on it
-  begins (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: full awesome-cv
+  K standardized result descriptions). **v0.6.1 (keyword match & ATS coverage) is complete** — Milestones
+  **A–D** above: a pure `KeywordCoverage` computation, the `TargetBrief` carried out of generation and persisted
+  with the kit, the coverage panel, and the opt-in keyword-emphasis control. **The next version is unstarted**;
+  its number and theme are chosen when development on it
+  begins (see `CLAUDE.md` → "Never pre-name the next version"). Candidate fast-follows / themes: an
+  **ATS-friendly export mode** (the companion noted but deliberately left out of v0.6.1 — standard headings,
+  single-column, selectable text, which is what decides whether an ATS can *parse* a résumé at all); full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"
   shipped in v0.6.0 Milestone C); further providers for the multi-source seam (The Muse / remote feeds); and
   the deeper Backlog themes (native `LanguageModel` provider seam, on-device embedding RAG, optional MCP tools).

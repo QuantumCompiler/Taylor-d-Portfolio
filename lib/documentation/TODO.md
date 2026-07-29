@@ -9,18 +9,13 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.1 — keyword match & ATS coverage: code-complete → the merge-ready wrap.** All four
-> milestones **A–D** are done (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`), the full suite is green, and
-> `MARKETING_VERSION` is already `0.6.1`. **Nothing is left to build.** What remains is the shipping pass in
-> `CLAUDE.md` → "Making a branch merge-ready": flip the `## v0.6.1 —` headers to **(complete)**, add the
-> `README.md` version summary and point its **Next:** line forward *without* naming a version, and clear this
-> file down to the next version's placeholder — plus the **device checks** below, which need a real run.
+> **Current focus. The next version (unstarted) — number + theme TBD.** See "Next version" at the bottom of this
+> file. **v0.6.1 (keyword match & ATS coverage) is complete and merge-ready** — all four milestones **A–D**
+> shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs, `README.md`, and
+> `MARKETING_VERSION = 0.6.1` are done. Only the **device checks** below remain before the branch merges.
 >
-> **v0.6.0 (richer grounding, job detail & sources) shipped** — all eleven milestones **A–K** are written up
-> in `MILESTONES.md` and ticked in `ROADMAP.md`.
->
-> **⚠️ Awaiting device checks** — carried forward; everything automatable is done and green, but these need a
-> real run (each milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.6.1**.
+> **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
+> milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.6.1**.
 > - **v0.6.1 C** — generate an application for a real posting: the **coverage panel** appears below the two
 >   documents with the covered (green) / missing (amber) keyword capsules, the must-have headline count is right,
 >   it updates on Regenerate, it **survives reopening** the saved result, and it's **absent** for a result
@@ -48,37 +43,16 @@ down only).
 
 ---
 
-# v0.6.1 — keyword match & ATS coverage
+# Next version — (unstarted; number + theme TBD)
 
-**The theme.** ATS / AI résumé screeners filter on a posting's keywords, and good candidates get
-auto-rejected for missing a few. The honest, effective answer — explicitly **not** hidden "invisible-ink"
-white-text keyword stuffing, which backfires (ATS parse to plain text, recruiters see it, LLM screeners flag
-it) — is to surface how well the generated résumé covers the posting's **real** keywords **in visible text**,
-so the user aligns truthfully with what the screener looks for. **Everything here is visible-text-only —
-that's the whole point.** Most of the data already exists: the posting's keywords are distilled into
-`TargetBrief` at generation stage 1, and the résumé is `ApplicationKit.resumeMarkdown`.
+**Nothing is scheduled yet** — v0.6.1 is complete (see "Current focus" above) and the next version is unstarted.
 
-**Scope + layers.** Patch-sized (`.1`): a pure Data value type (A), a small Business/Presentation change to
-carry the brief out of generation (B), a Presentation panel (C), and a `GenerationSettings` flag + `Prompts`
-block (D). **No new seam and no `LLMProvider` change** — so nothing to forward in
-`SettingsBackedLLMProvider` (`Composition.swift:366`+).
+**Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its number
+and theme aren't chosen until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At
+kickoff, pick a theme from `ROADMAP.md`'s Backlog (native `LanguageModel` provider seam, on-device embedding RAG,
+optional MCP tools) or a `PLANNED.md` entry — five entries target a patch release (discoverable
+remove-from-Tracker, multi-select bulk actions, Results sort + Tracker filter, hide imported-doc raw preview,
+full source-document preview) and one targets a feature release (customizable LaTeX styles). The **ATS-friendly
+export mode** noted alongside v0.6.1 is a candidate too, but is **unspecced** — write it into `PLANNED.md` with a
+`Target:` first. Assign the version number, bump `MARKETING_VERSION`, and break it into Milestone A, B, C… here.
 
-**Transparency.** Coverage reports **truthfully** what's in the visible résumé; D's emphasis option weaves in
-keywords that **genuinely apply** and routes the rest to the gap note, so the user sees covered vs. missing and
-decides what to claim. **No hidden text** — the deliberate opposite of the invisible-ink idea this replaces.
-
-**Out of scope (noted, not folded in).** An **ATS-friendly export mode** — standard section headings,
-single-column, selectable text (no text-in-images) — is what actually determines whether an ATS can *parse* the
-résumé at all. Natural pairing with keyword coverage, but it's an export/template concern touching
-`ExportTemplate` / `TexDocumentBuilder`, not this release. If Taylor wants it, spec it as its own `PLANNED.md`
-entry with its own `Target:`.
-
-## Release hygiene (v0.6.1)
-
-- [x] **`MARKETING_VERSION` → `0.6.1`** in all **4** copies in `project.pbxproj` (Debug/Release × app/test), so
-      Settings → About reports the real version (`CLAUDE.md` → "Keep the project version in sync").
-- [x] Each completed milestone's write-up moved into `MILESTONES.md` and ticked in `ROADMAP.md` (A–D).
-- [ ] **The merge-ready wrap** (`CLAUDE.md` → "Making a branch merge-ready"): flip the `## v0.6.1 —` headers in
-      `ROADMAP.md` / `MILESTONES.md` to **(complete)**, add v0.6.1's one-paragraph summary to `README.md` under
-      "Version history" and point its **Next:** line forward **without naming** the next version, and clear this
-      file down to the next version's un-numbered placeholder + the carried-forward device-checks note.
