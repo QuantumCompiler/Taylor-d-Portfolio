@@ -17,6 +17,10 @@ import Foundation
 nonisolated struct SearchAndRankUseCase: Sendable {
     let jobSource: any JobSource
     let ranker: JobRanker
+    /// Optional per-result **digester** (v0.6.0 Milestone K): structures every ranked result into
+    /// a uniform ``PostingDetails`` so descriptions read the same regardless of source and
+    /// generation grounds on one shape. `nil` ⇒ no digestion (search returns raw descriptions).
+    let enrichPosting: EnrichPostingUseCase?
     /// Max title searches in flight at once (Adzuna free-tier rate-limit guard).
     var maxConcurrentSearches: Int
     /// Hard cap on how many titles a single run will search.
@@ -31,6 +35,7 @@ nonisolated struct SearchAndRankUseCase: Sendable {
     init(
         jobSource: any JobSource,
         ranker: JobRanker,
+        enrichPosting: EnrichPostingUseCase? = nil,
         maxConcurrentSearches: Int = 4,
         maxTitles: Int = 6,
         defaultResultsPerPage: Int = 25,
@@ -39,6 +44,7 @@ nonisolated struct SearchAndRankUseCase: Sendable {
     ) {
         self.jobSource = jobSource
         self.ranker = ranker
+        self.enrichPosting = enrichPosting
         self.maxConcurrentSearches = maxConcurrentSearches
         self.maxTitles = maxTitles
         self.defaultResultsPerPage = defaultResultsPerPage
@@ -151,6 +157,48 @@ nonisolated struct SearchAndRankUseCase: Sendable {
             resultShortfall: shortfall,
             noneMetMinimum: noneMetMinimum
         )
+    }
+
+    // MARK: Digest (Milestone K — standardized result descriptions)
+
+    /// Whether per-result digestion is wired in this build.
+    var canDigest: Bool { enrichPosting != nil }
+
+    /// Digests each ranked result into a uniform ``PostingDetails`` (Milestone K), **streaming**
+    /// each updated ``RankedJob`` as its digest completes — so the UI can swap rows to the
+    /// standardized description progressively instead of blocking on the whole batch (one LLM call
+    /// per result is a real cost for a 25–50-result search). Guards: **bounded concurrency**
+    /// (reusing the search window), a **cache** (a job already carrying `details` is skipped), and
+    /// a soft **fallback** (a digest that fails or changes nothing is simply not yielded — the row
+    /// keeps its raw description). Yields only the jobs it actually re-digested; finishes when done.
+    func digestStream(_ jobs: [RankedJob]) -> AsyncStream<RankedJob> {
+        AsyncStream { continuation in
+            guard let enrichPosting else { continuation.finish(); return }
+            let pending = jobs.filter { $0.listing.details == nil }   // cache: skip already-digested
+            guard !pending.isEmpty else { continuation.finish(); return }
+
+            let window = max(1, min(maxConcurrentSearches, pending.count))
+            let task = Task {
+                await withTaskGroup(of: RankedJob?.self) { group in
+                    var next = 0
+                    func schedule(_ index: Int) {
+                        let job = pending[index]
+                        group.addTask {
+                            guard let enriched = try? await enrichPosting(job.listing),
+                                  enriched != job.listing else { return nil }   // unchanged → nothing to swap
+                            return RankedJob(listing: enriched, match: job.match)
+                        }
+                    }
+                    while next < window { schedule(next); next += 1 }
+                    while let result = await group.next() {
+                        if let result { continuation.yield(result) }
+                        if next < pending.count { schedule(next); next += 1 }
+                    }
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 
     // MARK: Bounded-concurrency fan-out

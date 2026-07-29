@@ -38,6 +38,7 @@ nonisolated struct SaveProfileUseCase: Sendable {
         coverLetterFileName: String? = nil,
         coverLetterText: String = "",
         coverLetterReadableText: String = "",
+        supportingDocuments: [SupportingDocument] = [],
         existing: SavedProfile? = nil
     ) async throws -> SavedProfile {
         let saved = SavedProfile(
@@ -50,6 +51,7 @@ nonisolated struct SaveProfileUseCase: Sendable {
             coverLetterFileName: coverLetterFileName,
             coverLetterText: coverLetterText,
             coverLetterReadableText: coverLetterReadableText,
+            supportingDocuments: supportingDocuments,
             createdAt: existing?.createdAt ?? now()
         )
         try await repository.save(saved)

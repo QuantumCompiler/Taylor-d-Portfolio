@@ -23,6 +23,9 @@ nonisolated struct JobQuery: Codable, Equatable, Sendable {
     var page: Int
     /// How many listings to request per page.
     var resultsPerPage: Int
+    /// The provider ids to query (Milestone H). `nil` (or empty) ⇒ every configured provider —
+    /// only ``CompositeJobSource`` reads it, to restrict the fan-out to the user's selection.
+    var sources: [String]?
 
     init(
         keywords: String,
@@ -30,7 +33,8 @@ nonisolated struct JobQuery: Codable, Equatable, Sendable {
         salaryMin: Double? = nil,
         positionType: PositionType? = nil,
         page: Int = 1,
-        resultsPerPage: Int = 25
+        resultsPerPage: Int = 25,
+        sources: [String]? = nil
     ) {
         self.keywords = keywords
         self.location = location
@@ -38,5 +42,6 @@ nonisolated struct JobQuery: Codable, Equatable, Sendable {
         self.positionType = positionType
         self.page = page
         self.resultsPerPage = resultsPerPage
+        self.sources = sources
     }
 }

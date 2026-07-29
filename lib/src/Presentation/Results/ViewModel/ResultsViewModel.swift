@@ -32,6 +32,7 @@ final class ResultsViewModel {
     private let markStatus: MarkStatusUseCase?
     private let saveResults: SaveResultsUseCase?
     private let deleteSavedJob: DeleteSavedJobUseCase?
+    private let enrichPosting: EnrichPostingUseCase?
 
     init(
         results: [RankedJob] = [],
@@ -40,7 +41,8 @@ final class ResultsViewModel {
         loadJobHistory: LoadJobHistoryUseCase? = nil,
         markStatus: MarkStatusUseCase? = nil,
         saveResults: SaveResultsUseCase? = nil,
-        deleteSavedJob: DeleteSavedJobUseCase? = nil
+        deleteSavedJob: DeleteSavedJobUseCase? = nil,
+        enrichPosting: EnrichPostingUseCase? = nil
     ) {
         self.results = results
         self.loadSavedJobs = loadSavedJobs
@@ -49,6 +51,7 @@ final class ResultsViewModel {
         self.markStatus = markStatus
         self.saveResults = saveResults
         self.deleteSavedJob = deleteSavedJob
+        self.enrichPosting = enrichPosting
     }
 
     var isEmpty: Bool { results.isEmpty }
@@ -117,12 +120,31 @@ final class ResultsViewModel {
     /// Saves `job` to the Tracker by marking it `.saved` (Milestone V-B). Persists the
     /// listing first so the tracker join has it, then refreshes the badge. Idempotent — an
     /// already-tracked job keeps its current (possibly later) stage; it never downgrades.
+    /// Then best-effort **enriches** the saved posting (v0.6.0 A-D) — enrichment runs *after*
+    /// the save so the row drops out of Results immediately, never blocking on the LLM call.
     func saveToTracker(_ job: RankedJob) async {
         guard let markStatus else { return }
         if isTracked(job) { return }                       // don't downgrade a later stage
         try? await saveResults?([job])                     // ensure the listing is persisted
         _ = try? await markStatus(jobID: job.id, stage: .saved)
         await refreshHistory()
+        await enrichSavedJob(job)
+    }
+
+    /// Best-effort enrichment of a just-saved job (v0.6.0 Milestone A-D + E): fetches the full
+    /// posting page and re-persists the job carrying its **full text** (`fullDescription`, E)
+    /// and/or structured **detail** (A), so the Tracker and generation have richer signal to
+    /// work from. Skipped when enrichment isn't wired or the job is already captured; a
+    /// fetch/LLM failure leaves the plain saved job untouched.
+    private func enrichSavedJob(_ job: RankedJob) async {
+        guard let enrichPosting,
+              job.listing.details == nil, job.listing.fullDescription == nil else { return }
+        guard let listing = try? await enrichPosting(job.listing), listing != job.listing else { return }
+        let enriched = RankedJob(listing: listing, match: job.match)
+        try? await saveResults?([enriched])
+        if let index = results.firstIndex(where: { $0.id == enriched.id }) {
+            results[index] = enriched                       // reflect enrichment in the in-memory list
+        }
     }
 
     /// Fully forgets `job` (Milestone V-A): removes it from the list and, by decision, from
@@ -142,6 +164,16 @@ final class ResultsViewModel {
             isLoading = false
         }
         await refreshHistory()
+    }
+
+    /// Replaces the in-memory result for `job.id` with `job` — e.g. after a "Regenerate result"
+    /// in a detail window overwrote the store (v0.6.0 Milestone C) — so the list shows the
+    /// refreshed score/reason without re-reading the whole set (which would clobber fresh,
+    /// unsaved search results, per Milestone S-C). No-op if the job isn't currently listed.
+    func applyRefreshed(_ job: RankedJob) {
+        if let index = results.firstIndex(where: { $0.id == job.id }) {
+            results[index] = job
+        }
     }
 
     /// Reloads the per-job history map (e.g. after the detail sheet closes). Prefers the

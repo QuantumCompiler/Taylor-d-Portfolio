@@ -46,6 +46,12 @@ final class AppSession {
     /// Results / Tracker lists reload to reflect the change.
     private(set) var revision = 0
 
+    /// The most-recently **regenerated** result (v0.6.0 Milestone C), set by a detached detail
+    /// window. The Tracker reloads wholesale on `revision`, but the **Results** list holds
+    /// unsaved in-memory search results (never re-read wholesale, per Milestone S-C), so it
+    /// needs the refreshed job handed to it to replace just that row. Cleared once applied.
+    var refreshedResult: RankedJob?
+
     /// Signals that shared persistence changed (status set, materials generated, job saved).
     func dataChanged() { revision &+= 1 }
 

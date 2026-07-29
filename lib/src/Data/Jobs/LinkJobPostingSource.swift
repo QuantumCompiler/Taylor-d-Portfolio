@@ -34,6 +34,14 @@ nonisolated struct LinkJobPostingSource: JobPostingSource {
     ]
 
     func fetchPosting(from url: URL) async throws -> JobListing {
+        let text = try await readableText(from: url)
+        return try await extract(text: text, sourceURL: url)
+    }
+
+    /// Fetches the page, decodes it (tolerating non-UTF-8), strips it to plain text, and
+    /// guards the min-readable-length threshold — the shared first half of `fetchPosting`,
+    /// exposed on its own so enrichment can feed on the full posting text (A-C).
+    func readableText(from url: URL) async throws -> String {
         let data: Data
         do {
             data = try await http.get(url, headers: Self.browserHeaders)
@@ -48,7 +56,7 @@ nonisolated struct LinkJobPostingSource: JobPostingSource {
         guard text.count >= minReadableCharacters else {
             throw JobPostingSourceError.unreadable
         }
-        return try await extract(text: text, sourceURL: url)
+        return text
     }
 
     func extractPosting(fromText text: String, sourceURL: URL?) async throws -> JobListing {

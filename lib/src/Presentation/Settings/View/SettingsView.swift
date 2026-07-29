@@ -8,9 +8,9 @@
 import SwiftUI
 import AppKit
 
-/// Settings: assign an LLM engine (and Claude model) to each task, and choose the
-/// Adzuna country. Adzuna credentials are baked in at build time, so they're shown
-/// here only as a read-only status.
+/// Settings: assign an LLM engine (and Claude model) to each task, choose the Adzuna
+/// country, and enter your own Adzuna API credentials (Milestone D) — stored in the
+/// keychain, falling back to any build-time keys.
 struct SettingsView: View {
     @Bindable var viewModel: SettingsViewModel
     /// Which settings sub-view to show (v0.4.0 Milestone B). Defaults to the engines
@@ -21,7 +21,7 @@ struct SettingsView: View {
         Form {
             switch section {
             case .engines: enginesSection
-            case .adzuna: adzunaSection
+            case .adzuna: sourcesSection
             case .about: aboutSection
             }
         }
@@ -49,24 +49,93 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Adzuna — country code + baked-in credentials status
+    // MARK: Sources — per-provider credentials, driven by the registry (v0.6.0 Milestones F/G/H-A)
 
-    private var adzunaSection: some View {
+    /// One credential section per **registered** provider (no provider is hand-enumerated here —
+    /// adding one to `JobProviderRegistry` renders it automatically), then a single Save control.
+    @ViewBuilder
+    private var sourcesSection: some View {
+        ForEach(JobProviderRegistry.all) { descriptor in
+            providerSection(descriptor)
+        }
+        Section { saveButton }
+    }
+
+    @ViewBuilder
+    private func providerSection(_ descriptor: JobProviderDescriptor) -> some View {
         Section {
-            TextField("Country code", text: $viewModel.adzunaCountry)
-            LabeledContent("Credentials") {
-                if viewModel.adzunaConfigured {
-                    Label("Configured", systemImage: "checkmark.seal.fill")
-                        .foregroundStyle(.green)
-                } else {
-                    Label("Not configured in this build", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+            // Adzuna's country is a provider-specific search preference, not a secret.
+            if descriptor.provider == .adzuna {
+                TextField("Country code", text: $viewModel.adzunaCountry)
+            }
+
+            ForEach(descriptor.credentialFields, id: \.field) { credentialField in
+                providerCredentialField(credentialField.label, field: credentialField.field)
+            }
+
+            statusRow(configured: viewModel.isConfigured(descriptor.provider))
+
+            if viewModel.hasStoredCredentials(descriptor.provider) {
+                Button("Clear \(descriptor.displayName) credentials", role: .destructive) {
+                    viewModel.clearCredentials(descriptor.provider)
                 }
+                .clickableCursor()
             }
         } header: {
-            Text("Adzuna")
+            Text(descriptor.displayName)
         } footer: {
-            saveButton
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Keys are stored on your Mac and never leave it; saved keys are hidden.")
+                // Per-provider setup help, from the registry (Milestone G). Absent for the
+                // keyless LLM source (Milestone J) — nothing to sign up for.
+                if let setupURL = descriptor.setupURL {
+                    Link("How to get a key", destination: setupURL)
+                        .clickableCursor()
+                }
+                if !descriptor.setupSteps.isEmpty {
+                    DisclosureGroup("Setup steps") {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(Array(descriptor.setupSteps.enumerated()), id: \.offset) { index, step in
+                                Text("\(index + 1). \(step)")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
+                }
+            }
+        }
+    }
+
+    /// The shared Configured / Not-configured status row.
+    @ViewBuilder
+    private func statusRow(configured: Bool) -> some View {
+        LabeledContent("Status") {
+            if configured {
+                Label("Configured", systemImage: "checkmark.seal.fill").foregroundStyle(.green)
+            } else {
+                Label("Not configured", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+            }
+        }
+    }
+
+    /// One credential field: an editable `SecureField` until it's saved, then an immutable,
+    /// greyed masked indicator — the saved key is never revealed, only shown as "saved" in a
+    /// lighter shade. Unlocked again by "Clear … credentials".
+    @ViewBuilder
+    private func providerCredentialField(_ label: String, field: JobCredentialField) -> some View {
+        if viewModel.isCredentialSaved(field) {
+            LabeledContent(label) {
+                Text(verbatim: "••••••••")
+                    .foregroundStyle(.tertiary)
+                    .accessibilityLabel("\(label) saved and hidden")
+            }
+        } else {
+            SecureField(label, text: Binding(
+                get: { viewModel.credentialBuffer(for: field) },
+                set: { viewModel.setCredentialBuffer($0, for: field) }
+            ))
         }
     }
 

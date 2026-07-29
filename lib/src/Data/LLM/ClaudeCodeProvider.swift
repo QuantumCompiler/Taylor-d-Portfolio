@@ -34,11 +34,27 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         return batch.matches
     }
 
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        try await generateJSON(
+            prompt: Prompts.rankOne(job: job, profile: profile, instruction: instruction),
+            instructions: Prompts.rankInstructions,
+            as: JobMatch.self
+        )
+    }
+
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         try await generateJSON(
             prompt: Prompts.extractPosting(pageText: pageText),
             instructions: Prompts.extractInstructions,
             as: ExtractedPosting.self
+        )
+    }
+
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        try await generateJSON(
+            prompt: Prompts.enrichPosting(postingText: postingText),
+            instructions: Prompts.enrichInstructions,
+            as: PostingDetails.self
         )
     }
 
@@ -48,6 +64,14 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
         try await generator.generate(
             prompt: Prompts.tidyDocument(rawText: rawText),
             instructions: Prompts.tidyInstructions
+        )
+    }
+
+    /// Plain-text task: extract the full job posting from a fetched page, de-chromed (E).
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
+        try await generator.generate(
+            prompt: Prompts.cleanPosting(pageText: pageText),
+            instructions: Prompts.cleanPostingInstructions
         )
     }
 
@@ -78,7 +102,7 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
     func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief, grounding: PortfolioGrounding?, settings: GenerationSettings) async throws -> ApplicationKit {
         try await generateJSON(
             prompt: Prompts.generateApplication(job: job, profile: profile, brief: brief, grounding: grounding, settings: settings),
-            instructions: Prompts.generateInstructions,
+            instructions: Prompts.generateInstructions(settings),
             as: ApplicationKit.self
         )
     }
@@ -89,6 +113,15 @@ nonisolated struct ClaudeCodeProvider: LLMProvider {
             instructions: Prompts.scoreInstructions,
             as: JobMatch.self
         )
+    }
+
+    func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) async throws -> [GeneratedJobLead] {
+        let result = try await generateJSON(
+            prompt: Prompts.searchJobs(query: query, grounding: grounding),
+            instructions: Prompts.searchJobsInstructions,
+            as: GeneratedJobLeads.self
+        )
+        return Array(result.leads.prefix(Prompts.maxJobLeads))
     }
 
     /// Adds the JSON-only instruction, runs the engine, and decodes the reply.

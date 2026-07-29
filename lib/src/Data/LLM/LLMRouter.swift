@@ -50,8 +50,24 @@ nonisolated struct LLMRouter: LLMProvider {
         try await run(.ranking) { try await $0.rank(jobs: jobs, against: profile) }
     }
 
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        try await run(.ranking) { try await $0.rank(job: job, against: profile, instruction: instruction) }
+    }
+
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         try await run(.extraction) { try await $0.extractPosting(fromPageText: pageText) }
+    }
+
+    /// Enrichment reads a posting into structured detail — the same "reading a posting" work
+    /// as extraction — so it routes through `.extraction`.
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        try await run(.extraction) { try await $0.enrichPosting(fromPostingText: postingText) }
+    }
+
+    /// Cleaning a fetched page into the bare posting is the same "reading a posting" work as
+    /// extraction — so it routes through `.extraction`.
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
+        try await run(.extraction) { try await $0.cleanPostingText(fromPageText: pageText) }
     }
 
     /// Tidying the source document uses the SAME engine that builds the profile — it's
@@ -82,6 +98,10 @@ nonisolated struct LLMRouter: LLMProvider {
 
     func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
         try await run(.application) { try await $0.scoreApplication(for: job, brief: brief, kit: kit) }
+    }
+
+    func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) async throws -> [GeneratedJobLead] {
+        try await run(.jobSearch) { try await $0.searchJobs(query: query, grounding: grounding) }
     }
 
     // MARK: Routing

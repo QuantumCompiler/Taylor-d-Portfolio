@@ -125,9 +125,37 @@ Adds a **second, high-fidelity PDF export path** plus a batch of export/Tracker 
   and an **additional-context** box that steers generation without changing the grounded default (I).
   *(Milestones A–I.)*
 
+### v0.6.0 — richer grounding, job detail & sources
+Gave ranking and tailored generation **more real signal to work from** — and **more sources** to get it from:
+- **Richer job postings (A):** decode Adzuna's job/work type, posted date, and category; **LLM-enrich** a saved
+  posting into a structured `PostingDetails` (qualifications, responsibilities, about-the-role/company,
+  benefits) and feed it into the two-stage generation. Surfaced as badges + a structured posting description
+  (standardized across sources in Milestone K).
+- **Profile at generation time (B):** a per-generation **profile picker** so the user chooses which saved
+  profile to generate against, grounded on *that* profile's real source documents (defaults to the loaded one).
+- **Regenerate result (C):** a **re-rank** action on a saved job — re-assess fit (and backfill posting detail)
+  against a chosen profile with an optional steering note, persisted latest-wins — to refresh stale / legacy entries.
+- **User-editable API credentials (D):** enter provider keys in **Settings → Sources** (stored locally, hidden &
+  locked after saving), with the build-time secrets kept as a fallback.
+- **Full job-posting text (E):** recover the **whole posting** behind the redirect URL, LLM-cleaned of site
+  chrome, rendered as markdown and used as grounding — not Adzuna's ~500-char snippet.
+- **Multi-source search (F):** aggregate providers behind a `CompositeJobSource` with cross-source de-dup —
+  **Adzuna** plus an optional **JSearch (RapidAPI)** aggregator whose rich response arrives already-enriched.
+- **Provider setup help & selector (G, H):** a data-driven **provider registry** powers per-provider
+  "How to get a key" help in Settings and a **"Search sources" selector** in the Search view — pick which
+  API(s) to query; a provider with no key is disabled.
+- **Supporting profile documents (I):** a profile can attach **additional documents** — e.g. a full career
+  portfolio — baked in as **factual** grounding, enriching both ranking and generation.
+- **LLM job source (J):** find job **leads straight from your résumé** with no API key — the AI source is a
+  first-class search provider (engine-based availability, its own task in the engines menu). Results are clearly
+  labelled **AI-suggested** and link to a web search, never presented as verified live postings.
+- **Standardized result descriptions (K):** every result is LLM-digested into one **canonical `PostingDetails`
+  format** and rendered the same way — done **progressively** (rows appear first, descriptions standardize in the
+  background) — so results read consistently whatever the source and generation grounds on a uniform structure. *(Milestones A–K.)*
+
 **Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
 from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
-layer.
+layer — or a specced `PLANNED.md` item (e.g. customizable LaTeX styles).
 
 ## Build & run
 

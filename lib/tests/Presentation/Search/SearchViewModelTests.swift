@@ -50,12 +50,17 @@ struct SearchViewModelTests {
     private func makeVM(
         jobs: [JobListing] = [],
         matches: [JobMatch] = [],
-        adzunaConfigured: Bool = true,
-        roleTitleStore: RoleTitleStore = RoleTitleStore(store: PresentationMemoryStore())
+        configuredProviderIDs: Set<String> = Set(JobProviderRegistry.all.map(\.id)),
+        roleTitleStore: RoleTitleStore = RoleTitleStore(store: PresentationMemoryStore()),
+        enrichDetails: PostingDetails? = nil
     ) -> SearchViewModel {
-        let ranker = JobRanker(provider: PresentationStubProvider(matches: matches), shortlistLimit: 10)
-        let useCase = SearchAndRankUseCase(jobSource: PresentationStubJobSource(jobs: jobs), ranker: ranker)
-        return SearchViewModel(searchAndRank: useCase, roleTitleStore: roleTitleStore, adzunaConfigured: adzunaConfigured)
+        let provider = PresentationStubProvider(matches: matches, enrichDetails: enrichDetails)
+        let ranker = JobRanker(provider: provider, shortlistLimit: 10)
+        // Milestone K: wire the digester only when the test opts in via `enrichDetails`.
+        let enrich = enrichDetails.map { _ in EnrichPostingUseCase(provider: provider, postingSource: nil) }
+        let useCase = SearchAndRankUseCase(jobSource: PresentationStubJobSource(jobs: jobs), ranker: ranker, enrichPosting: enrich)
+        return SearchViewModel(searchAndRank: useCase, roleTitleStore: roleTitleStore,
+                               configuredProviderIDs: configuredProviderIDs)
     }
 
     /// Builds a VM with the link-fetch flow wired to `postingSource`.
@@ -86,6 +91,20 @@ struct SearchViewModelTests {
         await vm.search()
         #expect(vm.results.isEmpty)
         #expect(vm.errorMessage != nil)
+    }
+
+    @Test func searchDigestsResultsIntoTheStandardizedFormat() async {
+        // Milestone K: after ranking, every result is digested into a uniform `PostingDetails`.
+        let jobs = [JobListing(id: "a", title: "t", company: "c", location: "l", description: "raw snippet")]
+        let matches = [JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: [])]
+        let vm = makeVM(jobs: jobs, matches: matches, enrichDetails: PostingDetails(aboutRole: "A great role."))
+        vm.profile = profile
+        vm.titleInput = "iOS Engineer"
+        await vm.search()
+        #expect(vm.results.map(\.id) == ["a"])
+        #expect(vm.results.first?.listing.details?.aboutRole == "A great role.")   // standardized
+        #expect(vm.results.first?.listing.details?.standardDescription.contains("A great role.") == true)
+        #expect(vm.isDigesting == false)
     }
 
     @Test func searchWithProfileProducesResults() async {
@@ -204,8 +223,8 @@ struct SearchViewModelTests {
         #expect(vm.warningMessage?.contains("bad") == true)
     }
 
-    @Test func unconfiguredBuildDisablesSearch() async {
-        let vm = makeVM(adzunaConfigured: false)
+    @Test func noConfiguredProviderDisablesSearch() async {
+        let vm = makeVM(configuredProviderIDs: [])   // no provider has a key
         vm.profile = profile
         vm.titleInput = "swift"
         #expect(vm.canSearch == false)
@@ -216,8 +235,28 @@ struct SearchViewModelTests {
         #expect(vm.errorMessage == vm.unavailableMessage)
     }
 
-    @Test func configuredBuildHasNoUnavailableBanner() {
-        #expect(makeVM(adzunaConfigured: true).unavailableMessage == nil)
+    @Test func configuredProviderHasNoUnavailableBanner() {
+        #expect(makeVM().unavailableMessage == nil)   // defaults to all providers configured
+    }
+
+    // MARK: Provider selection (Milestone H)
+
+    @Test func searchRequiresAtLeastOneSelectedConfiguredProvider() {
+        let vm = makeVM(configuredProviderIDs: ["adzuna"])   // only Adzuna configured
+        vm.profile = profile
+        vm.titleInput = "swift"
+        #expect(vm.canSearch)                                // adzuna selected + configured
+
+        vm.setProvider("adzuna", selected: false)            // deselect the only configured one
+        #expect(!vm.canSearch)
+        #expect(vm.unavailableMessage != nil)
+    }
+
+    @Test func buildRequestCarriesTheSelectedProviders() {
+        let vm = makeVM(configuredProviderIDs: ["adzuna", "jsearch"])
+        vm.titleInput = "swift"
+        vm.setProvider("jsearch", selected: false)           // Adzuna only
+        #expect(vm.buildRequest().sources == ["adzuna"])
     }
 
     @Test func errorMessagesAreActionable() {
@@ -290,8 +329,17 @@ struct SearchViewModelTests {
 
         #expect(vm.results.isEmpty)                        // nothing pushed to Results
         #expect(vm.linkErrorMessage != nil)               // failure surfaced at the Fetch action
-        #expect(vm.linkErrorMessage?.contains("Paste") == true)  // and points to the fallback
+        #expect(vm.linkErrorMessage?.contains("paste") == true)   // points to the paste fallback…
+        #expect(vm.linkErrorMessage?.contains("JSearch") == true) // …and the aggregator path
         #expect(vm.errorMessage == nil)                   // not the search-button error slot
+    }
+
+    @Test func fetchFromABotWalledBoardNamesItInTheError() async {
+        let vm = makeLinkVM(postingSource: StubPostingSource(error: JobPostingSourceError.unreadable))
+        vm.profile = profile
+        vm.postingURL = "https://www.indeed.com/viewjob?jk=abc123"
+        await vm.fetchFromLink()
+        #expect(vm.linkErrorMessage?.contains("Indeed") == true)   // board-aware message
     }
 
     @Test func fetchFromLinkRequiresValidHTTPURL() async {

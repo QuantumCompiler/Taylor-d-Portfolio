@@ -266,4 +266,117 @@ struct ResultsViewModelTests {
         #expect(vm.filteredResults.map(\.id) == ["c"])
         #expect(vm.totalCount == 2)                        // un-tracked total, not 3
     }
+
+    // MARK: Enrich on save (v0.6.0 Milestone A-D)
+
+    @Test func savingEnrichesAndPersistsTheDetails() async throws {
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        let provider = EnrichingStubProvider(details: PostingDetails(workTypeRaw: "remote", aboutCompany: "Fintech."))
+        let vm = ResultsViewModel(
+            results: [ranked("a")],
+            loadTrackedJobs: LoadTrackedJobsUseCase(jobs: jobs, statuses: statuses),
+            loadJobHistory: LoadJobHistoryUseCase(jobs: jobs, statuses: statuses, applications: apps),
+            markStatus: MarkStatusUseCase(repository: statuses, now: { Date(timeIntervalSince1970: 0) }),
+            saveResults: SaveResultsUseCase(repository: jobs),
+            deleteSavedJob: DeleteSavedJobUseCase(jobs: jobs, statuses: statuses, applications: apps),
+            enrichPosting: EnrichPostingUseCase(provider: provider, postingSource: nil)   // snippet-only
+        )
+
+        await vm.saveToTracker(ranked("a"))
+
+        // The persisted saved job now carries the enriched details…
+        let saved = try await jobs.savedJobs().first { $0.id == "a" }
+        #expect(saved?.listing.details?.workType == .remote)
+        #expect(saved?.listing.details?.aboutCompany == "Fintech.")
+        // …and the in-memory list reflects it too.
+        #expect(vm.results.first { $0.id == "a" }?.listing.details != nil)
+    }
+
+    // MARK: Regenerate result reflected in the list (v0.6.0 Milestone C)
+
+    @Test func applyRefreshedReplacesTheMatchingRow() {
+        let vm = ResultsViewModel(results: [ranked("a"), ranked("b")])
+        let refreshed = RankedJob(
+            listing: JobListing(id: "a", title: "t", company: "c", location: "l", description: "d"),
+            match: JobMatch(jobId: "a", score: 99, reason: "re-ranked", matchedSkills: ["Swift"], missingSkills: [])
+        )
+        vm.applyRefreshed(refreshed)
+        #expect(vm.results.first { $0.id == "a" }?.score == 99)            // new score shows
+        #expect(vm.results.first { $0.id == "a" }?.match.reason == "re-ranked")
+        #expect(vm.results.first { $0.id == "b" }?.score == 50)            // others untouched
+    }
+
+    @Test func applyRefreshedIgnoresAJobNotInTheList() {
+        let vm = ResultsViewModel(results: [ranked("a")])
+        vm.applyRefreshed(ranked("not-listed"))
+        #expect(vm.results.count == 1)
+        #expect(vm.results.first?.id == "a")
+    }
+
+    @Test func savingWithoutEnrichmentWiringLeavesDetailsNil() async throws {
+        let (vm, jobs, _, _) = makeRowActionVM(results: [ranked("a")])   // no enrichPosting wired
+        await vm.saveToTracker(ranked("a"))
+        let saved = try await jobs.savedJobs().first { $0.id == "a" }
+        #expect(saved?.listing.details == nil)   // save still works; nothing enriched
+    }
+
+    @Test func savingCapturesFullDescriptionFromThePostingPage() async throws {
+        // v0.6.0 Milestone E — a fuller posting page is captured on save, even when the
+        // structuring pass finds nothing to add.
+        let store = InMemoryRecordStore()
+        let jobs = SavedJobsRepository(store: store)
+        let statuses = SavedStatusRepository(store: store)
+        let apps = SavedApplicationsRepository(store: store)
+        let page = String(repeating: "Full posting page. ", count: 20)
+        let provider = EnrichingStubProvider(details: PostingDetails())   // no structure found
+        let job = RankedJob(
+            listing: JobListing(id: "u", title: "t", company: "c", location: "l",
+                                description: "snippet", url: URL(string: "https://ex.com/j")!),
+            match: JobMatch(jobId: "u", score: 50, reason: "", matchedSkills: [], missingSkills: [])
+        )
+        let vm = ResultsViewModel(
+            results: [job],
+            loadTrackedJobs: LoadTrackedJobsUseCase(jobs: jobs, statuses: statuses),
+            loadJobHistory: LoadJobHistoryUseCase(jobs: jobs, statuses: statuses, applications: apps),
+            markStatus: MarkStatusUseCase(repository: statuses, now: { Date(timeIntervalSince1970: 0) }),
+            saveResults: SaveResultsUseCase(repository: jobs),
+            deleteSavedJob: DeleteSavedJobUseCase(jobs: jobs, statuses: statuses, applications: apps),
+            enrichPosting: EnrichPostingUseCase(provider: provider, postingSource: ResultsReadableStub(pageText: page))
+        )
+
+        await vm.saveToTracker(job)
+
+        let saved = try await jobs.savedJobs().first { $0.id == "u" }
+        #expect(saved?.listing.fullDescription == page)   // full text persisted…
+        #expect(saved?.listing.details == nil)            // …even though structuring found nothing
+    }
+}
+
+/// A `JobPostingSource` whose `readableText` returns a canned full page.
+private struct ResultsReadableStub: JobPostingSource {
+    var pageText: String
+    func fetchPosting(from url: URL) async throws -> JobListing { throw JobPostingSourceError.unreadable }
+    func extractPosting(fromText text: String, sourceURL: URL?) async throws -> JobListing { throw JobPostingSourceError.unreadable }
+    func readableText(from url: URL) async throws -> String { pageText }
+}
+
+/// An `LLMProvider` that returns a canned `PostingDetails` (only `enrichPosting` matters here).
+private struct EnrichingStubProvider: LLMProvider {
+    var details: PostingDetails
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { [] }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        .init(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        .init(resumeMarkdown: "", coverLetter: "", gapNote: "")
+    }
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails { details }
+    // Cleaning is a no-op here (echo the page), so the captured full text equals the fetched page.
+    func cleanPostingText(fromPageText pageText: String) async throws -> String { pageText }
 }

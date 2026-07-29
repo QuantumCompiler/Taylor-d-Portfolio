@@ -20,10 +20,31 @@ protocol LLMProvider: Sendable {
     /// Scores each job against the profile. Returns one ``JobMatch`` per input job.
     func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch]
 
+    /// Re-ranks a SINGLE job against the profile, honouring optional free-text `instruction`
+    /// that steers emphasis/interpretation (v0.6.0 Milestone C — "regenerate result"). Has a
+    /// forwarding default that ignores the instruction and reuses the batch `rank`, so stubs
+    /// and engines that don't support it need no change; the real engines and the router
+    /// override it to honour the guidance.
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch
+
     /// Extracts a single job posting from the (stripped) text of a page or pasted text.
     /// Has a default that reports unavailability, so only engines that support it need
     /// implement it (the router forwards to a real engine).
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting
+
+    /// Enriches a posting's text into a structured ``PostingDetails`` (v0.6.0 Milestone A-B):
+    /// work type + qualifications / responsibilities / nice-to-haves / about-role / about-company
+    /// / benefits. Extracts only what the posting states — never invents. Has a throwing
+    /// default, so only real engines implement it; the router forwards to one.
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails
+
+    /// Extracts the **full job posting** verbatim from a fetched page's raw text (v0.6.0
+    /// Milestone E), stripping site chrome — navigation, search boxes, "similar jobs", ads,
+    /// cookie/footer boilerplate — while preserving the posting's own content and order.
+    /// Returns clean markdown, or empty when the page holds no real posting. Reorders/removes
+    /// nothing of the posting and invents nothing. Has a throwing default, so only real engines
+    /// implement it; the router forwards to one.
+    func cleanPostingText(fromPageText pageText: String) async throws -> String
 
     /// Reflows an imported document's raw extracted text into readable plain text (same
     /// facts, repaired layout). Has a throwing default, so only real engines implement it.
@@ -57,6 +78,13 @@ protocol LLMProvider: Sendable {
     /// rank-target loop). Has a throwing default, so only real engines implement it; the
     /// router forwards to one.
     func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch
+
+    /// Suggests job leads that fit the candidate, straight from the profile / résumé (v0.6.0
+    /// Milestone J — the LLM job source). `grounding` carries the candidate's real document text;
+    /// `query` steers the desired roles + location. Returns AI-suggested leads (mapped to
+    /// `JobListing`s and tagged by ``LLMJobSource``) — never verified live postings. Has a
+    /// forwarding default returning `[]`, so stubs and engines without the capability need no change.
+    func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) async throws -> [GeneratedJobLead]
 }
 
 extension LLMProvider {
@@ -65,6 +93,26 @@ extension LLMProvider {
     /// protocol requirement, calls through `any LLMProvider` still dispatch to overrides.
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: posting enrichment isn't supported. Real engines override this; the router
+    /// forwards to one.
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: posting-text cleaning isn't supported. Real engines override this; the router
+    /// forwards to one.
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
+        throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: re-rank a single job by reusing the batch `rank` (ignoring the instruction), so
+    /// stubs work unchanged. Real engines override this to honour the guidance; the router
+    /// forwards to one. Falls back to a neutral, jobId-keyed match when the batch returns none.
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        let matches = try await rank(jobs: [job], against: profile)
+        return matches.first ?? JobMatch(jobId: job.id, score: 0, reason: "Not scored.", matchedSkills: [], missingSkills: [])
     }
 
     /// Default: document tidying isn't supported. Real engines override this.
@@ -92,6 +140,12 @@ extension LLMProvider {
     /// Default: scoring isn't supported. Real engines override this; the router forwards.
     func scoreApplication(for job: JobListing, brief: TargetBrief, kit: ApplicationKit) async throws -> JobMatch {
         throw LLMProviderError.noProviderAvailable
+    }
+
+    /// Default: no leads. Real engines (Foundation Models, Claude) override this; the router
+    /// forwards to one. A `[]` default keeps stubs and non-supporting engines working unchanged.
+    func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) async throws -> [GeneratedJobLead] {
+        []
     }
 }
 

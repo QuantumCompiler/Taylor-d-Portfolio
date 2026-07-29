@@ -39,12 +39,13 @@ Four stages, run locally on the user's Mac:
    save icon on the row, or swiping the opened result right) rather than generating on
    the spot — or **deletes** a result they don't want (a trash icon; swiping left just
    dismisses). Then, from the **Tracker**, the app generates a tailored resume and cover
-   letter for a saved job, grounded strictly in the real portfolio (ROADMAP v0.3.0 Milestone
-   V). The user can then **export** those materials — copy them, or save as Markdown, PDF,
+   letter for a saved job — grounded in the real portfolio by default, with a **fidelity
+   control** to opt into more latitude (any addition beyond the portfolio is disclosed; see
+   Principles). The user can then **export** those materials — copy them, or save as Markdown, PDF,
    or DOCX (native, on-device — see ROADMAP v0.3.0 Milestone Q). A **second, high-fidelity PDF
    path** (v0.5.1) renders the résumé and cover letter as their **own** documents through Taylor's
    awesome-cv LaTeX classes, compiled with `lualatex` (an optional external dependency, like the
-   `claude` CLI); the raw `.tex` source can also be exported. Export never alters the grounded content.
+   `claude` CLI); the raw `.tex` source can also be exported. Export never alters the generated content.
 
 Alongside search, the user can also paste a **specific job-posting URL** (or the
 posting text, when a page can't be fetched); the app extracts it into the same
@@ -89,25 +90,23 @@ user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
 
 ## Principles
 
-- **Grounded generation (by default).** At the default generation-fidelity setting,
-  generated resumes/cover letters reorder and rephrase *real* experience only, and never
-  invent employers, titles, dates, or credentials. The user may **opt in** to more latitude
-  via a fidelity control (ROADMAP v0.5.0 Milestone D) — from curation up to, at the top of
-  the scale, embellished/invented content — but any content beyond the real profile is then
-  **disclosed, never silent**: listed as an addition and flagged in the UI with a
-  "draft — verify before sending" marker. Fabrication is only ever an explicit, surfaced
-  user choice; the default path stays strictly grounded.
+- **Generation may fabricate; the user always sees what's generated.** The generation-fidelity
+  control governs how much latitude the model takes — from reordering/rephrasing *real* experience,
+  through curation, up to embellished/invented content at the top of the scale — and the LLM job
+  source surfaces AI-suggested leads that aren't verified postings. Fabrication is an **accepted
+  capability**, not something the app blocks. What stays is **transparency to the user**: content
+  beyond the real profile (and unverified leads) is **surfaced, not silent** — listed as an addition
+  and flagged in the UI with a "draft — verify before sending" (or "AI-suggested — verify") marker —
+  so the user decides what to submit.
   Generation is **two-stage** (ported from Taylor's résumé agent, `AGENT.md`):
   first distil the posting into a structured *target brief* (company, exact role,
   must-have vs. nice-to-have keywords, tech stack, domain, mission/values), then
-  tailor against it — mapping each signal to a true profile fact, foregrounding the
-  best-fit overlap, flagging gaps (never faking them), and structuring the cover
-  letter as *About Me / Why \<company\> / Why Me*.
+  tailor against it — mapping signals to profile facts, foregrounding the best-fit
+  overlap, and structuring the cover letter as *About Me / Why \<company\> / Why Me*.
   When the user has uploaded a **cover letter** (ROADMAP v0.3.0 Milestone T), it serves
   only as a **voice / tone / structure exemplar** for the generated cover letter — the
-  output mirrors the candidate's real style, but facts, metrics, employers, and dates
-  are never imported from it. Factual grounding always comes from the resume/portfolio
-  and the distilled profile.
+  output mirrors the candidate's real style. Factual grounding comes from the
+  resume/portfolio and the distilled profile.
 - **On-device first.** Default to Apple Foundation Models: free, private, offline.
   Escalate to Claude only when chosen or when the on-device model is unavailable.
 - **Swappable seams.** The LLM engine and the job source are both behind
@@ -120,9 +119,11 @@ user setting. (Distribution would instead need a backend proxy — see ROADMAP.)
 
 ## Grounding strategy (RAG over the portfolio)
 
-Ranking and generation must stay grounded in the user's *real* portfolio, and
+Ranking, and generation at its grounded default, build on the user's *real* portfolio, and
 the on-device model has a small context window — so we treat portfolio grounding
-as a retrieval problem (RAG), not a "dump everything into the prompt" problem.
+as a retrieval problem (RAG), not a "dump everything into the prompt" problem. (Grounding is
+the *default*, not a hard rule — the fidelity control lets the user opt into more latitude; RAG
+improves grounding **quality**, it doesn't enforce a never-fabricate rule.)
 
 - **v0.1.0 keeps it simple:** the bounded (truncated) portfolio is injected directly
   into the profile-building and generation prompts.
@@ -135,8 +136,10 @@ as a retrieval problem (RAG), not a "dump everything into the prompt" problem.
 - **Two wiring options, decided later:** inject retrieved chunks into the prompt
   (classic RAG), or expose retrieval as a `Tool` the model calls (agentic RAG).
 
-This is what makes the "never fabricate" principle enforceable — the model only
-ever sees real portfolio text, never a blank space it might fill with invention.
+This keeps generation **well-grounded when the user wants it** — the model builds on real
+portfolio text rather than a blank space it fills with invention — while the fidelity control
+still lets the user opt into more latitude. (RAG improves grounding *quality*; it isn't
+enforcing a never-fabricate rule.)
 
 ## Success criteria for v0.1.0
 

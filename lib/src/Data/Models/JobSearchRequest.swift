@@ -27,6 +27,10 @@ nonisolated struct JobSearchRequest: Codable, Equatable, Sendable {
     var desiredResultCount: Int?
     /// Optional minimum match score (0–100) to keep after ranking (U-E). Nil ⇒ no filter.
     var minimumScore: Int?
+    /// The provider ids to search (Milestone H). `nil` ⇒ all available providers — kept
+    /// optional so `SavedSearch`es saved before H (no `sources` key) decode to `nil` and
+    /// re-run against everything, exactly as before.
+    var sources: [String]?
 
     init(
         titles: [String],
@@ -34,7 +38,8 @@ nonisolated struct JobSearchRequest: Codable, Equatable, Sendable {
         salaryMin: Double? = nil,
         positionType: PositionType? = nil,
         desiredResultCount: Int? = nil,
-        minimumScore: Int? = nil
+        minimumScore: Int? = nil,
+        sources: [String]? = nil
     ) {
         self.titles = titles
         self.location = location
@@ -42,6 +47,7 @@ nonisolated struct JobSearchRequest: Codable, Equatable, Sendable {
         self.positionType = positionType
         self.desiredResultCount = desiredResultCount
         self.minimumScore = minimumScore
+        self.sources = sources
     }
 
     /// Titles trimmed, emptied-dropped, and de-duplicated case-insensitively while
@@ -68,7 +74,8 @@ nonisolated struct JobSearchRequest: Codable, Equatable, Sendable {
             salaryMin: salaryMin,
             positionType: positionType,
             page: page,
-            resultsPerPage: resultsPerPage
+            resultsPerPage: resultsPerPage,
+            sources: sources
         )
     }
 }

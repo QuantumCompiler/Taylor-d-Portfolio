@@ -33,6 +33,14 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         return batch.matches
     }
 
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        try await client.respond(
+            to: Prompts.rankOne(job: job, profile: profile, instruction: instruction),
+            generating: JobMatch.self,
+            instructions: Prompts.rankInstructions
+        )
+    }
+
     func extractPosting(fromPageText pageText: String) async throws -> ExtractedPosting {
         try await client.respond(
             to: Prompts.extractPosting(pageText: pageText),
@@ -41,10 +49,25 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         )
     }
 
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        try await client.respond(
+            to: Prompts.enrichPosting(postingText: postingText),
+            generating: PostingDetails.self,
+            instructions: Prompts.enrichInstructions
+        )
+    }
+
     func tidyDocument(rawText: String) async throws -> String {
         try await client.generate(
             prompt: Prompts.tidyDocument(rawText: rawText),
             instructions: Prompts.tidyInstructions
+        )
+    }
+
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
+        try await client.generate(
+            prompt: Prompts.cleanPosting(pageText: pageText),
+            instructions: Prompts.cleanPostingInstructions
         )
     }
 
@@ -75,7 +98,7 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
         try await client.respond(
             to: Prompts.generateApplication(job: job, profile: profile, brief: brief, grounding: grounding, settings: settings),
             generating: ApplicationKit.self,
-            instructions: Prompts.generateInstructions
+            instructions: Prompts.generateInstructions(settings)
         )
     }
 
@@ -85,5 +108,14 @@ nonisolated struct FoundationModelsProvider: LLMProvider {
             generating: JobMatch.self,
             instructions: Prompts.scoreInstructions
         )
+    }
+
+    func searchJobs(query: JobQuery, grounding: PortfolioGrounding?) async throws -> [GeneratedJobLead] {
+        let result = try await client.respond(
+            to: Prompts.searchJobs(query: query, grounding: grounding),
+            generating: GeneratedJobLeads.self,
+            instructions: Prompts.searchJobsInstructions
+        )
+        return Array(result.leads.prefix(Prompts.maxJobLeads))
     }
 }

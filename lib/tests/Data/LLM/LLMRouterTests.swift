@@ -49,6 +49,16 @@ private struct StubLLMProvider: LLMProvider {
         if fails { throw Boom() }
         return JobMatch(jobId: tag, score: 42, reason: "", matchedSkills: [], missingSkills: [])
     }
+
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        if fails { throw Boom() }
+        return PostingDetails(aboutCompany: tag)
+    }
+
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
+        if fails { throw Boom() }
+        return tag
+    }
 }
 
 @Suite("LLMRouter")
@@ -129,6 +139,19 @@ struct LLMRouterTests {
         #expect(tailored.resumeMarkdown == "claude")
         let score = try await router.scoreApplication(for: job, brief: brief, kit: kit)
         #expect(score.jobId == "claude")
+
+        // Enrichment (v0.6.0 A-B) must route too — a forwarding adapter that misses it throws.
+        let details = try await router.enrichPosting(fromPostingText: "posting")
+        #expect(details.aboutCompany == "claude")
+
+        // Posting-text cleaning (v0.6.0 E) must route too.
+        let cleaned = try await router.cleanPostingText(fromPageText: "raw page")
+        #expect(cleaned == "claude")
+
+        // Single-job re-rank (v0.6.0 C) routes through `.ranking` — the stub uses the default,
+        // which forwards to its batch `rank` (tagged with the engine).
+        let single = try await router.rank(job: job, against: profile, instruction: "steer")
+        #expect(single.jobId == "claude")
     }
 
     // MARK: Per-task routing

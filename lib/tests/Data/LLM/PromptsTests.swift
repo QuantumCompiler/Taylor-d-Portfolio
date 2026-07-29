@@ -80,6 +80,50 @@ struct PromptsTests {
         #expect(Prompts.extractInstructions.lowercased().contains("never invent"))
     }
 
+    // MARK: Enrich posting (v0.6.0 Milestone A-B)
+
+    @Test func enrichPostingPromptAsksForFieldsAndIncludesPostingText() {
+        let prompt = Prompts.enrichPosting(postingText: "SEED_POSTING_TEXT")
+        #expect(prompt.contains("SEED_POSTING_TEXT"))
+        #expect(prompt.contains("workTypeRaw"))
+        #expect(prompt.contains("qualifications"))
+        #expect(prompt.contains("responsibilities"))
+        #expect(prompt.contains("aboutCompany"))
+        #expect(prompt.contains("benefits"))
+    }
+
+    @Test func enrichPostingBoundsLongText() {
+        let huge = String(repeating: "z", count: Prompts.maxPageCharacters + 1_000)
+        let prompt = Prompts.enrichPosting(postingText: huge)
+        #expect(!prompt.contains(huge))
+        #expect(prompt.contains("…"))
+    }
+
+    @Test func cleanPostingPromptIncludesPageTextAndNamesChrome() {
+        let prompt = Prompts.cleanPosting(pageText: "SEED_PAGE_TEXT")
+        #expect(prompt.contains("SEED_PAGE_TEXT"))
+        #expect(prompt.lowercased().contains("similar jobs"))   // names chrome to strip
+        #expect(prompt.lowercased().contains("verbatim"))        // keep the posting as-is
+    }
+
+    @Test func cleanPostingBoundsLongPages() {
+        let huge = String(repeating: "x", count: Prompts.maxPageCharacters + 500)
+        let prompt = Prompts.cleanPosting(pageText: huge)
+        #expect(!prompt.contains(huge))
+        #expect(prompt.contains("…"))
+    }
+
+    @Test func cleanPostingInstructionsForbidSummarizingAndInventing() {
+        let instructions = Prompts.cleanPostingInstructions.lowercased()
+        #expect(instructions.contains("verbatim"))
+        #expect(instructions.contains("invent"))
+        #expect(instructions.contains("summarize"))
+    }
+
+    @Test func enrichInstructionsForbidInvention() {
+        #expect(Prompts.enrichInstructions.lowercased().contains("never invent"))
+    }
+
     // MARK: Target brief (stage 1)
 
     @Test func buildTargetBriefPromptAsksForBriefFieldsAndIncludesPosting() {
@@ -98,6 +142,74 @@ struct PromptsTests {
         let prompt = Prompts.buildTargetBrief(job: job)
         #expect(!prompt.contains(huge))
         #expect(prompt.contains("…"))
+    }
+
+    @Test func briefPromptUsesFullDescriptionWhenPresent() {
+        // v0.6.0 Milestone E — the brief grounds on the recovered full text, not the snippet.
+        let job = JobListing(id: "a", title: "iOS", company: "Acme", location: "Remote",
+                             description: "SNIPPET_ONLY", fullDescription: "FULL_POSTING_BODY")
+        let prompt = Prompts.buildTargetBrief(job: job)
+        #expect(prompt.contains("FULL_POSTING_BODY"))
+        #expect(!prompt.contains("SNIPPET_ONLY"))
+    }
+
+    // MARK: Single-job re-rank (v0.6.0 Milestone C)
+
+    @Test func rankOnePromptAsksForOneMatchAndCarriesGuidanceAndDetail() {
+        let details = PostingDetails(workTypeRaw: "remote", qualifications: ["Swift"])
+        let job = JobListing(id: "j9", title: "iOS", company: "Acme", location: "Remote", description: "SEED_DESC", details: details)
+        let prompt = Prompts.rankOne(job: job, profile: sampleProfile, instruction: "WEIGHT_GO")
+        #expect(prompt.contains("j9"))
+        #expect(prompt.contains("SEED_DESC"))
+        #expect(prompt.contains("Structured posting detail"))   // A-E enriched detail carried into re-rank
+        #expect(prompt.contains("WEIGHT_GO"))
+        #expect(prompt.contains("ADDITIONAL USER GUIDANCE"))
+    }
+
+    @Test func rankOnePromptWithoutInstructionOmitsGuidance() {
+        let job = JobListing(id: "j9", title: "iOS", company: "Acme", location: "Remote", description: "d")
+        let prompt = Prompts.rankOne(job: job, profile: sampleProfile, instruction: "   ")
+        #expect(!prompt.contains("ADDITIONAL USER GUIDANCE"))
+    }
+
+    // MARK: Enriched posting detail in the brief (v0.6.0 Milestone A-E)
+
+    @Test func briefPromptIncludesEnrichedPostingDetailWhenPresent() {
+        let details = PostingDetails(
+            workTypeRaw: "remote",
+            qualifications: ["5+ years Swift"],
+            responsibilities: ["Ship features"],
+            niceToHaves: ["Kotlin"],
+            aboutRole: "Own the iOS app.",
+            aboutCompany: "We build fintech.",
+            benefits: ["Health"]
+        )
+        let job = JobListing(id: "a", title: "iOS", company: "Acme", location: "Remote", description: "SEED_DESC", details: details)
+        let prompt = Prompts.buildTargetBrief(job: job)
+        #expect(prompt.contains("Structured posting detail"))
+        #expect(prompt.contains("Remote"))              // workType label
+        #expect(prompt.contains("5+ years Swift"))       // qualifications
+        #expect(prompt.contains("We build fintech."))    // aboutCompany
+        #expect(prompt.contains("Health"))               // benefits
+    }
+
+    @Test func briefPromptIsUnchangedWithoutDetails() {
+        // The pre-A-E path stays byte-for-byte: no detail block when details is nil.
+        let job = JobListing(id: "a", title: "iOS", company: "Acme", location: "Remote", description: "SEED_DESC")
+        let prompt = Prompts.buildTargetBrief(job: job)
+        #expect(!prompt.contains("Structured posting detail"))
+    }
+
+    @Test func postingDetailSectionOmitsEmptyFieldsAndEmptyDetails() {
+        // Empty details → "", so the brief prompt is unchanged.
+        #expect(Prompts.postingDetailSection(nil).isEmpty)
+        #expect(Prompts.postingDetailSection(PostingDetails()).isEmpty)
+        // Only the present fields are rendered — a work-type-only detail lists just that.
+        let onlyWork = PostingDetails(workTypeRaw: "hybrid")
+        let section = Prompts.postingDetailSection(onlyWork)
+        #expect(section.contains("workType: Hybrid"))
+        #expect(!section.contains("qualifications"))
+        #expect(!section.contains("aboutCompany"))
     }
 
     // MARK: Generate application (stage 2)
@@ -133,8 +245,17 @@ struct PromptsTests {
         #expect(prompt.contains("gapNote"))
     }
 
-    @Test func generateInstructionsForbidFabrication() {
-        #expect(Prompts.generateInstructions.lowercased().contains("never"))
+    @Test func authenticInstructionsForbidFabrication() {
+        // The default (authentic) band keeps the original never-fake system instruction.
+        #expect(Prompts.generateInstructions().lowercased().contains("never"))
+        #expect(Prompts.generateInstructions(GenerationSettings(fidelity: 0)).lowercased().contains("never fake"))
+    }
+
+    @Test func embellishedInstructionsPermitDisclosedFabrication() {
+        let instr = Prompts.generateInstructions(GenerationSettings(fidelity: 1.0)).lowercased()
+        #expect(instr.contains("may add"))          // fabrication is permitted…
+        #expect(instr.contains("disclosed"))        // …but must be disclosed
+        #expect(!instr.contains("never fake"))      // the hard cap is gone at this band
     }
 
     // MARK: T-B — two-document grounding
@@ -213,6 +334,37 @@ struct PromptsTests {
         #expect(prompt.contains("…"))
     }
 
+    // MARK: I — supporting documents grounding
+
+    @Test func supportingDocumentsAreInjectedAsFactualGrounding() {
+        let grounding = PortfolioGrounding(
+            resumeText: "resume",
+            supportingText: "FULL PORTFOLIO — shipped QuantumKit at Globex"
+        )
+        let prompt = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief, grounding: grounding)
+        #expect(prompt.contains("FULL PORTFOLIO — shipped QuantumKit at Globex"))
+        #expect(prompt.lowercased().contains("supporting documents"))
+        #expect(prompt.contains("factual grounding"))
+    }
+
+    @Test func absentSupportingDocumentsOmitTheSectionCleanly() {
+        let resumeOnly = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            grounding: PortfolioGrounding(resumeText: "resume", supportingText: nil)
+        )
+        #expect(!resumeOnly.lowercased().contains("additional supporting documents"))
+    }
+
+    @Test func supportingDocumentsAreBounded() {
+        let longSupporting = String(repeating: "S", count: Prompts.maxSupportingCharacters + 500)
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            grounding: PortfolioGrounding(resumeText: "resume", supportingText: longSupporting)
+        )
+        #expect(!prompt.contains(longSupporting))   // truncated, not injected whole
+        #expect(prompt.contains("…"))
+    }
+
     // MARK: D — generation controls (fidelity / aspects / disclosure)
 
     @Test func defaultSettingsLeaveThePromptUnchanged() {
@@ -241,6 +393,39 @@ struct PromptsTests {
         #expect(prompt.contains("plausible embellishments"))
         #expect(prompt.contains("Disclosure (REQUIRED)"))
         #expect(prompt.contains("EMBELLISHED:"))
+    }
+
+    @Test func authenticBasePromptKeepsTheNeverFabricateFraming() {
+        let prompt = Prompts.generateApplication(job: job, profile: sampleProfile, brief: sampleBrief)
+        #expect(prompt.contains("grounded ONLY in the candidate profile"))
+        #expect(prompt.contains("never fabricate one"))
+        #expect(prompt.contains("the only true facts you may use"))
+    }
+
+    @Test func embellishedBasePromptDropsGroundingFramingAndPermitsInvention() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            settings: GenerationSettings(fidelity: 1.0)
+        )
+        // The unconditional grounding scaffolding is gone at the embellished band…
+        #expect(!prompt.contains("grounded ONLY in the candidate profile"))
+        #expect(!prompt.contains("never fabricate one"))
+        #expect(!prompt.contains("the only true facts you may use"))
+        // …and the base framing itself now permits (disclosed) invention, agreeing with the controls.
+        #expect(prompt.contains("you MAY build"))
+        #expect(prompt.contains("add a plausible one"))
+    }
+
+    @Test func embellishedGroundingClauseRelaxesTheNeverAddRule() {
+        let prompt = Prompts.generateApplication(
+            job: job, profile: sampleProfile, brief: sampleBrief,
+            grounding: PortfolioGrounding(resumeText: "REAL RESUME", supportingText: "PORTFOLIO"),
+            settings: GenerationSettings(fidelity: 1.0)
+        )
+        #expect(prompt.contains("REAL RESUME"))
+        #expect(prompt.contains("PORTFOLIO"))
+        #expect(!prompt.contains("never add any fact absent"))   // grounding clause relaxed at this band
+        #expect(prompt.contains("extend"))                        // may extend with disclosed detail
     }
 
     @Test func selectedAspectsRestrictTheScope() {
@@ -312,6 +497,34 @@ struct PromptsTests {
             job: job, profile: sampleProfile, brief: sampleBrief,
             settings: GenerationSettings(additionalContext: long)
         )
+        #expect(!prompt.contains(long))
+        #expect(prompt.contains("…"))
+    }
+
+    // MARK: J — LLM job search
+
+    @Test func searchJobsPromptCarriesQueryAndGroundingAndVerifyGuidance() {
+        let prompt = Prompts.searchJobs(
+            query: JobQuery(keywords: "iOS Engineer", location: "Berlin"),
+            grounding: PortfolioGrounding(resumeText: "REAL RESUME with QuantumKit")
+        )
+        #expect(prompt.contains("iOS Engineer"))              // the desired role
+        #expect(prompt.contains("Berlin"))                    // the location
+        #expect(prompt.contains("REAL RESUME with QuantumKit")) // grounded in the candidate
+        #expect(prompt.lowercased().contains("verify"))       // leads to verify, not confirmed
+        #expect(prompt.contains("Do NOT invent application links"))
+    }
+
+    @Test func searchJobsInstructionsForbidFabricatedURLsAndBiasToReal() {
+        let instr = Prompts.searchJobsInstructions.lowercased()
+        #expect(instr.contains("verify"))
+        #expect(instr.contains("fewer"))                      // return fewer rather than pad
+        #expect(instr.contains("url"))                        // never output application URLs
+    }
+
+    @Test func searchJobsBoundsALongResume() {
+        let long = String(repeating: "R", count: Prompts.maxPortfolioCharacters + 500)
+        let prompt = Prompts.searchJobs(query: JobQuery(keywords: "x"), grounding: PortfolioGrounding(resumeText: long))
         #expect(!prompt.contains(long))
         #expect(prompt.contains("…"))
     }

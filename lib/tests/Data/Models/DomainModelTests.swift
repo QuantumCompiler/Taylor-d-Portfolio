@@ -59,6 +59,180 @@ struct DomainModelTests {
         #expect(decoded == listing)
     }
 
+    @Test func jobListingRoundTripsWithRicherPostingFields() throws {
+        // v0.6.0 Milestone A-A — positionTypes / postedDate / category survive a round-trip.
+        let listing = JobListing(
+            id: "adzuna-123",
+            title: "iOS Engineer",
+            company: "Acme",
+            location: "Remote",
+            description: "Build apps.",
+            positionTypes: [.permanent, .fullTime],
+            postedDate: Date(timeIntervalSince1970: 1_705_309_200),
+            category: "IT Jobs"
+        )
+        let decoded = try roundTrip(listing)
+        #expect(decoded == listing)
+    }
+
+    @Test func jobListingDecodesLegacyBlobWithoutRicherFields() throws {
+        // A listing persisted before Milestone A-A lacks the new keys; it must still decode,
+        // with the richer fields defaulting to empty/nil (SavedJobsRepository drops undecodable
+        // rows, so a throw here would silently lose legacy saved jobs).
+        let legacy = #"{"id":"old-1","title":"Engineer","company":"Beta","location":"NYC","description":"A role."}"#
+        let decoded = try JSONDecoder().decode(JobListing.self, from: Data(legacy.utf8))
+        #expect(decoded.id == "old-1")
+        #expect(decoded.positionTypes.isEmpty)
+        #expect(decoded.postedDate == nil)
+        #expect(decoded.category == nil)
+    }
+
+    @Test func postingDetailsRoundTripsAndMapsWorkType() throws {
+        // v0.6.0 Milestone A-B — the @Generable enrichment type round-trips and parses its work type.
+        let details = PostingDetails(
+            workTypeRaw: "hybrid",
+            qualifications: ["5+ years Swift"],
+            responsibilities: ["Ship features"],
+            niceToHaves: ["Kotlin"],
+            aboutRole: "Build the app.",
+            aboutCompany: "We do fintech.",
+            benefits: ["Health"]
+        )
+        #expect(details.workType == .hybrid)
+        #expect(details.hasContent)
+        let decoded = try roundTrip(details)
+        #expect(decoded == details)
+    }
+
+    @Test func emptyPostingDetailsHasNoContent() {
+        // An enrichment that found nothing must report no content, so callers keep the snippet.
+        let empty = PostingDetails()
+        #expect(empty.workType == nil)
+        #expect(!empty.hasContent)
+    }
+
+    // MARK: Standardized description (v0.6.0 Milestone K)
+
+    @Test func standardDescriptionRendersTheFixedTemplateInOrder() {
+        let details = PostingDetails(
+            workTypeRaw: "remote",
+            qualifications: ["Swift", "5 yrs"],
+            responsibilities: ["Ship features"],
+            niceToHaves: ["SwiftUI"],
+            aboutRole: "Build the iOS app.",
+            aboutCompany: "A fintech.",
+            benefits: ["Equity"]
+        )
+        let md = details.standardDescription
+        // Sections present with their headings…
+        #expect(md.contains("## About the role\nBuild the iOS app."))
+        #expect(md.contains("## Responsibilities\n- Ship features"))
+        #expect(md.contains("## Qualifications\n- Swift\n- 5 yrs"))
+        #expect(md.contains("## Nice to have\n- SwiftUI"))
+        #expect(md.contains("## About the company\nA fintech."))
+        #expect(md.contains("## Benefits\n- Equity"))
+        #expect(md.contains("## Work type\nRemote"))
+        // …in the fixed order (role → responsibilities → qualifications → nice-to-have → company → benefits → work type).
+        let order = ["About the role", "Responsibilities", "Qualifications", "Nice to have", "About the company", "Benefits", "Work type"]
+        let positions = order.map { md.range(of: $0)!.lowerBound }
+        #expect(positions == positions.sorted())
+    }
+
+    @Test func standardDescriptionOmitsEmptySectionsAndIsEmptyWhenBlank() {
+        let sparse = PostingDetails(responsibilities: ["Do the thing"])
+        let md = sparse.standardDescription
+        #expect(md.contains("## Responsibilities\n- Do the thing"))
+        #expect(!md.contains("## About the role"))     // empty section omitted
+        #expect(!md.contains("## Work type"))
+        #expect(PostingDetails().standardDescription.isEmpty)   // nothing → "" (raw fallback)
+    }
+
+    @Test func workTypeParsesLooseModelStrings() {
+        #expect(WorkType(loose: "On-Site") == .onSite)
+        #expect(WorkType(loose: "in office") == .onSite)
+        #expect(WorkType(loose: "Remote") == .remote)
+        #expect(WorkType(loose: "fully remote") == .remote)
+        #expect(WorkType(loose: "hybrid") == .hybrid)
+        #expect(WorkType(loose: "") == nil)
+        #expect(WorkType(loose: "whenever") == nil)
+    }
+
+    @Test func jobListingCarriesEnrichedDetailsThroughRoundTrip() throws {
+        let listing = JobListing(
+            id: "j1", title: "iOS", company: "Acme", location: "Remote", description: "d",
+            details: PostingDetails(workTypeRaw: "remote", aboutCompany: "Fintech.")
+        )
+        let decoded = try roundTrip(listing)
+        #expect(decoded == listing)
+        #expect(decoded.details?.workType == .remote)
+    }
+
+    @Test func jobListingCarriesFullDescriptionThroughRoundTrip() throws {
+        // v0.6.0 Milestone E — the recovered full posting text survives a round-trip.
+        let listing = JobListing(
+            id: "j2", title: "iOS", company: "Acme", location: "Remote", description: "short snippet…",
+            fullDescription: "The entire posting body, sections and all."
+        )
+        let decoded = try roundTrip(listing)
+        #expect(decoded == listing)
+        #expect(decoded.fullDescription == "The entire posting body, sections and all.")
+    }
+
+    @Test func jobListingLegacyBlobDecodesWithoutFullDescription() throws {
+        // A listing persisted before Milestone E lacks the key; it must decode with nil, and
+        // effectiveDescription falls back to the snippet.
+        let legacy = #"{"id":"old-2","title":"Eng","company":"Beta","location":"NYC","description":"snippet"}"#
+        let decoded = try JSONDecoder().decode(JobListing.self, from: Data(legacy.utf8))
+        #expect(decoded.fullDescription == nil)
+        #expect(decoded.effectiveDescription == "snippet")
+    }
+
+    @Test func effectiveDescriptionPrefersFullText() {
+        let snippetOnly = JobListing(id: "a", title: "t", company: "c", location: "l", description: "snippet")
+        #expect(snippetOnly.effectiveDescription == "snippet")
+
+        let withFull = JobListing(id: "b", title: "t", company: "c", location: "l",
+                                  description: "snippet", fullDescription: "the full body")
+        #expect(withFull.effectiveDescription == "the full body")
+    }
+
+    @Test func jobListingSourceRoundTripsAndDecodesLegacyAsNil() throws {
+        // v0.6.0 Milestone F — the source label survives a round-trip; legacy blobs decode nil.
+        let listing = JobListing(id: "j", title: "t", company: "c", location: "l", description: "d", source: "JSearch")
+        #expect(try roundTrip(listing).source == "JSearch")
+
+        let legacy = #"{"id":"o","title":"t","company":"c","location":"l","description":"d"}"#
+        #expect(try JSONDecoder().decode(JobListing.self, from: Data(legacy.utf8)).source == nil)
+    }
+
+    @Test func jobListingFingerprintNormalizesAndIgnoresIDAndSource() {
+        // Same posting from two sources: different id/source, same normalized fingerprint.
+        let adzuna = JobListing(id: "adz-1", title: "iOS  Engineer", company: "ACME",
+                                location: "Denver, CO", description: "d", source: "Adzuna")
+        let jsearch = JobListing(id: "js-9", title: "ios engineer", company: "acme",
+                                 location: "denver, co", description: "different", source: "JSearch")
+        #expect(adzuna.fingerprint == jsearch.fingerprint)
+
+        let other = JobListing(id: "x", title: "iOS Engineer", company: "Globex", location: "Denver, CO", description: "d")
+        #expect(other.fingerprint != adzuna.fingerprint)   // different company → different posting
+    }
+
+    @Test func jobSearchRequestSourcesRoundTripAndLegacyDecodesNil() throws {
+        // v0.6.0 Milestone H — the provider selection survives a round-trip; pre-H saved
+        // searches (no `sources` key) decode to nil ⇒ "all providers".
+        var request = JobSearchRequest(titles: ["ios"])
+        request.sources = ["adzuna", "jsearch"]
+        #expect(try roundTrip(request).sources == ["adzuna", "jsearch"])
+
+        let legacy = #"{"titles":["ios"]}"#
+        #expect(try JSONDecoder().decode(JobSearchRequest.self, from: Data(legacy.utf8)).sources == nil)
+    }
+
+    @Test func jobSearchRequestThreadsSourcesIntoEachQuery() {
+        let request = JobSearchRequest(titles: ["ios"], sources: ["adzuna"])
+        #expect(request.query(forTitle: "ios").sources == ["adzuna"])
+    }
+
     @Test func jobQueryAppliesDefaultsAndRoundTrips() throws {
         let query = JobQuery(keywords: "swift developer")
         #expect(query.page == 1)

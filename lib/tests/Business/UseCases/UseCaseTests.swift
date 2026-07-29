@@ -254,6 +254,188 @@ struct UseCaseTests {
             _ = try await useCase(url: URL(string: "https://x.com/j")!, profile: profile)
         }
     }
+
+    // MARK: RegenerateResultUseCase (v0.6.0 Milestone C)
+
+    private func rankedFor(_ id: String, score: Int, description: String = "d") -> RankedJob {
+        RankedJob(
+            listing: JobListing(id: id, title: "iOS", company: "Acme", location: "Remote", description: description),
+            match: JobMatch(jobId: id, score: score, reason: "old", matchedSkills: [], missingSkills: [])
+        )
+    }
+
+    @Test func regenerateResultReranksWithInstructionAndPersists() async throws {
+        let jobs = SavedJobsRepository(store: InMemoryRecordStore())
+        let provider = RerankRecordingProvider(match: JobMatch(jobId: "e1", score: 88, reason: "better", matchedSkills: ["Swift"], missingSkills: []))
+        let useCase = RegenerateResultUseCase(provider: provider, saveResults: SaveResultsUseCase(repository: jobs))
+
+        let refreshed = try await useCase(rankedFor("e1", score: 40), profile: profile, instruction: "WEIGHT_GO")
+        #expect(refreshed.score == 88)                          // re-assessed (may go up or down)
+        #expect(provider.lastInstruction == "WEIGHT_GO")        // guidance threaded through
+        #expect(try await jobs.savedJobs().first?.score == 88)  // persisted latest-wins
+    }
+
+    @Test func regenerateResultReEnrichesWhenWired() async throws {
+        let jobs = SavedJobsRepository(store: InMemoryRecordStore())
+        let provider = RerankRecordingProvider(
+            match: JobMatch(jobId: "e1", score: 50, reason: "", matchedSkills: [], missingSkills: []),
+            details: PostingDetails(workTypeRaw: "remote", aboutCompany: "Fintech.")
+        )
+        let enrich = EnrichPostingUseCase(provider: provider, postingSource: nil)   // snippet-only
+        let useCase = RegenerateResultUseCase(provider: provider, saveResults: SaveResultsUseCase(repository: jobs), enrichPosting: enrich)
+
+        let refreshed = try await useCase(rankedFor("e1", score: 40), profile: profile)
+        #expect(refreshed.listing.details?.workType == .remote)                              // legacy posting backfilled
+        #expect(try await jobs.savedJobs().first?.listing.details?.aboutCompany == "Fintech.")
+    }
+
+    // MARK: EnrichPostingUseCase (v0.6.0 Milestone A-C)
+
+    private func enrichListing(url: URL? = nil, description: String) -> JobListing {
+        JobListing(id: "e1", title: "iOS", company: "Acme", location: "Remote", description: description, url: url)
+    }
+    private let enrichURL = URL(string: "https://example.com/jobs/1")!
+
+    @Test func enrichPrefersFullPageOverSnippet() async throws {
+        let provider = EnrichRecordingProvider(details: PostingDetails(workTypeRaw: "remote", aboutCompany: "Fintech."))
+        let page = String(repeating: "Full posting page text. ", count: 20)
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: page))
+
+        let enriched = try await useCase(enrichListing(url: enrichURL, description: "short snippet"))
+        #expect(provider.lastCleanInput == page)           // cleaning ran on the fetched page
+        #expect(enriched.fullDescription == "CLEANED_POSTING")   // the de-chromed posting is stored…
+        #expect(provider.lastText == "CLEANED_POSTING")    // …and structuring runs on the clean text
+        #expect(enriched.details?.workType == .remote)
+        #expect(enriched.details?.aboutCompany == "Fintech.")
+    }
+
+    @Test func enrichFallsBackToSnippetWhenPageUnfetchable() async throws {
+        let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "A role."))
+        // readableText throws unreadable → nothing to clean, fall back to the description snippet.
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: nil))
+
+        let enriched = try await useCase(enrichListing(url: enrichURL, description: "the snippet"))
+        #expect(provider.lastCleanInput == nil)            // cleaning never ran (no page)
+        #expect(provider.lastText == "the snippet")
+        #expect(enriched.fullDescription == nil)           // nothing fuller fetched
+        #expect(enriched.details?.aboutRole == "A role.")
+    }
+
+    @Test func enrichCapturesFullTextEvenWhenStructuringEmpty() async throws {
+        // The page fetches richer than the snippet and cleans, but structuring finds nothing —
+        // the cleaned full text must still be captured (E), even though `details` stays nil.
+        let provider = EnrichRecordingProvider(details: PostingDetails())   // hasContent == false
+        let page = String(repeating: "Full posting page text. ", count: 20)
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: page))
+
+        let enriched = try await useCase(enrichListing(url: enrichURL, description: "short snippet"))
+        #expect(enriched.fullDescription == "CLEANED_POSTING")
+        #expect(enriched.details == nil)
+    }
+
+    @Test func enrichKeepsFullTextWhenStructuringFails() async throws {
+        // A structuring (LLM) failure must not discard the cleaned full text already recovered.
+        let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "x"))
+        provider.shouldThrow = true
+        let page = String(repeating: "Full posting page text. ", count: 20)
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: page))
+
+        let enriched = try await useCase(enrichListing(url: enrichURL, description: "short snippet"))
+        #expect(enriched.fullDescription == "CLEANED_POSTING")
+        #expect(enriched.details == nil)
+    }
+
+    @Test func enrichKeepsSnippetWhenCleaningFails() async throws {
+        // The page fetches, but cleaning is unavailable/fails — the noisy raw page must NOT be
+        // stored as `fullDescription`; structuring falls back to the raw page (its prompt
+        // ignores chrome).
+        let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "R"))
+        provider.cleanedText = nil   // cleanPostingText throws
+        let page = String(repeating: "Full posting page text. ", count: 20)
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: ReadableStubSource(pageText: page))
+
+        let enriched = try await useCase(enrichListing(url: enrichURL, description: "short snippet"))
+        #expect(enriched.fullDescription == nil)           // raw chrome not stored
+        #expect(provider.lastText == page)                 // structuring used the raw page
+        #expect(enriched.details?.aboutRole == "R")
+    }
+
+    @Test func enrichUsesSnippetWhenNoSourceWired() async throws {
+        let provider = EnrichRecordingProvider(details: PostingDetails(benefits: ["Health"]))
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: nil)   // snippet-only
+        let enriched = try await useCase(enrichListing(url: nil, description: "just the snippet"))
+        #expect(provider.lastText == "just the snippet")
+        #expect(enriched.details?.benefits == ["Health"])
+    }
+
+    @Test func enrichLeavesListingUnchangedWhenNothingFound() async throws {
+        let provider = EnrichRecordingProvider(details: PostingDetails())   // empty → hasContent == false
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: nil)
+        let original = enrichListing(description: "snippet")
+        let result = try await useCase(original)
+        #expect(result == original)          // unchanged, not overwritten with an empty structure
+        #expect(result.details == nil)
+    }
+
+    @Test func enrichSkipsWhenNoUsableText() async throws {
+        let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "x"))
+        let useCase = EnrichPostingUseCase(provider: provider, postingSource: nil)
+        let blank = enrichListing(description: "   ")
+        let result = try await useCase(blank)
+        #expect(result == blank)
+        #expect(provider.lastText == nil)    // enrichment never called — nothing to read
+    }
+
+    // MARK: SearchAndRankUseCase.digestStream (v0.6.0 Milestone K)
+
+    private func rankedFixture(_ id: String, details: PostingDetails? = nil) -> RankedJob {
+        var listing = JobListing(id: id, title: "t", company: "c", location: "l", description: "raw snippet")
+        listing.details = details
+        return RankedJob(listing: listing, match: JobMatch(jobId: id, score: 50, reason: "", matchedSkills: [], missingSkills: []))
+    }
+
+    private func digestUseCase(_ provider: EnrichRecordingProvider) -> SearchAndRankUseCase {
+        SearchAndRankUseCase(
+            jobSource: DigestNoopJobSource(),
+            ranker: JobRanker(provider: provider, shortlistLimit: 10),
+            enrichPosting: EnrichPostingUseCase(provider: provider, postingSource: nil)
+        )
+    }
+
+    @Test func digestStreamStructuresEveryUndigestedResultAndCachesTheRest() async {
+        let useCase = digestUseCase(EnrichRecordingProvider(details: PostingDetails(aboutRole: "A role.")))
+        let jobs = [
+            rankedFixture("a"),                                              // undigested → digested
+            rankedFixture("b", details: PostingDetails(aboutRole: "kept")),  // already has details → skipped (cache)
+        ]
+        var digested = [RankedJob]()
+        for await job in useCase.digestStream(jobs) { digested.append(job) }
+        #expect(digested.map(\.id) == ["a"])                                 // only the undigested one is yielded
+        #expect(digested.first?.listing.details?.aboutRole == "A role.")
+    }
+
+    @Test func digestStreamYieldsNothingWhenNotWired() async {
+        let provider = EnrichRecordingProvider(details: PostingDetails(aboutRole: "x"))
+        let useCase = SearchAndRankUseCase(jobSource: DigestNoopJobSource(), ranker: JobRanker(provider: provider, shortlistLimit: 10))
+        #expect(!useCase.canDigest)
+        var count = 0
+        for await _ in useCase.digestStream([rankedFixture("a")]) { count += 1 }
+        #expect(count == 0)
+    }
+
+    @Test func digestStreamSkipsResultsThatDidNotChange() async {
+        // A digest that finds nothing (empty details) leaves the listing unchanged → not yielded,
+        // so the row keeps its raw description (soft fallback).
+        let useCase = digestUseCase(EnrichRecordingProvider(details: PostingDetails()))
+        var count = 0
+        for await _ in useCase.digestStream([rankedFixture("a")]) { count += 1 }
+        #expect(count == 0)
+    }
+}
+
+/// A `JobSource` that returns nothing — for `digestStream` tests that don't exercise searching.
+private struct DigestNoopJobSource: JobSource {
+    func search(_ query: JobQuery) async throws -> [JobListing] { [] }
 }
 
 /// A `JobPostingSource` that returns a canned listing or throws.
@@ -266,4 +448,73 @@ private struct StubPostingSource: JobPostingSource {
         if let error { throw error }
         return listing ?? JobListing(id: "x", title: "t", company: "c", location: "l", description: "d")
     }
+}
+
+/// A `JobPostingSource` whose `readableText` returns canned page text (or throws unreadable).
+private struct ReadableStubSource: JobPostingSource {
+    var pageText: String?
+    func fetchPosting(from url: URL) async throws -> JobListing { throw JobPostingSourceError.unreadable }
+    func extractPosting(fromText text: String, sourceURL: URL?) async throws -> JobListing { throw JobPostingSourceError.unreadable }
+    func readableText(from url: URL) async throws -> String {
+        guard let pageText else { throw JobPostingSourceError.unreadable }
+        return pageText
+    }
+}
+
+/// An `LLMProvider` that returns a canned `PostingDetails` and records the text it enriched.
+private final class EnrichRecordingProvider: LLMProvider, @unchecked Sendable {
+    let details: PostingDetails
+    var shouldThrow = false                       // enrichPosting throws
+    var cleanedText: String? = "CLEANED_POSTING"  // cleanPostingText returns this; nil → throws
+    private(set) var lastText: String?            // text handed to enrichPosting
+    private(set) var lastCleanInput: String?      // text handed to cleanPostingText
+    init(details: PostingDetails) { self.details = details }
+    struct Boom: Error {}
+    func cleanPostingText(fromPageText pageText: String) async throws -> String {
+        lastCleanInput = pageText
+        guard let cleanedText else { throw Boom() }
+        return cleanedText
+    }
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { [] }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        .init(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        .init(resumeMarkdown: "", coverLetter: "", gapNote: "")
+    }
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        lastText = postingText
+        if shouldThrow { throw Boom() }
+        return details
+    }
+}
+
+/// An `LLMProvider` that records a single-job re-rank's instruction and returns a canned match
+/// (and canned enrichment) — for `RegenerateResultUseCase` tests (v0.6.0 Milestone C).
+private final class RerankRecordingProvider: LLMProvider, @unchecked Sendable {
+    let match: JobMatch
+    let details: PostingDetails
+    private(set) var lastInstruction: String?
+    init(match: JobMatch, details: PostingDetails = PostingDetails()) {
+        self.match = match
+        self.details = details
+    }
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { [match] }
+    func rank(job: JobListing, against profile: CandidateProfile, instruction: String) async throws -> JobMatch {
+        lastInstruction = instruction
+        return match
+    }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        .init(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        .init(resumeMarkdown: "", coverLetter: "", gapNote: "")
+    }
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails { details }
 }

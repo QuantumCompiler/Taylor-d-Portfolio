@@ -128,7 +128,7 @@ enum SettingsSection: Int, CaseIterable {
     var title: String {
         switch self {
         case .engines: "Engines"
-        case .adzuna: "Adzuna"
+        case .adzuna: "Sources"
         case .about: "About"
         }
     }

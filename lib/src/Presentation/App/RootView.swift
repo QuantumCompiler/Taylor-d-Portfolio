@@ -60,6 +60,11 @@ struct RootView: View {
         // Keep the shared session's profile/grounding current for the detached windows
         // (v0.5.0 Milestone B).
         .onChange(of: portfolio.grounding) { _, g in session.grounding = g }
+        // Entering/clearing Adzuna credentials in Settings re-resolves availability — push it
+        // to Search so its banner + Generate gate update without a relaunch (Milestone D-D).
+        .onChange(of: settings.configuredProviderIDs) { _, configured in
+            search.configuredProviderIDs = configured
+        }
         .onAppear {
             session.profile = portfolio.profile
             session.grounding = portfolio.grounding
@@ -67,6 +72,12 @@ struct RootView: View {
         // A detached window mutated persistence (status/generation/save) — reload the lists.
         .onChange(of: session.revision) { _, _ in
             Task {
+                // A "Regenerate result" (v0.6.0 C) overwrote one job's score — replace that row
+                // in the in-memory Results list (the Tracker re-reads wholesale below).
+                if let refreshed = session.refreshedResult {
+                    results.applyRefreshed(refreshed)
+                    session.refreshedResult = nil
+                }
                 await tracker.load()
                 await results.refreshHistory()
             }

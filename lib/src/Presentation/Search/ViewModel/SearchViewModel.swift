@@ -73,12 +73,22 @@ final class SearchViewModel {
 
     private(set) var results: [RankedJob] = []
     private(set) var isSearching = false
+    /// Whether results are being digested into the standardized description format (Milestone K).
+    /// Rows appear immediately after ranking and swap to the standardized description as each
+    /// digest completes.
+    private(set) var isDigesting = false
     private(set) var errorMessage: String?
     /// A soft, non-fatal note (e.g. one title's search failed but others succeeded).
     private(set) var warningMessage: String?
 
-    /// Whether this build has baked Adzuna credentials. When `false`, search can't run.
-    let adzunaConfigured: Bool
+    /// The provider ids whose credentials resolve — the **available** set (Milestone H). A `var`
+    /// so a Settings save refreshes it live. Search runs only providers that are both configured
+    /// and selected.
+    var configuredProviderIDs: Set<String>
+    /// The provider ids the user has selected to query. Defaults to every registered provider.
+    var selectedProviderIDs: Set<String>
+    /// The registered providers, in order — drives the selector UI (Milestone H).
+    let providers: [JobProviderDescriptor] = JobProviderRegistry.all
 
     /// The user's saved, re-runnable searches, newest first (Milestone R).
     private(set) var savedSearches: [SavedSearch] = []
@@ -109,7 +119,7 @@ final class SearchViewModel {
         saveSearch: SaveSearchUseCase? = nil,
         loadSavedSearches: LoadSavedSearchesUseCase? = nil,
         deleteSavedSearch: DeleteSavedSearchUseCase? = nil,
-        adzunaConfigured: Bool = true
+        configuredProviderIDs: Set<String> = Set(JobProviderRegistry.all.map(\.id))
     ) {
         self.searchAndRank = searchAndRank
         self.suggestions = suggestions
@@ -123,7 +133,8 @@ final class SearchViewModel {
         self.saveSearch = saveSearch
         self.loadSavedSearches = loadSavedSearches
         self.deleteSavedSearch = deleteSavedSearch
-        self.adzunaConfigured = adzunaConfigured
+        self.configuredProviderIDs = configuredProviderIDs
+        self.selectedProviderIDs = Set(JobProviderRegistry.all.map(\.id))
         self.commonRoleTitles = roleTitleStore.load()
         self.savedLocations = locationStore?.load() ?? []
         self.savedSalaries = salaryPresetStore?.load() ?? []
@@ -156,7 +167,7 @@ final class SearchViewModel {
     /// saved request, then runs it (reporting how many results are new since last time).
     func runSavedSearch(_ saved: SavedSearch) async {
         applyRequest(saved.request)
-        guard adzunaConfigured else { errorMessage = unavailableMessage; return }
+        guard !activeProviderIDs.isEmpty else { errorMessage = unavailableMessage; return }
         guard hasProfile else { errorMessage = "Build your profile on the Portfolio tab first."; return }
         await performSearch(saved.request, isRerun: true)
     }
@@ -178,6 +189,8 @@ final class SearchViewModel {
         positionType = request.positionType
         desiredResultText = request.desiredResultCount.map(String.init) ?? ""
         minimumScore = Double(request.minimumScore ?? 0)
+        // Restore the saved provider selection (nil ⇒ all registered — a pre-H saved search).
+        selectedProviderIDs = request.sources.map(Set.init) ?? Set(JobProviderRegistry.all.map(\.id))
     }
 
     // MARK: Expanded search parameters (Milestone U)
@@ -258,6 +271,22 @@ final class SearchViewModel {
         profile = saved.profile
     }
 
+    /// Digests the current results into the standardized description format (Milestone K),
+    /// swapping each row to its standardized description **as its digest completes** (progressive),
+    /// then re-persisting the standardized set. Best-effort and no-op when digestion isn't wired or
+    /// there's nothing to digest; a job already carrying `details` is skipped (cache).
+    private func digestResults() async {
+        guard searchAndRank.canDigest, !results.isEmpty else { return }
+        isDigesting = true
+        defer { isDigesting = false }
+        for await updated in searchAndRank.digestStream(results) {
+            if let index = results.firstIndex(where: { $0.id == updated.id }) {
+                results[index] = updated
+            }
+        }
+        await persistResults()
+    }
+
     /// Persists the current results (best-effort — a persistence failure never breaks
     /// the search/fetch the user just ran).
     private func persistResults() async {
@@ -283,16 +312,30 @@ final class SearchViewModel {
         return result
     }
 
-    /// A build-level banner shown when search is unavailable because credentials
-    /// weren't baked in. Distinct from `errorMessage`, which reports run failures.
+    /// The providers a search will actually run — selected **and** configured (Milestone H).
+    var activeProviderIDs: Set<String> { selectedProviderIDs.intersection(configuredProviderIDs) }
+
+    /// A banner shown when search can't run for a provider reason (no key configured, or none
+    /// of the configured providers is selected). Distinct from `errorMessage` (run failures).
     var unavailableMessage: String? {
-        adzunaConfigured
-            ? nil
-            : "Search is unavailable in this build — Adzuna credentials weren't configured when it was built."
+        guard activeProviderIDs.isEmpty else { return nil }
+        return configuredProviderIDs.isEmpty
+            ? "Search is unavailable — add a job-source API key in Settings → Sources."
+            : "No search source selected — pick at least one configured provider below."
     }
 
     var canSearch: Bool {
-        adzunaConfigured && hasProfile && !effectiveTitles.isEmpty && !isSearching
+        !activeProviderIDs.isEmpty && hasProfile && !effectiveTitles.isEmpty && !isSearching
+    }
+
+    // MARK: Provider selection (Milestone H)
+
+    func isProviderSelected(_ id: String) -> Bool { selectedProviderIDs.contains(id) }
+    func isProviderConfigured(_ id: String) -> Bool { configuredProviderIDs.contains(id) }
+
+    /// Adds/removes a provider from the selection (drives the selector toggles).
+    func setProvider(_ id: String, selected: Bool) {
+        if selected { selectedProviderIDs.insert(id) } else { selectedProviderIDs.remove(id) }
     }
 
     // MARK: Chip editing
@@ -377,12 +420,35 @@ final class SearchViewModel {
         do {
             results = [try await fetchPosting(url: url, profile: profile)]
             await persistResults()
+            await digestResults()   // standardize the fetched posting too (Milestone K)
         } catch is JobPostingSourceError {
-            linkErrorMessage = "Couldn't read that posting — the page may need a login or block automated access. "
-                + "Paste the posting text below and use “Generate from pasted text” instead."
+            linkErrorMessage = Self.blockedPostingMessage(for: url)
         } catch {
             linkErrorMessage = Self.message(for: error)
         }
+    }
+
+    /// Job boards that serve an anti-bot / login wall (a Cloudflare "security check", 403, or
+    /// JS challenge) to a plain fetch, so their posting URLs can never be read automatically.
+    private static let botWalledBoards: [(host: String, name: String)] = [
+        ("indeed.com", "Indeed"),
+        ("linkedin.com", "LinkedIn"),
+        ("glassdoor.com", "Glassdoor"),
+        ("ziprecruiter.com", "ZipRecruiter"),
+    ]
+
+    /// A clear, board-aware message when a posting URL can't be fetched, pointing at the two
+    /// paths that **do** work: paste the text, or search via an aggregator (JSearch) that
+    /// licenses many of these boards.
+    private static func blockedPostingMessage(for url: URL) -> String {
+        let host = (url.host ?? "").lowercased()
+        let board = botWalledBoards.first { host == $0.host || host.hasSuffix("." + $0.host) }?.name
+        let lead = board.map {
+            "\($0) blocks automated access to its job postings (an anti-bot / login wall), so this link can't be read automatically."
+        } ?? "Couldn't read that posting — the page may need a login or block automated access."
+        return lead + " Two ways to bring it in: paste the job description below and tap “Generate from pasted "
+            + "text”, or run a New Search with JSearch enabled (Settings → Sources) — the JSearch aggregator "
+            + "includes many of these boards' postings, with full descriptions."
     }
 
     /// Extracts a posting from `pastedPosting` (the fallback for un-fetchable pages),
@@ -406,6 +472,7 @@ final class SearchViewModel {
             let sourceURL = URL(string: postingURL.trimmingCharacters(in: .whitespacesAndNewlines))
             results = [try await fetchPosting(pastedText: text, sourceURL: sourceURL, profile: profile)]
             await persistResults()
+            await digestResults()   // standardize the pasted posting too (Milestone K)
         } catch is JobPostingSourceError {
             linkErrorMessage = "That didn't look like a job posting — make sure you pasted the full description."
         } catch {
@@ -416,7 +483,7 @@ final class SearchViewModel {
     // MARK: Search
 
     func search() async {
-        guard adzunaConfigured else {
+        guard !activeProviderIDs.isEmpty else {
             errorMessage = unavailableMessage
             return
         }
@@ -436,7 +503,11 @@ final class SearchViewModel {
             salaryMin: effectiveSalaryMin.map(Double.init),
             positionType: positionType,
             desiredResultCount: desiredResultCount,
-            minimumScore: effectiveMinimumScore
+            minimumScore: effectiveMinimumScore,
+            // Only carry providers that are both selected **and** currently usable, so an
+            // unconfigured provider (e.g. the LLM source with no available engine) never lands in
+            // the saved request. `nil` ⇒ "all" (matches `CompositeJobSource`).
+            sources: activeProviderIDs.isEmpty ? nil : activeProviderIDs.sorted()
         )
     }
 
@@ -461,6 +532,7 @@ final class SearchViewModel {
             }
             warningMessage = notes.isEmpty ? nil : notes.joined(separator: " ")
             await persistResults()
+            await digestResults()   // standardize descriptions progressively (Milestone K)
         } catch {
             errorMessage = Self.message(for: error)
         }

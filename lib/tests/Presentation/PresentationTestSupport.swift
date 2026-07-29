@@ -14,8 +14,16 @@ struct PresentationStubProvider: LLMProvider {
     var matches: [JobMatch] = []
     var kitResume = "RESUME"
     var shouldThrow = false
+    /// Canned posting structure returned by `enrichPosting` (Milestone K digest); nil ⇒ throws
+    /// (so a digest finds nothing and the listing is left unchanged).
+    var enrichDetails: PostingDetails?
 
     struct Boom: Error {}
+
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        guard let enrichDetails else { throw Boom() }
+        return enrichDetails
+    }
 
     func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
         if shouldThrow { throw Boom() }

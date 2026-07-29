@@ -111,6 +111,32 @@ struct LinkJobPostingSourceTests {
         }
     }
 
+    // MARK: Readable text (v0.6.0 Milestone A-C) — the fetch+strip half, for enrichment.
+
+    @Test func readableTextReturnsStrippedPageText() async throws {
+        let html = Data("<html><body><h1>iOS Engineer</h1><p>\(String(repeating: "Swift and SwiftUI. ", count: 30))</p></body></html>".utf8)
+        let source = LinkJobPostingSource(http: StubHTTP(body: html), extractor: StubExtractor())
+
+        let text = try await source.readableText(from: url)
+        #expect(text.contains("iOS Engineer"))
+        #expect(text.contains("SwiftUI"))
+        #expect(!text.contains("<h1>"))   // markup stripped, not returned raw
+    }
+
+    @Test func readableTextFetchFailureIsUnreadable() async {
+        let source = LinkJobPostingSource(http: StubHTTP(error: HTTPError.status(code: 403, body: Data())), extractor: StubExtractor())
+        await #expect(throws: JobPostingSourceError.unreadable) {
+            _ = try await source.readableText(from: url)
+        }
+    }
+
+    @Test func readableTextTooLittleTextIsUnreadable() async {
+        let source = LinkJobPostingSource(http: StubHTTP(body: Data("<html><body>Loading…</body></html>".utf8)), extractor: StubExtractor())
+        await #expect(throws: JobPostingSourceError.unreadable) {
+            _ = try await source.readableText(from: url)
+        }
+    }
+
     // MARK: Fetch hardening (Hotfix)
 
     @Test func fetchPresentsAsABrowser() async throws {

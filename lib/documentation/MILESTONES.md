@@ -2094,3 +2094,505 @@ On-device: yes — the field is prompt text; both engines honour it through the 
 
 *(Open calls resolved as recommended: the field lives on `GenerationSettings` but is excluded from presets;
 no separate Submit — it feeds the existing Generate/Regenerate.)*
+
+---
+
+# v0.6.0 — richer grounding, job detail & sources  (in progress)
+
+The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal to work
+from**, and **more (and better-fed) sources to get it from**. Six milestones drawn from `PLANNED.md`: A–C improve
+grounding — capture and surface much more of a job posting (Milestone A), choose a profile to ground on
+(Milestone B), regenerate a saved result (Milestone C); D–F widen the pipe — user-editable API credentials
+(Milestone D), full posting text (Milestone E), multi-source search (Milestone F). Grounded-by-default and
+never-fabricate hold throughout — enrichment *structures* what a posting says, it never invents. Milestones
+restart at **A**; commit as `v0.6.0 : Milestone X Completed`.
+
+## Milestone A — Richer job postings (capture & surface full posting detail)  ✅ done
+
+A search result used to keep very little about a job — `JobListing` was only `id/title/company/location/
+description/url/salary`, and Adzuna's `description` is often a truncated snippet. Milestone A captures and
+surfaces **much more** — job/work type, posted date, category, qualifications, responsibilities, about-the-role/
+company, benefits — and feeds it into generation. Six sub-parts:
+
+- [x] **A-A — Adzuna decode (no LLM).** `JobListing` gained `positionTypes: [PositionType]` + `postedDate: Date?`
+      + `category: String?`, with a custom `init(from:)` that decodes-with-defaults so legacy `RankedJob` blobs
+      still load (else `SavedJobsRepository` would silently drop the row). `AdzunaJobSource.Job` decodes
+      `contract_type` / `contract_time` / `category` / `created` and maps them in `toDomain()` — both contract
+      fields → the `PositionType` flag list, ISO-8601 `created` → `postedDate`, category label. *(Employment type
+      is a list because Adzuna splits it across two orthogonal fields.)*
+- [x] **A-B — Enrichment model + step.** New `WorkType` enum (`on_site`/`remote`/`hybrid`, lenient `init(loose:)`)
+      and a `@Generable` `PostingDetails` (workTypeRaw + qualifications / responsibilities / niceToHaves /
+      aboutRole / aboutCompany / benefits, with `workType`/`hasContent` accessors); `JobListing` gained
+      `details: PostingDetails?`. The `enrichPosting(fromPostingText:)` step threaded through the whole seam —
+      `LLMProvider` requirement + throwing default, both providers (FM constrained-decode / Claude JSON),
+      `LLMRouter` (routed through `.extraction`), and `Prompts.enrichPosting` + `enrichInstructions` (extract-only,
+      "never invent"). `WorkType` stays a plain enum mapped from a raw string so `PostingDetails` is all
+      `String`/`[String]` and both engines produce it reliably.
+- [x] **A-C — Full-page fetch feeding enrichment.** Extended `JobPostingSource` with `readableText(from:)`
+      (default throws `.unreadable`; `LinkJobPostingSource` implements it by refactoring the fetch→decode→strip→
+      min-length half of `fetchPosting` into a shared method — URL path behaviour unchanged). New Business
+      `EnrichPostingUseCase` prefers the full posting page (when richer than the snippet) and **falls back to the
+      description snippet** on any fetch failure / no url / no source; attaches `PostingDetails` only when
+      `hasContent` (never overwrites with emptiness).
+- [x] **A-D — Trigger + persist.** Enrichment-timing open call resolved as recommended: **enrich on save to
+      Tracker**. `EnrichPostingUseCase` wired in `Composition` (over the shared `jobPostingSource`) and injected
+      into `ResultsViewModel`; `saveToTracker` marks `.saved` + refreshes history first (the row drops out of
+      Results immediately), then best-effort enriches and re-persists the `RankedJob`. Persistence needed **no
+      repository change** — `details` rides along in the `RankedJob` JSON, and A-B's decode-with-default keeps
+      legacy jobs loading (`details == nil`).
+- [x] **A-E — Into generation (the payoff).** No seam change: `buildTargetBrief(for job:)` already receives the
+      full `JobListing`, which carries `details` — so the richer signal reaches **stage 1** and stage 2 tailors
+      against the fuller brief (two-stage discipline preserved). `Prompts.postingDetailSection` renders only the
+      non-empty enriched fields into the brief prompt; absent/empty details return "" so the un-enriched path is
+      byte-for-byte the pre-A-E prompt. `GenerateApplicationUseCase` / `GenerateToTargetUseCase` benefit
+      automatically.
+- [x] **A-F — Surface in the UI.** Pure, SwiftUI-free `PostingMetaBadge.badges(for:)` derives at-a-glance chips
+      (work type, employment type(s), posted date, category). `JobDetailView` shows the chips near the top plus a
+      collapsible "Posting details" section (About the role / company + Qualifications / Responsibilities /
+      Nice-to-have / Benefits via `ExpandableRow`); `RankedRow` shows compact work/employment chips (so enriched
+      jobs read richer in the Tracker list). All gated on presence — un-enriched rows/detail look exactly as
+      before.
+
+**Guardrail.** Enrichment extracts and organizes what the posting states — it never invents requirements or
+company facts (same discipline as `ExtractedPosting`), and it's signal about the *role*, never about the
+candidate, so the never-fabricate rule on the résumé is untouched.
+
+**Tests.** Adzuna decode + legacy-blob decode; `PostingDetails`/`WorkType` round-trip + loose-parse + empty;
+`enrichPosting` provider decode + router routing + prompt fields/bounds/guardrail; `readableText` +
+`EnrichPostingUseCase` full-page/snippet/empty paths; enrich-on-save persists + reflects; brief prompt
+injects/omits detail; `PostingMetaBadge` derivation + relative posted text. Full suite green.
+
+**On-device.** Adzuna decode is pure/local; enrichment is `.extraction` LLM work (on-device-friendly; Claude
+when chosen); the optional full-page fetch needs network. Posting text is bounded before extraction.
+
+*(Open calls resolved as recommended: enrich **on save**; `JobListing` optionals for Adzuna fields **plus** a
+separate `@Generable` `PostingDetails` for the LLM structure.)*
+
+## Milestone B — Select a profile at generation time and ground on its source documents  ✅ done
+
+Grounding was tied to the single loaded/default profile (`PortfolioViewModel.grounding` → `AppSession.grounding`
+→ `ApplicationWindow` → `ApplicationSheet`), with a silent fall-back to profile-summary-only when grounding
+wasn't set up. Milestone B adds an **explicit per-generation profile picker** and grounds on the chosen
+profile's real source documents.
+
+- [x] **Grounding mapper (Data).** New `SavedProfile.grounding` (an extension mirroring
+      `PortfolioViewModel.grounding`) yields any saved profile's `PortfolioGrounding` — `readableText ??
+      sourceText` as factual grounding + the tidied cover letter as a voice exemplar — or `nil` for a legacy
+      profile with no source document (→ profile-only). Each `SavedProfile` also carries its `CandidateProfile`,
+      so a selection supplies **both** `profile:` and `grounding:`.
+- [x] **Picker + wiring (Presentation).** `ApplicationViewModel` gained `loadProfiles` (injected via
+      `Composition.makeApplicationViewModel`), a `savedProfiles` list, a session-only `selectedProfileID`,
+      `canPickProfile`, `loadSavedProfiles()`, and a pure `resolvedTarget(fallbackProfile:fallbackGrounding:)`
+      that returns the **picked** saved profile + its grounding, or the ambient fallback when "Current profile"
+      is selected / the pick is gone. `ApplicationSheet`'s "Generation options" panel shows a **Profile** picker
+      (default **Current profile** → byte-for-byte the old behaviour, hidden when there are no saved profiles);
+      `runGeneration` resolves the target before calling `generate`.
+- [x] **Prompt depth.** The curation prompt already receives `resumeText` and compares it against the full job
+      result (now richer via Milestone A). The résumé/cover-letter grounding stays bounded in `Prompts`
+      (`maxPortfolioCharacters` / `maxCoverLetterCharacters`) — adequate for a typical résumé; larger bounds
+      would risk the on-device context window, so left unchanged.
+
+**Guardrail.** Grounding on the source documents strengthens factual fidelity without loosening never-fabricate:
+the résumé source grounds facts; the cover-letter source stays a voice/tone exemplar only.
+
+**Tests.** `SavedProfile.grounding` (prefers tidied text, raw fallback, carries/omits cover letter, nil without
+a résumé); `ApplicationViewModel` (loads profiles + offers the picker; `resolvedTarget` defaults to ambient,
+uses the picked profile + its grounding, and falls back safely when the pick is gone). Full suite green.
+
+**On-device.** Yes — profile load + grounding are local; generation runs on the chosen engine.
+
+*(Open calls resolved as recommended: **session-only** selection defaulting to Current; picker in the
+**options panel**; **saved profiles only** — a just-built unsaved profile appears after Save.)*
+
+## Milestone C — Regenerate result (re-rank & re-enrich a saved job against a chosen profile)  ✅ done
+
+Mirrors the regenerate-application flow with a **"Regenerate result"** action on a saved job: re-run the fit
+assessment (and, where enrichment is wired, backfill the posting detail) against a **chosen profile**, with an
+optional steering context. The motivating case is **legacy entries** ranked against an older profile and
+lacking the richer posting fields.
+
+- [x] **C-A — Single-job re-rank seam (Data/LLM).** New `LLMProvider.rank(job:against:instruction:)` returning
+      one `JobMatch`, with a forwarding default that reuses the batch `rank` (ignoring the instruction) so stubs
+      are unchanged; real engines (FM constrained-decode / Claude JSON) and `LLMRouter` (routed `.ranking`)
+      override it. `Prompts.rankOne` asks for a single match, carries the enriched posting detail (A-E), and
+      appends the user's guidance via `rankGuidanceSection` (empty ⇒ plain assessment; steers *how to weigh*
+      fit, never permission to credit absent skills).
+- [x] **C-B — `RegenerateResultUseCase` (Business).** Best-effort re-enriches the listing (via the optional
+      `EnrichPostingUseCase` — backfills legacy postings; no-ops if already enriched), re-ranks the single job
+      against the chosen profile honouring the instruction, and persists the refreshed `RankedJob` latest-wins
+      via `SaveResultsUseCase` (`SavedJobsRepository` upsert). A re-enrich failure is swallowed; a re-rank
+      failure propagates.
+- [x] **C-C — "Regenerate result" action (Presentation).** `JobDetailView` gained a compact re-rank control in
+      the match section: an optional **profile picker** (default "Current profile" — the ambient one; reuses
+      Milestone B's pattern) + a steering **context** box + the button, with a spinner and error line. A
+      re-ranked result is held in `displayRanked` and shown in place (score / reason / skills / detail update
+      live via a new `shown` accessor), and `onMutate` refreshes the main-window lists. Wired through
+      `Composition.regenerateResult` / `loadProfiles` → `JobDetailWindow` → `JobDetailView`.
+
+**Guardrail.** Re-ranking re-assesses fit **honestly** (the score may rise *or* fall); enrichment structures
+what the posting says; the context steers emphasis/interpretation, never fabrication.
+
+**Tests.** `Prompts.rankOne` (asks for one match, carries detail + guidance, omits guidance when blank);
+`ClaudeCodeProvider.rank(job:instruction:)` decode + guidance in the prompt; router routes the single-job
+re-rank; `RegenerateResultUseCase` re-ranks with the instruction + persists latest-wins, and re-enriches when
+wired. Full suite green.
+
+**On-device.** Yes — re-rank + enrich run on the chosen engine; persistence is local.
+
+*(Open calls resolved as recommended: re-rank always + re-enrich when wired; **per-result** (not bulk);
+latest-wins **overwrite**.)*
+
+## Milestone D — User-editable API credentials (move keys from build-time secrets into in-app Settings)  ✅ done
+
+Adzuna's `app_id` / `app_key` were baked in at build time (`Secrets.xcconfig` → Info.plist → `BundleAppConfig`
+→ `AppConfig`), so only a build with the secret file could search and there was no in-app fix. Milestone D makes
+credentials **user-entered** into a keychain-backed store, with the build-time keys kept as an optional fallback
+so dev/CI builds keep working. Four sub-parts:
+
+- [x] **D-A — `KeychainStore: KeyValueStore` (Infrastructure/Store).** Generic-password items namespaced by
+      `service`, on the **legacy (file-based)** keychain so the unsandboxed target needs no keychain-access-group
+      entitlement (the data-protection keychain would return `errSecMissingEntitlement`). The non-throwing
+      `KeyValueStore` surface sits over a throwing `readData`/`writeData`/`clear` API that surfaces `OSStatus`
+      (`KeychainError`, with `isEnvironmentUnavailable` so round-trip tests skip on CI without entitlements).
+      `clear()` loops `SecItemDelete` until `errSecItemNotFound` — the legacy keychain deletes only one match per
+      call, so a single delete left a multi-item service partly populated (caught by a full-suite-only test flake).
+- [x] **D-B — `JobSourceCredentialsStore` (Data/Settings).** Provider-keyed: `JobProvider` (`.adzuna`, extensible
+      for F) + `JobCredentialField` (namespaced `storageKey`, e.g. `adzuna.appID`). `value(for:)` resolves
+      **user-entered (keychain) → build-time `AppConfig` → nil**, treating blank/whitespace as absent at *both*
+      sources; `setValue` clears the entry for a blank value (revert to fallback, keeps the keychain clean);
+      `hasCredentials(for:)` generalises `AppConfig.hasAdzunaCredentials` to "resolved from either source";
+      `hasStoredValue`/`hasStoredCredentials` expose user-entry-only (gates the Clear affordance).
+- [x] **D-C — Rewire the composition root.** `Composition` owns a `JobSourceCredentialsStore(store:
+      KeychainStore(), config: appConfig)`; `SettingsBackedJobSource` resolves `appID`/`appKey` via
+      `credentials.value(for:)` live on each search (was reading `config` directly); `isAdzunaConfigured` is now
+      `credentialsStore.hasCredentials(for: .adzuna)` (feeds the Search/Settings VMs + the DEBUG console hint,
+      reworded to cover both sources).
+- [x] **D-D — Settings UI + live refresh.** `SettingsView`'s Adzuna section shows each credential field as an
+      editable `SecureField` until it's saved, then as an **immutable, greyed masked indicator** (dots, never the
+      real value) — a per-field `appIDSaved`/`appKeySaved` state drives the lock; **Clear saved credentials**
+      unlocks them again. Plus a live **Status** (Configured / Not) and a **"How to get an Adzuna API key"** link
+      (a single-provider down-payment on the `PLANNED` per-provider help entry). `SettingsViewModel` gained edit
+      buffers + `save()` (persists non-blank buffers, clears the input buffers + **locks** the saved fields,
+      **re-resolves** `adzunaConfigured`; a blank field leaves the saved value untouched) + `clearAdzunaCredentials()`
+      (unlocks + reverts). `adzunaConfigured` became a `private(set) var`; `RootView`
+      observes it and pushes changes to `SearchViewModel.adzunaConfigured` (now a `var`) so the Search banner +
+      Generate gate refresh **without a relaunch** — closing the snapshot-staleness gap D-C surfaced. Flipped the
+      two "secrets are build-time" doc comments (`AppSettings`, `AppConfig`).
+
+**Guardrail (safety).** The app builds the credential *fields*; the **user** enters their own keys — the agent
+never types or pastes real API keys.
+
+**Storage note (post-D fix).** The credentials store is wired to **`UserDefaults`**, not `KeychainStore`: this
+unsandboxed app is **ad-hoc-signed in dev**, so the legacy keychain re-prompts for access on every rebuild (the
+signature changes each build, so "Always Allow" never sticks) — it popped a keychain dialog on every launch.
+The keys are low-value Adzuna free-tier credentials (previously baked into the bundle), so local app preferences
+are an acceptable home for a personal build. `KeychainStore` (D-A) stays available behind the same `KeyValueStore`
+port for a future stably-signed / distributed build — swap it back in `Composition` once real signing is set up.
+
+**Tests.** `KeychainStore` round-trip / missing-key / nil-removes / update-in-place / service isolation / port
+surface / service-wide clear / error classification (8, guarded for keychain-less hosts);
+`JobSourceCredentialsStore` resolution order / clear-reverts / blank-as-absent (both sources) / mixed
+user+build-time / stored-only checks (16); `SettingsViewModel` seed-from-store / enter+persist+re-resolve /
+blank-leaves-unchanged / clear-reverts-to-fallback / clear-without-fallback / no-store no-ops (6). Full suite green.
+
+**On-device.** n/a — local Keychain/UserDefaults storage, no model or network.
+
+*(Open calls resolved as recommended: **pure fallback**, no keychain seeding; **Keychain** for the secrets;
+**save-and-see** validation; **per-provider** Settings section.)*
+
+## Milestone E — Full job-posting text (capture the whole posting, not Adzuna's truncated snippet)  ✅ done
+
+Adzuna's `/search` `description` is truncated (~500 chars, ends in `…`); the full body isn't in the API
+response, so no decode recovers it. Milestone E recovers it from the posting page and grounds/display on it.
+Because Milestone A's enrichment already fetches that page, E rides the **same fetch** — one network call
+captures both the raw full text and the structured detail.
+
+- [x] **E-A — `JobListing.fullDescription` + `effectiveDescription`.** New optional `fullDescription: String?`
+      (the recovered full body; the snippet in `description` is never overwritten — both are kept), with
+      decode-with-default back-compat (legacy blobs decode `nil`). A computed `effectiveDescription`
+      (`fullDescription ?? description`) is the single accessor ranking, brief-building, and the detail view read.
+- [x] **E-B — Capture + de-chrome in `EnrichPostingUseCase`.** The full posting page (fetched via
+      `JobPostingSource.readableText` when richer than the snippet) is raw site text — navigation, "similar
+      jobs", footer, country lists — so storing it verbatim looked terrible. A new **`cleanPostingText`** LLM
+      step (`LLMProvider` + throwing default + both engines + `LLMRouter` `.extraction` + `Prompts.cleanPosting`
+      / `cleanPostingInstructions`) extracts **just the posting, verbatim, as clean markdown**, and that is what
+      lands on `fullDescription`, then the structuring pass runs on the clean text. Every step is best-effort:
+      an unfetchable page falls back to the snippet with no `fullDescription`; if cleaning is unavailable /
+      fails / finds no posting the **noisy raw page is not stored** (the snippet stands) though structuring
+      still runs on the raw page (its prompt already ignores chrome); and a structuring failure keeps the
+      cleaned text. `.details` is still only set when `hasContent`. Guardrail: cleaning **removes chrome and
+      preserves the posting verbatim** — it never summarizes or invents.
+      - **Fix (composition forwarding).** Building this surfaced a latent bug: `SettingsBackedLLMProvider`
+        (`Composition`) — the runtime `LLMProvider` that forwards to the `LLMRouter` — was **missing forwards
+        for `enrichPosting` and the single-job `rank(job:against:instruction:)`**, so in the real app those hit
+        the throwing / batch-fallback defaults instead of a real engine (Milestone A enrichment silently
+        no-op'd; Milestone C re-rank ignored its steering instruction). Added the missing forwards **plus**
+        `cleanPostingText`, so all three now reach the router/engine.
+- [x] **E-C — Persist (free).** `fullDescription` rides the `RankedJob` JSON like `details` — no repository
+      change. `ResultsViewModel.saveToTracker`'s enrich-on-save now persists whenever the listing changed
+      (`listing != job.listing`), so a job whose full text was captured but that structured nothing is still
+      saved; the "already captured" guard skips jobs that already have full text or details.
+- [x] **E-D — Into generation + display.** `Prompts` (batch rank / single-job re-rank / `buildTargetBrief`) read
+      `job.effectiveDescription` — at search-time ranking that equals the snippet (nothing fetched yet), and
+      after capture the brief and the Milestone-C re-rank ground on the full posting. `JobDetailView`'s
+      Description section shows `effectiveDescription`.
+
+**Guardrail.** The full text is captured **verbatim**; structuring only organizes it (Milestone A's discipline),
+never inventing requirements or company facts.
+
+**Tests.** `JobListing` full-description round-trip + legacy-blob decode + `effectiveDescription` preference;
+`EnrichPostingUseCase` captures the full page and **keeps it when structuring is empty or throws**;
+`buildTargetBrief` grounds on the full text over the snippet; `ResultsViewModel` save persists `fullDescription`.
+Full suite green; build warning-free.
+
+**On-device.** The page fetch needs network (same seam as the "generate from a link" path); storage + display
+are local. Posting text is bounded before it reaches the model, as elsewhere.
+
+*(Open calls resolved as recommended: **add** `fullDescription` (keep the snippet); **capture on save** via the
+existing enrichment fetch; **store** it — no re-fetch.)*
+
+## Milestone F — Multi-source job search (aggregate more providers behind `JobSource`)  ✅ done
+
+Searches sometimes hit **Adzuna's index ceiling** for a query; the fix is **more sources**, not more tuning.
+Milestone F aggregates providers behind one `JobSource`, so the fan-out over *providers* sits below the seam and
+`SearchAndRankUseCase` (which fans out over *titles*) is unchanged.
+
+- [x] **F-A — `CompositeJobSource`.** New `CompositeJobSource: JobSource` holds `[any JobSource]`, fans out with
+      **bounded concurrency** (mirrors `SearchAndRankUseCase.searchAll`'s windowed task group) and merges.
+      Partial failure is **soft** (skip a throwing provider); it throws only when **every** provider fails;
+      empty sources → `[]`.
+- [x] **F-B — `JobListing.fingerprint` + `source`.** `JobListing.id` is source-specific, so the composite
+      dedups on a normalized **fingerprint** (lowercased title + company + location, collapsed whitespace),
+      keeping the **first** occurrence in source order while preserving each listing's own `id` for persistence.
+      Added an optional `source` label ("Adzuna" / "JSearch"), captured for future display (Codable back-compat).
+- [x] **F-C — `JSearchJobSource` (RapidAPI).** New provider gateway (private wire types, the Adzuna pattern):
+      folds keywords + location into JSearch's free-text `query`, maps `PositionType` → `employment_types`, sends
+      the RapidAPI key/host as **headers**, and maps the rich response → `JobListing` **including the Milestone
+      A/E fields** — full description, `PostingDetails` from `job_highlights` (qualifications / responsibilities
+      / benefits + `is_remote`→workType), employment type, salary, posted date — so a JSearch result arrives
+      **already-enriched** (no page-fetch / LLM pass needed downstream).
+- [x] **F-D — Wiring + credentials + Settings.** `SettingsBackedJobSource` (`Composition`) now assembles every
+      **configured** provider — Adzuna (id/key) and JSearch (key), resolved from the Milestone-D credentials
+      store — into a `CompositeJobSource`; a provider with no resolved key is omitted (fail-soft). `JobProvider`
+      gained `.jsearch` (+ `JobCredentialField.jsearchAPIKey`); the Settings **"Sources"** pane (renamed from
+      "Adzuna") adds an **optional JSearch (RapidAPI) key** field with the same save / lock / mask / clear
+      machinery, a "How to get a key" link, and a free-tier-limit note.
+
+**Guardrail (safety).** The app builds the credential *field*; the **user** enters the RapidAPI key — the agent
+never types or pastes it.
+
+**Deferred (composes with the `PLANNED` "provider selector" / "credential-setup-help" entries).** Search
+**availability still gates on Adzuna**, so a JSearch-**only** setup (no Adzuna) would show the "unavailable"
+banner — generalize the gate to "any configured provider" when the provider-selection UI lands. (Adzuna +
+optional JSearch — the common case — works today.)
+
+**Tests.** `CompositeJobSource` fan-out / fingerprint dedup (case + whitespace) / soft-vs-total failure;
+`JobListing` fingerprint + source round-trip; JSearch URL building + RapidAPI headers + fixture mapping (A/E
+fields) + no-highlights→nil-details; `JobProvider.jsearch` resolution; `SettingsViewModel` JSearch
+save/lock/clear + provider independence. Full suite green; build warning-free.
+
+**On-device.** Search needs network; the composite + dedup are pure/local. *(Open calls resolved as recommended:
+**JSearch only** first (The Muse / remote feeds later); **no** per-provider balancing; **capture** source, defer
+display; bounded concurrency + the existing page cap for the metered RapidAPI tier.)*
+
+## Milestone G — Per-provider credential-setup help (built on H-A's provider registry)  ✅ done
+
+With API keys now user-entered (Milestone D), each provider's `SecureField` needed a **"How to get a key"** link;
+D-D shipped a hardcoded Adzuna link. G generalises it so **every** provider draws its help from **one source of
+truth** — which meant first standing up the **provider registry** the plan calls for (Milestone **H-A**, built
+here as G's foundation).
+
+- [x] **H-A — provider registry (the enumerable source of truth).** New `JobProviderDescriptor` +
+      `JobProviderRegistry.all` (`Data/Jobs`): per provider — `provider`, `displayName`, `credentialFields`
+      (field + UI label), `setupURL` + `setupSteps`, and a `makeSource` factory that builds the provider's
+      `JobSource` from resolved credentials (or nil when a key is missing). The composition root's
+      `SettingsBackedJobSource` (F) now builds the `CompositeJobSource` by mapping the registry — **no provider is
+      hand-enumerated** in the composition root or any view. Adding a provider = appending one descriptor.
+- [x] **G-A — `setupURL` / `setupSteps` on the descriptor.** Static, known developer pages (Adzuna dev portal,
+      RapidAPI's JSearch listing) — not derived from any posting.
+- [x] **G-B — Settings help driven by the registry.** `SettingsView`'s "Sources" pane now **iterates
+      `JobProviderRegistry.all`**, rendering one credential Section per provider with a descriptor-driven
+      `Link("How to get a key")` + a collapsible **Setup steps** disclosure — the hardcoded Adzuna/JSearch
+      sections and URL literals are gone. `SettingsViewModel` was refactored from hand-named buffers
+      (`adzunaAppID`…) to **field-keyed** state (`credentialBuffer(for:)` / `isCredentialSaved(_:)` /
+      `hasStoredCredentials(_:)` / `clearCredentials(_:)`), all driven off the registry — so a new provider needs
+      **zero** view/VM changes. Save / lock-and-mask / clear behaviour (D-D) is preserved per field.
+- [x] **G-C — Populated for Adzuna + JSearch;** URLs verified as live developer pages.
+
+**Guardrail (safety).** Links point only to official provider signup pages (static registry metadata) — the app
+never creates accounts or enters keys; the user pastes their own.
+
+**Tests.** Registry: every provider exposes an https `setupURL` + credential fields, covers every `JobProvider`,
+and `makeSource` builds only when its credentials resolve. `SettingsViewModel`: the field-keyed save / lock /
+clear works per provider and providers stay independent. Full suite green; build warning-free.
+
+**On-device.** n/a — static metadata + a browser `Link`. *(Open calls resolved as recommended: ship the `Link`
+first — inline steps added too, as a collapsible disclosure; per-provider inline, closest to the field.)*
+
+## Milestone H — Provider selector in the Search view  ✅ done
+
+F queries *every* configured provider; H lets the user **pick which to search**, from a selector that lists all
+registered providers and **grows automatically** (H-A's registry — which shipped with Milestone G).
+
+- [x] **H-B — `JobSearchRequest.sources` / `JobQuery.sources`.** Optional `[String]?` (nil ⇒ all), `Codable` —
+      the optional decodes-with-default so **pre-H `SavedSearch`es stay valid**; `JobSearchRequest.query(forTitle:)`
+      threads it into each `JobQuery`.
+- [x] **H-C — `CompositeJobSource` honours the selection.** The composite now holds **labeled** providers
+      (`Provider{id, source}`); `search` filters to the query's `sources` (nil/empty ⇒ all) before fanning out.
+      The composition root builds it from the registry, labeling each by provider id. `SearchAndRankUseCase` is
+      **unchanged** — it just passes the request's `sources` through the query.
+- [x] **H-D — Search-view selector.** `SearchViewModel` gained `selectedProviderIDs` + `providers` (the registry)
+      + `isProviderSelected`/`isProviderConfigured`/`setProvider`; `SearchView` shows a **checkbox per provider**
+      (disabled + "add a key in Settings → Sources" when unconfigured). `buildRequest` carries the selection; a
+      saved search restores it (nil ⇒ all).
+- [x] **H-E — Availability gate generalised.** Replaced `adzunaConfigured` with `configuredProviderIDs` (pushed
+      from Settings: `SettingsViewModel.configuredProviderIDs` → `RootView` → Search) and an
+      `activeProviderIDs = selected ∩ configured` gate; `canSearch` / the unavailable banner / `search()` /
+      `runSavedSearch` all use it. **This also fixes F's deferred JSearch-only case** — a setup with only a
+      JSearch key can now search.
+
+**Tests.** `JobSearchRequest.sources` round-trip + legacy-nil + threads into the query; `CompositeJobSource`
+runs only the selected providers (nil/empty ⇒ all); `SearchViewModel` gate (≥1 selected-and-configured) +
+`buildRequest` carries the selection; `SettingsViewModel.configuredProviderIDs` updates after save. Full suite
+green; build warning-free.
+
+**On-device.** Search needs network; the registry + selection state are pure/local. *(Open calls resolved as
+recommended: **multi-select**, default all; **persist** the selection in `SavedSearch` (re-runs against the
+providers it was saved with; legacy nil ⇒ all); a selected provider that loses its key just isn't in
+`configured` (skipped); source labels **deferred** to F's `JobListing.source`.)*
+
+## Milestone I — Supporting profile documents  ✅ done  (`Data/Models` + `Business` + `Data/LLM` + `Presentation/Portfolio`)
+
+A `SavedProfile` carried only the **résumé source** (distilled into the profile *and* used as factual grounding)
+and an **optional cover letter** (a voice/tone exemplar, never distilled). Milestone I lets a profile attach
+**additional supporting documents** — e.g. a complete career portfolio — **baked into the profile** as **factual**
+grounding, so both **ranking/search** and **application generation** draw on far more real signal. Unlike the
+cover letter, their content *may* be used (like the résumé). This generalises the existing résumé/cover-letter
+doc handling — no new generation seam; it rides Milestone B's existing grounding thread.
+
+- [x] **I-A — `SupportingDocument` model + `SavedProfile.supportingDocuments`.** New
+      [`SupportingDocument`](../src/Data/Models/SupportingDocument.swift) (`{ id, fileName?, rawText, readableText }`
+      + an `effectiveText` accessor, mirroring the résumé/cover-letter triple; `nonisolated`, `Codable`,
+      `Sendable`). Added `supportingDocuments: [SupportingDocument]` to
+      [`SavedProfile`](../src/Data/Models/SavedProfile.swift) with a **decode-with-defaults** `init(from:)`
+      (`decodeIfPresent … ?? []`) so pre-I profiles still load, and threaded it through
+      [`SaveProfileUseCase`](../src/Business/UseCases/SaveProfileUseCase.swift) (new `supportingDocuments:` param,
+      default `[]`).
+- [x] **I-B — `PortfolioViewModel` multi-file import/remove + tidy + store.** New `supportingDocuments` state +
+      `importSupportingDocument(from:)` (reuses `ImportPortfolioUseCase`, appends one per file) / `removeSupportingDocument(_:)`;
+      `build()` tidies each (`TidyDocumentUseCase`, best-effort → raw fallback); `select`/`deselect`/`saveProfile`
+      load/clear/persist them. Never gates Build.
+- [x] **I-C — `PortfolioGrounding.supportingText` (bounded) threaded through `Prompts`.** Added
+      `supportingText: String?` to [`PortfolioGrounding`](../src/Data/Models/PortfolioGrounding.swift); a shared
+      `SavedProfile.joinedSupportingText(_:)` concatenates each doc's `effectiveText` (readable-preferred), fed into
+      **both** grounding mappers (`SavedProfile.grounding` + `PortfolioViewModel.grounding`). `Prompts.groundingSection`
+      injects it as an **additional factual-grounding** block (after the résumé), bounded by a new
+      `maxSupportingCharacters` (8 000). Absent ⇒ byte-for-byte unchanged.
+- [x] **I-D — Distil supporting docs into the `CandidateProfile` at build.** `build()` now passes the résumé
+      **plus** the joined supporting text to `buildProfile` (résumé leading, so `Prompts.buildProfile`'s cap
+      preserves it) — so ranking benefits with **no per-rank cost** (recommended path), while raw grounding still
+      flows to generation.
+- [x] **I-E — Portfolio UI: supporting-docs slot (add/remove/browse).** The **Profile** tab gained a
+      multi-file **Supporting documents (optional)** slot (Add file… + per-file remove list) beside the source +
+      cover-letter slots ([`PortfolioView`](../src/Presentation/Portfolio/View/PortfolioView.swift)); **Source
+      Documents** lists each profile's supporting docs (readable form) under its disclosure.
+
+**Tests.** `SavedProfile` round-trips with supporting docs + decodes legacy blobs (no `supportingDocuments`) as
+empty; `grounding` concatenates their text (readable-preferred) and is nil when none usable; `Prompts` injects the
+supporting block as factual grounding, omits it cleanly when absent, and bounds it; `PortfolioViewModel`
+import/remove, build-tidy, grounding inclusion, save/select/deselect round-trip, and — via a recording provider —
+that **both** the résumé and the supporting text reach `buildProfile` (résumé first). Full suite green; build
+warning-free.
+
+**On-device.** Import + tidy are `.profile`-task LLM work (on-device-friendly; Claude when chosen), all injected
+text bounded. *(Open calls resolved as recommended: **distil + ground** (both channels); **bound** the injected
+text as a first cut (RAG follow-on remains a Backlog item); **no per-doc "kind" tag** for now.)* Guardrail: factual
+grounding about the candidate — the transparency rule still binds (nothing beyond these real documents + the
+profile).
+
+## Milestone J — LLM job source (find jobs from your résumé, no API required)  ✅ done  (`Data/LLM` + `Data/Jobs` + `Data/Settings` + `Presentation`)
+
+Search needed an API key (Adzuna / JSearch). Milestone J wires an **LLM-backed `JobSource`** in as a first-class
+source — the "paste your résumé and it finds jobs" flow — so search works with **no API keys**, spanning both the
+**engines menu** (its own task) and the **Sources / provider selector** (its own source). The one hard rule is
+**transparency**: results are **AI-suggested leads**, labelled as such and never presented as verified live
+postings.
+
+- [x] **J-A — `LLMTask.jobSearch`.** New task (+ displayName "AI job search" / detail). Since Settings iterates
+      `LLMTask.allCases` and `AppSettings.defaultEngines` seeds from it, the task **auto-appears** in the engines
+      menu with its own `TaskEngineConfig` — no view change, no migration (`config(for:)` defaults it).
+- [x] **J-B — `searchJobs` seam.** New `GeneratedJobLead`/`GeneratedJobLeads` (`@Generable`+`Codable`, **no URL**
+      field by design). `LLMProvider.searchJobs(query:grounding:)` with a **forwarding default `[]`**; implemented
+      in `FoundationModelsProvider` (constrained decode) + `ClaudeCodeProvider` (JSON), routed through `.jobSearch`
+      in `LLMRouter`, and **forwarded in `SettingsBackedLLMProvider`** (Composition). `Prompts.searchJobs` grounds
+      on the profile/résumé + query with an explicit *"prefer real, plausibly-current roles; return fewer if unsure;
+      do NOT invent application links"* (bounded).
+- [x] **J-C — `JobProvider.llm` + `LLMJobSource`.** `JobProvider.llm` has **`requiredCredentials: []`** (no key).
+      [`LLMJobSource`](../src/Data/Jobs/LLMJobSource.swift) calls `searchJobs` (grounding read via an **async
+      closure**, since the source sits below the profile seam) and maps each lead → `JobListing` tagged
+      `JobListing.aiSource`, with a **deterministic id** (`ai:…`, so re-runs dedup + persist stably) and a
+      **web-search URL** (Google query — never a model-produced posting link).
+- [x] **J-D — Registered in `JobProviderRegistry`.** Descriptor gained a **`kind`** (`.credentialed` / `.llm`) and
+      an **optional `setupURL`**; `.llm` (kind `.llm`, no credential fields, nil setupURL) is appended to `all`.
+      `SettingsBackedJobSource` special-cases `kind == .llm` to build `LLMJobSource` from the engine + a
+      default-profile grounding closure; credentialed providers still build from resolved keys. Registry order puts
+      `.llm` **last**, so a real API posting wins over an AI dupe on `fingerprint`.
+- [x] **J-E — Engine-based availability.** For `.llm`, "configured / available" means the **engine** is available
+      (on-device ready, or `claude` on PATH) — not credentials. `Composition.isLLMJobSearchAvailable` drives its
+      inclusion in `configuredProviderIDs`; `SettingsViewModel(llmSourceAvailable:)` mirrors it in `isConfigured`;
+      the Settings Sources section renders no key fields + no sign-up link for it; the Search selector's disabled
+      hint points to **Engines**, not a key.
+- [x] **J-F — AI-suggested labelling.** `JobListing.isAISuggested` drives an **AI-suggested chip** on `RankedRow`,
+      a prominent **"AI-suggested lead — not a verified posting; confirm before applying"** banner in
+      `JobDetailView`, and relabels the footer link to **"Search for this role"** (its URL is a search query).
+
+**Tests.** `LLMJobSource` maps a stubbed `searchJobs` response → `JobListing`s tagged AI with a Google **search**
+URL + deterministic id; the grounding closure is passed through; an AI lead **dedups against an API listing by
+fingerprint** (API kept); the `.llm` descriptor is keyless (no fields, nil setupURL); `SettingsViewModel`'s
+`.llm` status/`configuredProviderIDs` are **engine-based, not credential-based**; `Prompts.searchJobs` carries the
+query + grounding + verify/never-invent-URL guidance and is bounded. Full suite green; build warning-free.
+
+**On-device.** `.jobSearch` runs on-device (or Claude when chosen) — **no API key**; a web-search-capable engine
+needs network. **Transparency (the one hard rule):** leads are **AI-suggested**, labelled, never shown as verified
+postings, and linked to a **search query** rather than a fabricated posting URL. *(Open calls resolved as
+recommended: **search-query URL** (never a fake posting link); leads are model-knowledge so the labelling carries
+the weight; **capped** at `Prompts.maxJobLeads` (8) and **deduped** against API results by `fingerprint`.)*
+
+## Milestone K — Standardized result descriptions (digest every posting into one format)  ✅ done  (`Data/Models` + `Business` + `Presentation`)
+
+Descriptions were inconsistent (Adzuna's ~500-char snippet vs. JSearch full text vs. a page-fetch) and enrichment
+ran **only on save-to-Tracker**. Milestone K **digests every search result** into the uniform
+[`PostingDetails`](../src/Data/Models/PostingDetails.swift) and renders a **standardized description** from it, so
+every result reads the same regardless of source and generation always grounds on one structure — done
+**progressively** so results still appear immediately.
+
+- [x] **K-A / K-E — digest in the search pipeline (bounded + cached).** `SearchAndRankUseCase` gains an optional
+      injected `EnrichPostingUseCase` + a `digestStream(_:)` that **streams** each digested `RankedJob` as it
+      completes, with **bounded concurrency** (reusing the search window), a **cache** (a job already carrying
+      `details` is skipped), and a soft **fallback** (a digest that fails or changes nothing isn't yielded — the row
+      keeps its raw description). `callAsFunction` stays fast (returns ranked rows un-digested); digestion is a
+      separate, streamed step. Wired in `Composition`.
+- [x] **K-B — always structure from best-available text.** The existing `EnrichPostingUseCase` already runs
+      `enrichPosting` on the best available text (full page → cleaned → snippet) for **every** listing regardless of
+      source, so "always digest, even already-full JSearch text" needed no gating change; the pipeline (K-A) simply
+      runs it on **all** results now, not just save-to-Tracker.
+- [x] **K-C — `PostingDetails.standardDescription` (pure).** A deterministic fixed-template markdown renderer —
+      About the role → Responsibilities → Qualifications → Nice to have → About the company → Benefits → Work type —
+      omitting empty sections and returning `""` when empty (raw fallback). It becomes the **displayed** description
+      in `JobDetailView` (the redundant collapsible "Posting details" section is retired — its content now lives in
+      the standardized description); raw `fullDescription` / snippet remain the fallback.
+- [x] **K-D — progressive display + persist.** `SearchViewModel` shows ranked rows immediately, then consumes
+      `digestStream` and swaps each row to its standardized description as it completes (an `isDigesting` indicator
+      shows "Standardizing descriptions…"), re-persisting the standardized set. Applied to the search **and** the
+      link/paste single-result flows.
+
+**Tests.** `standardDescription` renders the fixed template in order, omits empty sections, and is `""` when blank;
+`digestStream` structures every un-digested result, **caches** (skips those already carrying `details`), yields
+nothing when un-wired, and skips results a digest didn't change; a `SearchViewModel` search digests results into the
+standardized format. Full suite green; build warning-free.
+
+**On-device.** One `.extraction`-task LLM call per result (+ a page-fetch attempt) — **cost scales with result
+count**, guarded by the bounded window, the cache, and progressive display (rows appear before digestion finishes).
+The digest **normalizes** the posting into the standard format (a normalized digest, not verbatim — consistent with
+the transparency stance). *(Open calls resolved as recommended: the recommended section order; **bounded window**
+first (no hard per-search cap); shipped with the **current `PostingDetails` fields**.)*

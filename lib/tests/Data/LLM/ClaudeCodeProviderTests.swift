@@ -91,6 +91,38 @@ struct ClaudeCodeProviderTests {
         #expect(prompt.contains("## Why Acme"))
     }
 
+    @Test func rankOneDecodesASingleMatchAndCarriesGuidance() async throws {
+        let json = #"{"jobId":"j9","score":72,"reason":"strong","matchedSkills":["Swift"],"missingSkills":[]}"#
+        let gen = RecordingGenerator(json)
+        let provider = ClaudeCodeProvider(generator: gen)
+
+        let match = try await provider.rank(job: sampleJob, against: sampleProfile, instruction: "WEIGHT_GO")
+        #expect(match.jobId == "j9")
+        #expect(match.score == 72)
+
+        let calls = await gen.calls
+        #expect(calls[0].instructions == Prompts.rankInstructions)
+        #expect(calls[0].prompt.contains("WEIGHT_GO"))
+        #expect(calls[0].prompt.contains(Prompts.jsonOnlySuffix))
+    }
+
+    @Test func enrichPostingDecodesPostingDetails() async throws {
+        let json = ##"{"workTypeRaw":"remote","qualifications":["5+ years Swift"],"responsibilities":["Ship features"],"niceToHaves":["Kotlin"],"aboutRole":"Build the app.","aboutCompany":"We do fintech.","benefits":["Health"]}"##
+        let gen = RecordingGenerator(json)
+        let provider = ClaudeCodeProvider(generator: gen)
+
+        let details = try await provider.enrichPosting(fromPostingText: "SEED_POSTING")
+        #expect(details.workType == .remote)
+        #expect(details.qualifications == ["5+ years Swift"])
+        #expect(details.aboutCompany == "We do fintech.")
+        #expect(details.hasContent)
+
+        let calls = await gen.calls
+        #expect(calls[0].instructions == Prompts.enrichInstructions)
+        #expect(calls[0].prompt.contains("SEED_POSTING"))
+        #expect(calls[0].prompt.contains(Prompts.jsonOnlySuffix))
+    }
+
     @Test func tidyDocumentReturnsRawTextWithoutJSONEnvelope() async throws {
         let gen = RecordingGenerator("Cleaned up resume text.")
         let provider = ClaudeCodeProvider(generator: gen)

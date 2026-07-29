@@ -36,6 +36,11 @@ nonisolated struct SavedProfile: Identifiable, Codable, Equatable, Sendable {
     /// The LLM-tidied, readable form of `coverLetterText`.
     var coverLetterReadableText: String
 
+    /// **Additional supporting documents** baked into this profile as **factual** grounding
+    /// (v0.6.0 Milestone I) — e.g. a full career portfolio. Empty for profiles saved before
+    /// the feature existed. Their content may be used (like the résumé), unlike the cover letter.
+    var supportingDocuments: [SupportingDocument]
+
     var createdAt: Date
 
     init(
@@ -48,6 +53,7 @@ nonisolated struct SavedProfile: Identifiable, Codable, Equatable, Sendable {
         coverLetterFileName: String? = nil,
         coverLetterText: String = "",
         coverLetterReadableText: String = "",
+        supportingDocuments: [SupportingDocument] = [],
         createdAt: Date
     ) {
         self.id = id
@@ -59,18 +65,20 @@ nonisolated struct SavedProfile: Identifiable, Codable, Equatable, Sendable {
         self.coverLetterFileName = coverLetterFileName
         self.coverLetterText = coverLetterText
         self.coverLetterReadableText = coverLetterReadableText
+        self.supportingDocuments = supportingDocuments
         self.createdAt = createdAt
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, profile, sourceFileName, sourceText, readableText
         case coverLetterFileName, coverLetterText, coverLetterReadableText
+        case supportingDocuments
         case createdAt
     }
 
     /// Custom decode so the document fields default when absent — a profile saved before
-    /// they existed (single-document, or pre-cover-letter) still loads instead of being
-    /// silently dropped.
+    /// they existed (single-document, pre-cover-letter, or pre-supporting-documents) still
+    /// loads instead of being silently dropped.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
@@ -82,6 +90,42 @@ nonisolated struct SavedProfile: Identifiable, Codable, Equatable, Sendable {
         coverLetterFileName = try container.decodeIfPresent(String.self, forKey: .coverLetterFileName)
         coverLetterText = try container.decodeIfPresent(String.self, forKey: .coverLetterText) ?? ""
         coverLetterReadableText = try container.decodeIfPresent(String.self, forKey: .coverLetterReadableText) ?? ""
+        supportingDocuments = try container.decodeIfPresent([SupportingDocument].self, forKey: .supportingDocuments) ?? []
         createdAt = try container.decode(Date.self, forKey: .createdAt)
+    }
+}
+
+extension SavedProfile {
+    /// The real document text for grounded generation against **this** profile (v0.6.0
+    /// Milestone B): its résumé's tidied `readableText` (falling back to the raw `sourceText`)
+    /// as factual grounding, plus the optional cover letter as a voice/tone exemplar. `nil`
+    /// when there's no usable résumé text — a legacy profile saved without its source document —
+    /// so generation falls back to profile-only, unchanged.
+    ///
+    /// Mirrors `PortfolioViewModel.grounding`, but keyed to any saved profile so the user can
+    /// pick which one to generate against and have generation ground on **its** source
+    /// documents (not just the ambient/loaded one).
+    nonisolated var grounding: PortfolioGrounding? {
+        let resume = readableText.isEmpty ? sourceText : readableText
+        guard !resume.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        let rawLetter = coverLetterReadableText.isEmpty ? coverLetterText : coverLetterReadableText
+        let letter = rawLetter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : rawLetter
+        return PortfolioGrounding(
+            resumeText: resume,
+            coverLetterText: letter,
+            supportingText: Self.joinedSupportingText(supportingDocuments)
+        )
+    }
+
+    /// The concatenated readable text of a profile's supporting documents (Milestone I),
+    /// as one factual-grounding block — or `nil` when there are none with usable text.
+    /// Shared by `SavedProfile.grounding` and `PortfolioViewModel.grounding`.
+    nonisolated static func joinedSupportingText(_ documents: [SupportingDocument]) -> String? {
+        let joined = documents
+            .map(\.effectiveText)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+        return joined.isEmpty ? nil : joined
     }
 }

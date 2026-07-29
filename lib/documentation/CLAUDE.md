@@ -105,7 +105,7 @@ access. `Taylor_d_PortfolioApp` is the composition root (below). This replaces t
   The profile's **summary/description can be regenerated** from a user prompt without
   rebuilding the whole profile: `RefineSummaryUseCase` → `LLMProvider.refineSummary(profile:
   portfolio:instruction:)` (a plain-text task routed through `.profile`, grounded in the
-  profile + portfolio, never fabricating) rewrites only `summary`; the Portfolio tab exposes a
+  profile + portfolio) rewrites only `summary`; the Portfolio tab exposes a
   prompt field + Submit, and the user Saves/Updates to persist it.
   Long-pressing a saved profile marks it the **default** (persisted via `DefaultProfileStore`,
   a single-id KeyValueStore pointer); the Portfolio VM auto-loads it once on launch.
@@ -344,18 +344,38 @@ xcodebuild test -project "Taylor'd Portfolio.xcodeproj" -scheme "Taylor'd Portfo
 - Wire dependencies only in the composition root (`Taylor_d_PortfolioApp`).
 - ViewModels are `@MainActor`; do async work in use cases off the main actor and
   assign results back on the main actor.
+- **Keep the build warning-free** — the suite ships with zero warnings, so fix any new one in the same change
+  rather than letting them accumulate (a "warnings sweep" was its own milestone once — v0.4.1 Milestone H — don't
+  let it become one again).
+- **Default-`MainActor` isolation → mark lower-layer types `nonisolated`.** The project builds under **default
+  `MainActor` isolation** (SwiftUI-app default), so a top-level type, global, or `static` is inferred
+  `@MainActor` unless told otherwise. Data/Infrastructure types meant to be used from any context are therefore
+  declared **`nonisolated`** (see `AdzunaJobSource`, `JobSource`, `SavedProfile`, `JobProviderDescriptor`…), and
+  they must be `Sendable`. **The gotcha:** `nonisolated` on a type's primary declaration does **not** cover
+  `static` members added in an **`extension`** — those are re-inferred `@MainActor` and then can't be referenced
+  from the nonisolated type (e.g. `Main actor-isolated static property 'adzuna' can not be referenced from a
+  nonisolated context`, `JobProviderRegistry.swift`). **Fix:** mark each such member `nonisolated static let …`
+  — allowed because the value is an **immutable `let`** of a **`Sendable`** type. Don't "fix" an isolation
+  warning by making a lower-layer value `@MainActor` (it would fracture the seam); push the annotation the other
+  way — `nonisolated` — so the Data/Infra type stays callable from use cases and background contexts.
 
-## Hard rules for generated content
+## Transparency for generated content
 
-- **Grounded by default.** With the generation-fidelity control at its default (0), resumes
-  and cover letters are grounded strictly in the user's portfolio: reorder and rephrase real
-  experience only, and **never** invent employers, job titles, dates, degrees, or credentials.
-- **Opt-in embellishment is always disclosed.** Raising the fidelity control (ROADMAP v0.5.0
-  Milestone D) permits curation and, at the top of the scale, invented content — but only as an
-  explicit user choice, and every addition not supported by the profile must be **surfaced**:
-  listed in the gap note / disclosures, flagged in the UI, and marked "draft — verify before
-  sending." **Never emit fabricated content silently or by default**, and keep the default
-  (fidelity 0) generation path byte-for-byte grounded.
+This app **may fabricate** — that's an accepted capability, not a bug. The generation-fidelity control can
+curate, embellish, and at the top of the scale invent content; the LLM job source (v0.6.0 Milestone J) surfaces
+**AI-suggested** leads that aren't verified live postings. There is **no hard "never-fabricate /
+grounded-by-default" rule**.
+
+The one rule that stays is **transparency to the user** — never mislead the person who's about to send the
+document or act on a lead:
+
+- **Surface what isn't the user's own data.** Content the model added or invented beyond the real portfolio
+  (embellished/invented résumé lines, unverified job leads) should be **visible**: listed in the gap note /
+  disclosures, flagged in the UI, and marked "draft — verify before sending" (or "AI-suggested — verify") where
+  it matters. The user decides what to submit; the app's job is to make clear what's real vs. generated.
+- **The fidelity control is a quality dial, not a guardrail.** Default = closer to the portfolio, higher = more
+  curation/embellishment/invention. It governs *how much* latitude the model takes; it no longer enforces a
+  byte-for-byte-grounded default path.
 
 ## Build & run
 
@@ -404,6 +424,17 @@ Four contributor docs, from broadest to most granular:
   between `ROADMAP.md`'s loose Backlog and `TODO.md`'s in-progress milestones). Entries name real seams/files
   so a scheduled item lifts straight into a version's `TODO.md`/`ROADMAP.md` as lettered milestones; **remove
   it from `PLANNED.md` when it's scheduled** (this file holds only *unscheduled* work).
+  **Whenever you add or edit an entry here, ask Taylor which release it targets** — the in-progress version, a
+  specific future `v0.x.0`, or *backlog / unassigned* — and record it as a **`Target:`** line at the top of the
+  entry, so Taylor can plan features across future releases while they're still specced. Don't guess the target —
+  **ask**. A *target* is the entry's **intended** release; it is **not** the same as being *scheduled* (lifted into
+  that version's `TODO.md` as lettered milestones and removed from here). An entry can carry `Target: v0.x.0` and
+  still live in `PLANNED.md` until that version's planning actually pulls it in.
+  **Keep entries ordered by ascending target version.** Group all entries for the earliest target first, then the
+  next, and so on (`v0.6.0` before `v0.6.1` before `v0.7.0` …), with *backlog / unassigned* entries sorted last.
+  When you add an entry, **insert it at its target's position** rather than appending — a newly-added `v0.6.1` item
+  slots **between** the `v0.6.0` group and any `v0.7.0` group. This same ordering rule is restated at the top of
+  `PLANNED.md` itself.
 
 The loop, so any session can pick up where the last left off:
 
@@ -482,7 +513,9 @@ build pass. Run it like this:
    documents — and then **delete that entry from `PLANNED.md`** so the file only ever holds *unscheduled* work.
    Confirm the selection with Taylor (its scope may make it a `.0` vs. a patch — see step 1). Conversely, any
    new feature Taylor raises this session that he **doesn't** want in the current version goes the other way:
-   capture it as a fresh `PLANNED.md` entry (same rigor — real seam + files) rather than a version milestone.
+   capture it as a fresh `PLANNED.md` entry (same rigor — real seam + files) rather than a version milestone —
+   **and ask which release it targets, recording the `Target:` line** (per the `PLANNED.md` convention in "Working
+   process" above) so it's slotted for a future version rather than left version-less.
 
 1. **Confirm the version & release type.** Ask/confirm the working version (per **Versioning** above).
    Decide **feature release (`v0.x.0`)** vs. **patch release (`v0.x.y`)**: a batch of bug fixes / small
