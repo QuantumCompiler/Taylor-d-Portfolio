@@ -263,6 +263,100 @@ struct LaTeXStyleTests {
         #expect(try JSONDecoder().decode(LaTeXStyle.self, from: data) == style)
     }
 
+    // MARK: Tolerant decoding (v0.7.0 Milestone D)
+
+    /// Decodes `json` as a style, or fails the test with the underlying error.
+    private func decoded(_ json: String) throws -> LaTeXStyle {
+        try JSONDecoder().decode(LaTeXStyle.self, from: Data(json.utf8))
+    }
+
+    /// Synthesized decoding is all-or-nothing; this decoder is field-by-field, so an empty object
+    /// is a valid style rather than eleven `keyNotFound` errors.
+    @Test func aStyleWithNoFieldsDecodesToTheDefaults() throws {
+        #expect(try decoded("{}") == .default)
+    }
+
+    /// A template appended by a later build (the registry advertises exactly that as the way to
+    /// add one) must not make the style unreadable — the registry's own fallback handles it.
+    @Test func anUnknownTemplateStillDecodesAndResolvesToTheShippedOne() throws {
+        let style = try decoded(#"{"template":"awesomeCVUltra","pageSize":"usLetter"}"#)
+        #expect(LaTeXTemplateRegistry.descriptor(for: style).template == .awesomeCV)
+        #expect(style.pageSize == .usLetter)      // the rest of the style is untouched
+    }
+
+    /// One unrecognised bucket costs that bucket, not the whole arrangement.
+    @Test func unknownSectionsAreDroppedRatherThanFatal() throws {
+        let style = try decoded(#"{"sectionOrder":["education","glossary","skills"],"hiddenSections":["projects","glossary"]}"#)
+        #expect(style.sectionOrder == [.education, .skills])
+        #expect(style.hiddenSections == [.projects])
+    }
+
+    /// An empty order is a **legitimate user state** (`orderedSections` documents it as document
+    /// order), so it must be honoured rather than treated as "missing" and replaced.
+    @Test func anEmptySectionOrderIsHonouredNotReplaced() throws {
+        #expect(try decoded(#"{"sectionOrder":[]}"#).sectionOrder == [])
+    }
+
+    @Test func anAbsentSectionSpacingFallsBackToCanonical() throws {
+        #expect(try decoded("{}").sectionSpacingEm == LaTeXResumeSection.canonicalSpacingEm)
+    }
+
+    /// The same distinction for the spacing map: cleared by the user ≠ absent from the blob.
+    @Test func anEmptySectionSpacingIsHonoured() throws {
+        #expect(try decoded(#"{"sectionSpacingEm":[]}"#).sectionSpacingEm.isEmpty)
+    }
+
+    /// `[LaTeXResumeSection: Double]` encodes as a flat alternating array, so it's read pairwise —
+    /// unknown buckets drop out and complete known pairs survive.
+    @Test func unknownSpacingBucketsAreDroppedPairwise() throws {
+        let style = try decoded(#"{"sectionSpacingEm":["education",-1,"glossary",-2,"skills",-0.5]}"#)
+        #expect(style.sectionSpacingEm == [.education: -1, .skills: -0.5])
+    }
+
+    /// A malformed tail costs its own entries only, and must not spin.
+    @Test func anOddLengthSectionSpacingKeepsTheCompletePairs() throws {
+        let style = try decoded(#"{"sectionSpacingEm":["education",-1,"skills"]}"#)
+        #expect(style.sectionSpacingEm == [.education: -1])
+    }
+
+    @Test func anUnknownAccentDegradesToTheTemplateDefault() throws {
+        #expect(try decoded(#"{"accent":{"gradient":{}}}"#).accent == .templateDefault)
+        #expect(try decoded(#"{"accent":{"named":{"_0":"chartreuse"}}}"#).accent == .templateDefault)
+        // …while a known accent still decodes.
+        #expect(try decoded(#"{"accent":{"named":{"_0":"emerald"}}}"#).accent == .named(.emerald))
+    }
+
+    @Test func fontSizesAndMarginsTolerateMissingSubFields() throws {
+        let sizes = try decoded(#"{"fontSizes":{"resumePt":7}}"#).fontSizes
+        #expect(sizes.resumePt == 7)
+        #expect(sizes.coverLetterPt == 11)        // the sibling keeps its default
+
+        let margins = try decoded(#"{"margins":{"leftCm":1}}"#).margins
+        #expect(margins.leftCm == 1)
+        #expect(margins.topCm == LaTeXMargins.default.topCm)
+        #expect(margins.footskipCm == LaTeXMargins.default.footskipCm)
+    }
+
+    /// Deliberately **not** total: a style that isn't a JSON object is a real error, and
+    /// `SavedDocumentStyle`'s decoder is the layer that catches it. Swallowing it here would make
+    /// `LaTeXStyle` decode literally anything and turn that outer guard into dead code.
+    @Test(arguments: [#""nonsense""#, "[1,2,3]", "42"])
+    func aStyleThatIsNotAnObjectStillThrows(json: String) {
+        #expect(throws: (any Error).self) { try decoded(json) }
+    }
+
+    /// Tolerant decoding must not have changed what a style *writes* — the round-trip fixtures
+    /// above still pass, and a blob written today reads back identically field for field.
+    @Test func encodingStaysSynthesizedSoRoundTripsAreUnchanged() throws {
+        var style = LaTeXStyle.default
+        style.sectionOrder = []
+        style.sectionSpacingEm = [:]
+        style.hiddenSections = [.other]
+
+        let data = try JSONEncoder().encode(style)
+        #expect(try JSONDecoder().decode(LaTeXStyle.self, from: data) == style)
+    }
+
     @Test func namedAndDefaultAccentsRoundTripToo() throws {
         for accent: LaTeXAccent in [.templateDefault, .named(.emerald), .custom(hex: "FF6138")] {
             var style = LaTeXStyle.default

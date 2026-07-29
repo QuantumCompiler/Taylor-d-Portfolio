@@ -232,6 +232,18 @@ struct Composition {
     private var deleteGenerationPreset: DeleteGenerationPresetUseCase? {
         generationPresetsRepository.map(DeleteGenerationPresetUseCase.init(repository:))
     }
+    private var savedDocumentStylesRepository: SavedDocumentStylesRepository? {
+        recordStore.map(SavedDocumentStylesRepository.init(store:))
+    }
+    private var saveDocumentStyle: SaveDocumentStyleUseCase? {
+        savedDocumentStylesRepository.map { SaveDocumentStyleUseCase(repository: $0) }
+    }
+    private var loadDocumentStyles: LoadDocumentStylesUseCase? {
+        savedDocumentStylesRepository.map(LoadDocumentStylesUseCase.init(repository:))
+    }
+    private var deleteDocumentStyle: DeleteDocumentStyleUseCase? {
+        savedDocumentStylesRepository.map(DeleteDocumentStyleUseCase.init(repository:))
+    }
     private var saveProfile: SaveProfileUseCase? {
         savedProfilesRepository.map { SaveProfileUseCase(repository: $0) }
     }

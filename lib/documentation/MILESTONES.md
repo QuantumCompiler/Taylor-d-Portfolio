@@ -3182,3 +3182,64 @@ partition in `LaTeXStyleTests`, and a real `lualatex` compile of a reordered + p
 (801 cases), build warning-free.
 
 **On-device.** n/a — no model calls.
+
+## Milestone D — Persistence: the styles library + default pointer  ✅ done  (`Data/Models/SavedDocumentStyle`, `Data/Persistence/SavedDocumentStylesRepository` + `DefaultDocumentStyleStore`, `Business/UseCases/DocumentStyleUseCases`, `Composition`, `Infrastructure/Tex/LaTeXStyle`; tests in `lib/tests/Data/Persistence`, `lib/tests/Infrastructure/Tex`)
+
+**The gap.** A style existed only for the length of one export. Nothing could name one, keep it, or reuse it.
+
+**What landed**, mirroring the saved-profiles trio exactly: `SavedDocumentStyle` (id / name / style / `createdAt`),
+`SavedDocumentStylesRepository` (`kind = "documentStyle"`, upsert-by-id / `all()` newest-first / `delete(id:)`
+over `PersistentRecordStore`), and `DefaultDocumentStyleStore` — a single scalar pointer on `KeyValueStore` under
+`com.veritum.taylordportfolio.defaultDocumentStyleID`, so "exactly one default" is true by construction rather
+than an invariant something has to maintain. Three use cases (`Save` / `Load` / `Delete`) carry the id and
+timestamp policy that the profile and preset precedents keep in Business, and `Composition` wires all four
+privately. `createdAt` is an addition to the milestone's stated "(id / name / style)": `PersistentRecordStore`
+documents no ordering, so every library repository sorts for itself and needs a key to sort on.
+
+**The real work was making `LaTeXStyle` survive being read back.** Synthesized `Codable` is all-or-nothing: any
+absent key, or any raw value this build doesn't recognise, throws — and because `all()` is best-effort
+(`compactMap { try? … }`), a style that throws doesn't surface an error, it **disappears from the library while
+its row stays in the store**, with nothing in the list to delete it by — `all()` reads `records(ofKind:)`, which
+returns blobs without their ids. The
+trigger is ordinary: appending one `LaTeXTemplateID` case is exactly how the registry says to add a template, and
+Milestone E adds a template picker. So `LaTeXStyle` (and `LaTeXFontSizes` / `LaTeXMargins`) gained a
+field-by-field `init(from:)`:
+
+- **`(try? decode) ?? default` per field, not `decodeIfPresent`.** The `SavedProfile` recipe is all
+  `decodeIfPresent ?? default`, which tolerates absence and null but still **throws on an invalid raw value** —
+  it would have protected against only one of the two real failure modes.
+- **Collections degrade element-wise**: an unknown section bucket is dropped rather than fatal to the whole
+  arrangement, and `sectionSpacingEm` — which encodes as a flat *alternating array*, not an object, because a
+  raw-value enum key isn't `CodingKeyRepresentable` — is read pairwise, so a malformed tail costs its own
+  entries only.
+- **Present-but-empty is honoured, not "missing".** The fallback is gated on `container.contains(_:)`, not on
+  emptiness: `orderedSections` documents an empty order as a legitimate state, so an emptiness check would
+  resurrect the canonical order a user deliberately cleared.
+- **Deliberately not total.** A `style` that isn't a JSON object still throws, and `SavedDocumentStyle` catches
+  *that* one layer up, loading the record as a named, deletable row with a default style. A missing field is
+  drift; a wrong-shaped blob is an error, and the two deserve different answers. Encoding stays synthesized, so
+  the wire format is unchanged and the existing round-trip fixtures pass untouched.
+
+**Where the tolerance lives, and why.** In `LaTeXStyle` (Infrastructure), not in `SavedDocumentStyle` (Data).
+`LaTeXStyle` decodes atomically, so an envelope-level `?? .default` is all-or-nothing too — one unknown template
+string would silently discard the user's fonts, colour, margins and section arrangement. Making it *granular*
+from Data would mean re-declaring the style's twelve keys and their defaults across the seam, which is the actual
+layering violation. Holding an Infrastructure value in a Data model is the legal direction (Data → Infrastructure).
+
+**A pointer that dangles resolves to `nil`, deliberately.** `resolved(in:)` does **not** copy the profile call
+site's `?? profiles.first`: for a profile any grounding beats none, but silently applying a style the user never
+chose changes the document they're about to send. E clears the pointer when its style is deleted.
+
+**Tests.** `SavedDocumentStylesRepositoryTests` — the canonical four (round-trip newest-first, upsert-not-
+duplicate, delete, empty); a **fully customised** style surviving the store with named per-field assertions; every
+accent case; the two flat-array collections; a legacy blob missing later fields; a style from a *later* build
+degrading field by field; the anti-zombie case (unusable style → still a named, deletable row); a corrupt blob
+skipped without losing its neighbours; same-name and same-`createdAt` edges; cross-kind isolation; and a guard
+that **every repository `kind` is distinct** (nothing checked that before D added the seventh). Plus a test that a
+store round-trip produces byte-identical `.tex` — D is the first milestone where a *decoded* style reaches the
+builder. `DefaultDocumentStyleStoreTests` covers load/save/clear/replace, corrupt data, the exact namespaced key,
+non-interference with the profile pointer, and all three `resolved(in:)` outcomes. `LaTeXStyleTests` gained the
+decoder's own pins, including the empty-vs-absent distinction and that a non-object still throws. Suite green
+(849 cases), build warning-free.
+
+**On-device.** n/a — no model calls.

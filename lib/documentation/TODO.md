@@ -9,17 +9,16 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone D** (persistence: the styles library +
-> default pointer). **Milestones A–C are done** — `LaTeXStyle` + `LaTeXTemplateRegistry` exist, and the builder's
-> preambles *and* its section order / visibility / spacing are style-driven behind **two** whole-document goldens
-> that pin the default output byte-for-byte (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`). D is the
-> first milestone that leaves Infrastructure — it adds Data/Persistence — and the first where a **decoded**
-> style reaches the builder, so tolerant decoding matters. Six milestones **A–F**,
+> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone E** (style-manager UI + export-time
+> picker). **Milestones A–D are done** — the style model + registry, style-driven preambles, style-driven section
+> order/visibility/spacing, and the persisted styles library + default pointer (write-ups in `MILESTONES.md`,
+> ticked in `ROADMAP.md`). E is the first Presentation work of the release and the first time a user can reach any
+> of it; D's repository/use cases are wired in `Composition` but private, waiting for E to consume them. Six milestones **A–F**,
 > scheduled out of `PLANNED.md`'s `Target: v0.7.0` entry (2026-07-28); see the v0.7.0 section at the bottom of
 > this file. **v0.6.2 (list actions, sorting & document previews) is
 > complete and merge-ready** — all five milestones
 > **A–E** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs and `README.md`
-> are done, and the full suite is green (801 cases, no warnings). **v0.6.1 (keyword
+> are done, and the full suite is green (849 cases, no warnings). **v0.6.1 (keyword
 > match & ATS coverage) is likewise complete.** Only the **device checks** below remain before the branch merges.
 >
 > **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
@@ -121,30 +120,6 @@ is the one call site that threads a style through (`texSource` / `latexPDF`).
 **Release hygiene (do once, at kickoff).**
 - [x] Bump every `MARKETING_VERSION` to `0.7.0` (4 copies in `project.pbxproj` — Debug/Release × app/test) so
       Settings → About reports the real version.
-
----
-
-## Milestone D — Persistence: the styles library + default pointer
-
-Styles must survive relaunch and be reusable by name — the same shape as saved profiles.
-
-**Seam + files.** `Data/Persistence` — `SavedDocumentStyle` (id / name / `LaTeXStyle`),
-`SavedDocumentStylesRepository` (mirror [`SavedProfilesRepository`](../src/Data/Persistence/SavedProfilesRepository.swift):
-its own `static let kind`, upsert-by-id over `PersistentRecordStore`), and `DefaultDocumentStyleStore` (mirror
-[`DefaultProfileStore`](../src/Data/Persistence/DefaultProfileStore.swift) — a single-id `KeyValueStore` pointer
-under the `com.veritum.taylordportfolio.*` namespace). Wired in `Composition`.
-
-- [ ] `SavedDocumentStyle` — `Codable`, `Sendable`, `nonisolated`; decodes tolerantly so a style saved before a
-      later field is added still loads (the `SavedProfile` precedent).
-- [ ] Repository `save` / `all` / `delete(id:)` against the record store under a new `kind`.
-- [ ] Default-style pointer (one default by construction, not a flag per style).
-- [ ] Built-in templates stay in the registry (A) — the repository holds only **user** styles; the picker in E
-      shows built-ins + saved styles together.
-
-**Tests.** `lib/tests/Data/` — repository round-trip / update / delete against the in-memory record store;
-default pointer load/save/clear; legacy-blob decode.
-
-**On-device.** n/a.
 
 ---
 

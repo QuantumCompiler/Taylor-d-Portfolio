@@ -983,12 +983,21 @@ inject content. `TODO.md` has the granular breakdown + open calls.
       differentiator, and E must bound user-entered spacing. Non-finite spacing now formats as `0` rather than
       emitting an uncompilable `\vspace{nanem}`. Seam: **Infrastructure/Tex**. On-device: n/a.
 
-- [ ] **Milestone D — Persistence: styles library + default pointer.** A `SavedDocumentStyle` (id / name / style)
-      through `PersistentRecordStore` via a `SavedDocumentStylesRepository` (mirrors `SavedProfilesRepository`,
-      its own `kind`), plus a single-id `DefaultDocumentStyleStore` on `KeyValueStore` (mirrors
-      `DefaultProfileStore`, so "exactly one default" holds by construction). Built-ins stay in the registry; the
-      repository holds only user styles. Tolerant decode so older saves survive a later field. Seam:
-      **Data/Persistence** + `Composition`. On-device: n/a.
+- [x] **Milestone D — Persistence: styles library + default pointer.** ✅ **Done.** `SavedDocumentStyle`
+      (id / name / style / `createdAt` — the store guarantees no ordering, so the library sorts for itself)
+      through `PersistentRecordStore` via `SavedDocumentStylesRepository` (`kind = "documentStyle"`, mirrors
+      `SavedProfilesRepository`), plus a single-id `DefaultDocumentStyleStore` on `KeyValueStore` so "exactly one
+      default" holds by construction, three use cases carrying the id/timestamp policy, and private `Composition`
+      wiring. Built-ins stay in the registry; the repository holds only user styles. The substance was **tolerant
+      decoding**: synthesized `Codable` is all-or-nothing, and because `all()` is best-effort a style that throws
+      doesn't error — it vanishes from the library while its row stays in the store, undeletable. `LaTeXStyle`
+      (and its two nested value types) gained a field-by-field `init(from:)` — `(try? decode) ?? default` rather
+      than `decodeIfPresent`, which still throws on an invalid raw value; collections degrade element-wise; a
+      present-but-empty collection is honoured rather than treated as missing; and a `style` that isn't an object
+      still throws so `SavedDocumentStyle` can load it as a named, deletable row. A dangling default pointer
+      resolves to `nil` rather than falling back to some other style — silently applying an unchosen style would
+      change the document the user sends. Seam: **Data/Persistence** + Business use cases + `Composition`, plus
+      the decoder in **Infrastructure/Tex**. On-device: n/a.
 
 - [ ] **Milestone E — Style-manager UI + export-time picker.** A "Document styles" manager (create / name /
       duplicate / edit / delete, the four control groups) and a style picker on the LaTeX route in

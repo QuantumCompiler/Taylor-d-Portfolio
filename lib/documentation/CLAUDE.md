@@ -228,18 +228,20 @@ lib/src/
                   SaveResultsUseCase, LoadSavedJobsUseCase, DeleteSavedJobUseCase,
                   SaveApplicationUseCase, LoadApplicationUseCase,
                   MarkStatusUseCase, LoadStatusUseCase, LoadTrackedJobsUseCase,
-                  SaveSearchUseCase, LoadSavedSearchesUseCase, DeleteSavedSearchUseCase, RefineSummaryUseCase
+                  SaveSearchUseCase, LoadSavedSearchesUseCase, DeleteSavedSearchUseCase, RefineSummaryUseCase,
+                  SaveDocumentStyleUseCase / LoadDocumentStylesUseCase / DeleteDocumentStyleUseCase (v0.7.0 D)
     Ranking/      JobRanker
   Data/
     Models/       CandidateProfile, JobListing, JobMatch, TargetBrief, ExtractedPosting,
                   ApplicationKit, ApplicationStatus, JobQuery, JobSearchRequest, PositionType,
-                  RankedJob, TrackedJob, SavedProfile, SavedSearch, PortfolioGrounding
+                  RankedJob, TrackedJob, SavedProfile, SavedSearch, PortfolioGrounding,
+                  SavedDocumentStyle (a named LaTeXStyle — v0.7.0 D)
     LLM/          LLMProvider, FoundationModelsProvider, ClaudeCodeProvider,
                   LLMRouter, LLMChoice, LLMTask, TaskEngineConfig, ClaudeModel, Prompts
     Jobs/         JobSource, AdzunaJobSource, JobPostingSource, LinkJobPostingSource
     Search/       SuggestionProvider, RoleTitleStore
-    Persistence/  SavedJobsRepository, SavedApplicationsRepository, SavedStatusRepository, SavedProfilesRepository, SavedSearchesRepository   (domain ↔ PersistentRecordStore blobs)
-                  DefaultProfileStore, LegacyKeyMigration (one-time com.vivint→com.veritum UserDefaults key rename)
+    Persistence/  SavedJobsRepository, SavedApplicationsRepository, SavedStatusRepository, SavedProfilesRepository, SavedSearchesRepository, SavedDocumentStylesRepository   (domain ↔ PersistentRecordStore blobs)
+                  DefaultProfileStore, DefaultDocumentStyleStore, LegacyKeyMigration (one-time com.vivint→com.veritum UserDefaults key rename)
     Retrieval/    Retriever            (roadmap)
     Settings/     AppSettings (per-task engine map), SettingsStore
   Infrastructure/
@@ -257,9 +259,13 @@ lib/src/
                   PersistentRecordStore, SwiftDataRecordStore (+ StoredRecord @Model)
     Process/      ProcessSupport        (shared PATH-widening + executable location for the
                   external-process clients — `claude` and `lualatex`)
-    Tex/          TexAssets, LaTeXCompiling + LaTeXProcessClient, TexDocumentBuilder
+    Tex/          TexAssets, LaTeXCompiling + LaTeXProcessClient, TexDocumentBuilder,
+                  LaTeXStyle + LaTeXTemplateRegistry
                   (v0.5.1 awesome-cv LaTeX PDF route: resolve the bundled `lib/tex/` classes/fonts,
-                  render an ApplicationKit into `.tex`, shell `lualatex` to compile it)
+                  render an ApplicationKit into `.tex`, shell `lualatex` to compile it. v0.7.0 makes every
+                  presentation choice a `LaTeXStyle` the builder reads — its `Codable` shape is a persistence
+                  contract, hence its deliberately tolerant decoder. Distinct from Export's `ExportTemplate`,
+                  which themes the native Core Text exports.)
 ```
 
 Enforce the dependency rule at review time. Optional but recommended later: make

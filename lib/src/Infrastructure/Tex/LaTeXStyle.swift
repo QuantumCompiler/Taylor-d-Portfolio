@@ -100,6 +100,90 @@ nonisolated struct LaTeXStyle: Sendable, Equatable, Codable {
     /// style must emit none either, and Milestones B/C can land behind a byte-for-byte regression.
     static let `default` = LaTeXStyle()
 
+    // MARK: Decoding (the styles library, Milestone D)
+
+    private enum CodingKeys: String, CodingKey {
+        case template, fontFamily, fontSizes, accent, pageSize, margins
+        case letterParagraphSkipEm, letterLineSpread
+        case sectionOrder, hiddenSections, sectionSpacingEm, customPreamble
+    }
+
+    /// Decodes **field by field, never fatally**. Synthesized decoding is all-or-nothing: one
+    /// absent key, or one raw value this build doesn't recognise, throws and takes the entire
+    /// style with it. That matters here because a style is a *user document* stored in a
+    /// best-effort library — `SavedDocumentStylesRepository.all()` skips what it can't decode, so
+    /// a style that throws doesn't error, it **disappears**, while its row stays in the store as
+    /// something the UI can neither list nor delete.
+    ///
+    /// The triggering change is ordinary: appending one `LaTeXTemplateID` case (the registry
+    /// advertises exactly that as the way to add a template), adding a section bucket, or adding
+    /// a non-optional field. Every fallback this needs already exists — `LaTeXTemplateRegistry`
+    /// resolves an unknown template to the shipped one, `LaTeXResumeSection.other` catches
+    /// unrecognised sections — but none of it can run if decoding throws before a value exists.
+    ///
+    /// Deliberately **not total**: a `style` that isn't a JSON object at all still throws, and
+    /// ``SavedDocumentStyle`` catches that one layer up. A missing field is drift; a
+    /// wrong-shaped blob is a real error, and the two deserve different answers. Encoding stays
+    /// synthesized, so the wire format is unchanged.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = LaTeXStyle()
+
+        // `try?` per field, **not** `decodeIfPresent`: the latter tolerates absence and null but
+        // still throws on an invalid raw value, which is the failure mode that actually bites.
+        template = (try? container.decode(LaTeXTemplateID.self, forKey: .template)) ?? defaults.template
+        fontFamily = (try? container.decode(LaTeXFontFamily.self, forKey: .fontFamily)) ?? defaults.fontFamily
+        fontSizes = (try? container.decode(LaTeXFontSizes.self, forKey: .fontSizes)) ?? defaults.fontSizes
+        accent = (try? container.decode(LaTeXAccent.self, forKey: .accent)) ?? defaults.accent
+        pageSize = (try? container.decode(LaTeXPageSize.self, forKey: .pageSize)) ?? defaults.pageSize
+        margins = (try? container.decode(LaTeXMargins.self, forKey: .margins)) ?? defaults.margins
+        letterParagraphSkipEm = (try? container.decode(Double.self, forKey: .letterParagraphSkipEm))
+            ?? defaults.letterParagraphSkipEm
+        letterLineSpread = (try? container.decode(Double.self, forKey: .letterLineSpread))
+            ?? defaults.letterLineSpread
+
+        // Collections decode element-wise: a bucket this build doesn't know is dropped rather
+        // than fatal to the whole arrangement. A present-but-**empty** collection is honoured —
+        // `orderedSections` documents an empty order as a legitimate state, so falling back on
+        // emptiness would resurrect the canonical order a user deliberately cleared.
+        if let raw = try? container.decode([String].self, forKey: .sectionOrder) {
+            sectionOrder = raw.compactMap(LaTeXResumeSection.init(rawValue:))
+        } else {
+            sectionOrder = defaults.sectionOrder
+        }
+        if let raw = try? container.decode([String].self, forKey: .hiddenSections) {
+            hiddenSections = Set(raw.compactMap(LaTeXResumeSection.init(rawValue:)))
+        } else {
+            hiddenSections = defaults.hiddenSections
+        }
+
+        // `[LaTeXResumeSection: Double]` encodes as a flat **alternating** key/value array, not a
+        // JSON object — `Dictionary`'s Codable only writes an object when the key is `String`,
+        // `Int`, or `CodingKeyRepresentable`, and a raw-value enum is none of those. So it's read
+        // pairwise: unknown buckets and a malformed tail cost their own entries only.
+        if container.contains(.sectionSpacingEm) {
+            var spacing: [LaTeXResumeSection: Double] = [:]
+            if var unkeyed = try? container.nestedUnkeyedContainer(forKey: .sectionSpacingEm) {
+                do {
+                    while !unkeyed.isAtEnd {
+                        let raw = try unkeyed.decode(String.self)
+                        let value = try unkeyed.decode(Double.self)
+                        if let section = LaTeXResumeSection(rawValue: raw) { spacing[section] = value }
+                    }
+                } catch {
+                    // Keep the pairs read so far. Caught outside the loop, not per element: a
+                    // failed `decode` needn't advance an unkeyed container's index, so
+                    // continuing on failure can spin.
+                }
+            }
+            sectionSpacingEm = spacing
+        } else {
+            sectionSpacingEm = defaults.sectionSpacingEm
+        }
+
+        customPreamble = try? container.decode(String.self, forKey: .customPreamble)
+    }
+
     // MARK: Section helpers (consumed by Milestone C)
 
     /// Whether a section with this title is rendered at all.
@@ -312,6 +396,17 @@ nonisolated struct LaTeXFontSizes: Sendable, Equatable, Codable {
     /// Today's bases: `\documentclass[6pt]{Class/Resume}` / `\documentclass[11pt, a4paper]{Class/CoverLetter}`.
     static let `default` = LaTeXFontSizes()
 
+    private enum CodingKeys: String, CodingKey { case resumePt, coverLetterPt }
+
+    /// Field-by-field like ``LaTeXStyle``'s, so a later field degrades *that* field rather than
+    /// resetting both sizes.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = LaTeXFontSizes()
+        resumePt = (try? container.decode(Double.self, forKey: .resumePt)) ?? defaults.resumePt
+        coverLetterPt = (try? container.decode(Double.self, forKey: .coverLetterPt)) ?? defaults.coverLetterPt
+    }
+
     /// The `\documentclass` size option for one document (`6pt`).
     func classOption(for document: LaTeXDocumentKind) -> String {
         switch document {
@@ -338,6 +433,11 @@ nonisolated enum LaTeXAccent: Sendable, Equatable, Codable {
     /// Leave the class's own choice (`awesome-cyan`) alone — emits nothing, as today does.
     case templateDefault
     /// One of the palette colours the bundled classes already define.
+    ///
+    /// ⚠️ Its synthesized wire shape is `{"named":{"_0":"emerald"}}` — `_0` is a compiler-generated
+    /// positional key. **Labelling this associated value renames that key** and silently orphans
+    /// every stored accent (they'd decode as `.templateDefault` via `LaTeXStyle`'s tolerant
+    /// decoder — degraded, not crashed, but the user's colour is gone).
     case named(LaTeXAwesomeColor)
     /// An arbitrary colour as a six-digit RGB hex string (no `#`), e.g. `"DC3522"`.
     case custom(hex: String)
@@ -426,6 +526,21 @@ nonisolated struct LaTeXMargins: Sendable, Equatable, Codable {
 
     /// Today's margins, as both preambles hardcode them.
     static let `default` = LaTeXMargins()
+
+    private enum CodingKeys: String, CodingKey {
+        case leftCm, topCm, rightCm, bottomCm, footskipCm
+    }
+
+    /// Field-by-field like ``LaTeXStyle``'s — one unreadable edge costs that edge, not the page.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = LaTeXMargins()
+        leftCm = (try? container.decode(Double.self, forKey: .leftCm)) ?? defaults.leftCm
+        topCm = (try? container.decode(Double.self, forKey: .topCm)) ?? defaults.topCm
+        rightCm = (try? container.decode(Double.self, forKey: .rightCm)) ?? defaults.rightCm
+        bottomCm = (try? container.decode(Double.self, forKey: .bottomCm)) ?? defaults.bottomCm
+        footskipCm = (try? container.decode(Double.self, forKey: .footskipCm)) ?? defaults.footskipCm
+    }
 
     /// The `\geometry` argument, formatted exactly as the current builder writes it —
     /// `left=0.50cm, top=0.50cm, right=0.50cm, bottom=0.75cm, footskip=0.25cm`.
