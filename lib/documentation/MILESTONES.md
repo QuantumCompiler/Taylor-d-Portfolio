@@ -2964,3 +2964,42 @@ and that clearing after a build leaves the built `sourceText` / `readableText` /
 
 **On-device.** n/a — a conditional in one view helper plus two view-model setters. No model call, no persistence
 change.
+
+## Milestone E — Full source-document preview: remove both truncations  ✅ done  (`Presentation/Portfolio/View/PortfolioView`, `Business/UseCases/TidyDocumentUseCase`, `Data/LLM/Prompts`; tests in `lib/tests/Business/UseCases` + `…/Data/LLM`)
+
+"The source-document preview truncates" was **two** faults wearing one symptom, and only one of them was visual.
+
+- [x] **The UI cap (cosmetic).** `documentDisclosure` rendered the text in a nested `ScrollView` capped at
+      `.frame(maxHeight: 220)` — every character was present, but confined to a ~220pt box that reads as cut off.
+      The inner scroll view is **removed entirely** rather than enlarged: the tab already scrolls
+      (`scrollableScreen`), and it was the nesting that made the content feel boxed in. `Text` doesn't line-limit,
+      so it now renders in full. Resolves the inline-expand-vs-window open call as recommended: inline, no separate
+      "View full document" window.
+- [x] **The content truncation (the real one).** `Prompts.tidyDocument(rawText:)` truncated its input to
+      `maxPortfolioCharacters` (6 000), so for a long document the **stored** `readableText` was genuinely shorter
+      than the original — dropping the UI cap alone would have revealed nothing, because the tail had never been
+      tidied. Fixed as recommended, in two parts:
+      - **Its own, larger bound.** New `Prompts.maxTidyDocumentCharacters` (12 000, matching `maxPageCharacters` —
+        the existing precedent for "one long document, on its own"). Deliberately **not** a raise of
+        `maxPortfolioCharacters`: that cap also bounds text injected *alongside* other content (profile build,
+        generation grounding, at four other call sites), where the on-device context budget is shared. A test pins
+        that the shared budget was left at 6 000.
+      - **A completeness guarantee.** [`TidyDocumentUseCase`](../src/Business/UseCases/TidyDocumentUseCase.swift)
+        now splits the document itself: it tidies the head up to the bound and **appends anything beyond it
+        as-extracted**, behind a short notice ("the rest of this document was too long to tidy and is shown exactly
+        as extracted"). So the stored readable text is tidied where it could be and **complete regardless** — never
+        silently short. It splits explicitly rather than leaning on the prompt's own `truncate`, so what the model
+        saw and what gets appended can't drift apart; the prompt-level truncation stays as a backstop.
+- [x] **Chunked tidy stays the follow-on.** Tidying the tail in segments would be nicer still, but costs one LLM
+      call per chunk and has to keep structure consistent across boundaries — out of scope for a patch.
+
+**Tests.** A new `TidyDocumentUseCaseTests`: short / exactly-at-bound / past-the-old-6 000-cap documents all tidy
+whole with no notice; a long document keeps its remainder verbatim behind the notice; **nothing is dropped however
+long the document** (the regression this milestone exists for); the remainder is never sent to the model (exactly
+one tidy pass); a failing engine still propagates so `PortfolioViewModel.build` can fall back to raw; and empty
+input is handled. Plus `Prompts` coverage for the new bound and for the shared 6 000 budget being untouched. Full
+suite green (719 tests); build warning-free.
+
+**On-device.** The UI change is free. Tidying now sends up to 12 000 characters instead of 6 000 on the
+`.profile` task — twice the input for one document, still bounded, and the remainder path costs **no** extra model
+work (it's appended locally, not generated).

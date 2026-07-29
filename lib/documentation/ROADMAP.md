@@ -842,7 +842,7 @@ open calls.
       (`GenerationSettings` + `Prompts`) + Business (`GenerateToTargetUseCase`) + Presentation. On-device:
       `.application`-task LLM work on the existing engine — no new engine or seam.
 
-## v0.6.2 — list actions, sorting & document previews  (in progress)
+## v0.6.2 — list actions, sorting & document previews  (complete)
 
 A **patch release** on shipped v0.6.0/v0.6.1, scheduled out of `PLANNED.md` (all five of its `Target: v0.6.2`
 entries, 2026-07-28). The theme is **the two list tabs and the Portfolio document previews**: the Tracker's
@@ -907,15 +907,19 @@ granular breakdown + open calls.
       supporting-documents slot (v0.6.0 I). Seam: **Presentation only** (view conditional + two VM setters) — no
       Business/Data change. On-device: n/a.
 
-- [ ] **Milestone E — Full source-document preview (remove both truncations).** The preview truncates **twice**:
-      a `.frame(maxHeight: 220)` in `documentDisclosure` that merely *looks* cut off, and the real one —
-      `Prompts.tidyDocument(rawText:)` truncates its input to `maxPortfolioCharacters` (6 000), so a long
-      document's stored `readableText` is genuinely shorter than the original and dropping the UI cap alone won't
-      reveal it. Fix both: raise/drop the height cap, then raise the tidy bound for the tidy path and **fall back
-      to the full `sourceText`** (which does keep the whole extracted document) when the tidy was truncated, so the
-      preview is never missing content. A chunked full-tidy is the nicer-but-larger follow-on. Seam: Presentation +
-      Data/LLM (`Prompts`) + Business (`TidyDocumentUseCase`). On-device: a higher tidy bound is more `.profile`
-      work — mind the context window; the `sourceText` fallback costs no model work.
+- [x] **Milestone E — Full source-document preview (remove both truncations).** ✅ **Done.** The preview truncated
+      **twice**: a `.frame(maxHeight: 220)` in `documentDisclosure` that merely *looked* cut off, and the real one —
+      `Prompts.tidyDocument(rawText:)` bounded its input to `maxPortfolioCharacters` (6 000), so a long document's
+      stored `readableText` was genuinely shorter than the original and dropping the UI cap alone would have
+      revealed nothing. Both fixed: the nested `ScrollView` is **removed** (the tab already scrolls, and the
+      nesting was what boxed the text in), and tidying gets **its own larger bound** —
+      `Prompts.maxTidyDocumentCharacters` (12 000, matching `maxPageCharacters`) rather than a global raise, since
+      the 6 000 cap also bounds text injected alongside other content at four other call sites.
+      `TidyDocumentUseCase` now splits the document itself, tidying the head and **appending anything beyond the
+      bound as-extracted** behind a short notice — so the stored text is tidied where it could be and **complete
+      regardless**, never silently short. A chunked full-tidy remains the nicer-but-larger follow-on. Seam:
+      Presentation + Data/LLM (`Prompts`) + Business (`TidyDocumentUseCase`). On-device: twice the input for one
+      document on the `.profile` task, still bounded; the appended remainder costs no model work.
 
 ## Fast follow (next up)
 
@@ -929,8 +933,11 @@ granular breakdown + open calls.
   K standardized result descriptions). **v0.6.1 (keyword match & ATS coverage) is complete** — Milestones
   **A–D** above: a pure `KeywordCoverage` computation, the `TargetBrief` carried out of generation and persisted
   with the kit, the coverage panel, and the opt-in keyword-emphasis control. **v0.6.2 (list actions, sorting &
-  document previews) is in progress** — Milestones **A–E** above, scheduled out of `PLANNED.md`'s five
-  `Target: v0.6.2` entries. Candidate fast-follows / themes after it: an
+  document previews) is complete** — Milestones **A–E** above (A discoverable remove-from-Tracker, B multi-select
+  bulk actions, C sort/filter parity, D no raw preview for imports, E full source-document preview), scheduled out
+  of `PLANNED.md`'s five `Target: v0.6.2` entries. **The next version is unstarted**; its number and theme are
+  chosen when development on it begins (see `CLAUDE.md` → "Never pre-name the next version"). Candidate
+  fast-follows / themes: an
   **ATS-friendly export mode** (the companion noted but deliberately left out of v0.6.1 — standard headings,
   single-column, selectable text, which is what decides whether an ATS can *parse* a résumé at all); full awesome-cv
   fidelity (C-structured, below); a **bulk re-rank** of legacy entries (the per-result "regenerate result"

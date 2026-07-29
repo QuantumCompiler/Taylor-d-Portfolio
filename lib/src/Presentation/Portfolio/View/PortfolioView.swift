@@ -341,19 +341,22 @@ struct PortfolioView: View {
         }
     }
 
-    /// One collapsed, scrollable readable-document disclosure. Whole header row toggles.
+    /// One collapsed readable-document disclosure. Whole header row toggles.
+    ///
+    /// Expands to the **full** text (v0.6.2 Milestone E). It used to sit in a nested `ScrollView`
+    /// capped at `maxHeight: 220`, which read as "the document is cut off" even though every
+    /// character was there. The tab already scrolls (`scrollableScreen`), so the inner scroll
+    /// view is removed rather than just enlarged — nesting one inside another is what made the
+    /// content feel confined. `Text` doesn't line-limit, so it renders in full.
     private func documentDisclosure(label: String, text: String) -> some View {
         ExpandableRow {
             Label(label, systemImage: "doc.text").font(.headline)
         } content: {
-            ScrollView {
-                Text(text)
-                    .font(.callout)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 4)
-            }
-            .frame(maxHeight: 220)
+            Text(text)
+                .font(.callout)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 4)
         }
     }
 

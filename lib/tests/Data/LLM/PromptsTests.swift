@@ -76,6 +76,39 @@ struct PromptsTests {
         #expect(prompt.contains("…"))
     }
 
+    // MARK: Tidy document (v0.6.2 Milestone E)
+
+    @Test func tidyDocumentPromptCarriesTheTextAndForbidsDropping() {
+        let prompt = Prompts.tidyDocument(rawText: "SEED_DOC_TEXT")
+        #expect(prompt.contains("SEED_DOC_TEXT"))
+        #expect(prompt.lowercased().contains("keep all original content"))
+    }
+
+    /// Tidying gets its **own, larger** bound: it reflows one document into the copy the user
+    /// reads, so it must cover a typical résumé in full — unlike the 6 000 cap, which bounds
+    /// text injected alongside other content.
+    @Test func tidyDocumentUsesItsOwnLargerBound() {
+        #expect(Prompts.maxTidyDocumentCharacters > Prompts.maxPortfolioCharacters)
+
+        // A document longer than the old cap but within the new one now passes through whole.
+        let medium = String(repeating: "m", count: Prompts.maxPortfolioCharacters + 500)
+        #expect(Prompts.tidyDocument(rawText: medium).contains(medium))
+
+        // The new cap still applies as a backstop.
+        let huge = String(repeating: "z", count: Prompts.maxTidyDocumentCharacters + 1_000)
+        let prompt = Prompts.tidyDocument(rawText: huge)
+        #expect(!prompt.contains(huge))
+        #expect(prompt.contains("…"))
+    }
+
+    /// The other prompts keep the shared 6 000 budget — raising it globally would blow the
+    /// on-device context window where several documents are injected together.
+    @Test func raisingTheTidyBoundLeftTheSharedPortfolioBudgetAlone() {
+        #expect(Prompts.maxPortfolioCharacters == 6_000)
+        let huge = String(repeating: "z", count: Prompts.maxPortfolioCharacters + 1_000)
+        #expect(!Prompts.buildProfile(portfolio: huge).contains(huge))
+    }
+
     @Test func extractInstructionsForbidInvention() {
         #expect(Prompts.extractInstructions.lowercased().contains("never invent"))
     }

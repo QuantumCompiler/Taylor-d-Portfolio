@@ -9,13 +9,11 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.2 — list actions, sorting & document previews (in progress). Next: Milestone E — the last
-> one.** See "v0.6.2" below: five milestones **A–E**, scheduled out of `PLANNED.md` (its five `Target: v0.6.2`
-> entries) on 2026-07-28. **Milestones A (discoverable remove-from-Tracker), B (multi-select bulk actions), C (sort
-> / filter parity) and D (no raw preview for imports) are done** — write-ups in `MILESTONES.md`, ticked in
-> `ROADMAP.md`; **only E remains**. **v0.6.1 (keyword match & ATS coverage) is complete and merge-ready** — all four milestones
-> **A–D** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs, `README.md`, and
-> `MARKETING_VERSION = 0.6.1` are done. Only the **device checks** below remain before that branch merges.
+> **Current focus. The next version (unstarted) — number + theme TBD.** See "Next version" at the bottom of this
+> file. **v0.6.2 (list actions, sorting & document previews) is complete and merge-ready** — all five milestones
+> **A–E** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs, `README.md`, and
+> `MARKETING_VERSION = 0.6.2` are done, and the full suite is green (719 tests, no warnings). **v0.6.1 (keyword
+> match & ATS coverage) is likewise complete.** Only the **device checks** below remain before the branch merges.
 >
 > **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
 > milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.6.2**.
@@ -43,6 +41,11 @@ doing.
 >   empty and pasting still builds. With **no** file imported the slot behaves exactly as before. After Build
 >   Profile the tidied text still appears under **Source Documents**, and clearing the slot afterwards doesn't
 >   disturb the built profile's copy.
+> - **v0.6.2 E** — a saved profile's **Source Documents** entry expands to the **whole** document, not a ~220pt
+>   box; check a **long** résumé (> 12 000 characters) reads tidied to the bound and then continues **as-extracted**
+>   after the "too long to tidy" notice, with **nothing missing at the end**. A normal-length résumé (well under the
+>   bound) must show **no** notice and be tidied throughout — and, being over the old 6 000 cap, is the case that
+>   used to lose its tail silently.
 > - **v0.6.1 C** — generate an application for a real posting: the **coverage panel** appears below the two
 >   documents with the covered (green) / missing (amber) keyword capsules, the must-have headline count is right,
 >   it updates on Regenerate, it **survives reopening** the saved result, and it's **absent** for a result
@@ -70,61 +73,16 @@ down only).
 
 ---
 
-# v0.6.2 — list actions, sorting & document previews  (in progress)
+# Next version — (unstarted; number + theme TBD)
 
-A **patch release** on shipped v0.6.0/v0.6.1, scheduled out of `PLANNED.md` (all five of its `Target: v0.6.2`
-entries) on 2026-07-28. The theme is **the two list tabs and the Portfolio document previews**: make the Tracker's
-existing removals discoverable, add multi-select bulk actions to Results, give each list tab the sort/filter the
-other already has, and fix the source-document previews (drop the noisy raw preview for imports; stop truncating
-the tidied one). **Almost entirely Presentation** — the one exception is Milestone E's content fix, which touches
-`Prompts` / `TidyDocumentUseCase`. Milestones restart at **A** and commit as `v0.6.2 : Milestone X Completed`.
+**Nothing is scheduled yet** — v0.6.2 is complete (see "Current focus" above) and the next version is unstarted.
 
-**Release hygiene.**
-
-- [x] **Every `MARKETING_VERSION` set to `0.6.2`** — all 4 copies in `Taylor'd Portfolio.xcodeproj/project.pbxproj`
-      (Debug/Release × app/test), so Settings → About reports the real version. Done with Milestone A.
-- [x] `# v0.6.2` release header added to `MILESTONES.md`.
-- [ ] Update `README.md`'s **Next:** line (still says the next version's number and theme are undecided) and add
-      v0.6.2's summary under "Version history" when the release wraps.
-
----
-
-## Milestone E — Full source-document preview (remove both truncations)
-
-**What's wrong.** The source-document preview appears to truncate. **Two** truncations are actually in play:
-1. **UI cap.** [`documentDisclosure`](../src/Presentation/Portfolio/View/PortfolioView.swift:310) renders the text
-   in a `ScrollView` capped at `.frame(maxHeight: 220)` (`:321`) — the full text is present but confined to a
-   ~220pt box that reads as "cut off."
-2. **Content truncation at tidy (the real one).** `readableText` is produced by `TidyDocumentUseCase` →
-   `Prompts.tidyDocument(rawText:)`, which **truncates the input to `maxPortfolioCharacters`** (6 000 —
-   [`Prompts.swift:19`](../src/Data/LLM/Prompts.swift:19), applied at `:75`) before tidying. So for a long document
-   the stored tidied text is **genuinely shorter than the original** — dropping the UI cap alone still won't reveal
-   what was never tidied. (The **full** extracted text does survive in `sourceText`; only the tidy *prompt*
-   truncates.)
-
-**Seam + files.** Presentation (`documentDisclosure`) plus, for the content fix, `Prompts` / `TidyDocumentUseCase`
-(or just the preview's text source).
-
-- [ ] **UI cap (cheap).** Raise or drop `maxHeight: 220` in `documentDisclosure` (`:321`) — let the disclosure
-      expand to the full text (the tab already scrolls). `Text` doesn't line-limit, so it renders fully once the
-      height frees up.
-- [ ] **Content fix (the substantive one).** *Recommended:* **raise the tidy bound** so typical
-      résumés/portfolios tidy in full, **and fall back to the full `sourceText`** when the tidy was truncated, so
-      the preview is never missing content.
-- [ ] **(open call) Alternatives considered, if the recommendation doesn't hold up:** render the preview from
-      **`sourceText`** (full but un-tidied); or a **chunked tidy** (tidy in segments so `readableText` is complete
-      *and* formatted — nicer but a larger scope, likely a follow-on rather than this patch).
-- [ ] **(open call) Inline-expand vs. open in a window?** *Recommended:* **inline-expand** (drop the 220 cap) for
-      the common case; add a "View full document" resizable window only if long docs feel unwieldy inline.
-- [ ] Don't raise `maxPortfolioCharacters` globally without checking its other call sites (`:49`, `:99`, `:620`,
-      `:684` — profile build, generation grounding), which bound what's sent to the on-device model; scope the
-      raise to the tidy path if a global raise would blow the context window.
-
-**Tests.** Unit-test the fallback rule directly: a document under the bound tidies whole; one over it yields a
-preview that ends with the untidied remainder rather than stopping short; an empty `sourceText` doesn't crash the
-preview.
-
-**On-device.** The UI change is free; a higher tidy bound / chunked tidy is more `.profile`-task LLM work (**mind
-the on-device context window** — this is why the bound exists). The raw-`sourceText` fallback needs **no** extra
-model work.
-
+**Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its number
+and theme aren't chosen until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At
+kickoff, pick a theme from `ROADMAP.md`'s Backlog (native `LanguageModel` provider seam, on-device embedding RAG,
+optional MCP tools) or a `PLANNED.md` entry — one remains, **customizable LaTeX styles** (`Target: v0.7.0`, a
+large ~6-milestone feature). Two candidates are **unspecced** and need a `PLANNED.md` entry with a `Target:`
+first: the **ATS-friendly export mode** noted alongside v0.6.1, and the **chunked full tidy** noted as v0.6.2
+Milestone E's follow-on (tidy a long document in segments so its readable copy is complete *and* formatted
+throughout, rather than tidied-then-raw). Assign the version number, bump `MARKETING_VERSION`, and break it into
+Milestone A, B, C… here.
