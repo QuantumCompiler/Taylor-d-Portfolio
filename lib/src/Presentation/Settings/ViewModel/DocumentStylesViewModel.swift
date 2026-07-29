@@ -45,6 +45,14 @@ final class DocumentStylesViewModel {
     /// Whether `lualatex` was found (drives the Preview button's enabled state).
     let latexAvailable: Bool
 
+    /// The compile error from the last Preview — kept **separate** from `errorMessage` so a save
+    /// failure and a compile failure can't overwrite each other.
+    private(set) var previewError: String?
+
+    /// The typed preamble, stashed across a toggle-off so turning the override back on restores
+    /// the user's text instead of destroying it. Session-only, never persisted.
+    private var stashedPreamble: String?
+
     private var hasAppliedDefault = false
     private let saveDocumentStyle: SaveDocumentStyleUseCase?
     private let loadDocumentStyles: LoadDocumentStylesUseCase?
@@ -227,6 +235,86 @@ final class DocumentStylesViewModel {
         draft.sectionSpacingEm[section] = value
     }
 
+    // MARK: The raw-LaTeX escape hatch (v0.7.0 Milestone F)
+
+    /// Whether the draft replaces the generated style block with the user's own LaTeX.
+    var usesCustomPreamble: Bool { draft.customPreamble != nil }
+
+    /// On, but empty — the builder falls back to the generated block, and the UI says so rather
+    /// than letting the user compile an empty preamble and read `\normalsize is not defined`.
+    var customPreambleIsBlank: Bool { usesCustomPreamble && draft.effectiveCustomPreamble == nil }
+
+    /// The editor's text. A settable computed property is `@Bindable`-compatible under
+    /// `@Observable`, and reading `draft` in the getter registers the dependency.
+    var customPreambleText: String {
+        get { draft.customPreamble ?? "" }
+        set {
+            draft.customPreamble = newValue
+            stashedPreamble = newValue
+        }
+    }
+
+    /// The style block the builder would emit for this draft with any override ignored — the
+    /// editor's seed, so "what you're replacing" is exactly what the app would have written.
+    func generatedStyleBlock() -> String {
+        var base = draft
+        base.customPreamble = nil
+        return TexDocumentBuilder.styleBlock(base)
+    }
+
+    /// Turns the override on (seeded from the stash, else from the generated block) or off
+    /// (stashing the text first — the user's typing is never silently destroyed).
+    func setUsesCustomPreamble(_ enabled: Bool) {
+        if enabled {
+            draft.customPreamble = stashedPreamble ?? generatedStyleBlock()
+        } else {
+            stashedPreamble = draft.customPreamble
+            draft.customPreamble = nil
+        }
+        previewError = nil
+    }
+
+    /// Re-seeds the editor from the draft's own fields, keeping the override on.
+    func resetPreambleToGenerated() {
+        draft.customPreamble = generatedStyleBlock()
+        stashedPreamble = draft.customPreamble
+        previewError = nil
+    }
+
+    /// **The one-click revert.** Drops the override, keeps every other choice — and writes through
+    /// when a saved style is open, because the exports read the *store*, not this draft: a revert
+    /// that only touched the draft would leave the manager looking fixed while every export still
+    /// failed.
+    func dropCustomPreamble() async {
+        stashedPreamble = draft.customPreamble
+        draft.customPreamble = nil
+        previewError = nil
+        guard selectedStyleID != nil else { return }
+        guard canSaveStyle else {
+            errorMessage = "Name this style and choose Save to apply the revert to your exports."
+            return
+        }
+        await saveDraft()
+    }
+
+    /// The heavier revert: adopt a built-in's defaults while **keeping** this style's identity, so
+    /// Save updates the same row rather than forking a differently-named copy beside the broken one.
+    func revertToBuiltIn(_ template: LaTeXTemplateID) async {
+        let descriptor = LaTeXTemplateRegistry.descriptor(for: template) ?? LaTeXTemplateRegistry.fallback
+        stashedPreamble = draft.customPreamble
+        let keptName = draftName
+        draft = descriptor.defaultStyle          // its customPreamble is nil by construction
+        draftName = keptName
+        previewError = nil
+        guard selectedStyleID != nil, canSaveStyle else { return }
+        await saveDraft()
+    }
+
+    /// The sample `.tex` for the draft — how a user debugs a preamble that won't compile.
+    func sampleTexSource() -> String? {
+        exportApplication?.texSource(ExportApplicationUseCase.sampleKit, .resume, style: draft)
+    }
+
     // MARK: Preview
 
     /// Compiles the bundled sample under the **draft** style. ~4s warm, ~8s on a machine whose
@@ -234,13 +322,14 @@ final class DocumentStylesViewModel {
     func compilePreview() async {
         guard let exportApplication, canPreview else { return }
         isCompilingPreview = true
-        errorMessage = nil
+        previewError = nil
         defer { isCompilingPreview = false }
         do {
             previewPDF = try await exportApplication.previewPDF(style: draft)
         } catch {
-            previewPDF = nil
-            errorMessage = ApplicationViewModel.describeExport(error)
+            // The previous PDF deliberately stays on screen: comparing "what I had" with "what my
+            // edit broke" is most of a preview's value when hand-writing LaTeX.
+            previewError = ApplicationViewModel.describeExport(error, customPreamble: usesCustomPreamble)
         }
     }
 }

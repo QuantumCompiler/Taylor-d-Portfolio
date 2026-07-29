@@ -265,6 +265,17 @@ final class ApplicationViewModel {
         return "Default — \(LaTeXTemplateRegistry.fallback.displayName)"
     }
 
+    /// Whether the style this export would use carries a raw-LaTeX override — the most likely
+    /// cause of a compile failure, and what the failure banner names.
+    var exportUsedCustomPreamble: Bool { resolvedStyle.effectiveCustomPreamble != nil }
+
+    /// Session-only escape from a style whose custom preamble won't compile: export against the
+    /// built-in look, without editing or deleting the style the user spent time on. The durable
+    /// fix lives in the manager; this unblocks the send now.
+    func useBuiltInStyleForExport() {
+        selectedStyleChoice = .builtIn(LaTeXTemplateRegistry.fallback.template)
+    }
+
     /// Whether a document can be exported as an awesome-cv PDF (present **and** `lualatex` found).
     func canExportLaTeX(_ document: ApplicationDocument) -> Bool {
         guard let kit, let exportApplication, exportApplication.isLaTeXAvailable else { return false }
@@ -283,7 +294,7 @@ final class ApplicationViewModel {
             if document == .resume { latexResumePages = Self.pdfPageCount(pdf) }
             return pdf
         } catch {
-            exportError = Self.describeExport(error)
+            exportError = Self.describeExport(error, customPreamble: exportUsedCustomPreamble)
             return nil
         }
     }
@@ -313,6 +324,14 @@ final class ApplicationViewModel {
     ///
     /// Not private: the style manager's Preview (v0.7.0 Milestone E) compiles through the same
     /// port and needs the same five-case mapping. One copy, so the two can't drift.
+    /// The same mapping, plus one sentence naming a custom preamble when the style has one — an
+    /// overload rather than a fork, so the style manager gets the same copy from the same place.
+    static func describeExport(_ error: Error, customPreamble: Bool) -> String {
+        let base = describeExport(error)
+        guard customPreamble, case .nonZeroExit = error as? LaTeXProcessError else { return base }
+        return base + "\n\nThis style uses a custom LaTeX preamble, which is the most likely cause."
+    }
+
     static func describeExport(_ error: Error) -> String {
         guard let latexError = error as? LaTeXProcessError else {
             return "Couldn't export.\n\n(\(String(describing: error)))"

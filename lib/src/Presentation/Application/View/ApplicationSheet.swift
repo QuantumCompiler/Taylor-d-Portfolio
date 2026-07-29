@@ -438,6 +438,22 @@ struct ApplicationSheet: View {
     @ViewBuilder private var latexNotices: some View {
         if let error = viewModel.exportError {
             noticeBanner(error, systemImage: "exclamationmark.triangle.fill")
+            // A custom preamble is the likely cause, and the user is in a different window from
+            // the style manager — so offer the escape here rather than only the diagnosis
+            // (v0.7.0 Milestone F). Neither button edits or deletes the style they wrote.
+            if viewModel.exportUsedCustomPreamble {
+                HStack(spacing: 10) {
+                    Button("Use the built-in style for this export") {
+                        viewModel.useBuiltInStyleForExport()
+                    }
+                    .clickableCursor()
+                    Button("Export .tex source") { startTexExport(.resume) }
+                        .help("The .tex source needs no TeX install — it's how you debug a preamble")
+                        .clickableCursor()
+                }
+                .font(.caption)
+                .padding(.horizontal, 10)
+            }
         }
         if viewModel.latexResumeExceedsOnePage {
             noticeBanner(

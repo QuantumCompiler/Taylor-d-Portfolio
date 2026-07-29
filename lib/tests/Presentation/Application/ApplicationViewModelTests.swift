@@ -613,6 +613,58 @@ struct ApplicationViewModelTests {
         #expect(vm.exportError == nil)
     }
 
+    // MARK: The custom-preamble escape at export time (v0.7.0 Milestone F)
+
+    private func overriddenStyle(_ id: String) -> SavedDocumentStyle {
+        var style = LaTeXStyle.default
+        style.customPreamble = "\\thisIsNotACommand{}"
+        return SavedDocumentStyle(id: id, name: "Broken", style: style,
+                                  createdAt: Date(timeIntervalSince1970: 1))
+    }
+
+    /// A compile failure under a custom preamble names it as the likely cause — the log alone
+    /// doesn't tell a user which of their choices did this.
+    @Test func aCompileFailureUnderAnOverrideNamesThePreamble() async {
+        let vm = await styledVM(compiler: VMStubCompiler(
+            result: .failure(LaTeXProcessError.nonZeroExit(code: 1, log: "! Undefined control sequence"))),
+            styles: [overriddenStyle("s1")])
+        vm.selectedStyleChoice = .saved("s1")
+        _ = await vm.exportLaTeXPDF(.resume)
+
+        #expect(vm.exportUsedCustomPreamble)
+        #expect(vm.exportError?.contains("! Undefined control sequence") == true)
+        #expect(vm.exportError?.contains("custom LaTeX preamble") == true)
+    }
+
+    /// …and the one-click escape unblocks the send without editing or deleting the style.
+    @Test func theBuiltInEscapeUnblocksTheExportWithoutTouchingTheStyle() async {
+        let compiler = VMStubCompiler()
+        let vm = await styledVM(compiler: compiler, styles: [overriddenStyle("s1")])
+        vm.selectedStyleChoice = .saved("s1")
+        #expect(vm.exportUsedCustomPreamble)
+
+        vm.useBuiltInStyleForExport()
+
+        #expect(!vm.exportUsedCustomPreamble)
+        #expect(vm.resolvedStyle == LaTeXStyle.default)
+        _ = await vm.exportLaTeXPDF(.resume)
+        #expect(compiler.lastTex?.contains("thisIsNotACommand") == false)
+        // The user's style is untouched — the escape is session-only.
+        #expect(vm.savedStyles.first?.style.customPreamble != nil)
+    }
+
+    /// The `.tex` source keeps working when the PDF route can't — that's how a broken preamble
+    /// gets debugged.
+    @Test func theTexSourceStillExportsUnderABrokenOverride() async {
+        let vm = await styledVM(compiler: VMStubCompiler(available: false),
+                                styles: [overriddenStyle("s1")])
+        vm.selectedStyleChoice = .saved("s1")
+        let tex = String(decoding: vm.exportTexSource(.resume) ?? Data(), as: UTF8.self)
+
+        #expect(tex.contains("\\thisIsNotACommand{}"))
+        #expect(tex.contains("\\begin{document}"))
+    }
+
     @Test func exportLaTeXPDFReturnsBytesAndRecordsRealPageCount() async throws {
         let realPDF = try PDFDocumentExporter().export(markdown: "# R\n\nbody", as: .pdf)   // a valid one-page PDF
         let vm = latexVM(compiler: VMStubCompiler(result: .success(realPDF)))

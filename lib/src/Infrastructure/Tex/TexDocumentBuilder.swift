@@ -257,9 +257,10 @@ nonisolated enum TexDocumentBuilder {
     /// the staged compile directory — see `LaTeXProcessClient`).
     static let fontDirectory = "fonts/"
 
-    /// The shared head of both preambles: `\documentclass`, geometry, and the optional font-family
-    /// and accent overrides. Every part is style-driven; under ``LaTeXStyle/default`` the overrides
-    /// are empty and this is byte-for-byte what the builder emitted before v0.7.0.
+    /// The shared head of both preambles: the document **frame** — `\documentclass`,
+    /// `\nonstopmode`, `\fontdir`, `\pageHeader` — wrapped around the style block. Under
+    /// ``LaTeXStyle/default`` that block collapses to the same single `\geometry` line in the same
+    /// position, so this stays byte-for-byte what the builder emitted before v0.7.0.
     static func preambleHead(for document: LaTeXDocumentKind, style: LaTeXStyle) -> String {
         let descriptor = LaTeXTemplateRegistry.descriptor(for: style)
         let options = [style.fontSizes.classOption(for: document),
@@ -267,16 +268,31 @@ nonisolated enum TexDocumentBuilder {
             .compactMap { $0 }
             .joined(separator: ", ")
 
-        return """
-        \\documentclass[\(options)]{\(descriptor.documentClass(for: document))}
-        \\geometry{\(style.margins.geometryOptions)}
-        \\nonstopmode
-        \\fontdir[\(fontDirectory)]
+        return "\\documentclass[\(options)]{\(descriptor.documentClass(for: document))}\n"
+            + styleBlock(style)
+            + "\\nonstopmode\n"
+            + "\\fontdir[\(fontDirectory)]\n"
+            + "\\pageHeader\n"
+    }
 
-        """
-        + fontFamilyOverride(style)
-        + accentOverride(style)
-        + "\\pageHeader\n"
+    /// The **style-driven block** of the preamble: the `\geometry` line plus the optional
+    /// font-family and accent overrides — precisely the region ``LaTeXStyle/customPreamble``
+    /// replaces (v0.7.0 Milestone F). Internal, because the style manager's advanced editor seeds
+    /// itself from it: "what you are replacing" has to be byte-identical to what the builder would
+    /// otherwise emit.
+    ///
+    /// An override is emitted **verbatim** — never escaped, never validated, never gated on a test
+    /// compile. A broken override has to reach `lualatex` and the `.tex` export intact, because
+    /// that is the only way a user can debug it.
+    static func styleBlock(_ style: LaTeXStyle) -> String {
+        if let override = style.effectiveCustomPreamble {
+            // The trailing newline is the app's, not the user's: without it a preamble ending in a
+            // `%` comment would swallow the `\nonstopmode` on the next line.
+            return override.hasSuffix("\n") ? override : override + "\n"
+        }
+        return "\\geometry{\(style.margins.geometryOptions)}\n"
+            + fontFamilyOverride(style)
+            + accentOverride(style)
     }
 
     /// Repoints awesome-cv's `\bodyfont` / `\bodyfontlight` at a bundled family, or `""` for the

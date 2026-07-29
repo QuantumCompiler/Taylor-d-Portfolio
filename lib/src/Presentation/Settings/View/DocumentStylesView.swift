@@ -25,11 +25,15 @@ struct DocumentStylesView: View {
     var body: some View {
         Group {
             librarySection
-            templateSection
-            typographySection
-            colourSection
-            geometrySection
+            // Everything an override writes into the preamble itself goes inert while one is
+            // active — dimmed rather than hidden, so it's clear *why* it stopped mattering.
+            templateSection.disabled(viewModel.usesCustomPreamble)
+            typographySection.disabled(viewModel.usesCustomPreamble)
+            colourSection.disabled(viewModel.usesCustomPreamble)
+            geometrySection.disabled(viewModel.usesCustomPreamble)
+            coverLetterSection
             sectionsSection
+            advancedSection
             previewSection
         }
     }
@@ -219,18 +223,25 @@ struct DocumentStylesView: View {
             marginStepper("Top margin", value: $viewModel.draft.margins.topCm)
             marginStepper("Bottom margin", value: $viewModel.draft.margins.bottomCm)
             marginStepper("Footer skip", value: $viewModel.draft.margins.footskipCm, range: 0...2)
-
-            Stepper(value: $viewModel.draft.letterParagraphSkipEm, in: 0...3, step: 0.1) {
-                Text("Letter paragraph gap: \(viewModel.draft.letterParagraphSkipEm, specifier: "%.1f") em")
-            }
-            Stepper(value: $viewModel.draft.letterLineSpread, in: 0.8...2, step: 0.01) {
-                Text("Letter line spacing: \(viewModel.draft.letterLineSpread, specifier: "%.2f")")
-            }
         } header: {
             Text("Page & margins")
         } footer: {
             Text("Margins are bounded so an entry row always fits: the classes reserve a fixed "
                 + "6 cm column for dates and locations.")
+        }
+    }
+
+    /// The letter's body spacing is **not** part of the preamble — it's emitted after
+    /// `\begin{document}`, so a custom preamble doesn't disable it. Hence its own section, rather
+    /// than sitting under "Page & margins" which an override does make inert.
+    private var coverLetterSection: some View {
+        Section("Cover letter") {
+            Stepper(value: $viewModel.draft.letterParagraphSkipEm, in: 0...3, step: 0.1) {
+                Text("Paragraph gap: \(viewModel.draft.letterParagraphSkipEm, specifier: "%.1f") em")
+            }
+            Stepper(value: $viewModel.draft.letterLineSpread, in: 0.8...2, step: 0.01) {
+                Text("Line spacing: \(viewModel.draft.letterLineSpread, specifier: "%.2f")")
+            }
         }
     }
 
@@ -301,6 +312,77 @@ struct DocumentStylesView: View {
         }
     }
 
+    // MARK: Advanced — the raw-LaTeX escape hatch (v0.7.0 Milestone F)
+
+    private var advancedSection: some View {
+        Section {
+            Toggle("Replace the generated preamble with my own LaTeX", isOn: overrideBinding)
+                .toggleStyle(.checkbox)
+
+            // Conditional rendering, not `.disabled` — a disabled TextEditor still accepts typing
+            // on macOS 26, so the gate has to remove it rather than grey it.
+            if viewModel.usesCustomPreamble {
+                Text("Your LaTeX replaces the \u{5C}geometry line, the body-font override and the "
+                    + "accent override. The app still writes \u{5C}documentclass (it differs per "
+                    + "document, so don't write your own), \u{5C}nonstopmode, \u{5C}fontdir, "
+                    + "\u{5C}pageHeader, your headline's \u{5C}position, \u{5C}pageFooter, and the "
+                    + "\u{5C}cventrysolo / \u{5C}cvprojectsolo definitions the generated body calls.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("Still applies: page size, base size, section order/visibility/spacing, and "
+                    + "the cover letter's spacing. No longer applies: margins, body font, accent. "
+                    + "To use your own name, \u{5C}renewcommand{\u{5C}pageHeader}{\u{5C}name{First}{Last}…}.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                TextEditor(text: $viewModel.customPreambleText)
+                    .font(.body.monospaced())
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: 200, maxHeight: 380)
+                    .padding(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
+                    .accessibilityLabel("Raw LaTeX preamble")
+
+                if viewModel.customPreambleIsBlank {
+                    Text("Empty — the generated preamble will be used.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 10) {
+                    Button("Start from the generated preamble") { viewModel.resetPreambleToGenerated() }
+                        .clickableCursor()
+                    Button("Use the generated preamble") { Task { await viewModel.dropCustomPreamble() } }
+                        .clickableCursor()
+                    Menu("Revert to a built-in…") {
+                        ForEach(viewModel.templates) { descriptor in
+                            Button(descriptor.displayName) {
+                                Task { await viewModel.revertToBuiltIn(descriptor.template) }
+                            }
+                        }
+                    }
+                    .fixedSize()
+                    .clickableCursor()
+                }
+            }
+        } header: {
+            Text("Advanced")
+        } footer: {
+            Text("This is raw LaTeX, not a theme: a preamble can add or suppress typeset content "
+                + "and read files you can read. It can't run shell commands. Check the Preview "
+                + "before you export — and note the .tex source export keeps working even when a "
+                + "preamble won't compile, which is how you debug one.")
+        }
+    }
+
+    private var overrideBinding: Binding<Bool> {
+        Binding(get: { viewModel.usesCustomPreamble },
+                set: { viewModel.setUsesCustomPreamble($0) })
+    }
+
     // MARK: Preview
 
     private var previewSection: some View {
@@ -319,6 +401,17 @@ struct DocumentStylesView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+            }
+            if let previewError = viewModel.previewError {
+                ScrollView(.vertical) {
+                    Text(previewError)
+                        .font(.callout.monospaced())
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 160)
             }
             if let image = previewImage {
                 image

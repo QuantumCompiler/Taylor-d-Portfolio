@@ -3319,3 +3319,81 @@ export routes, the default pointer, the dangling-pointer fallback, a built-in te
 byte-identical to pre-v0.7.0, and the stale page count clearing. Suite green (879 cases), build warning-free.
 
 **On-device.** n/a — no model calls. Preview needs `lualatex`, the same optional dependency as the export route.
+
+## Milestone F — Raw-LaTeX preamble override + graceful compile failure  ✅ done  (`Infrastructure/Tex/TexDocumentBuilder` + `LaTeXStyle` + `LaTeXProcessClient`, `Presentation/Settings` manager, `Presentation/Application` VM + sheet; tests in `lib/tests/Infrastructure/Tex`, `lib/tests/Presentation`)
+
+**The gap.** `customPreamble` had existed on `LaTeXStyle` since Milestone A, read by nothing. A power user who
+wanted a look the four control groups can't express had no way to write it — and, more pressingly, **the bundled
+classes hardcode Taylor's name and contact details** in `\pageHeader`, so anyone else's export carried the wrong
+identity with no control to fix it.
+
+**What the override replaces — the decision that shapes the milestone.** Not "everything before
+`\begin{document}`", but the **style block**: the `\geometry` line plus the font-family and accent overrides,
+i.e. exactly what the Milestone B controls write. Three things force that cut, each verified by compiling:
+
+- **`\documentclass` differs per document** (`Class/Resume` at 6pt vs `Class/CoverLetter` at 11pt/a4paper) while
+  `customPreamble` is one string on a style that covers both. An override containing `\documentclass` is
+  structurally wrong for one of the two, always — and yields `Two \documentclass commands`.
+- **`\cventrysolo` / `\cvprojectsolo` exist only in the generated preamble**, and the body emits them
+  **data-dependently** (an entry with no org, or no subtitle). If an override could displace them, the same
+  style would compile one résumé and hard-fail the next. Verified: exit 1, `! Undefined control sequence`, no PDF.
+- **`\position{…}` and `\pageFooter{…}` are generated content.** Letting an override delete them would make a
+  presentation feature subtract content.
+
+And the thing that cut appears to cost, it doesn't: `\pageHeader` is a `\newcommand`, and the override is
+emitted *before* the frame invokes it — so `\renewcommand{\pageHeader}{\name{Alex}{Sample}…}` works, which is the
+whole product story. Verified end to end: a real compile produces a PDF headed "Alex Sample" whose role line is
+still the app's generated `\position`.
+
+Under `LaTeXStyle.default` the style block collapses to the same single `\geometry` line in the same byte
+position, so **both goldens stayed byte-identical** — and caught it when a first attempt added a stray blank
+line, which is exactly what they're for.
+
+**Graceful failure, three layers.**
+1. A **blank** override is treated as no override (`effectiveCustomPreamble`), the same fail-soft rule as a
+   malformed accent hex — an empty preamble compiles to `\normalsize is not defined`, which tells a user nothing.
+2. The compile **cannot hang**: `-halt-on-error` is the real guard (not the `\nonstopmode` the docs credited),
+   and the child process now gets `FileHandle.nullDevice` on stdin, so a preamble that makes TeX prompt for a
+   file can't block on a prompt no one can answer. Structural rather than flag-dependent.
+3. The error **names the likely cause** — `describeExport(_:customPreamble:)` appends one sentence when the
+   failing style carries an override, as an overload so the manager and the export share one copy.
+
+**Nobody gets stranded**, which needed answers in two windows:
+- In the manager: **"Use the generated preamble"** (drops the override, keeps every other choice) and **"Revert
+  to a built-in…"** (adopts a template's defaults while **keeping the style's id and name**, so Save updates the
+  same row instead of leaving the broken one on disk beside a copy). Both **write through** when a saved style is
+  open — the exports read the *store*, so a revert that only touched the draft would leave the manager looking
+  fixed while every export still failed. Typed text is stashed on toggle-off, so nothing the user wrote is
+  destroyed.
+- At the export, a **different window** with no route to Settings: **"Use the built-in style for this export"**
+  (session-only, touches neither the saved style nor the default pointer) and **"Export .tex source"**, promoted
+  out of a per-document submenu because that is what a user needs after a compile error. The `.tex` route needs
+  no TeX install and is never gated on a test compile — it is how a preamble gets debugged.
+
+**The editor** is an eighth Settings section, sited between the section controls and Preview — after the controls
+that build a preamble, immediately before the button that proves one compiles. It's gated by **conditional
+rendering, not `.disabled`**: a disabled `TextEditor` still accepts typing on macOS 26. The controls an override
+makes inert (template, typography, accent, margins) are dimmed; the ones that keep working are not — which is why
+the cover letter's paragraph gap and line spacing **moved out of "Page & margins"** into their own section, since
+they're emitted in the body and survive an override. Compile errors now render **in the Preview section** rather
+than in the library footer six sections above, and a failed preview keeps the last good render on screen.
+
+**A documentation claim was wrong and is now corrected.** A/B/C wrote that a style "themes presentation, it can't
+inject content". That's true of the generated path and **false** of a hand-written preamble: LaTeX in the
+preamble can typeset content (`\AtBeginDocument`), suppress generated content, and read files. The invariant the
+app actually guarantees is narrower — the *body* is app-generated and escaped, and the app never writes user or
+model data into the preamble. It cannot run shell commands (no `--shell-escape`). Corrected in `LaTeXStyle`,
+`TODO.md` and `ROADMAP.md` rather than left overpromising.
+
+**Tests.** Builder: the override replaces the style block verbatim (geometry, font and accent all gone); the
+frame survives with every part the body depends on, and lands *after* the override so `\renewcommand` works; the
+body is byte-identical with and without; one override serves both documents with their own classes; blank
+overrides fall back; a `%`-comment ending doesn't swallow the next line; the `.tex` carries an uncompilable
+override. Two **real `lualatex`** tests: a realistic override (custom `\pageHeader`, accent, geometry) compiles to
+a PDF, and a broken one fails with an error rather than hanging. VM: seeding, stash/restore across a toggle,
+blank reporting, re-seed, both reverts writing through to the saved row, an unsaved draft touching no storage, and
+the failed-preview-keeps-the-render rule. Export side: the failure names the preamble, the built-in escape
+unblocks without touching the saved style, and the `.tex` still exports. Suite green (904 cases), build
+warning-free.
+
+**On-device.** n/a — no model calls.

@@ -9,22 +9,37 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone F** (raw-LaTeX preamble override +
-> graceful compile failure) — **the last milestone of the release**. **Milestones A–E are done**: the style model
-> + registry, style-driven preambles, style-driven sections, the persisted library, and the manager UI + export
-> picker (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`). F lands on a working style system, so it's the
-> escape hatch plus its failure path — and `LaTeXStyle.customPreamble` has existed since A, unused, waiting for
-> it. Six milestones **A–F**,
-> scheduled out of `PLANNED.md`'s `Target: v0.7.0` entry (2026-07-28); see the v0.7.0 section at the bottom of
-> this file. **v0.6.2 (list actions, sorting & document previews) is
-> complete and merge-ready** — all five milestones
-> **A–E** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs and `README.md`
-> are done, and the full suite is green (879 cases, no warnings). **v0.6.1 (keyword
-> match & ATS coverage) is likewise complete.** Only the **device checks** below remain before the branch merges.
+> **Current focus. The next version (unstarted) — number + theme TBD.** See "Next version" at the bottom of this
+> file. **v0.7.0 (customizable LaTeX document styles) is complete and merge-ready** — all six milestones **A–F**
+> shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs and `README.md` are done, every
+> `MARKETING_VERSION` reads `0.7.0`, and the full suite is green (904 cases, no warnings). Only the **device
+> checks** below remain before the branch merges.
 >
 > **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
-> milestone's full write-up is in `MILESTONES.md`). These were written against a **0.6.2** build; the project
-> version is now **0.7.0**, so Settings → About reads 0.7.0 in a current build.
+> milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.7.0**; the v0.6.x items were
+> written against a 0.6.2 build and are carried forward unverified.
+> - **v0.7.0 A–D** — Settings gains a **Document Styles** pane. Create a style, name it, Save; **star** it as the
+>   default; **duplicate** it (the copy is named "… copy"); **delete** it — and confirm deleting the default
+>   un-stars everything rather than leaving a pointer behind. Quit and relaunch: the library and the default
+>   survive. With no styles saved, an export must look **exactly as it did in v0.6.2**.
+> - **v0.7.0 E** — the four control groups: change the **body font**, **accent**, **page size**, **margins** and
+>   the **section order / visibility / spacing**, then **Preview** (a few seconds; noticeably longer the first
+>   time). Reorder so **Skills** comes first and confirm the sections after it aren't visibly compressed (the
+>   `\arraystretch` fix). Hide **Other sections** and confirm the summary paragraph at the top **survives**. In a
+>   job's Application window, the Export menu shows a **Style** picker under "Portfolio (LaTeX)" separate from
+>   "PDF / Word template" — pick a saved style and confirm the exported PDF/`.tex` uses it; leave it on
+>   **Default** and confirm it follows the starred style. Without MacTeX, Preview is **visible but disabled**
+>   with an explanation.
+> - **v0.7.0 F** — under **Advanced**, switch on **"Replace the generated preamble with my own LaTeX"**: the
+>   editor seeds with the real generated block, and the Template/Typography/Accent/Page controls dim while the
+>   cover-letter and section controls stay live. Add
+>   `\renewcommand{\pageHeader}{\name{Your}{Name}\email{you@example.com}}` and Preview — **the header should
+>   read your name** (this is the reason the escape hatch exists). Then break it deliberately (e.g.
+>   `\thisIsNotACommand{}`): Preview shows the **real lualatex log** in the Preview section and keeps the last
+>   good render; **"Use the generated preamble"** and **"Revert to a built-in…"** each fix it *and persist* —
+>   re-export from the job window without re-saving to confirm. Export the same broken style from a job: the
+>   banner names the custom preamble, **"Use the built-in style for this export"** unblocks it without changing
+>   the saved style, and **"Export .tex source"** still works.
 > - **v0.6.2 A** — a Tracker row shows the **Return to Results + trash icons** without hovering, matching the
 >   Results rows; **right-clicking** a row offers the same two; both **swipes** still work. **Delete confirms from
 >   all three paths** (and the dialog names the job), Return to Results doesn't. With a job open, the footer's
@@ -81,69 +96,24 @@ down only).
 
 ---
 
-# v0.7.0 — customizable LaTeX document styles (in progress)
+# Next version — (unstarted; number + theme TBD)
 
-Scheduled out of `PLANNED.md`'s `Target: v0.7.0` entry (2026-07-28) — a **feature release**, so milestones
-restart at **A** and commit as `v0.7.0 : Milestone X Completed`.
+**Nothing is scheduled yet** — v0.7.0 is complete (see "Current focus" above) and the next version is unstarted.
 
-**Why.** The awesome-cv LaTeX route (v0.5.1) is a **single fixed template** mimicking Taylor's hand-authored
-résumé: [`TexDocumentBuilder`](../src/Infrastructure/Tex/TexDocumentBuilder.swift) hardcodes every presentation
-choice — `\documentclass[6pt]{Class/Resume}` + `\geometry{…}` in `resumePreamble`, `\fontdir[fonts/]`, the
-section order (`canonicalOrder`) and per-section spacing (`sectionVSpace`), and a *separate*
-`\documentclass[11pt, a4paper]{Class/CoverLetter}` for the letter. This release makes the look **user-owned**:
-named, reusable styles chosen at export time, plus a raw-LaTeX escape hatch for power users.
+**Milestones restart at Milestone A** (see the versioning note in `CLAUDE.md`). The number and theme aren't chosen
+until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At kickoff, pick a theme from
+`ROADMAP.md`'s Backlog (native `LanguageModel` provider seam, on-device embedding RAG, optional MCP tools) or spec
+a `PLANNED.md` entry — that file is currently **empty**. Four candidates are known but unspecced and each needs a
+`PLANNED.md` entry with a `Target:` first:
 
-**Decisions locked in planning (2026-07-15, carried from `PLANNED.md`).**
-- **Both** multiple built-in templates **and** a user-editable raw-LaTeX preamble override — not just
-  parameterizing the one template.
-- Controls exposed: **font family & size**, **accent colour**, **margins + spacing + page size** (US Letter / A4),
-  and **section order / visibility**.
-- Granularity: **reusable named styles** in an app-wide library, **chosen at export time** (mirrors saved
-  profiles / generation presets).
-- **One shared style applies to both documents** (résumé + cover letter), unifying today's divergent hardcoded
-  geometry; only doc-inherent bits (the letter's `\makeletterclosing`) stay per-type.
+- **ATS-friendly export mode** — noted alongside v0.6.1: standard headings, single-column, selectable text, which
+  is what decides whether an ATS can *parse* a résumé at all.
+- **Chunked full tidy** — v0.6.2 Milestone E's follow-on: tidy a long document in segments so its readable copy is
+  complete *and* formatted throughout, rather than tidied-then-raw.
+- **Custom accent colours in the manager UI** — v0.7.0 models `LaTeXAccent.custom(hex:)` and it survives a
+  round-trip, but Milestone E's picker offers only the bundled palette.
+- **Cross-window style refresh** — a style saved in Settings doesn't reach an already-open Application window
+  until it reloads (v0.7.0 E, accepted deliberately; generation presets behave the same). An
+  `AppSession.dataChanged()` bump would fix both.
 
-**⚠️ Naming — don't collide with the existing template type.** [`ExportTemplate`](../src/Infrastructure/Export/ExportTemplate.swift)
-+ `TemplateStyle` (classic / compact / modern) already exist, but they theme the **native Core Text** PDF/DOCX
-exports (v0.3.0 Milestone X), **not** LaTeX. The new type is LaTeX-specific — name it **`LaTeXStyle`** and keep
-the two separate. Unifying them later is an explicit open call, not part of this release.
-
-**Scoping constraint (applies to every milestone).** Styles theme **presentation only** — the raw-LaTeX override
-changes layout, **never** content: the body stays app-generated and escaped (`escape` / `inlineLaTeX` /
-`plainLaTeX` in `TexDocumentBuilder`), so a template can't smuggle in résumé content. This is a correctness
-boundary for the template system, not a fabrication rule — the fidelity control still governs content latitude.
-
-**Layer note.** Not Presentation-only: A–C + F are **Infrastructure/Tex**, D is **Data/Persistence**, E is
-**Presentation** (+ `Composition` wiring). Dependencies still point down (Infra model/builder ← Data persistence
-← Presentation manager/picker). Business's [`ExportApplicationUseCase`](../src/Business/UseCases/ExportApplicationUseCase.swift)
-is the one call site that threads a style through (`texSource` / `latexPDF`).
-
-**Release hygiene (do once, at kickoff).**
-- [x] Bump every `MARKETING_VERSION` to `0.7.0` (4 copies in `project.pbxproj` — Debug/Release × app/test) so
-      Settings → About reports the real version.
-
----
-
-## Milestone F — Raw-LaTeX preamble override + graceful compile failure
-
-The power-user escape hatch, last so it lands on a working style system.
-
-**Seam + files.** `Infrastructure/Tex/TexDocumentBuilder.swift` (honour `customPreamble`) +
-[`LaTeXProcessClient`](../src/Infrastructure/Tex/LaTeXProcessClient.swift) / `ApplicationViewModel`'s existing
-`LaTeXProcessError` handling (it already surfaces the real `lualatex` log rather than a generic failure), plus
-an advanced editor in the E manager.
-
-- [ ] When `customPreamble` is set, it replaces the **generated preamble verbatim**; the body stays
-      app-generated + escaped (the scoping constraint above).
-- [ ] A broken override fails **gracefully** — the compile already runs `\nonstopmode`, so surface the compile
-      error and offer **revert to a built-in** (a one-click path back to a compiling style, so a user can't
-      strand themselves).
-- [ ] The `.tex` **source** export stays available even when the override won't compile (it needs no TeX install)
-      — that's how a user debugs their preamble.
-- [ ] Advanced editor in the manager, clearly marked as replacing the generated preamble.
-
-**Tests.** Override present → generated preamble absent and the override verbatim, body unchanged; override
-absent → identical to B/C output; the error path maps a compile failure to a user-facing message + revert
-affordance (VM-level, with a stub compiler).
-
-**On-device.** n/a — no model calls.
+Assign the version number, bump `MARKETING_VERSION`, and break it into Milestone A, B, C… here.

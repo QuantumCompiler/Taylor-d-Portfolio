@@ -921,7 +921,7 @@ granular breakdown + open calls.
       Presentation + Data/LLM (`Prompts`) + Business (`TidyDocumentUseCase`). On-device: twice the input for one
       document on the `.profile` task, still bounded; the appended remainder costs no model work.
 
-## v0.7.0 — customizable LaTeX document styles  (in progress)
+## v0.7.0 — customizable LaTeX document styles  (complete)
 
 A **feature release**, scheduled out of `PLANNED.md`'s single `Target: v0.7.0` entry (2026-07-28). The theme is
 **user-owned document presentation**: the awesome-cv LaTeX route (v0.5.1) is one fixed template with every
@@ -931,8 +931,9 @@ reusable `LaTeXStyle`s** chosen at export time, backed by an enumerable built-in
 **raw-LaTeX preamble escape hatch** for power users. Six milestones **A–F**; milestones restart at **A** and
 commit as `v0.7.0 : Milestone X Completed`. **Not Presentation-only** — A–C + F are Infrastructure/Tex, D is
 Data/Persistence, E is Presentation. Distinct from the native `ExportTemplate` (Core Text PDF/DOCX), which is
-untouched. Styles theme **presentation only** — the body stays app-generated and escaped, so a template can't
-inject content. `TODO.md` has the granular breakdown + open calls.
+untouched. Styles theme **presentation only** on the generated path — the body is always app-generated and escaped, and the
+app never writes user or model data into a preamble. (Milestone F's hand-written override is user-authored LaTeX
+and *can* affect typeset content; it can't run shell commands.) `TODO.md` has the granular breakdown + open calls.
 
 - [x] **Milestone A — `LaTeXStyle` model + built-in template registry.** ✅ **Done.** The style had no home —
       every choice was a literal in `TexDocumentBuilder`'s preamble builders. Added a pure
@@ -1016,12 +1017,24 @@ inject content. `TODO.md` has the granular breakdown + open calls.
       sanctioned golden exemption. Seam: **Presentation** + a Business preview method + the Infra fix.
       On-device: n/a.
 
-- [ ] **Milestone F — Raw-LaTeX preamble override + graceful compile failure.** When `customPreamble` is set it
-      replaces the *generated* preamble verbatim while the body stays app-generated and escaped (presentation
-      only, never content). A broken override must degrade well: the compile already runs `\nonstopmode` and
-      `ApplicationViewModel` already surfaces the real `lualatex` log, so add **revert to a built-in** and keep
-      the `.tex` **source** export available (it needs no TeX install) so a user can debug their own preamble.
-      Seam: **Infrastructure/Tex** + the existing error path + an advanced editor in E's manager. On-device: n/a.
+- [x] **Milestone F — Raw-LaTeX preamble override + graceful compile failure.** ✅ **Done.** `customPreamble`
+      replaces the **style block** — the `\geometry` line plus the font and accent overrides — not everything
+      before `\begin{document}`. Three verified reasons: `\documentclass` differs per document while one
+      override serves both; `\cventrysolo`/`\cvprojectsolo` live only in the generated preamble and the body
+      emits them *data-dependently*, so a displaced definition would compile one résumé and hard-fail the next;
+      and `\position`/`\pageFooter` are generated content. The escape hatch still does what it exists for —
+      `\pageHeader` is a `\newcommand` and the override precedes it, so `\renewcommand{\pageHeader}{\name{…}}`
+      replaces the classes' hardcoded contact details (verified by a real compile). Under the default style the
+      block collapses to the same `\geometry` line in the same position, so **both goldens stayed
+      byte-identical**. Failure is graceful in three layers: a blank override falls back to the generated block;
+      the compile can't hang (`-halt-on-error` is the real guard, and stdin is now `nullDevice`); and the message
+      names the preamble as the likely cause. Nobody strands — the manager offers "use the generated preamble"
+      and "revert to a built-in" (keeping the row's id, **writing through** because exports read the store), and
+      the export banner offers a session-only built-in escape plus the `.tex` source, which is never gated on a
+      test compile. **A doc claim was corrected rather than left overpromising**: a hand-written preamble *can*
+      affect typeset content; the guarantee is that the body is app-generated and escaped and the app never
+      writes user data into the preamble. Seam: **Infrastructure/Tex** + Presentation (manager + export banner).
+      On-device: n/a.
 
 ## Fast follow (next up)
 

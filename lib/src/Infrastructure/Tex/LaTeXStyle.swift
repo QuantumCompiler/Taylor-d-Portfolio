@@ -20,8 +20,11 @@ import Foundation
 /// values are split per document — see ``LaTeXFontSizes``, where the two awesome-cv classes take
 /// very different base sizes for the *same* apparent text size.
 ///
-/// **Presentation only.** A style themes layout; it never contributes content. The document body
-/// stays app-generated and LaTeX-escaped, including under a `customPreamble` override.
+/// **Presentation only — with one honest caveat.** The document body is always app-generated and
+/// LaTeX-escaped, and the app never writes user or model data into the preamble. But a
+/// `customPreamble` override (Milestone F) is *user-authored LaTeX*, and preamble code can
+/// typeset or suppress content. The invariant the app guarantees is about the body, not about
+/// what a user can choose to write in their own preamble.
 ///
 /// ⚠️ Not to be confused with `ExportTemplate` / `TemplateStyle` (Infrastructure · Export), which
 /// theme the **native Core Text** PDF/DOCX exports. That system is untouched by this one.
@@ -61,9 +64,26 @@ nonisolated struct LaTeXStyle: Sendable, Equatable, Codable {
     /// The `\vspace` before each `\cvsection`, in `em` (negative tightens, matching awesome-cv).
     var sectionSpacingEm: [LaTeXResumeSection: Double]
 
-    /// A raw-LaTeX preamble that **replaces** the generated one verbatim (Milestone F). The body is
-    /// still app-generated and escaped — an override themes presentation, it can't inject content.
-    /// `nil` (the normal case) means "build the preamble from the fields above".
+    /// Raw LaTeX that **replaces the style block** of the generated preamble — the `\geometry`
+    /// line plus the font-family and accent overrides, i.e. exactly what the Milestone B controls
+    /// write (v0.7.0 Milestone F).
+    ///
+    /// The *frame* around it is always app-generated and can't be replaced: `\documentclass`
+    /// (which differs per document, so one override can serve both), `\nonstopmode`, `\fontdir`,
+    /// `\pageHeader`, `\position{…}`, `\pageFooter{…}`, and the `\cventrysolo` /
+    /// `\cvprojectsolo` definitions the generated body calls. Those last two exist only in the
+    /// generated preamble, and the body emits them **data-dependently**, so letting an override
+    /// displace them would make the same style compile one résumé and hard-fail the next.
+    /// `\pageHeader` is a `\newcommand`, so an override can still `\renewcommand` it — which is
+    /// how a user replaces the class's hardcoded name and contact details.
+    ///
+    /// ⚠️ **An override is not sandboxed.** The document *body* stays app-generated and escaped,
+    /// and the app never writes user or model data into the preamble — but preamble LaTeX is
+    /// user-authored code: it can typeset content (`\AtBeginDocument`), suppress generated
+    /// content (`\renewcommand{\position}[1]{}`), and read files the user can read. It cannot
+    /// run shell commands — the app passes no `--shell-escape`, so `lualatex` runs restricted.
+    ///
+    /// `nil` (the normal case) means "build the style block from the fields above".
     var customPreamble: String?
 
     init(
@@ -233,6 +253,17 @@ nonisolated struct LaTeXStyle: Sendable, Equatable, Codable {
         let section = LaTeXResumeSection.classify(title)
         let value = sectionSpacingEm[section] ?? LaTeXResumeSection.canonicalSpacingEm[section] ?? -1
         return "\(LaTeXStyle.number(value))em"
+    }
+
+    /// The override actually in force — `nil` when unset **or** blank. Blank falls back to the
+    /// generated block for the same reason a malformed accent hex emits nothing: an empty preamble
+    /// compiles to `! LaTeX Error: The font size command \normalsize is not defined`, which tells
+    /// a user nothing about what they did.
+    var effectiveCustomPreamble: String? {
+        guard let customPreamble,
+              !customPreamble.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return nil }
+        return customPreamble
     }
 
     // MARK: Cover-letter body spacing (consumed by Milestone B)

@@ -296,7 +296,147 @@ struct TexDocumentBuilderStyleTests {
             == LaTeXStyle.default.sectionSpacingEm)
     }
 
+    // MARK: The raw-LaTeX preamble override (v0.7.0 Milestone F)
+
+    private var override: String {
+        """
+        \\geometry{left=3.00cm, top=3.00cm, right=3.00cm, bottom=3.00cm, footskip=0.25cm}
+        \\colorlet{awesome}{awesome-nephritis}
+        \\renewcommand{\\pageHeader}{\\name{Alex}{Sample}\\email{alex@example.com}}
+        """
+    }
+
+    private func overriding(_ preamble: String) -> LaTeXStyle {
+        var style = LaTeXStyle.default
+        style.fontFamily = .roboto              // ← would emit \newfontfamily…
+        style.accent = .named(.red)             // ← …and \colorlet, both replaced by the override
+        style.margins = LaTeXMargins(leftCm: 9, topCm: 9, rightCm: 9, bottomCm: 9, footskipCm: 9)
+        style.customPreamble = preamble
+        return style
+    }
+
+    /// The override replaces the **style block** verbatim: geometry, font family and accent are
+    /// the user's now.
+    @Test func anOverrideReplacesTheStyleBlockVerbatim() {
+        let tex = TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: overriding(override))
+
+        #expect(tex.contains(override))
+        #expect(!tex.contains("left=9.00cm"))            // the style's own margins are gone
+        #expect(!tex.contains("\\newfontfamily"))         // …and its font override
+        #expect(!tex.contains("awesome-red"))            // …and its accent
+    }
+
+    /// …but the **frame** survives, including the entry helpers the generated body calls. Losing
+    /// those would make the same style compile one résumé and hard-fail the next.
+    @Test func theDocumentFrameSurvivesAnOverride() throws {
+        let tex = TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: overriding(override))
+
+        #expect(tex.hasPrefix("\\documentclass[6pt]{Class/Resume}"))
+        for required in ["\\nonstopmode", "\\fontdir[fonts/]", "\\pageHeader", "\\position{",
+                         "\\pageFooter{Résumé}", "\\newcommand{\\cventrysolo}",
+                         "\\newcommand{\\cvprojectsolo}", "\\begin{document}"] {
+            #expect(tex.contains(required), "the frame must keep \(required)")
+        }
+        // …and the override lands before the frame's own invocation, which is what lets it
+        // `\renewcommand{\pageHeader}` — note the override *contains* that word, so this looks
+        // for the frame's own line rather than the first textual match.
+        let overrideAt = try #require(tex.range(of: override))
+        let invocationAt = try #require(tex.range(of: "\n\\pageHeader\n"))
+        #expect(overrideAt.upperBound <= invocationAt.lowerBound)
+    }
+
+    /// The contract's "body unchanged": an override themes, it doesn't touch what the app wrote.
+    @Test func anOverrideLeavesTheBodyByteIdentical() {
+        func body(_ tex: String) -> String {
+            guard let range = tex.range(of: "\\begin{document}") else { return tex }
+            return String(tex[range.lowerBound...])
+        }
+        #expect(body(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: overriding(override)))
+            == body(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown)))
+        #expect(body(TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown, style: overriding(override)))
+            == body(TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown)))
+    }
+
+    /// One override serves both documents **because** it can't contain `\documentclass` — the app
+    /// writes that, and the two deliverables need different ones.
+    @Test func oneOverrideServesBothDocumentsWithTheirOwnClasses() {
+        let style = overriding(override)
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+            .hasPrefix("\\documentclass[6pt]{Class/Resume}"))
+        #expect(TexDocumentBuilder.coverLetter(fromMarkdown: coverMarkdown, style: style)
+            .hasPrefix("\\documentclass[11pt, a4paper]{Class/CoverLetter}"))
+    }
+
+    /// A blank override is treated as no override — an empty preamble compiles to
+    /// "`\normalsize is not defined`", which tells a user nothing about what they did.
+    @Test(arguments: ["", "   ", "\n\n  \n"])
+    func aBlankOverrideFallsBackToTheGeneratedBlock(blank: String) {
+        var style = LaTeXStyle.default
+        style.customPreamble = blank
+        #expect(style.effectiveCustomPreamble == nil)
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+            == TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown))
+    }
+
+    /// No override → byte-identical to Milestone B/C output (the goldens above already pin this;
+    /// this states it as the override's own contract).
+    @Test func noOverrideChangesNothing() {
+        var style = LaTeXStyle.default
+        style.customPreamble = nil
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style) == goldenResume)
+    }
+
+    /// A preamble ending in a `%` comment must not swallow the frame's next line.
+    @Test func anOverrideEndingInACommentStillTerminates() {
+        var style = LaTeXStyle.default
+        style.customPreamble = "\\geometry{left=1cm, top=1cm, right=1cm, bottom=1cm}   % mine"
+        let tex = TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+
+        #expect(tex.contains("% mine\n\\nonstopmode"))
+    }
+
+    /// The `.tex` **source** is unaffected by whether the override compiles — that's how a user
+    /// debugs one, so it must never be gated on a test compile.
+    @Test func theTexSourceCarriesEvenAnUncompilableOverride() {
+        var style = LaTeXStyle.default
+        style.customPreamble = "\\thisIsNotACommand{}"
+        #expect(TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style)
+            .contains("\\thisIsNotACommand{}"))
+    }
+
     // MARK: Integration — a styled document still compiles
+
+    /// A realistic override — the one a user actually needs, replacing the class's hardcoded
+    /// name — compiles for real, and the generated body still typesets under it.
+    @Test func aWorkingOverrideCompilesUnderLualatex() async throws {
+        let client = LaTeXProcessClient()
+        guard client.isAvailable, client.assets?.isComplete == true else { return }
+        var style = LaTeXStyle.default
+        style.customPreamble = """
+        \\geometry{left=1.00cm, top=1.00cm, right=1.00cm, bottom=1.00cm, footskip=0.25cm}
+        \\colorlet{awesome}{awesome-nephritis}
+        \\renewcommand{\\pageHeader}{\\name{Alex}{Sample}\\email{alex@example.com}\\mobile{(555) 010-0000}}
+        """
+        let pdf = try await client.compile(
+            tex: TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style),
+            jobName: "overridden resume")
+        #expect(pdf.prefix(4).elementsEqual(Data("%PDF".utf8)))
+    }
+
+    /// A broken override fails **gracefully**: a non-zero exit with a diagnosable log, not a hang
+    /// waiting on a TeX prompt no one can answer.
+    @Test func aBrokenOverrideFailsWithALogRatherThanHanging() async throws {
+        let client = LaTeXProcessClient()
+        guard client.isAvailable, client.assets?.isComplete == true else { return }
+        var style = LaTeXStyle.default
+        style.customPreamble = "\\thisIsNotAControlSequence{}"
+
+        await #expect(throws: (any Error).self) {
+            _ = try await client.compile(
+                tex: TexDocumentBuilder.resume(fromMarkdown: resumeMarkdown, style: style),
+                jobName: "broken override")
+        }
+    }
 
     @Test func aFullyStyledDocumentCompilesUnderLualatex() async throws {
         let client = LaTeXProcessClient()

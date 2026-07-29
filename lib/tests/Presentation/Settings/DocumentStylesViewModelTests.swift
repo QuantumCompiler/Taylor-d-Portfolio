@@ -303,6 +303,140 @@ struct DocumentStylesViewModelTests {
         #expect(vm.draftName == LaTeXTemplateDescriptor.awesomeCVCompact.displayName)
     }
 
+    // MARK: The raw-LaTeX escape hatch (v0.7.0 Milestone F)
+
+    @Test func togglingTheOverrideOnSeedsFromTheGeneratedBlock() {
+        let vm = makePersistingVM()
+        vm.draft.margins = LaTeXMargins(leftCm: 2, topCm: 2, rightCm: 2, bottomCm: 2, footskipCm: 0.5)
+        vm.setUsesCustomPreamble(true)
+
+        #expect(vm.usesCustomPreamble)
+        // Seeded with what the app would have written — not blank, not a hand-copied approximation.
+        #expect(vm.customPreambleText.contains("left=2.00cm"))
+        #expect(vm.customPreambleText == vm.generatedStyleBlock())
+    }
+
+    /// Toggling off then on again must restore the user's typing, not destroy it.
+    @Test func togglingTheOverrideOffStashesTheTextAndBackOnRestoresIt() {
+        let vm = makePersistingVM()
+        vm.setUsesCustomPreamble(true)
+        vm.customPreambleText = "\\geometry{left=4cm}  % mine"
+
+        vm.setUsesCustomPreamble(false)
+        #expect(!vm.usesCustomPreamble)
+        #expect(vm.draft.customPreamble == nil)
+
+        vm.setUsesCustomPreamble(true)
+        #expect(vm.customPreambleText == "\\geometry{left=4cm}  % mine")
+    }
+
+    @Test func aBlankOverrideIsReportedAsBlank() {
+        let vm = makePersistingVM()
+        vm.setUsesCustomPreamble(true)
+        vm.customPreambleText = "   \n  "
+
+        #expect(vm.usesCustomPreamble)
+        #expect(vm.customPreambleIsBlank)
+        #expect(vm.draft.effectiveCustomPreamble == nil)     // the builder ignores it
+    }
+
+    @Test func resetPreambleReseedsFromTheDraftsOwnFields() {
+        let vm = makePersistingVM()
+        vm.setUsesCustomPreamble(true)
+        vm.customPreambleText = "garbage"
+        vm.draft.margins = LaTeXMargins(leftCm: 3, topCm: 3, rightCm: 3, bottomCm: 3, footskipCm: 0.5)
+        vm.resetPreambleToGenerated()
+
+        #expect(vm.customPreambleText.contains("left=3.00cm"))
+        #expect(vm.usesCustomPreamble)                        // still on — just re-seeded
+    }
+
+    /// **The stranding guarantee.** The exports read the *store*, so a revert that only touched
+    /// the draft would leave the manager looking fixed while every export still failed.
+    @Test func revertingWritesThroughToTheSavedStyle() async {
+        let vm = makePersistingVM()
+        vm.draftName = "Broken"
+        vm.setUsesCustomPreamble(true)
+        vm.customPreambleText = "\\thisIsNotACommand{}"
+        await vm.saveDraft()
+        #expect(vm.savedStyles.first?.style.customPreamble != nil)
+
+        await vm.dropCustomPreamble()
+
+        #expect(vm.draft.customPreamble == nil)
+        #expect(vm.savedStyles.count == 1)                             // same row, not a copy
+        #expect(vm.savedStyles.first?.style.customPreamble == nil)     // …and it's persisted
+    }
+
+    @Test func revertingKeepsEveryOtherChoice() async {
+        let vm = makePersistingVM()
+        vm.draftName = "Mine"
+        vm.draft.pageSize = .usLetter
+        vm.draft.hiddenSections = [.projects]
+        vm.setUsesCustomPreamble(true)
+        await vm.saveDraft()
+        await vm.dropCustomPreamble()
+
+        #expect(vm.draft.pageSize == .usLetter)
+        #expect(vm.draft.hiddenSections == [.projects])
+    }
+
+    /// The heavier revert adopts a built-in's look but **keeps the style's identity**, so Save
+    /// updates the same row instead of leaving the broken one on disk beside a copy.
+    @Test func revertingToABuiltInKeepsTheRowAndDropsTheOverride() async {
+        let vm = makePersistingVM()
+        vm.draftName = "Mine"
+        vm.setUsesCustomPreamble(true)
+        vm.customPreambleText = "\\thisIsNotACommand{}"
+        await vm.saveDraft()
+        let id = vm.selectedStyleID
+
+        await vm.revertToBuiltIn(.awesomeCVCompact)
+
+        #expect(vm.selectedStyleID == id)
+        #expect(vm.draftName == "Mine")
+        #expect(vm.draft.customPreamble == nil)
+        #expect(vm.draft.margins.leftCm == 0.35)
+        #expect(vm.savedStyles.count == 1)
+        #expect(vm.savedStyles.first?.style.customPreamble == nil)
+    }
+
+    /// An unsaved draft has nothing to write through to — reverting must not invent a row.
+    @Test func revertingAnUnsavedDraftTouchesNoStorage() async {
+        let vm = makePersistingVM()
+        vm.setUsesCustomPreamble(true)
+        await vm.dropCustomPreamble()
+
+        #expect(vm.draft.customPreamble == nil)
+        #expect(vm.savedStyles.isEmpty)
+    }
+
+    /// The `.tex` source is how a user debugs a preamble that won't compile, so it must carry the
+    /// override even when a compile would fail.
+    @Test func theSampleTexSourceCarriesAnUncompilableOverride() {
+        let vm = makePersistingVM(compiler: StyleStubCompiler())
+        vm.setUsesCustomPreamble(true)
+        vm.customPreambleText = "\\thisIsNotACommand{}"
+
+        #expect(vm.sampleTexSource()?.contains("\\thisIsNotACommand{}") == true)
+    }
+
+    /// A failed preview keeps the last good PDF on screen — comparing "what I had" to "what my
+    /// edit broke" is most of a preview's value when hand-writing LaTeX.
+    @Test func aFailedPreviewKeepsTheLastGoodRender() async {
+        let compiler = StyleStubCompiler()
+        let vm = makePersistingVM(compiler: compiler)
+        await vm.compilePreview()
+        #expect(vm.previewPDF != nil)
+
+        let failing = makePersistingVM(compiler: StyleStubCompiler(
+            result: .failure(LaTeXProcessError.nonZeroExit(code: 1, log: "! Boom"))))
+        failing.setUsesCustomPreamble(true)
+        await failing.compilePreview()
+        // …and the message names the override as the likely cause.
+        #expect(failing.previewError?.contains("custom LaTeX preamble") == true)
+    }
+
     // MARK: Preview
 
     @Test func previewUnavailableWithoutLualatex() async {
@@ -336,8 +470,10 @@ struct DocumentStylesViewModelTests {
         let vm = makePersistingVM(compiler: compiler)
         await vm.compilePreview()
 
-        #expect(vm.previewPDF == nil)
         #expect(vm.isCompilingPreview == false)
-        #expect(vm.errorMessage?.contains("! Undefined control sequence") == true)
+        // A compile error lands in `previewError`, not `errorMessage` (v0.7.0 Milestone F): a save
+        // failure and a compile failure must not overwrite each other.
+        #expect(vm.previewError?.contains("! Undefined control sequence") == true)
+        #expect(vm.errorMessage == nil)
     }
 }
