@@ -46,7 +46,9 @@ struct LaTeXStyleTests {
         #expect(style.hiddenSections.isEmpty)
     }
 
-    /// The section `\vspace` values the default style produces are exactly `sectionVSpace(_:)`'s.
+    /// The section `\vspace` values the default style produces are the ones the hand-authored
+    /// section files used — which `TexDocumentBuilder` hardcoded in `sectionVSpace(_:)` until
+    /// v0.7.0 Milestone C moved them here.
     @Test(arguments: [
         ("Education", "-1em"),
         ("Professional Experience", "-1.5em"),
@@ -55,42 +57,52 @@ struct LaTeXStyleTests {
         ("Qualifications", "-0.5em"),
         ("Volunteering", "-1em"),
     ])
-    func defaultSectionSpacingMatchesTheBuilder(title: String, expected: String) {
+    func defaultSectionSpacingMatchesTheHandAuthoredResume(title: String, expected: String) {
         #expect(LaTeXStyle.default.sectionVSpace(forSectionTitled: title) == expected)
-        #expect(TexDocumentBuilder.sectionVSpace(title) == expected)
     }
 
-    /// **The one deliberate divergence from today's output.** The builder's two classifiers
-    /// disagree with each other: `canonicalOrder(_:)` treats "Employment" / "Work History" as
-    /// *experience* (sorting them second), but `sectionVSpace(_:)` doesn't list those synonyms, so
-    /// they fall through to the generic `-1em` — an experience section that sorts as experience yet
-    /// is spaced as "other". A style has **one** bucket per section, so this can't be reproduced;
-    /// the bucket wins and those titles pick up the experience spacing. Recorded here so Milestone
-    /// C's byte-for-byte claim stays honest: default output is identical **except** for a résumé
-    /// whose experience section is titled "Employment" or "Work History".
+    /// Ported verbatim from `TexDocumentBuilderTests.canonicalOrderAndSpacingMatchTheManual`, which
+    /// asserted these same values against the two statics C deleted. Same expectations, new home —
+    /// the coverage moves with the logic rather than disappearing with it.
+    @Test func defaultOrderAndSpacingMatchTheHandAuthoredResume() {
+        let style = LaTeXStyle.default
+        #expect(style.orderIndex(ofSectionTitled: "Education") == 0)
+        #expect(style.orderIndex(ofSectionTitled: "Work Experience") == 1)
+        #expect(style.orderIndex(ofSectionTitled: "Projects") == 2)
+        #expect(style.orderIndex(ofSectionTitled: "Core Skills") == 3)
+        #expect(style.orderIndex(ofSectionTitled: "Awards") == 4)
+        #expect(style.sectionVSpace(forSectionTitled: "Education") == "-1em")
+        #expect(style.sectionVSpace(forSectionTitled: "Experience") == "-1.5em")
+        #expect(style.sectionVSpace(forSectionTitled: "Qualifications") == "-0.5em")
+    }
+
+    /// **The one deliberate divergence from the pre-v0.7.0 output.** The builder's two classifiers
+    /// disagreed with each other: `canonicalOrder(_:)` treated "Employment" / "Work History" as
+    /// *experience* (sorting them second), but `sectionVSpace(_:)` didn't list those synonyms, so
+    /// they fell through to the generic `-1em` — an experience section that sorted as experience yet
+    /// was spaced as "other". A style has **one** bucket per section, so the bucket wins and those
+    /// titles pick up the experience spacing. The effect on the **emitted document** is pinned by
+    /// `TexDocumentBuilderSectionTests.experienceSynonymsTakeTheExperienceSpacingInTheEmittedTex`.
     @Test(arguments: ["Employment", "Work History"])
     func experienceSynonymsGainTheExperienceSpacing(title: String) {
         #expect(LaTeXResumeSection.classify(title) == .experience)
         #expect(LaTeXStyle.default.sectionVSpace(forSectionTitled: title) == "-1.5em")
-        // What the builder does today — the inconsistency this unifies.
-        #expect(TexDocumentBuilder.sectionVSpace(title) == "-1em")
-        #expect(TexDocumentBuilder.canonicalOrder(title) == 1)
     }
 
-    /// Section classification matches the builder's ordering heuristic, bucket for bucket — the
-    /// two must not drift, since Milestone C replaces one with the other.
+    /// Classification and its resulting order index, bucket by bucket. The indices are the ones the
+    /// deleted `canonicalOrder(_:)` returned (verified equivalent against it before it was removed),
+    /// written as literals so they keep pinning the canonical order now that it has one owner.
     @Test(arguments: [
-        ("Education", LaTeXResumeSection.education),
-        ("Experience", .experience),
-        ("Employment History", .experience),
-        ("Projects", .projects),
-        ("Core Competencies", .skills),
-        ("Publications", .other),
+        ("Education", LaTeXResumeSection.education, 0),
+        ("Experience", .experience, 1),
+        ("Employment History", .experience, 1),
+        ("Projects", .projects, 2),
+        ("Core Competencies", .skills, 3),
+        ("Publications", .other, 4),
     ])
-    func classificationMatchesTheBuildersCanonicalOrder(title: String, section: LaTeXResumeSection) {
+    func classificationMatchesTheCanonicalOrderIndices(title: String, section: LaTeXResumeSection, index: Int) {
         #expect(LaTeXResumeSection.classify(title) == section)
-        #expect(LaTeXStyle.default.orderIndex(ofSectionTitled: title)
-            == TexDocumentBuilder.canonicalOrder(title))
+        #expect(LaTeXStyle.default.orderIndex(ofSectionTitled: title) == index)
     }
 
     // MARK: Order + visibility
@@ -134,6 +146,51 @@ struct LaTeXStyleTests {
         #expect(style.sectionVSpace(forSectionTitled: "Education") == "-1em")
     }
 
+    // MARK: Ordering (the partition that drives section order)
+
+    /// Sections are grouped by bucket in the style's order, each group keeping document order.
+    @Test func orderedSectionsGroupsByBucketAndKeepsDocumentOrderWithinOne() {
+        var style = LaTeXStyle.default
+        style.sectionOrder = [.experience, .education]
+        let titles = ["Education", "Experience", "Employment", "Projects", "Awards"]
+
+        #expect(style.orderedSections(titles, titledBy: { $0 })
+            == ["Experience", "Employment", "Education", "Projects", "Awards"])
+    }
+
+    /// The reason this is a partition and not a `sorted(by:)` with an index tiebreak: the tiebreak's
+    /// absence is undetectable (the current stdlib sort happens to be stable), so document order has
+    /// to be structural. Two same-bucket sections must never swap.
+    @Test func orderedSectionsNeverReordersWithinABucket() {
+        let titles = ["Experience", "Employment", "Work History"]
+        #expect(LaTeXStyle.default.orderedSections(titles, titledBy: { $0 }) == titles)
+    }
+
+    /// An empty order isn't undefined — it degrades to plain document order, nothing dropped.
+    @Test func anEmptySectionOrderKeepsDocumentOrder() {
+        var style = LaTeXStyle.default
+        style.sectionOrder = []
+        let titles = ["Awards", "Core Skills", "Experience", "Education"]
+
+        #expect(style.orderedSections(titles, titledBy: { $0 }) == titles)
+    }
+
+    /// A bucket repeated in the order can't duplicate its sections — a decoded style (Milestone D)
+    /// or a drag-reorder bug could produce one.
+    @Test func aDuplicatedBucketInTheOrderCannotDuplicateSections() {
+        var style = LaTeXStyle.default
+        style.sectionOrder = [.skills, .experience, .skills, .skills]
+        let titles = ["Experience", "Core Skills", "Education"]
+
+        let ordered = style.orderedSections(titles, titledBy: { $0 })
+        #expect(ordered == ["Core Skills", "Experience", "Education"])
+        #expect(ordered.count == titles.count)
+    }
+
+    @Test func orderedSectionsHandlesAnEmptyInput() {
+        #expect(LaTeXStyle.default.orderedSections([String](), titledBy: { $0 }).isEmpty)
+    }
+
     // MARK: Accent colour
 
     @Test func namedAccentsResolveToThePaletteTheClassesDefine() {
@@ -159,6 +216,24 @@ struct LaTeXStyleTests {
     }
 
     // MARK: Number formatting
+
+    /// A non-finite spacing value must not reach the document: `\\vspace{nanem}` fails the compile
+    /// with "Missing number, treated as zero", i.e. a broken export from a value a numeric field
+    /// can produce. It degrades to `0` instead.
+    @Test func nonFiniteMeasurementsDegradeToZeroRatherThanBreakingTheCompile() {
+        var style = LaTeXStyle.default
+        style.sectionSpacingEm = [.experience: .nan, .skills: .infinity, .education: -.infinity]
+
+        #expect(style.sectionVSpace(forSectionTitled: "Experience") == "0em")
+        #expect(style.sectionVSpace(forSectionTitled: "Core Skills") == "0em")
+        #expect(style.sectionVSpace(forSectionTitled: "Education") == "0em")
+        #expect(LaTeXStyle.number(.nan) == "0")
+        #expect(LaTeXStyle.fixed(.nan) == "0.00")
+
+        // Magnitude is deliberately *not* clamped — bounding user input is Milestone E's job, and
+        // silently rewriting a large number would hide what the user typed.
+        #expect(LaTeXStyle.number(-12.5) == "-12.5")
+    }
 
     @Test func measurementsFormatTheWayTheHandAuthoredTexWritesThem() {
         #expect(LaTeXStyle.number(-1) == "-1")

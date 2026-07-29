@@ -39,6 +39,12 @@ struct TexDocumentBuilderStyleTests {
     /// not just the preamble, so a stray change anywhere in the emitted `.tex` trips this. If a
     /// change to the style system alters the default look, this fails; that's the point of
     /// `LaTeXStyle.default` existing at all.
+    ///
+    /// It stays exact through Milestone C with **one** documented exemption, which this fixture
+    /// deliberately doesn't exercise: a résumé whose experience section is titled "Employment" or
+    /// "Work History" now takes the experience `-1.5em` rather than the old generic `-1em` (the two
+    /// pre-v0.7.0 classifiers disagreed about those titles). See
+    /// `TexDocumentBuilderSectionTests.experienceSynonymsTakeTheExperienceSpacingInTheEmittedTex`.
     private let goldenResume = #"""
     \documentclass[6pt]{Class/Resume}
     \geometry{left=0.50cm, top=0.50cm, right=0.50cm, bottom=0.75cm, footskip=0.25cm}
@@ -155,7 +161,10 @@ struct TexDocumentBuilderStyleTests {
     // MARK: The body never depends on the style
 
     /// A style themes the preamble; the document body is app-generated and escaped, identically
-    /// under every style. (Section *order* is Milestone C's; this asserts B changed nothing there.)
+    /// under every **non-section** style field. Since Milestone C, `sectionOrder` / `hiddenSections`
+    /// / `sectionSpacingEm` *do* reach the body — and they're the only fields that may, which is
+    /// what this narrowed invariant pins (its converse is
+    /// `TexDocumentBuilderSectionTests.sectionFieldsNeverAffectThePreamble`).
     @Test func bodyIsIdenticalAcrossStyles() {
         var style = LaTeXStyle.default
         style.fontFamily = .roboto
@@ -272,6 +281,13 @@ struct TexDocumentBuilderStyleTests {
 
         #expect(tex.hasPrefix("\\documentclass[6pt]{Class/Resume}"))
         #expect(tex.contains("\\geometry{left=0.35cm, top=0.35cm, right=0.35cm, bottom=0.55cm, footskip=0.20cm}"))
+        // It deliberately keeps the **canonical** section spacing: its tighter values were inert
+        // until Milestone C made spacing style-driven, and once live they ran the first section's
+        // rule into the lead paragraph (measured under lualatex). Margins are its differentiator.
+        #expect(tex.contains("\\vspace{-1.5em}\n\\cvsection{Experience}"))
+        #expect(tex.contains("\\vspace{-0.5em}\n\\cvsection{Core Skills}"))
+        #expect(LaTeXTemplateDescriptor.awesomeCVCompact.defaultStyle.sectionSpacingEm
+            == LaTeXStyle.default.sectionSpacingEm)
     }
 
     // MARK: Integration — a styled document still compiles

@@ -12,11 +12,14 @@ import Foundation
 /// domain-agnostic — Markdown `String` in, `.tex` `String` out — so it's fully unit-testable
 /// and never imports upward. Reuses the shared `MarkdownBlockParser` / `MarkdownInline`.
 ///
-/// **Fidelity (C-parse):** the output mirrors the **exact macro structure, section order, and
-/// spacing** of Taylor's hand-authored résumé — `\begin{cventries}` + `\cventry`/`\cvproject`
-/// wrapped entries, the Education → Experience → Projects → Qualifications order, the per-section
-/// `\vspace` tweaks, and `\arraystretch` before the skills grid — so generated content adopts the
-/// same look. The generated Markdown is loose (no explicit org/location/date fields), so entry
+/// **Fidelity (C-parse):** the output mirrors the **exact macro structure** of Taylor's
+/// hand-authored résumé — `\begin{cventries}` + `\cventry`/`\cvproject` wrapped entries, and
+/// `\arraystretch` before the skills grid — so generated content adopts the same look. Section
+/// **order, visibility and spacing** are no longer fixed here: they come from the ``LaTeXStyle``
+/// passed in (v0.7.0 Milestone C), whose default is the hand-authored Education → Experience →
+/// Projects → Qualifications order with its per-section `\vspace` tweaks.
+///
+/// The generated Markdown is loose (no explicit org/location/date fields), so entry
 /// metadata is split heuristically from the "Title — Org" / "Location · Date" shapes the app's own
 /// generation produces. All interpolated text is LaTeX-escaped; only the FontAwesome icons already
 /// in the classes are used (none are introduced), so the output compiles under `lualatex`.
@@ -33,18 +36,31 @@ nonisolated enum TexDocumentBuilder {
         let (preamble, sections) = split(blocks, atHeadingLevel: level)
 
         // A "Summary/Profile" section renders as a lead paragraph (the résumé opens with prose,
-        // not a titled section); the rest sort into the canonical résumé order.
-        let contentSections = sections.filter { !isSummarySection($0.title) }
-        let ordered = contentSections.enumerated()
-            .sorted { (canonicalOrder($0.element.title), $0.offset) < (canonicalOrder($1.element.title), $1.offset) }
-            .map(\.element)
+        // not a titled section); the rest sort into the style's section order (v0.7.0 Milestone C).
+        // Hiding happens **here**, before the loop, so a hidden section takes its own `\vspace`
+        // with it and leaves no gap behind. `leadSummary` below reads the *unfiltered* `sections`,
+        // so the lead paragraph can be neither reordered nor hidden — hiding `.other` (which is
+        // what "Summary" classifies as) must never delete the user's opening paragraph.
+        let contentSections = sections
+            .filter { !isSummarySection($0.title) }
+            .filter { style.isVisible(sectionTitled: $0.title) }
+        // A partition by bucket, not a sort — see `LaTeXStyle.orderedSections(_:titledBy:)`, which
+        // owns the rule that same-bucket sections keep document order and unnamed buckets go last.
+        let ordered = style.orderedSections(contentSections, titledBy: \.title)
 
         var body = "\\makecvheader\n\n"
         if let lead = leadSummary(preamble: preamble, sections: sections) {
             body += "\\vspace{-0.5em}\n\\begin{justify}{\\paragraphstyle \(inlineLaTeX(lead))}\\end{justify}\n\n"
         }
         for section in ordered {
-            body += "\\vspace{\(sectionVSpace(section.title))}\n\\cvsection{\(plainLaTeX(section.title))}\n\n"
+            // The `\vspace` is a **prefix of this iteration**, never a separator emitted between
+            // sections — that's what makes "hiding leaves no double gap" true by construction.
+            body += "\\vspace{\(style.sectionVSpace(forSectionTitled: section.title))}\n"
+                + "\\cvsection{\(plainLaTeX(section.title))}\n\n"
+            // Rendering stays keyed on the *title* (`isSkillsSection`), not the style's bucket:
+            // the two disagree for titles like "Educational Qualifications", which sorts as
+            // education but has always rendered as a skills grid. Changing that is not this
+            // milestone's business.
             body += isSkillsSection(section.title) ? renderSkills(section.blocks) : renderEntries(section.blocks)
             body += "\n"
         }
@@ -211,27 +227,12 @@ nonisolated enum TexDocumentBuilder {
         return (entries, leadingProse)
     }
 
-    // MARK: Ordering / spacing (to match the hand-authored résumé)
+    // MARK: Lead summary
 
-    /// The canonical résumé section order: Education, Experience, Projects, Qualifications/Skills,
-    /// then anything else (stable). Mirrors the manual `Resume.tex` `\input` order.
-    static func canonicalOrder(_ title: String) -> Int {
-        let lower = title.lowercased()
-        if lower.contains("education") { return 0 }
-        if lower.contains("experience") || lower.contains("employment") || lower.contains("work history") { return 1 }
-        if lower.contains("project") { return 2 }
-        if isSkillsSection(title) { return 3 }
-        return 4
-    }
-
-    /// The `\vspace` before each `\cvsection`, matching the hand-authored section files.
-    static func sectionVSpace(_ title: String) -> String {
-        let lower = title.lowercased()
-        if lower.contains("education") { return "-1em" }
-        if lower.contains("experience") || lower.contains("project") { return "-1.5em" }
-        if isSkillsSection(title) { return "-0.5em" }
-        return "-1em"
-    }
+    // Section ordering and per-section spacing used to live here as `canonicalOrder(_:)` /
+    // `sectionVSpace(_:)`. They moved into `LaTeXStyle` in v0.7.0 (Milestone A defined them,
+    // Milestone C made them live) and were deleted rather than kept as delegates — two live
+    // classifiers of the same thing is exactly the drift that let them disagree with each other.
 
     /// The lead summary text — a preamble summary, or the prose of a "Summary/Profile" section.
     static func leadSummary(preamble: [MarkdownBlock], sections: [Section]) -> String? {

@@ -135,17 +135,6 @@ struct TexDocumentBuilderTests {
         #expect(TexDocumentBuilder.looksDated("Creator & Lead Developer") == false)
     }
 
-    @Test func canonicalOrderAndSpacingMatchTheManual() {
-        #expect(TexDocumentBuilder.canonicalOrder("Education") == 0)
-        #expect(TexDocumentBuilder.canonicalOrder("Work Experience") == 1)
-        #expect(TexDocumentBuilder.canonicalOrder("Projects") == 2)
-        #expect(TexDocumentBuilder.canonicalOrder("Core Skills") == 3)
-        #expect(TexDocumentBuilder.canonicalOrder("Awards") == 4)
-        #expect(TexDocumentBuilder.sectionVSpace("Education") == "-1em")
-        #expect(TexDocumentBuilder.sectionVSpace("Experience") == "-1.5em")
-        #expect(TexDocumentBuilder.sectionVSpace("Qualifications") == "-0.5em")
-    }
-
     @Test func projectsWithoutDatesUseCvproject() {
         // A projects section (no dated subtitles) → \cvproject / \cvprojectsolo, not \cventry.
         let md = "## Projects\n### Formulator Pro\n- Cross-platform Electron app.\n\n### Ommi\nCreator & Lead Developer\n- Go AI platform."

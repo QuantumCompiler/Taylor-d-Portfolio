@@ -3112,3 +3112,73 @@ sizes and margins) and a Source Sans / named-accent letter under real `lualatex`
 verified to compile, not merely to look right. Suite green (773 cases), build warning-free.
 
 **On-device.** n/a — no model calls. The compile is the same optional `lualatex` dependency as before.
+
+## Milestone C — Section order & visibility driven by the style  ✅ done  (`Infrastructure/Tex/TexDocumentBuilder` + `LaTeXStyle` + `LaTeXTemplateRegistry`; tests in `lib/tests/Infrastructure/Tex`)
+
+**The gap.** The résumé's section order and per-section spacing were two hardcoded statics on the builder —
+`canonicalOrder(_:)` (Education → Experience → Projects → Skills → everything else) and `sectionVSpace(_:)`. A
+user could change the fonts and margins but not what their résumé led with, or drop a section they didn't want.
+
+**What landed.** Ordering, visibility and spacing all read the style. `hiddenSections` filters whole sections out
+**before** the emit loop, `sectionOrder` arranges what's left, and each `\vspace` comes from `sectionSpacingEm`.
+The two statics were **deleted, not kept as delegates** — two live classifiers of the same thing is precisely the
+drift Milestone A found, and a delegate would have left tests asserting values no document contains. Their
+coverage was ported to `LaTeXStyleTests`, expectation for expectation, rather than dropped.
+
+- **Ordering is a partition, not a sort.** The obvious `sorted(by:)` needs an index tiebreak to keep same-bucket
+  sections in document order — and the absence of that tiebreak is **undetectable by test** (the current stdlib
+  sort happens to be stable, so the mutation passes green). `LaTeXStyle.orderedSections(_:titledBy:)` groups by
+  bucket instead, which makes document order structural and kills three edge cases by construction: a **duplicated**
+  bucket in the order can't duplicate sections, an **empty** order degrades to document order, and unnamed buckets
+  append last. Verified by mutation: reversing within-bucket order now fails four tests; the equivalent mutation
+  against the sort version failed none.
+- **Omitting a bucket means "put it last", never "drop it"** — the open call, resolved as recommended. Only
+  `hiddenSections` removes anything.
+- **Hiding leaves no double gap** — true *by construction*, not by new code: the `\vspace` is a prefix inside the
+  section's own loop iteration, so it leaves with the section. An orphaned `\vspace` would be silent (TeX
+  accumulates vertical glue without warning), so it's pinned as **byte equality**: hiding Projects produces
+  exactly the document you get from Markdown that never had a Projects section.
+- **The lead summary is out of the style's reach** — always first, never ordered, never hidden. "Summary"
+  classifies as `.other`, so filtering one line too early would silently delete the user's opening paragraph when
+  they hid `.other`; `leadSummary` deliberately reads the **unfiltered** sections, with a test for it.
+- **`.other` is a deliberate bulk hide.** Hiding it removes Awards, Publications, Certifications and Volunteering
+  together — the one place the "a model-invented section can't vanish" promise is in tension. Milestone E's
+  toggle must be labelled as the catch-all it is.
+- **Spacing is per *bucket*, not per section title**, and rendering still keys on the title (`isSkillsSection`):
+  "Educational Qualifications" sorts as education but renders as a skills grid. That split is pre-existing and
+  pinned by a test rather than quietly unified, which would have changed how sections render.
+
+**The one default-style change.** "Employment" / "Work History" sections now take the experience `-1.5em` rather
+than the generic `-1em`, because the old builder's two classifiers disagreed about them (it *sorted* them as
+experience but *spaced* them as "other"). Recorded in Milestone A, pinned at document level here, and noted as
+the single exemption on Milestone B's golden — which otherwise stays byte-identical and was **not** regenerated.
+
+**Compact's spacing was measured and reverted.** The Compact built-in carried tighter per-section values from
+Milestone A that were inert until this milestone made them live. Compiled under `lualatex` and measured with
+`pdftotext -bbox`: the shipped look already runs the first section's rule ~2.6pt into the lead paragraph's glyph
+box, and Compact's values pushed that to ~7.6pt — a visible collision. Compact's *margins alone* reproduce the
+default's 2.6pt, so it keeps the canonical section spacing and margins remain its differentiator. Two
+consequences worth carrying forward: negative section spacing is bounded by the lead paragraph, so **Milestone E
+must bound what a user can enter**, and a future template that tightens spacing has to be measured, not eyeballed.
+
+**Also hardened here** (both surfaced by the review pass): a non-finite spacing value now formats as `0` instead
+of emitting `\vspace{nanem}`, which fails the compile outright — reachable from any numeric field E adds.
+Magnitude is deliberately *not* clamped: bounding input is E's job, and silently rewriting a number would hide
+what the user typed.
+
+**Known follow-on, not fixed here.** `renderSkills` emits an ungrouped `\renewcommand{\arraystretch}{0.7}` that
+is never restored, so it leaks into every section rendered after the skills grid (~3.15pt of row height). It's
+pre-existing and changing it moves the golden's bytes, but C is what makes it *reachable* — a user can now move
+skills to the top. It must land before or with Milestone E; a checkbox is recorded there.
+
+**Tests.** A new `TexDocumentBuilderSectionTests` (21 tests) over a fixture covering all four canonical buckets
+plus an unknown one in scrambled order: emitted-section **sequence** assertions for the default, reordered,
+partial and unknown-bucket cases; hidden sections gone with their content; the byte-equality "no double gap"
+test; the lead-summary guard; every-section-hidden still emitting a valid document; per-bucket spacing including
+the fallback and the `0em` (not `-0em`) case; the Employment/Work History divergence; the cover letter proven
+**immune** to section fields; and the converse guard that section fields never reach the preamble. Plus a second
+whole-document golden captured **before** the change over the five-bucket fixture, unit tests for the ordering
+partition in `LaTeXStyleTests`, and a real `lualatex` compile of a reordered + partly hidden résumé. Suite green
+(801 cases), build warning-free.
+
+**On-device.** n/a — no model calls.

@@ -115,6 +115,35 @@ nonisolated struct LaTeXStyle: Sendable, Equatable, Codable {
         return sectionOrder.firstIndex(of: section) ?? sectionOrder.count
     }
 
+    /// Arranges `sections` into this style's order: each bucket named in ``sectionOrder``, in that
+    /// order, then every bucket it omits — each group keeping the input (document) order.
+    ///
+    /// Deliberately a **partition, not a sort**. `sorted(by:)` isn't documented stable, so the
+    /// equivalent comparator needs an index tiebreak whose absence no test could reliably detect
+    /// (the current stdlib sort happens to be stable, so the mutation passes). Partitioning makes
+    /// input order structural rather than incidental, and it handles the awkward inputs by
+    /// construction: a duplicated bucket in `sectionOrder` can't duplicate its sections, and an
+    /// **empty** order degrades to plain document order rather than to something undefined.
+    func orderedSections<Section>(_ sections: [Section],
+                                  titledBy title: (Section) -> String) -> [Section] {
+        let buckets = sections.map { LaTeXResumeSection.classify(title($0)) }
+        var taken = [Bool](repeating: false, count: sections.count)
+        var ordered: [Section] = []
+        ordered.reserveCapacity(sections.count)
+
+        for bucket in sectionOrder {
+            for index in sections.indices where !taken[index] && buckets[index] == bucket {
+                ordered.append(sections[index])
+                taken[index] = true
+            }
+        }
+        // Buckets the order never named — appended in document order, never dropped.
+        for index in sections.indices where !taken[index] {
+            ordered.append(sections[index])
+        }
+        return ordered
+    }
+
     /// The `\vspace` argument before a section's `\cvsection` (e.g. `-1.5em`).
     func sectionVSpace(forSectionTitled title: String) -> String {
         let section = LaTeXResumeSection.classify(title)
@@ -134,7 +163,14 @@ nonisolated struct LaTeXStyle: Sendable, Equatable, Codable {
 
     /// Formats a measurement the way the hand-authored `.tex` writes it — up to `decimals` places
     /// with trailing zeros trimmed (`-1.0` → `-1`, `-1.50` → `-1.5`, `1.08` → `1.08`).
+    ///
+    /// A non-finite value formats as `0` rather than `nan` / `inf`: those reach the document as
+    /// `\vspace{nanem}`, which fails the compile with "Missing number, treated as zero" — a
+    /// broken PDF export from a value a numeric field can produce. (Magnitude is *not* clamped
+    /// here; bounding what a user can type is Milestone E's job, and silently rewriting a big
+    /// number would hide their input.)
     static func number(_ value: Double, decimals: Int = 2) -> String {
+        guard value.isFinite else { return "0" }
         var text = String(format: "%.\(decimals)f", value)
         if text.contains(".") {
             while text.hasSuffix("0") { text.removeLast() }
@@ -144,8 +180,10 @@ nonisolated struct LaTeXStyle: Sendable, Equatable, Codable {
     }
 
     /// Formats a fixed-precision measurement (no trimming) — `\geometry` writes `0.50cm`, not `0.5cm`.
+    /// Non-finite values degrade to `0` for the same reason as ``number(_:decimals:)``.
     static func fixed(_ value: Double, decimals: Int = 2) -> String {
-        String(format: "%.\(decimals)f", value)
+        guard value.isFinite else { return String(format: "%.\(decimals)f", 0.0) }
+        return String(format: "%.\(decimals)f", value)
     }
 }
 

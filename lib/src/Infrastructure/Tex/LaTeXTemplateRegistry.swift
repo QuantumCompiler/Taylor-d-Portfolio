@@ -109,12 +109,21 @@ extension LaTeXTemplateDescriptor {
         defaultStyle: .default
     )
 
-    /// The same bundled classes with a tighter default style — no extra assets, so it costs
-    /// nothing to ship and gives the registry (and Milestone E's picker) a real second option.
+    /// The same bundled classes with narrower margins and a tighter letter — no extra assets, so it
+    /// costs nothing to ship and gives the registry (and Milestone E's picker) a real second option.
+    ///
+    /// **It deliberately keeps the canonical section spacing.** It originally carried tighter
+    /// per-section values, which were inert until Milestone C made section spacing style-driven.
+    /// Measured under `lualatex` once they were live: the shipped look already runs the first
+    /// section's rule ~2.6pt into the lead paragraph's glyph box, and the tighter values pushed
+    /// that to ~7.6pt — a visible collision. Compact's margins alone reproduce the default's
+    /// ~2.6pt, so the margins are the differentiator and the spacing stays canonical. Any future
+    /// template that tightens section spacing must be measured against the lead paragraph, not
+    /// eyeballed.
     nonisolated static let awesomeCVCompact = LaTeXTemplateDescriptor(
         template: .awesomeCVCompact,
         displayName: "Portfolio — Compact",
-        summary: "The same classes with narrower margins and tighter sections, to fit more on a page.",
+        summary: "The same classes with narrower margins and a tighter letter, to fit more on a page.",
         resumeClass: "Class/Resume",
         coverLetterClass: "Class/CoverLetter",
         requiredClassFiles: ["Resume.cls", "CoverLetter.cls"],
@@ -123,14 +132,7 @@ extension LaTeXTemplateDescriptor {
             template: .awesomeCVCompact,
             margins: LaTeXMargins(leftCm: 0.35, topCm: 0.35, rightCm: 0.35, bottomCm: 0.55, footskipCm: 0.20),
             letterParagraphSkipEm: 0.8,
-            letterLineSpread: 1.0,
-            sectionSpacingEm: [
-                .education: -1.5,
-                .experience: -2.0,
-                .projects: -2.0,
-                .skills: -1.0,
-                .other: -1.5,
-            ]
+            letterLineSpread: 1.0
         )
     )
 }

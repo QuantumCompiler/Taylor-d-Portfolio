@@ -9,16 +9,17 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone C** (section order / visibility from the
-> style). **Milestones A and B are done** — `LaTeXStyle` + `LaTeXTemplateRegistry` exist, and the builder's
-> preambles are style-driven behind a **whole-document golden** that pins the default output byte-for-byte
-> (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`). C changes the résumé's section ordering/spacing, so it
-> must extend that golden rather than replace it. Six milestones **A–F**,
+> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone D** (persistence: the styles library +
+> default pointer). **Milestones A–C are done** — `LaTeXStyle` + `LaTeXTemplateRegistry` exist, and the builder's
+> preambles *and* its section order / visibility / spacing are style-driven behind **two** whole-document goldens
+> that pin the default output byte-for-byte (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`). D is the
+> first milestone that leaves Infrastructure — it adds Data/Persistence — and the first where a **decoded**
+> style reaches the builder, so tolerant decoding matters. Six milestones **A–F**,
 > scheduled out of `PLANNED.md`'s `Target: v0.7.0` entry (2026-07-28); see the v0.7.0 section at the bottom of
 > this file. **v0.6.2 (list actions, sorting & document previews) is
 > complete and merge-ready** — all five milestones
 > **A–E** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs and `README.md`
-> are done, and the full suite is green (773 cases, no warnings). **v0.6.1 (keyword
+> are done, and the full suite is green (801 cases, no warnings). **v0.6.1 (keyword
 > match & ATS coverage) is likewise complete.** Only the **device checks** below remain before the branch merges.
 >
 > **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
@@ -123,34 +124,6 @@ is the one call site that threads a style through (`texSource` / `latexPDF`).
 
 ---
 
-## Milestone C — Section order & visibility driven by the style
-
-`canonicalOrder(_:)` (Education → Experience → Projects → Skills → everything else) and `sectionVSpace(_:)` are
-hardcoded to match the hand-authored résumé. Both become style-driven.
-
-**Seam + files.** `Infrastructure/Tex/TexDocumentBuilder.swift` (the ordering/spacing helpers and their call
-site in the résumé assembly), reading `sectionOrder` / `hiddenSections` / section spacing from `LaTeXStyle`.
-
-- [ ] Order sections by the style's `sectionOrder`; drop those in `hiddenSections`.
-- [ ] Per-section `\vspace` from the style's spacing values, with today's values as the `.default`.
-- [ ] **(open call)** Unknown / generated section names not named in a user-defined order. *Recommended:* known
-      sections follow the style's order; unknown ones **append stably** (today's `return 4` fallback) — never
-      dropped, so a section the model invents can't vanish silently.
-- [ ] Hiding a section must not disturb the surrounding spacing (no double gap where a section was removed).
-- [ ] **Known divergence from today's output (found in A, don't "fix" it back).** The builder's two classifiers
-      disagree: `canonicalOrder(_:)` sorts "Employment" / "Work History" as *experience*, but `sectionVSpace(_:)`
-      omits those synonyms and gives them the generic `-1em`. A style has one bucket per section, so those titles
-      now take the experience `-1.5em`. Pinned by `LaTeXStyleTests.experienceSynonymsGainTheExperienceSpacing`;
-      the byte-for-byte regression must therefore exempt that one case (and say so in its fixture).
-
-**Tests.** Ordering + visibility unit tests over a fixture Markdown with all four canonical sections plus an
-unknown one: default order unchanged; a reordered style reorders; a hidden section is absent and the remaining
-spacing matches; the unknown section still appears last.
-
-**On-device.** n/a.
-
----
-
 ## Milestone D — Persistence: the styles library + default pointer
 
 Styles must survive relaunch and be reusable by name — the same shape as saved profiles.
@@ -194,6 +167,17 @@ offers "PDF — Portfolio (LaTeX)" / "LaTeX source (.tex)" plus the native `Expo
       sample — a live preview pays the `lualatex` latency on every keystroke. Disabled when `lualatex` is absent
       (the route already degrades that way).
 - [ ] Views stay dumb — all state on the VM; no `Process` or file I/O in Presentation.
+- [ ] **Bound the spacing / margin inputs.** Measured in C under `lualatex`: the shipped look already runs the
+      first section's rule ~2.6pt into the lead paragraph's glyph box, so more-negative section spacing collides
+      visibly (Compact's own values hit ~7.6pt and were reverted). The editor must bound what can be entered —
+      non-finite values are already neutralised in `LaTeXStyle.number`, but magnitude deliberately isn't clamped
+      there, because silently rewriting a typed number would hide it.
+- [ ] **Carried over from C — fix the `\arraystretch` leak before or with this milestone.** `renderSkills`
+      (`TexDocumentBuilder`) emits an ungrouped `\renewcommand{\arraystretch}{0.7}` that is never restored, so
+      it leaks into every section rendered after the skills grid (~3.15pt of row height). Pre-existing and
+      out of C's contract — it moves the golden's bytes — but **C made it reachable**: a user can now move skills
+      to the top or hide it, silently changing unrelated sections' row heights. Group it or reset after
+      `\end{cvskills}`, and re-capture both goldens in the same change (the only sanctioned re-capture).
 
 **Tests.** `lib/tests/Presentation/` — VM-level: the picker's selection reaches the export call; the manager's
 create/duplicate/delete drive the repository; deleting the default style clears/reassigns the pointer.

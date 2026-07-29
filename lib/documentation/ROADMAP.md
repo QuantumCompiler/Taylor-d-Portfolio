@@ -965,11 +965,23 @@ inject content. `TODO.md` has the granular breakdown + open calls.
       accent, Roboto, US Letter, non-default sizes/margins) is compiled under real `lualatex`. Seam:
       **Infrastructure/Tex** + Business call site. On-device: n/a.
 
-- [ ] **Milestone C — Section order & visibility from the style.** `canonicalOrder` (Education → Experience →
-      Projects → Skills) and `sectionVSpace` are hardcoded to the hand-authored résumé; both become style-driven
-      (reorder, show/hide, per-section spacing). Open call resolved as recommended: known sections follow the
-      style's order, **unknown ones append stably** — never dropped, so a model-invented section can't vanish.
-      Seam: **Infrastructure/Tex**. On-device: n/a.
+- [x] **Milestone C — Section order & visibility from the style.** ✅ **Done.** `canonicalOrder` and
+      `sectionVSpace` were hardcoded to the hand-authored résumé; both are now style-driven (reorder, show/hide,
+      per-bucket spacing) and the two statics were **deleted** rather than kept as delegates — their coverage
+      ported to `LaTeXStyleTests` expectation for expectation. Ordering is a **partition** over `sectionOrder`
+      (`LaTeXStyle.orderedSections`), not a `sorted(by:)`: the comparator's index tiebreak is undetectable by
+      test, whereas the partition makes document order structural and handles a duplicated bucket, an empty
+      order, and unnamed buckets by construction (mutation-verified — reversing within-bucket order now fails
+      four tests). Open call resolved as recommended: unknown/unnamed buckets **append stably**, never dropped;
+      only `hiddenSections` removes anything. Hiding leaves **no double gap** by construction (the `\vspace` is a
+      per-iteration prefix), pinned as byte equality against Markdown that never had the section. The lead
+      summary stays out of the style's reach — hiding `.other` must not delete it. One deliberate default change:
+      "Employment"/"Work History" take the experience `-1.5em` (the old builder's classifiers disagreed);
+      Milestone B's golden is otherwise byte-identical and was not regenerated. The **Compact** template's
+      tighter section spacing — inert until now — was measured under `lualatex` (it ran the first section's rule
+      ~7.6pt into the lead paragraph vs the default's ~2.6pt) and **reverted to canonical**; margins stay its
+      differentiator, and E must bound user-entered spacing. Non-finite spacing now formats as `0` rather than
+      emitting an uncompilable `\vspace{nanem}`. Seam: **Infrastructure/Tex**. On-device: n/a.
 
 - [ ] **Milestone D — Persistence: styles library + default pointer.** A `SavedDocumentStyle` (id / name / style)
       through `PersistentRecordStore` via a `SavedDocumentStylesRepository` (mirrors `SavedProfilesRepository`,

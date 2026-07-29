@@ -63,7 +63,10 @@ struct LaTeXTemplateRegistryTests {
         let compact = try #require(LaTeXTemplateRegistry.descriptor(for: .awesomeCVCompact))
         #expect(compact.requiredClassFiles == LaTeXTemplateRegistry.fallback.requiredClassFiles)
         #expect(compact.defaultStyle.margins != LaTeXStyle.default.margins)
-        #expect(compact.defaultStyle.sectionVSpace(forSectionTitled: "Experience") == "-2em")
+        #expect(compact.defaultStyle.letterParagraphSkipEm != LaTeXStyle.default.letterParagraphSkipEm)
+        // …but NOT in section spacing: tighter values collided with the lead paragraph once
+        // Milestone C made them live (measured under lualatex), so it keeps the canonical ones.
+        #expect(compact.defaultStyle.sectionVSpace(forSectionTitled: "Experience") == "-1.5em")
     }
 
     /// Resolving a *style* to its descriptor is total — it hands back the style's own template,
