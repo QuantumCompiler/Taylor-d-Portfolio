@@ -2932,3 +2932,35 @@ Full suite green (703 tests); build warning-free.
 
 **On-device.** n/a — pure Presentation value types, session-only and non-destructive. No persistence, no re-load,
 no model call.
+
+## Milestone D — Hide the raw-text preview for imported source documents (keep paste)  ✅ done  (`Presentation/Portfolio/{View,ViewModel}`; tests in `lib/tests/Presentation/Portfolio`)
+
+Each Portfolio → Profile résumé/cover-letter slot had a **"Show text"** toggle revealing a raw `TextEditor` of the
+document's extracted text. For an **imported file** that raw text is noise — the view worth reading is the
+**tidied** one on the Source Documents tab after Build Profile. The editor still has to exist for the **paste**
+path, though, since typing is the only way to get text in without a file. So the slot now has two states, keyed on
+the `fileName: String?` it already knew.
+
+- [x] **Imported (`fileName != nil`) — no raw preview.** The "Show text" toggle and the `TextEditor` are gone,
+      replaced by a one-line summary: the file name, its character count, and where to read it properly
+      ("Build Profile to read it tidied on the Source Documents tab"). This makes the résumé/cover-letter slots
+      match the **supporting-documents** slot (v0.6.0 Milestone I), which has never had an editor.
+- [x] **Pasted (`fileName == nil`) — unchanged.** Toggle, editor, and the existing `collapsedSummary` all behave
+      exactly as before, so the paste path is untouched.
+- [x] **Clear, resolving the open call as recommended.** An import was otherwise **un-undoable in-slot** — importing
+      is precisely what hides the editor, so without this a mis-picked file could only be replaced, never removed.
+      `clearDocument()` / `clearCoverLetter()` on [`PortfolioViewModel`](../src/Presentation/Portfolio/ViewModel/PortfolioViewModel.swift)
+      drop the file name **and** its text, and the slot falls back to the paste editor. They deliberately **don't**
+      touch `sourceText` / `readableText`: those belong to the profile that was *built*, not to the slot.
+- [x] **Import… becomes Replace… once a file is in**, so the two buttons read as what they now do.
+- [x] **The second open call resolved as recommended: no snippet.** Name + character count only — a read-only
+      preview of the raw text is exactly what's being removed.
+
+**Tests.** That Clear returns the slot to the paste state (`fileName` nil — what the view branches on — with no
+orphaned text, `canBuild` back to false, and pasting working afterwards); that clearing one slot leaves the other
+alone; that a cleared cover letter composes with `build()`'s own reset so no stale letter survives the next build;
+and that clearing after a build leaves the built `sourceText` / `readableText` / profile intact. Full suite green
+(707 tests); build warning-free. The rendering fork itself is a device check.
+
+**On-device.** n/a — a conditional in one view helper plus two view-model setters. No model call, no persistence
+change.

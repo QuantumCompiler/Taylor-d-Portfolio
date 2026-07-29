@@ -894,13 +894,18 @@ granular breakdown + open calls.
       stay separate — sharing them would mean churning `TrackerSort` for ~30 lines. Seam: **Presentation** only —
       both are pure, session-only, non-destructive view state. On-device: n/a.
 
-- [ ] **Milestone D — Hide the raw-text preview for imported source documents (keep paste).** Each Portfolio
-      résumé/cover-letter slot (`documentSlot`) has a "Show text" toggle revealing a raw `TextEditor` of the
-      extracted text — noise for an **imported** file, where the user only wants the tidied Source Documents view
-      after Build Profile. Gate the editor on import-vs-paste using the `fileName: String?` the slot already
-      knows: imported → a compact summary (file name + char count via the existing `collapsedSummary`) plus Clear;
-      pasted (`fileName == nil`) → the editor unchanged, so pasting still works. Mirrors the already-editorless
-      supporting-documents slot (v0.6.0 I). Seam: **Presentation only** — no VM/Business/Data change. On-device: n/a.
+- [x] **Milestone D — Hide the raw-text preview for imported source documents (keep paste).** ✅ **Done.** Each
+      Portfolio résumé/cover-letter slot (`documentSlot`) had a "Show text" toggle revealing a raw `TextEditor` of
+      the extracted text — noise for an **imported** file, where the user only wants the tidied Source Documents
+      view after Build Profile. The editor is now gated on the `fileName: String?` the slot already knew: imported →
+      a one-line summary (name, character count, and where the tidied form appears) with **Clear** and
+      **Replace…**; pasted (`fileName == nil`) → the editor unchanged, so pasting still works. Clear was the open
+      call, resolved as recommended — without it an import is **un-undoable in-slot**, since importing is what hides
+      the editor; `clearDocument()` / `clearCoverLetter()` drop the file name and its text but deliberately leave a
+      previous build's `sourceText` / `readableText` alone (those belong to the built profile). No read-only snippet
+      of the raw text, per the second open call. Brings these slots in line with the already-editorless
+      supporting-documents slot (v0.6.0 I). Seam: **Presentation only** (view conditional + two VM setters) — no
+      Business/Data change. On-device: n/a.
 
 - [ ] **Milestone E — Full source-document preview (remove both truncations).** The preview truncates **twice**:
       a `.frame(maxHeight: 220)` in `documentDisclosure` that merely *looks* cut off, and the real one —

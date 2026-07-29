@@ -9,10 +9,11 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.2 — list actions, sorting & document previews (in progress). Next: Milestone D.**
-> See "v0.6.2" below: five milestones **A–E**, scheduled out of `PLANNED.md` (its five `Target: v0.6.2` entries)
-> on 2026-07-28. **Milestones A (discoverable remove-from-Tracker), B (multi-select bulk actions) and C (sort /
-> filter parity) are done** — write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`; **D–E remain**. **v0.6.1 (keyword match & ATS coverage) is complete and merge-ready** — all four milestones
+> **Current focus. v0.6.2 — list actions, sorting & document previews (in progress). Next: Milestone E — the last
+> one.** See "v0.6.2" below: five milestones **A–E**, scheduled out of `PLANNED.md` (its five `Target: v0.6.2`
+> entries) on 2026-07-28. **Milestones A (discoverable remove-from-Tracker), B (multi-select bulk actions), C (sort
+> / filter parity) and D (no raw preview for imports) are done** — write-ups in `MILESTONES.md`, ticked in
+> `ROADMAP.md`; **only E remains**. **v0.6.1 (keyword match & ATS coverage) is complete and merge-ready** — all four milestones
 > **A–D** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs, `README.md`, and
 > `MARKETING_VERSION = 0.6.1` are done. Only the **device checks** below remain before that branch merges.
 >
@@ -37,6 +38,11 @@ doing.
 >   applications match your filters" **with the bar still visible** and Clear working (not the "No applied
 >   applications" stage-empty message); and that both tabs' filter bars look and behave identically (they're now one
 >   shared control). Listings with no salary / no posted date sort **last** either direction.
+> - **v0.6.2 D** — on Portfolio → Profile, **importing** a résumé/cover letter shows only the file name + character
+>   count (no "Show text", no raw editor), with **Clear** and **Replace…**; **Clear** brings the paste editor back
+>   empty and pasting still builds. With **no** file imported the slot behaves exactly as before. After Build
+>   Profile the tidied text still appears under **Source Documents**, and clearing the slot afterwards doesn't
+>   disturb the built profile's copy.
 > - **v0.6.1 C** — generate an application for a real posting: the **coverage panel** appears below the two
 >   documents with the covered (green) / missing (amber) keyword capsules, the must-have headline count is right,
 >   it updates on Regenerate, it **survives reopening** the saved result, and it's **absent** for a result
@@ -80,41 +86,6 @@ the tidied one). **Almost entirely Presentation** — the one exception is Miles
 - [x] `# v0.6.2` release header added to `MILESTONES.md`.
 - [ ] Update `README.md`'s **Next:** line (still says the next version's number and theme are undecided) and add
       v0.6.2's summary under "Version history" when the release wraps.
-
----
-
-## Milestone D — Hide the raw-text preview for imported source documents (keep paste)
-
-**What's wanted.** On the Portfolio → Profile tab, each résumé/cover-letter upload slot
-([`documentSlot`](../src/Presentation/Portfolio/View/PortfolioView.swift:152)) has a **"Show text"** toggle that
-reveals a raw `TextEditor` (`:186`) of the document's extracted text. For an **imported file** that raw extracted
-text is noisy and not worth previewing — the user only cares about the **tidied** view (the Source Documents tab,
-`readableText`) after **Build Profile**. So: **when a file is imported, drop the raw-text preview**; the nicely
-formatted post-build details stay. **Keep the paste path** — the same editor is how a user types/pastes text
-instead of importing, so it must remain available when there's no imported file.
-
-**Seam + files (Presentation-only).** `documentSlot` already knows `fileName: String?` (set on import —
-`viewModel.sourceFileName` at `:46` / `coverLetterFileName` at `:63`).
-
-- [ ] **Imported (`fileName != nil`):** replace the "Show text" toggle + `TextEditor` with a compact **summary** —
-      file name + character count, i.e. the existing `collapsedSummary` (`:247`) — plus a **Clear/Remove**
-      affordance. **No raw-text preview.**
-- [ ] **Paste (`fileName == nil`):** keep the `TextEditor` unchanged so typing/pasting still works.
-- [ ] Wire **Clear** to drop `fileName` + text so the paste editor returns (otherwise an import can't be undone
-      in-slot).
-- [ ] Leave the **Source Documents** tab (`sourceDocumentsSection`, `:263`) untouched — it still shows each saved
-      profile's tidied `readableText` after build.
-- [ ] **(open call) Show a tiny read-only snippet of the import, or nothing?** *Recommended:* **nothing** (name +
-      char count only) — the raw preview is exactly what's being removed; the tidied post-build view is where it's
-      read.
-
-**Tests.** Presentation conditional; assert at the VM level that Clear resets `sourceFileName` /
-`coverLetterFileName` **and** the paired text, so the slot returns to the paste state. The rendering fork is a
-device check.
-
-**On-device.** n/a — pure Presentation (conditional rendering in one view helper). The **Supporting-documents**
-slot is already import-only with no editor (v0.6.0 Milestone I); this brings the résumé/cover-letter slots close
-to that, just retaining a paste editor when no file is imported.
 
 ---
 
