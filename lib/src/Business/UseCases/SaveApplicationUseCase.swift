@@ -7,7 +7,8 @@
 
 import Foundation
 
-/// Persists a generated ``ApplicationKit`` for a job so it can be reopened later.
+/// Persists a generated ``ApplicationKit`` — with the ``TargetBrief`` it was tailored
+/// against (v0.6.1 Milestone B) — for a job so it can be reopened later.
 nonisolated struct SaveApplicationUseCase: Sendable {
     let repository: SavedApplicationsRepository
 
@@ -15,7 +16,7 @@ nonisolated struct SaveApplicationUseCase: Sendable {
         self.repository = repository
     }
 
-    func callAsFunction(_ kit: ApplicationKit, forJobID jobID: String) async throws {
-        try await repository.save(kit, forJobID: jobID)
+    func callAsFunction(_ kit: ApplicationKit, brief: TargetBrief? = nil, forJobID jobID: String) async throws {
+        try await repository.save(kit, brief: brief, forJobID: jobID)
     }
 }

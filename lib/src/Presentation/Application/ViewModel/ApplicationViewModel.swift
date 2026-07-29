@@ -16,6 +16,11 @@ import PDFKit
 @Observable
 final class ApplicationViewModel {
     private(set) var kit: ApplicationKit?
+    /// The ``TargetBrief`` the shown ``kit`` was generated against (v0.6.1 Milestone B) — the
+    /// only place the posting's keywords exist, so keyword coverage reads them from here. Held
+    /// in lockstep with `kit`; `nil` when nothing is generated, or when a reopened saved kit
+    /// predates the brief being persisted alongside it.
+    private(set) var brief: TargetBrief?
     private(set) var isGenerating = false
     private(set) var errorMessage: String?
     /// Whether the shown kit was loaded from storage (vs freshly generated).
@@ -284,10 +289,14 @@ final class ApplicationViewModel {
         isGenerating = false
         if let loadApplication, let saved = try? await loadApplication(forJobID: job.id) {
             kit = saved
+            // Absent for records written before the brief was paired with the kit — coverage
+            // is then simply unavailable for that saved result, not wrong.
+            brief = (try? await loadApplication.brief(forJobID: job.id)) ?? nil
             isSaved = true
             refreshLengthGate()
         } else {
             kit = nil
+            brief = nil
             isSaved = false
             resumePageCount = 0
         }
@@ -300,24 +309,31 @@ final class ApplicationViewModel {
         isGenerating = true
         errorMessage = nil
         kit = nil
+        brief = nil
         isSaved = false
         rankOutcome = nil
         defer { isGenerating = false }
         do {
             let produced: ApplicationKit
+            let producedBrief: TargetBrief
             if let target = generationSettings.desiredRankMatch, let generateToTarget {
                 let outcome = try await generateToTarget(job: job, profile: profile, grounding: grounding,
                                                          target: target,
                                                          additionalContext: generationSettings.additionalContext)
                 produced = outcome.kit
+                producedBrief = outcome.brief
                 rankOutcome = outcome
             } else {
-                produced = try await generateApplication(job: job, profile: profile, grounding: grounding, settings: generationSettings)
+                let outcome = try await generateApplication(job: job, profile: profile, grounding: grounding, settings: generationSettings)
+                produced = outcome.kit
+                producedBrief = outcome.brief
             }
             kit = produced
+            brief = producedBrief
             refreshLengthGate()
-            // Best-effort persist — a storage failure shouldn't lose the generated output.
-            try? await saveApplication?(produced, forJobID: job.id)
+            // Best-effort persist — a storage failure shouldn't lose the generated output. The
+            // brief rides along so a reopened result can still report keyword coverage.
+            try? await saveApplication?(produced, brief: producedBrief, forJobID: job.id)
         } catch {
             errorMessage = Self.describe(error)
         }

@@ -109,6 +109,21 @@ struct GenerateToTargetUseCaseTests {
         #expect(await provider.lastAdditionalContext == "emphasize EV Charging")
     }
 
+    /// v0.6.1 Milestone B — the loop builds the brief once, up front, and carries it out on
+    /// **both** exits so coverage works whether or not the target was met.
+    @Test func carriesTheBriefOutOnBothExits() async throws {
+        let reached = try await GenerateToTargetUseCase(provider: ScoringStubProvider(scores: [90]))(
+            job: job, profile: profile, target: 80
+        )
+        #expect(reached.brief.roleTitle == "R")
+
+        let capped = try await GenerateToTargetUseCase(provider: ScoringStubProvider(scores: [50]), maxRounds: 2)(
+            job: job, profile: profile, target: 95
+        )
+        #expect(capped.reachedTarget == false)
+        #expect(capped.brief.roleTitle == "R")
+    }
+
     @Test func fidelityEscalatesEachRound() {
         let useCase = GenerateToTargetUseCase(provider: ScoringStubProvider(scores: [0]))
         #expect(useCase.escalatedFidelity(round: 0) == 0.5)    // curated

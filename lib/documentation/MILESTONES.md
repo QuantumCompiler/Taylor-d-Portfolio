@@ -2653,3 +2653,43 @@ de-duplication, the must-have headline vs. the all-tier breakdown, and the empty
 keywords, empty résumé). Full suite green; build warning-free.
 
 **On-device.** n/a — pure local string matching. No LLM call, no network, no persistence.
+
+## Milestone B — Surface the `TargetBrief` out of generation  ✅ done  (`Business/UseCases` + `Data/Persistence/SavedApplicationsRepository` + `Presentation/Application/ApplicationViewModel`)
+
+The posting's keywords existed only *inside* generation and were then thrown away:
+[`GenerateApplicationUseCase`](../src/Business/UseCases/GenerateApplicationUseCase.swift) built the stage-1
+`TargetBrief` and returned just the `ApplicationKit`, `GenerateToTargetUseCase.Outcome` carried no brief, and
+`SavedApplicationsRepository` persisted only the kit — so `TargetBrief` never reached Presentation and a reopened
+saved kit had no keywords either. Milestone A's computation had no input. B carries the brief out and pairs it with
+the kit in storage. **No `LLMProvider` change** — nothing to forward in `SettingsBackedLLMProvider`.
+
+- [x] **`GenerateApplicationUseCase` returns an `Outcome`.** A `struct Outcome: Sendable, Equatable { kit, brief }`
+      mirroring `GenerateToTargetUseCase.Outcome`, so both generation paths hand back the same pair rather than one
+      returning a bare kit.
+- [x] **`GenerateToTargetUseCase.Outcome` carries the brief.** The loop already builds it once up front; it's now
+      returned on **both** exits — target reached, and best-attempt-at-the-cap.
+- [x] **`ApplicationViewModel.brief`.** A `private(set) var brief: TargetBrief?` set from whichever path ran and
+      cleared in lockstep with `kit` (start of `generate`, and the miss branch of `loadSaved`), so a failed
+      regeneration can never leave a stale brief pointing at a résumé that no longer exists.
+- [x] **The brief is persisted *inside the kit's own record*** — resolving the open call, but not as the
+      "sibling `SavedBriefsRepository`" the plan sketched. `SavedApplicationsRepository` now encodes a private
+      `StoredApplication { kit, brief }` envelope under its existing `applicationKit` kind. Keyword coverage
+      compares a résumé against **the brief that produced it**, so one latest-wins record makes it structurally
+      impossible for the two to drift apart — and `DeleteSavedJobUseCase` already forgets both in its existing
+      single delete, so the design adds **no orphan class and no new composition wiring**. `save(_:brief:forJobID:)`
+      and `SaveApplicationUseCase` take the brief with a `nil` default; `brief(forJobID:)` is a new read on the
+      repository and on `LoadApplicationUseCase`, leaving `kit(forJobID:)` (and `JobDetailView`'s
+      "already generated?" probe) untouched.
+- [x] **Back-compatible reads.** `kit(forJobID:)` tries the envelope, then falls back to the legacy bare-kit
+      encoding, so records written before B still load — they simply report no brief, and coverage is *unavailable*
+      for them rather than wrong.
+
+**Tests.** Business — `GenerateApplicationUseCase` returns the brief it tailored against (and the existing
+two-stage test now reads `outcome.kit`); the rank-target loop carries the brief out on both the target-reached and
+capped exits. Data/Persistence — brief round-trips beside the kit, saving without one still stores the kit, a later
+save replaces **both** (no stale brief outliving its résumé), and a legacy bare-kit blob still decodes with a nil
+brief. Presentation — generate exposes the brief *and* persists it, reopening a saved result restores it without
+calling the engine, a legacy record leaves it nil, and a failed regeneration clears it along with the kit. Full
+suite green; build warning-free.
+
+**On-device.** n/a — reuses the existing stage-1 call (no extra LLM work); the added persistence is local.

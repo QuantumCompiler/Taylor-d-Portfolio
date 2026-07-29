@@ -97,9 +97,19 @@ struct UseCaseTests {
     @Test func generateApplicationRunsBothStagesAndThreadsTheBrief() async throws {
         let useCase = GenerateApplicationUseCase(provider: TaggingProvider(tag: "KIT"))
         let job = JobListing(id: "a", title: "iOS Engineer", company: "c", location: "l", description: "d")
-        let kit = try await useCase(job: job, profile: profile)
+        let outcome = try await useCase(job: job, profile: profile)
         // "KIT" proves stage 2 ran; ":iOS Engineer" proves the stage-1 brief threaded in.
-        #expect(kit.resumeMarkdown == "KIT:iOS Engineer")
+        #expect(outcome.kit.resumeMarkdown == "KIT:iOS Engineer")
+    }
+
+    /// v0.6.1 Milestone B — the stage-1 brief comes back out instead of being discarded, so
+    /// the posting's keywords are available to report coverage against.
+    @Test func generateApplicationReturnsTheBriefItTailoredAgainst() async throws {
+        let useCase = GenerateApplicationUseCase(provider: TaggingProvider(tag: "KIT"))
+        let job = JobListing(id: "a", title: "iOS Engineer", company: "Acme", location: "l", description: "d")
+        let outcome = try await useCase(job: job, profile: profile)
+        #expect(outcome.brief.roleTitle == "iOS Engineer")
+        #expect(outcome.brief.company == "Acme")
     }
 
     @Test func searchAndRankSearchesThenRanks() async throws {

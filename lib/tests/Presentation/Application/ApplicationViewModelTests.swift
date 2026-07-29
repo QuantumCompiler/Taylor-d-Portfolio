@@ -129,6 +129,69 @@ struct ApplicationViewModelTests {
         #expect(try await repo.kit(forJobID: job.id)?.resumeMarkdown == "FRESH")   // latest-wins persisted
     }
 
+    // MARK: v0.6.1 Milestone B — the brief travels with the kit
+
+    private func savedBrief(_ role: String = "t") -> TargetBrief {
+        TargetBrief(company: "c", roleTitle: role, mustHaveKeywords: ["Swift"],
+                    niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+
+    @Test func generateExposesTheBriefAndPersistsItWithTheKit() async throws {
+        let repo = SavedApplicationsRepository(store: InMemoryRecordStore())
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: PresentationStubProvider(kitResume: "RESUME")),
+            saveApplication: SaveApplicationUseCase(repository: repo)
+        )
+        await vm.generate(for: job, profile: profile)
+
+        #expect(vm.brief?.roleTitle == "t")   // the stub briefs from the job's title
+        #expect(try await repo.brief(forJobID: job.id)?.roleTitle == "t")
+    }
+
+    @Test func reopeningASavedResultRestoresItsBrief() async throws {
+        let repo = SavedApplicationsRepository(store: InMemoryRecordStore())
+        try await repo.save(savedKit("# Saved"), brief: savedBrief(), forJobID: job.id)
+        let provider = RecordingGenProvider()
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: provider),
+            loadApplication: LoadApplicationUseCase(repository: repo)
+        )
+        await vm.loadSaved(for: job)
+
+        #expect(vm.kit?.resumeMarkdown == "# Saved")
+        #expect(vm.brief?.mustHaveKeywords == ["Swift"])
+        #expect(await provider.generateCalls == 0)   // still no redundant generation
+    }
+
+    @Test func reopeningALegacySavedKitLeavesTheBriefNil() async throws {
+        let repo = SavedApplicationsRepository(store: InMemoryRecordStore())
+        try await repo.save(savedKit("# Saved"), forJobID: job.id)   // no brief stored
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: RecordingGenProvider()),
+            loadApplication: LoadApplicationUseCase(repository: repo)
+        )
+        await vm.loadSaved(for: job)
+
+        #expect(vm.kit?.resumeMarkdown == "# Saved")   // the kit still loads
+        #expect(vm.brief == nil)                       // coverage is simply unavailable
+    }
+
+    @Test func aFailedGenerationClearsTheBriefAlongWithTheKit() async throws {
+        let repo = SavedApplicationsRepository(store: InMemoryRecordStore())
+        try await repo.save(savedKit("# Saved"), brief: savedBrief(), forJobID: job.id)
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: PresentationStubProvider(shouldThrow: true)),
+            loadApplication: LoadApplicationUseCase(repository: repo)
+        )
+        await vm.loadSaved(for: job)
+        #expect(vm.brief != nil)
+
+        await vm.generate(for: job, profile: profile)   // "Regenerate", which fails
+        #expect(vm.kit == nil)
+        #expect(vm.brief == nil)                        // no stale brief left behind
+        #expect(vm.errorMessage != nil)
+    }
+
     // MARK: T-B — generation grounding
 
     @Test func generateThreadsGroundingThroughToTheProvider() async {

@@ -9,12 +9,13 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.1 — keyword match & ATS coverage (in progress) → Milestone B.** A **patch release** on
+> **Current focus. v0.6.1 — keyword match & ATS coverage (in progress) → Milestone C.** A **patch release** on
 > shipped v0.6.0, scheduled out of `PLANNED.md` (the *keyword match / ATS coverage at generation* entry, its sole
-> `Target: v0.6.1`). Four milestones **A–D**, in build order: ~~**A** (pure `KeywordCoverage` value type)~~ **✅
-> done — write-up in `MILESTONES.md`** → **B** (surface the `TargetBrief` so the UI has the posting's keywords) →
-> **C** (the coverage panel) → **D** (the optional keyword-emphasis generation control). **Pick up at Milestone
-> B.** Milestones restart at **A** and commit as `v0.6.1 : Milestone X Completed`.
+> `Target: v0.6.1`). Four milestones **A–D**, in build order: ~~**A** (pure `KeywordCoverage` value type)~~ and
+> ~~**B** (surface the `TargetBrief`)~~ **✅ done — write-ups in `MILESTONES.md`** → **C** (the coverage panel) →
+> **D** (the optional keyword-emphasis generation control). **Pick up at Milestone C** — `ApplicationViewModel`
+> now exposes both `kit` and `brief`, which is everything the panel needs. Milestones restart at **A** and commit
+> as `v0.6.1 : Milestone X Completed`.
 >
 > **v0.6.0 (richer grounding, job detail & sources) shipped** — all eleven milestones **A–K** are written up
 > in `MILESTONES.md` and ticked in `ROADMAP.md`.
@@ -65,45 +66,6 @@ résumé at all. Natural pairing with keyword coverage, but it's an export/templ
 `ExportTemplate` / `TexDocumentBuilder`, not this release. If Taylor wants it, spec it as its own `PLANNED.md`
 entry with its own `Target:`.
 
-## Milestone B — Surface the `TargetBrief` out of generation
-
-**What's wrong.** The posting's keywords exist only *inside* generation and are then thrown away.
-[`GenerateApplicationUseCase`](../src/Business/UseCases/GenerateApplicationUseCase.swift:28) builds the brief and
-returns only the `ApplicationKit`; [`GenerateToTargetUseCase`](../src/Business/UseCases/GenerateToTargetUseCase.swift:45)
-does the same and its `Outcome` (`:20`) carries no brief. `TargetBrief` never reaches Presentation, and
-[`SavedApplicationsRepository`](../src/Data/Persistence/SavedApplicationsRepository.swift:17) persists only the
-kit under `kind = "applicationKit"` — so a **reopened** saved kit has no keywords either. Milestone C's panel
-can't exist without this.
-
-**Seam + files (Business + Presentation; no LLM/provider change).**
-- Grow `GenerateApplicationUseCase.callAsFunction` to return the brief alongside the kit — a small
-  `Outcome` struct mirroring `GenerateToTargetUseCase.Outcome` reads better than a tuple and leaves room later.
-- Add `brief: TargetBrief` to `GenerateToTargetUseCase.Outcome` (`:20`) — it's already in hand at `:45`.
-- [`ApplicationViewModel`](../src/Presentation/Application/ViewModel/ApplicationViewModel.swift): a
-  `private(set) var brief: TargetBrief?` set in `generate(...)` (`:298`) on **both** paths (single-pass `:315`
-  and rank-target `:309`), and cleared where `kit` / `rankOutcome` are reset (`:302`–`:304`).
-
-**Sub-tasks.**
-- [ ] `GenerateApplicationUseCase` returns kit **+** brief; update its call site in `ApplicationViewModel.generate`.
-- [ ] `GenerateToTargetUseCase.Outcome` carries the brief; update `rankOutcome` consumers (`rankOutcomeNote`, `:111`).
-- [ ] `ApplicationViewModel.brief` set/cleared in lockstep with `kit`.
-- [ ] **(open call) What happens on the reopen path (`loadSaved(for:)`, `:280`)?** There's no brief for a kit
-      loaded from storage. *Recommended:* **persist the brief** next to the kit — a sibling
-      `SavedBriefsRepository` (or a second `kind` on the same store, keyed by `JobListing.id`, latest-wins like
-      `SavedApplicationsRepository.save`) written in the same best-effort step as `saveApplication` (`:320`), and
-      read back in `loadSaved`. It's the same pattern already in the file and makes the panel work for saved
-      results, which is where the user will most often look. *Fallback if that feels heavy:* leave `brief` nil on
-      reopen and let C hide the panel (see C's empty-state sub-task).
-- [ ] Confirm no `LLMProvider` method changes — nothing to forward in `SettingsBackedLLMProvider`
-      (`Composition.swift:366`+).
-
-**Tests.** `lib/tests/Business/` — `GenerateApplicationUseCase` returns the brief the provider produced;
-`GenerateToTargetUseCaseTests` extended for the brief on `Outcome` (including the best-attempt path, `:81`).
-`lib/tests/Presentation/Application/` — the VM exposes the brief after generate and clears it on the next run;
-if the brief is persisted, a round-trip test in `lib/tests/Data/Persistence/`.
-
-**On-device.** n/a — reuses the existing stage-1 call (no extra LLM work); persistence, if added, is local.
-
 ## Milestone C — Coverage panel in the Application view
 
 **What's wanted.** Show the user, on the generated result, **"Posting keywords: X/Y covered"** with the covered
@@ -124,8 +86,8 @@ generate/regenerate.
 - [ ] Place it in `content` (`:429`) — **(open call) above or below the two documents?** *Recommended:*
       **below the documents, above the disclosures/gaps**, so the user reads the output first, then the
       alignment report, then the honesty surfaces.
-- [ ] Empty state: no brief (a saved kit reopened before B's persistence, or a legacy record) → **hide** the
-      panel rather than showing a misleading "0/0 covered".
+- [ ] Empty state: no brief — a saved kit whose record predates Milestone B, so `ApplicationViewModel.brief`
+      comes back nil — → **hide** the panel rather than showing a misleading "0/0 covered".
 - [ ] Zero-keyword posting (a thin brief) → hide the panel too; don't render an empty box.
 
 **Tests.** `lib/tests/Presentation/Application/` — the VM's `coverage` is nil without a kit/brief and reflects

@@ -798,16 +798,19 @@ open calls.
       `JobMatch.matchedSkills` / `missingSkills`, which score the *profile* rather than the generated text.
       Seam: Data (new model) only. On-device: n/a — pure local string matching, no model call.
 
-- [ ] **Milestone B — Surface the `TargetBrief` out of generation.** The posting's keywords exist only *inside*
-      generation and are thrown away: `GenerateApplicationUseCase` builds the brief and returns just the
-      `ApplicationKit`, `GenerateToTargetUseCase.Outcome` carries no brief, and `SavedApplicationsRepository`
-      persists only the kit — so a reopened saved kit has no keywords either, and A's computation has no input.
-      Return the brief alongside the kit (a small `Outcome` mirroring the rank-target one), add it to
-      `GenerateToTargetUseCase.Outcome`, and hold it on `ApplicationViewModel` in lockstep with `kit`. Open
-      call: persist the brief beside the kit (recommended — same `PersistentRecordStore` pattern, keyed by
-      `JobListing.id`) so the panel also works for reopened results, vs. hiding the panel on reopen. Seam:
-      Business + Presentation (+ optional Data persistence); **no `LLMProvider` change**, so nothing to forward
-      in `SettingsBackedLLMProvider`. On-device: n/a — reuses the existing stage-1 call, no extra LLM work.
+- [x] **Milestone B — Surface the `TargetBrief` out of generation.** ✅ **Done.** The posting's keywords existed
+      only *inside* generation and were thrown away: `GenerateApplicationUseCase` built the brief and returned just
+      the `ApplicationKit`, `GenerateToTargetUseCase.Outcome` carried no brief, and `SavedApplicationsRepository`
+      persisted only the kit — so a reopened saved kit had no keywords either, and A's computation had no input.
+      Both use cases now return an `Outcome` pairing kit **+** brief, and `ApplicationViewModel.brief` is held in
+      lockstep with `kit` (cleared on a failed regeneration, so no stale brief survives its résumé). The open call
+      resolved to persisting the brief — but **inside the kit's own record**, as a `{kit, brief}` envelope under the
+      existing `applicationKit` kind rather than a sibling repository: coverage compares a résumé against the brief
+      that produced it, so one latest-wins record can't let them drift apart, `DeleteSavedJobUseCase` already
+      forgets both, and no new composition wiring is needed. Legacy bare-kit records still decode (brief nil →
+      coverage unavailable, not wrong). Seam: Business + Data/Persistence + Presentation; **no `LLMProvider`
+      change**, so nothing to forward in `SettingsBackedLLMProvider`. On-device: n/a — reuses the existing stage-1
+      call, no extra LLM work.
 
 - [ ] **Milestone C — Coverage panel in the Application view.** Surface **"Posting keywords: X/Y covered"** on
       the generated result with the covered list (green) and missing list (amber), grouped by tier, computed on
