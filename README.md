@@ -153,8 +153,13 @@ Gave ranking and tailored generation **more real signal to work from** — and *
   format** and rendered the same way — done **progressively** (rows appear first, descriptions standardize in the
   background) — so results read consistently whatever the source and generation grounds on a uniform structure. *(Milestones A–K.)*
 
-**Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
-from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
+**In progress — v0.6.1 (keyword match & ATS coverage):** a patch release that shows how well a generated résumé
+covers the posting's **real** keywords, **in visible text** — covered vs. missing, per keyword tier — plus an
+opt-in control that weaves the must-have keywords in **where they truthfully apply** and routes the rest to the
+gap note. No hidden text, ever.
+
+**Next:** the version after that has its number and theme decided when development on it starts. Likely candidates
+come from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
 layer — or a specced `PLANNED.md` item (e.g. customizable LaTeX styles).
 
 ## Build & run

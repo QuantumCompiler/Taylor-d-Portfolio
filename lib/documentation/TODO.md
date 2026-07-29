@@ -9,13 +9,18 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. The next version (unstarted) — number + theme TBD.** See "Next version" at the bottom of this
-> file. **v0.6.0 (richer grounding, job detail & sources) is complete and merge-ready** — all eleven milestones
-> **A–K** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs, `README.md`, and
-> `MARKETING_VERSION = 0.6.0` are done. Only the **device checks** below remain before the branch merges.
+> **Current focus. v0.6.1 — keyword match & ATS coverage (in progress).** A **patch release** on shipped
+> v0.6.0, scheduled out of `PLANNED.md` (the *keyword match / ATS coverage at generation* entry, its sole
+> `Target: v0.6.1`). Four milestones **A–D**, in build order: **A** (pure `KeywordCoverage` value type) →
+> **B** (surface the `TargetBrief` so the UI has the posting's keywords) → **C** (the coverage panel) →
+> **D** (the optional keyword-emphasis generation control). **Start at Milestone A.** Milestones restart at
+> **A** and commit as `v0.6.1 : Milestone X Completed`.
 >
-> **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each milestone's
-> full write-up is in `MILESTONES.md`). Settings → About should read **0.6.0**.
+> **v0.6.0 (richer grounding, job detail & sources) shipped** — all eleven milestones **A–K** are written up
+> in `MILESTONES.md` and ticked in `ROADMAP.md`.
+>
+> **⚠️ Awaiting device checks** — carried forward; everything automatable is done and green, but these need a
+> real run (each milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.6.1**.
 > - **v0.5.0** — detail + Application as separate windows; cross-window list refresh; explicit Generate + options
 >   panel (fidelity / aspects / presets / embellished disclosures / rank-target loop); Results swipe + remove-from-Tracker; no spurious Photos/Music prompts.
 > - **v0.5.1** — awesome-cv LaTeX **PDF / `.tex`** export (needs `lualatex`; item hidden when TeX is absent); résumé
@@ -35,13 +40,192 @@ down only).
 
 ---
 
-# Next version — (unstarted; number + theme TBD)
+# v0.6.1 — keyword match & ATS coverage
 
-**Nothing is scheduled yet** — v0.6.0 is complete (see "Current focus" above) and the next version is unstarted.
+**The theme.** ATS / AI résumé screeners filter on a posting's keywords, and good candidates get
+auto-rejected for missing a few. The honest, effective answer — explicitly **not** hidden "invisible-ink"
+white-text keyword stuffing, which backfires (ATS parse to plain text, recruiters see it, LLM screeners flag
+it) — is to surface how well the generated résumé covers the posting's **real** keywords **in visible text**,
+so the user aligns truthfully with what the screener looks for. **Everything here is visible-text-only —
+that's the whole point.** Most of the data already exists: the posting's keywords are distilled into
+`TargetBrief` at generation stage 1, and the résumé is `ApplicationKit.resumeMarkdown`.
 
-**Milestones restart at Milestone A** for the next version (see the versioning note in `CLAUDE.md`). Its number
-and theme aren't chosen until development starts (see `CLAUDE.md` → "Never pre-name the next version"). At
-kickoff, pick a theme from `ROADMAP.md`'s Backlog (native `LanguageModel` provider seam, on-device embedding RAG,
-optional MCP tools) or a `PLANNED.md` entry (customizable LaTeX styles — v0.7.0; supporting profile documents was
-scheduled into v0.6.0 as Milestone I), assign the version number, bump `MARKETING_VERSION`, and break it into
-Milestone A, B, C… here.
+**Scope + layers.** Patch-sized (`.1`): a pure Data value type (A), a small Business/Presentation change to
+carry the brief out of generation (B), a Presentation panel (C), and a `GenerationSettings` flag + `Prompts`
+block (D). **No new seam and no `LLMProvider` change** — so nothing to forward in
+`SettingsBackedLLMProvider` (`Composition.swift:366`+).
+
+**Transparency.** Coverage reports **truthfully** what's in the visible résumé; D's emphasis option weaves in
+keywords that **genuinely apply** and routes the rest to the gap note, so the user sees covered vs. missing and
+decides what to claim. **No hidden text** — the deliberate opposite of the invisible-ink idea this replaces.
+
+**Out of scope (noted, not folded in).** An **ATS-friendly export mode** — standard section headings,
+single-column, selectable text (no text-in-images) — is what actually determines whether an ATS can *parse* the
+résumé at all. Natural pairing with keyword coverage, but it's an export/template concern touching
+`ExportTemplate` / `TexDocumentBuilder`, not this release. If Taylor wants it, spec it as its own `PLANNED.md`
+entry with its own `Target:`.
+
+## Milestone A — `KeywordCoverage`: pure covered-vs-missing computation
+
+**What's wanted.** A pure, unit-testable value type that answers "how much of this posting's keyword set
+actually appears in the generated visible résumé?" — the foundation C renders and D's prompt option
+complements. Nothing here touches the LLM or the UI.
+
+**Seam + files.**
+- New `lib/src/Data/Models/KeywordCoverage.swift` (Data · Models) — `nonisolated`, `Sendable`, pure, no I/O
+  (the layer note: it may import Infrastructure's `MarkdownPlainText`, since imports point **down**).
+- Inputs: the three posting tiers from [`TargetBrief`](../src/Data/Models/TargetBrief.swift) —
+  `mustHaveKeywords` (`:27`), `niceToHaveKeywords` (`:30`), `techStack` (`:33`) — and the **visible** résumé,
+  `ApplicationKit.resumeMarkdown` reduced via
+  [`MarkdownPlainText.plainText(from:)`](../src/Infrastructure/Text/MarkdownPlainText.swift:17).
+- Output: per-tier `covered` / `missing` lists plus roll-up counts for the "X/Y covered" headline.
+
+**Sub-tasks.**
+- [ ] Add `KeywordCoverage` with a per-tier breakdown (must-have / nice-to-have / tech stack) and
+      `coveredCount` / `totalCount` roll-ups.
+- [ ] Add the matcher: **case-insensitive, word-boundary** match with light normalization (trim, collapse
+      internal whitespace, fold diacritics, strip trailing punctuation); multi-word keywords match as phrases.
+      No stemming or synonyms in this pass.
+- [ ] Add a convenience initializer taking `(brief: TargetBrief, resumeMarkdown: String)` that does the
+      Markdown→plain-text reduction, so callers never hand-roll it.
+- [ ] **(open call) Which tiers count toward the headline number?** *Recommended:* weight **must-have** for the
+      "X/Y covered" figure, but **show all three tiers** in the breakdown.
+- [ ] **(open call) De-duplicate a keyword that appears in more than one tier?** *Recommended:* yes —
+      keep its **highest** tier only (must-have > nice-to-have > tech stack), so the headline can't
+      double-count.
+- [ ] **(open call) Cross-check against `JobMatch.matchedSkills` / `missingSkills`?** *Recommended:* **no** —
+      those come from *ranking the profile*, whereas coverage is specifically *posting keyword vs. the actual
+      generated résumé text*. Keep them separate; revisit only if the two visibly disagree in use.
+
+**Tests.** `lib/tests/Data/Models/KeywordCoverageTests.swift` — exact match; case-insensitivity; the
+word-boundary guarantee (`"Go"` must **not** match `"Google"`, `"React"` must not match `"Reactive"`);
+multi-word phrase keywords; a keyword present only in the Markdown syntax (e.g. inside a `**bold**` run) still
+counts once reduced to plain text; empty tiers; empty résumé; duplicate-across-tiers handling.
+
+**On-device.** n/a — pure local string matching, no model call, no network.
+
+## Milestone B — Surface the `TargetBrief` out of generation
+
+**What's wrong.** The posting's keywords exist only *inside* generation and are then thrown away.
+[`GenerateApplicationUseCase`](../src/Business/UseCases/GenerateApplicationUseCase.swift:28) builds the brief and
+returns only the `ApplicationKit`; [`GenerateToTargetUseCase`](../src/Business/UseCases/GenerateToTargetUseCase.swift:45)
+does the same and its `Outcome` (`:20`) carries no brief. `TargetBrief` never reaches Presentation, and
+[`SavedApplicationsRepository`](../src/Data/Persistence/SavedApplicationsRepository.swift:17) persists only the
+kit under `kind = "applicationKit"` — so a **reopened** saved kit has no keywords either. Milestone C's panel
+can't exist without this.
+
+**Seam + files (Business + Presentation; no LLM/provider change).**
+- Grow `GenerateApplicationUseCase.callAsFunction` to return the brief alongside the kit — a small
+  `Outcome` struct mirroring `GenerateToTargetUseCase.Outcome` reads better than a tuple and leaves room later.
+- Add `brief: TargetBrief` to `GenerateToTargetUseCase.Outcome` (`:20`) — it's already in hand at `:45`.
+- [`ApplicationViewModel`](../src/Presentation/Application/ViewModel/ApplicationViewModel.swift): a
+  `private(set) var brief: TargetBrief?` set in `generate(...)` (`:298`) on **both** paths (single-pass `:315`
+  and rank-target `:309`), and cleared where `kit` / `rankOutcome` are reset (`:302`–`:304`).
+
+**Sub-tasks.**
+- [ ] `GenerateApplicationUseCase` returns kit **+** brief; update its call site in `ApplicationViewModel.generate`.
+- [ ] `GenerateToTargetUseCase.Outcome` carries the brief; update `rankOutcome` consumers (`rankOutcomeNote`, `:111`).
+- [ ] `ApplicationViewModel.brief` set/cleared in lockstep with `kit`.
+- [ ] **(open call) What happens on the reopen path (`loadSaved(for:)`, `:280`)?** There's no brief for a kit
+      loaded from storage. *Recommended:* **persist the brief** next to the kit — a sibling
+      `SavedBriefsRepository` (or a second `kind` on the same store, keyed by `JobListing.id`, latest-wins like
+      `SavedApplicationsRepository.save`) written in the same best-effort step as `saveApplication` (`:320`), and
+      read back in `loadSaved`. It's the same pattern already in the file and makes the panel work for saved
+      results, which is where the user will most often look. *Fallback if that feels heavy:* leave `brief` nil on
+      reopen and let C hide the panel (see C's empty-state sub-task).
+- [ ] Confirm no `LLMProvider` method changes — nothing to forward in `SettingsBackedLLMProvider`
+      (`Composition.swift:366`+).
+
+**Tests.** `lib/tests/Business/` — `GenerateApplicationUseCase` returns the brief the provider produced;
+`GenerateToTargetUseCaseTests` extended for the brief on `Outcome` (including the best-attempt path, `:81`).
+`lib/tests/Presentation/Application/` — the VM exposes the brief after generate and clears it on the next run;
+if the brief is persisted, a round-trip test in `lib/tests/Data/Persistence/`.
+
+**On-device.** n/a — reuses the existing stage-1 call (no extra LLM work); persistence, if added, is local.
+
+## Milestone C — Coverage panel in the Application view
+
+**What's wanted.** Show the user, on the generated result, **"Posting keywords: X/Y covered"** with the covered
+list (green) and the missing list (amber), computed on the **visible** résumé and recomputed after every
+generate/regenerate.
+
+**Seam + files (Presentation only).**
+- A `coverage` computed property on `ApplicationViewModel` (`kit` + `brief` → `KeywordCoverage`) — because both
+  are `@Observable` state, it recomputes after generate/regenerate for free.
+- A `coverageSection` in [`ApplicationSheet`](../src/Presentation/Application/View/ApplicationSheet.swift:429),
+  rendered in `content` next to the existing result panels — `documentSection` (`:461`), `disclosuresSection`
+  (`:482`), `gapsSection` (`:502`) — as a `GroupBox` in the same visual family.
+
+**Sub-tasks.**
+- [ ] `ApplicationViewModel.coverage` (nil when either `kit` or `brief` is missing).
+- [ ] `coverageSection`: headline count + per-tier covered/missing chips (green / amber), matching the
+      `disclosuresSection` / `gapsSection` styling so it reads as part of the result, not a new UI language.
+- [ ] Place it in `content` (`:429`) — **(open call) above or below the two documents?** *Recommended:*
+      **below the documents, above the disclosures/gaps**, so the user reads the output first, then the
+      alignment report, then the honesty surfaces.
+- [ ] Empty state: no brief (a saved kit reopened before B's persistence, or a legacy record) → **hide** the
+      panel rather than showing a misleading "0/0 covered".
+- [ ] Zero-keyword posting (a thin brief) → hide the panel too; don't render an empty box.
+
+**Tests.** `lib/tests/Presentation/Application/` — the VM's `coverage` is nil without a kit/brief and reflects
+kit + brief when both are present; view rendering stays untested, consistent with the rest of the codebase.
+
+**On-device.** n/a — pure local rendering over A's computation.
+
+## Milestone D — Optional keyword-emphasis generation control
+
+**What's wanted.** An **opt-in** control that tells generation to weave the posting's must-have keywords into
+the **visible** résumé **where they truthfully apply**, and route the ones that don't fit into `gapNote` — so
+the user sees what's missing and decides. **Report-only stays the default** (A–C alone change nothing about
+what's generated).
+
+**Seam + files (Data + Presentation).**
+- [`GenerationSettings`](../src/Data/Models/GenerationSettings.swift) gains a dedicated
+  `emphasizeKeywords: Bool = false`.
+  **⚠️ Not a `TailoredAspect` case** — `PLANNED.md` recommended one, but the real code says otherwise:
+  `TailoredAspect` is documented and *prompted* as a **résumé section** (`:10`–`:16`), and
+  [`Prompts.generationControls`](../src/Data/LLM/Prompts.swift:546) renders the selection as
+  *"tailor ONLY these résumé sections — …"* (`:553`). A non-section case would corrupt that sentence and the
+  preset semantics. A flag costs one checkbox and keeps both clean.
+- Add the flag to `CodingKeys` (`:77`) so it persists into a `GenerationPreset`, defaulting `false` so legacy
+  preset blobs still decode; include it in `hasDefaultControls` (`:91`) so the default path stays
+  **byte-for-byte** the base prompt.
+- `Prompts.generationControls(_:)` (`:525`) appends the keyword clause when the flag is on. Note it **sharpens**
+  the existing Objective line (`:557`), which already says to foreground the brief's keywords "wherever they are
+  genuinely supported" — D turns that into an explicit *cover-it-or-declare-it* instruction rather than
+  duplicating it.
+- A checkbox in `generationControlsPanel`
+  ([`ApplicationSheet.swift:143`](../src/Presentation/Application/View/ApplicationSheet.swift:143)), near the
+  tailored-aspect checkboxes (`:167`–`:176`).
+
+**Sub-tasks.**
+- [ ] `GenerationSettings.emphasizeKeywords` + `CodingKeys` + `hasDefaultControls`; legacy-decode default.
+- [ ] `Prompts.generationControls` keyword clause: weave the **must-have** keywords into the visible résumé
+      **only where they're genuinely true** for this candidate; every keyword that can't be truthfully claimed
+      goes into `gapNote`. Explicitly **no hidden/white text, no keyword lists appended for the parser** — the
+      résumé stays a document a human reads.
+- [ ] The checkbox in `generationControlsPanel`, with a one-line caption naming what it does.
+- [ ] **(open call) Behaviour under a rank target?** `GenerateToTargetUseCase` builds its own
+      `GenerationSettings` per round (`:55`), discarding the user's fidelity/aspects — so the flag is dropped
+      unless threaded. *Recommended:* **thread it through**, exactly as `additionalContext` already rides along
+      (`:56`), and leave the checkbox enabled under a rank target (it's an alignment/honesty control, not a
+      latitude one) — unlike the fidelity slider and aspect checkboxes, which are correctly disabled by
+      `rankTargetOn` (`:260`).
+- [ ] **(open call) Which tiers does the prompt push?** *Recommended:* **must-have only** — nice-to-have and
+      tech-stack keywords stay reported (C) but unpushed, so the résumé isn't stuffed with marginal terms.
+
+**Tests.** `lib/tests/Data/LLM/` — with the flag off the prompt is **byte-for-byte** the current output; with it
+on the keyword clause appears exactly once and the gap-note routing instruction is present. `lib/tests/Data/Models/`
+— `GenerationSettings` Codable round-trip with the flag, and a legacy blob (no key) decoding to `false`;
+`hasDefaultControls` / `isDefault` unaffected when the flag is off.
+
+**On-device.** The optional emphasis is `.application`-task LLM work on the **existing** engine and prompt path —
+no new engine, task, or seam.
+
+## Release hygiene (v0.6.1)
+
+- [x] **`MARKETING_VERSION` → `0.6.1`** in all **4** copies in `project.pbxproj` (Debug/Release × app/test), so
+      Settings → About reports the real version (`CLAUDE.md` → "Keep the project version in sync").
+- [ ] On wrap: move each completed milestone's write-up into `MILESTONES.md`, tick it in `ROADMAP.md`, flip the
+      `## v0.6.1 —` header to **(complete)**, add the `README.md` version summary, and point the `README.md`
+      **Next:** line forward **without naming** the next version.
