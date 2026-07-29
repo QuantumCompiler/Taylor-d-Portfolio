@@ -3003,3 +3003,67 @@ suite green (719 tests); build warning-free.
 **On-device.** The UI change is free. Tidying now sends up to 12 000 characters instead of 6 000 on the
 `.profile` task — twice the input for one document, still bounded, and the remainder path costs **no** extra model
 work (it's appended locally, not generated).
+
+---
+
+# v0.7.0 — customizable LaTeX document styles
+
+A **feature release**, scheduled out of `PLANNED.md`'s single `Target: v0.7.0` entry (2026-07-28). The theme is
+**user-owned document presentation** for the awesome-cv LaTeX route. Six milestones **A–F**; milestones restart
+at **A**; commit as `v0.7.0 : Milestone X Completed`.
+
+## Milestone A — `LaTeXStyle` model + built-in template registry  ✅ done  (`Infrastructure/Tex/LaTeXStyle`, `Infrastructure/Tex/LaTeXTemplateRegistry`; tests in `lib/tests/Infrastructure/Tex`)
+
+**The gap.** Every presentation choice the LaTeX route makes lived as a string literal inside
+`TexDocumentBuilder`'s two preamble builders — class + base size, `\geometry`, `\fontdir`, section order
+(`canonicalOrder`) and per-section `\vspace` (`sectionVSpace`) — with the cover letter carrying its own,
+divergent set. There was nothing for a user setting to *be*.
+
+**What landed.** Two pure, `nonisolated`/`Sendable`/`Codable` files in Infrastructure · Tex, and **no behaviour
+change** — the builder still emits exactly what it did, so B and C can replace its literals behind a regression
+rather than in the same breath.
+
+- **`LaTeXStyle`** — `template`, `fontFamily`, `fontSizes`, `accent`, `pageSize`, `margins`, the letter's
+  `parskip` / `linespread`, `sectionOrder` + `hiddenSections` + `sectionSpacingEm`, and F's optional
+  `customPreamble`. Plus the small formatting helpers the builder will need (`geometryOptions` renders
+  `left=0.50cm, …` exactly as today; `sectionVSpace(forSectionTitled:)` renders `-1.5em`), so B/C consume a
+  string rather than re-deriving formats.
+- **`LaTeXStyle.default` reproduces today's output.** Three controls carry an explicit **`.templateDefault`**
+  case — font family, accent, page size — precisely because the current builder emits *no* `\newfontfamily`, no
+  `\colorlet`, and no paper option on the résumé (the letter's `a4paper` is the class's own). Modelling
+  "unchanged" as a first-class case is what keeps the default byte-identical instead of forcing a choice on the
+  user; picking `.usLetter` / `.a4` then applies to **both** documents, which is the unification B promises.
+- **Font size is the one per-document control** (`LaTeXFontSizes.resumePt` = 6, `.coverLetterPt` = 11). The two
+  classes scale everything off their base very differently, so a single shared number would render as two
+  unrelated text sizes. One style still, carrying the two bases.
+- **Accent** is `.templateDefault` / `.named(LaTeXAwesomeColor)` / `.custom(hex:)`, the named palette mirroring
+  the nine `awesome-*` colours the bundled classes define. A malformed custom hex resolves to **no override**
+  rather than emitting broken LaTeX.
+- **`LaTeXResumeSection`** (education / experience / projects / skills / other) is the vocabulary a style orders,
+  hides, and spaces; `classify(_:)` mirrors the builder's own title heuristics. A bucket left **out** of
+  `sectionOrder` sorts last rather than vanishing — only `hiddenSections` hides, so C can't silently drop a
+  model-invented section.
+- **`LaTeXTemplateRegistry`** — descriptors (identity, display name, summary, class names, required `.cls`
+  files, default style) in the `JobProviderRegistry` shape (v0.6.0 H-A), so adding a template is one appended
+  descriptor, never a view edit. `descriptor(for: style)` is **total** (falls back to the shipped template);
+  `available(in: assets)` filters to templates whose classes actually shipped, the same fail-soft posture as
+  `TexAssets.isComplete`. Two entries ship: **Portfolio (awesome-cv)**, whose default *is* `LaTeXStyle.default`,
+  and **Portfolio — Compact**, which reuses the same bundled classes with tighter margins and section spacing —
+  no new assets, and it keeps the registry (and E's picker) from being a list of one.
+
+**One deliberate divergence, found by the tests.** The builder's two classifiers disagree with each other:
+`canonicalOrder(_:)` treats "Employment" / "Work History" as *experience* (sorting them second), but
+`sectionVSpace(_:)` never lists those synonyms, so they fall through to the generic `-1em`. A style has one
+bucket per section, so the bucket wins and those titles pick up the experience `-1.5em`. C's byte-for-byte claim
+therefore holds **except** for a résumé whose experience section is titled "Employment" or "Work History" — the
+divergence is pinned by its own test (`experienceSynonymsGainTheExperienceSpacing`) rather than left to surface
+as a mystery diff.
+
+**Tests.** `LaTeXStyleTests` + `LaTeXTemplateRegistryTests` — the default style matches every value the builder
+hardcodes (asserted against `TexDocumentBuilder` itself, so the two can't drift); classification and order
+indices match `canonicalOrder`; reorder / hide / missing-spacing fallbacks; accent normalization and malformed
+hex; `Codable` round-trips including the associated-value accent; every `LaTeXTemplateID` has exactly one
+descriptor whose default style names its own template; availability against a fixture asset tree, a
+missing-class tree, and the **real app bundle**. Suite green (758 cases), build warning-free.
+
+**On-device.** n/a — pure value types, no model calls, no compile.

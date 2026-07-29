@@ -9,12 +9,15 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone A** (`LaTeXStyle` model + built-in
-> template registry). Six milestones **A–F**, scheduled out of `PLANNED.md`'s `Target: v0.7.0` entry (2026-07-28);
-> see the v0.7.0 section at the bottom of this file. **v0.6.2 (list actions, sorting & document previews) is
+> **Current focus: v0.7.0 — customizable LaTeX document styles. Milestone B** (parameterize `TexDocumentBuilder`'s
+> typography / geometry / colour / page size from a style). **Milestone A is done** — `LaTeXStyle` +
+> `LaTeXTemplateRegistry` exist and `LaTeXStyle.default` reproduces today's output, so B lands behind a
+> byte-for-byte regression (write-up in `MILESTONES.md`, ticked in `ROADMAP.md`). Six milestones **A–F**,
+> scheduled out of `PLANNED.md`'s `Target: v0.7.0` entry (2026-07-28); see the v0.7.0 section at the bottom of
+> this file. **v0.6.2 (list actions, sorting & document previews) is
 > complete and merge-ready** — all five milestones
 > **A–E** shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs and `README.md`
-> are done, and the full suite is green (719 tests, no warnings). **v0.6.1 (keyword
+> are done, and the full suite is green (758 cases, no warnings). **v0.6.1 (keyword
 > match & ATS coverage) is likewise complete.** Only the **device checks** below remain before the branch merges.
 >
 > **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
@@ -119,40 +122,6 @@ is the one call site that threads a style through (`texSource` / `latexPDF`).
 
 ---
 
-## Milestone A — `LaTeXStyle` model + built-in template registry
-
-The style has no home today; every choice is a literal in `TexDocumentBuilder`'s two preamble builders. Define
-the value type and the enumerable set of built-in templates first, so B–F have something to read.
-
-**Seam + files.** `Infrastructure/Tex` — new `LaTeXStyle.swift` + `LaTeXTemplateRegistry.swift`, alongside
-[`TexAssets`](../src/Infrastructure/Tex/TexAssets.swift) (which already resolves the bundled `lib/tex/` classes
-and fonts). Pure, `nonisolated`, `Sendable`, `Codable` — no I/O, no model calls.
-
-- [ ] `LaTeXStyle`: `template` (built-in template id), `fontFamily`, `fontSizePt`, `accentColor`, `pageSize`
-      (`.usLetter` / `.a4`), margins (left/top/right/bottom/footskip), section + line spacing, `sectionOrder`,
-      `hiddenSections`, and `customPreamble: String?` (Milestone F's override; nil here).
-- [ ] A `.default` style that reproduces **today's exact output** byte-for-byte — this is what makes B and C
-      safe to land (see their regression tests).
-- [ ] `LaTeXTemplateRegistry` — a **data-driven, enumerable** source of truth (mirror `JobProviderRegistry` from
-      v0.6.0 H-A): each descriptor pairs a bundled class set (resolved via `TexAssets`) with its default
-      `LaTeXStyle`. Adding a template = appending one descriptor + its `.cls` under `lib/tex/Class/`, never
-      hand-enumerating in a view.
-- [ ] Accent colour: model it as a value the builder can emit into awesome-cv's `\colorlet{awesome}{…}` /
-      `\definecolor` mechanism (`lib/tex/Class/Resume.cls` defines the `awesome-*` palette) — a hex string or a
-      small `RGBColor`-shaped value, **not** `Infrastructure/Export`'s `RGBColor` (that belongs to the native
-      exporter; don't cross-wire the two systems).
-- [ ] Font family choice restricted to **bundled** faces — today Roboto + Source Sans under `lib/tex/fonts/`.
-- [ ] **(open call)** Curating more families. *Recommended:* keep to the bundled two for now and note the
-      licensing + bundle-size cost of each addition; revisit in E once the picker exists.
-
-**Tests.** `lib/tests/Infrastructure/` — `LaTeXStyle` round-trips through `Codable`; the registry enumerates its
-descriptors and every one resolves against a fixture `TexAssets(root:)`; `.default` matches the documented
-current values.
-
-**On-device.** n/a — pure value types, no model calls.
-
----
-
 ## Milestone B — Parameterize `TexDocumentBuilder` typography, geometry, colour & page size
 
 The core change. `resumePreamble(headline:)` and `coverLetterPreamble(headline:)` build their preambles from
@@ -197,6 +166,11 @@ site in the résumé assembly), reading `sectionOrder` / `hiddenSections` / sect
       sections follow the style's order; unknown ones **append stably** (today's `return 4` fallback) — never
       dropped, so a section the model invents can't vanish silently.
 - [ ] Hiding a section must not disturb the surrounding spacing (no double gap where a section was removed).
+- [ ] **Known divergence from today's output (found in A, don't "fix" it back).** The builder's two classifiers
+      disagree: `canonicalOrder(_:)` sorts "Employment" / "Work History" as *experience*, but `sectionVSpace(_:)`
+      omits those synonyms and gives them the generic `-1em`. A style has one bucket per section, so those titles
+      now take the experience `-1.5em`. Pinned by `LaTeXStyleTests.experienceSynonymsGainTheExperienceSpacing`;
+      the byte-for-byte regression must therefore exempt that one case (and say so in its fixture).
 
 **Tests.** Ordering + visibility unit tests over a fixture Markdown with all four canonical sections plus an
 unknown one: default order unchanged; a reordered style reorders; a hidden section is absent and the remaining

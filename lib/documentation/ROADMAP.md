@@ -934,13 +934,21 @@ Data/Persistence, E is Presentation. Distinct from the native `ExportTemplate` (
 untouched. Styles theme **presentation only** — the body stays app-generated and escaped, so a template can't
 inject content. `TODO.md` has the granular breakdown + open calls.
 
-- [ ] **Milestone A — `LaTeXStyle` model + built-in template registry.** The style has no home today. Add a pure
-      `nonisolated`/`Sendable`/`Codable` `LaTeXStyle` (template id, font family + size, accent colour, page size,
-      margins/spacing, `sectionOrder` / `hiddenSections`, optional `customPreamble`) and a **data-driven**
-      `LaTeXTemplateRegistry` — descriptors pairing a bundled class set (via `TexAssets`) with a default style,
-      mirroring v0.6.0 H-A's `JobProviderRegistry` so adding a template is one descriptor + its `.cls`, never a
-      hand-enumerated view. A `.default` style reproduces today's output exactly, which is what makes B and C safe.
-      Seam: **Infrastructure/Tex**. On-device: n/a.
+- [x] **Milestone A — `LaTeXStyle` model + built-in template registry.** ✅ **Done.** The style had no home —
+      every choice was a literal in `TexDocumentBuilder`'s preamble builders. Added a pure
+      `nonisolated`/`Sendable`/`Codable` `LaTeXStyle` (template id, font family, per-document base sizes, accent,
+      page size, margins, the letter's `parskip`/`linespread`, `sectionOrder` / `hiddenSections` /
+      `sectionSpacingEm`, optional `customPreamble`) plus the formatting helpers B/C consume, and a data-driven
+      `LaTeXTemplateRegistry` in the `JobProviderRegistry` shape — descriptors pairing the bundled classes (via
+      `TexAssets`) with a default style, `descriptor(for:)` total, `available(in:)` fail-soft. Two templates ship:
+      the shipped awesome-cv look, whose default **is** `LaTeXStyle.default` (byte-identical to today, which is
+      what makes B and C safe), and a **Compact** variant reusing the same classes. Font family / accent / page
+      size each carry an explicit `.templateDefault` case so "unchanged" is a real state rather than a forced
+      choice. Font size stays **per document** (6pt résumé / 11pt letter): the two classes scale off their base
+      differently, so one shared number would render as two unrelated sizes. The tests surfaced one **deliberate
+      divergence** — the builder sorts "Employment"/"Work History" as experience but spaces them as "other", and a
+      style's single bucket unifies that — pinned by its own test so C's byte-for-byte claim stays honest.
+      **No behaviour change yet**; the builder is untouched. Seam: **Infrastructure/Tex**. On-device: n/a.
 
 - [ ] **Milestone B — Parameterize `TexDocumentBuilder` typography, geometry, colour & page size.** The core
       change: `resumePreamble` / `coverLetterPreamble` build from a `LaTeXStyle` instead of literals —
