@@ -31,6 +31,23 @@ private actor RecordingGenProvider: LLMProvider {
     }
 }
 
+/// A provider whose brief carries real keywords and whose résumé covers only some of them, so
+/// keyword coverage can be exercised end to end through the view model (v0.6.1 Milestone C).
+private actor CoverageStubProvider: LLMProvider {
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { [] }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        .init(company: "Acme", roleTitle: "iOS Engineer", mustHaveKeywords: ["Swift", "Kotlin"],
+              niceToHaveKeywords: ["Metal"], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        // Markdown on purpose: coverage must read the *visible* text, past the syntax.
+        ApplicationKit(resumeMarkdown: "# Resume\n- **Swift** and Metal", coverLetter: "", gapNote: "")
+    }
+}
+
 /// A `LaTeXCompiling` stub for the awesome-cv export path (Milestone D).
 private final class VMStubCompiler: LaTeXCompiling, @unchecked Sendable {
     let available: Bool
@@ -190,6 +207,56 @@ struct ApplicationViewModelTests {
         #expect(vm.kit == nil)
         #expect(vm.brief == nil)                        // no stale brief left behind
         #expect(vm.errorMessage != nil)
+    }
+
+    // MARK: v0.6.1 Milestone C — keyword coverage
+
+    @Test func coverageIsNilBeforeAnythingIsGenerated() async {
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: CoverageStubProvider())
+        )
+        #expect(vm.coverage == nil)
+    }
+
+    @Test func coverageReportsCoveredAndMissingAfterGenerate() async {
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: CoverageStubProvider())
+        )
+        await vm.generate(for: job, profile: profile)
+
+        let coverage = vm.coverage
+        #expect(coverage?.coveredCount == 1)          // "Swift" — the headline is must-haves
+        #expect(coverage?.totalCount == 2)
+        #expect(coverage?.mustHave?.covered == ["Swift"])
+        #expect(coverage?.mustHave?.missing == ["Kotlin"])
+        // The nice-to-have tier is still reported in the breakdown, just not in the headline.
+        #expect(coverage?.allCoveredCount == 2)
+        #expect(coverage?.tiers.count == 2)
+    }
+
+    @Test func coverageIsNilWhenThePostingYieldedNoKeywords() async {
+        // The stub's brief has empty keyword tiers — a thin posting. Nothing honest to report.
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: PresentationStubProvider(kitResume: "# Resume"))
+        )
+        await vm.generate(for: job, profile: profile)
+
+        #expect(vm.kit != nil)
+        #expect(vm.brief != nil)
+        #expect(vm.coverage == nil)   // the panel hides rather than showing "0/0 covered"
+    }
+
+    @Test func coverageIsNilForASavedRecordWithNoBrief() async throws {
+        let repo = SavedApplicationsRepository(store: InMemoryRecordStore())
+        try await repo.save(savedKit("# Resume\nSwift"), forJobID: job.id)   // legacy: no brief
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: CoverageStubProvider()),
+            loadApplication: LoadApplicationUseCase(repository: repo)
+        )
+        await vm.loadSaved(for: job)
+
+        #expect(vm.kit != nil)        // the documents still show
+        #expect(vm.coverage == nil)   // coverage is unavailable, not wrong
     }
 
     // MARK: T-B — generation grounding

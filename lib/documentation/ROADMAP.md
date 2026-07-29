@@ -812,13 +812,17 @@ open calls.
       change**, so nothing to forward in `SettingsBackedLLMProvider`. On-device: n/a — reuses the existing stage-1
       call, no extra LLM work.
 
-- [ ] **Milestone C — Coverage panel in the Application view.** Surface **"Posting keywords: X/Y covered"** on
-      the generated result with the covered list (green) and missing list (amber), grouped by tier, computed on
-      the **visible** résumé and recomputed after each generate/regenerate. A `coverage` computed property on
-      `ApplicationViewModel` plus a `coverageSection` in `ApplicationSheet.content`, styled with the existing
-      `documentSection` / `disclosuresSection` / `gapsSection` family; recommended placement is below the two
-      documents and above the disclosures/gaps. Hidden when there's no brief or the posting yields no keywords,
-      rather than showing a misleading "0/0". Seam: **Presentation only**. On-device: n/a — local rendering.
+- [x] **Milestone C — Coverage panel in the Application view.** ✅ **Done.** The generated result now shows
+      **"Posting keywords: X/Y must-haves covered"** with the covered list (green) and missing list (amber) per
+      tier, computed on the **visible** résumé and recomputed after each generate/regenerate. A `coverage`
+      computed property on `ApplicationViewModel` (`kit` + `brief`, both `@Observable`, so no refresh plumbing and
+      no state to invalidate) plus a `coverageSection` in `ApplicationSheet.content`, styled with the existing
+      `documentSection` / `disclosuresSection` / `gapsSection` family and reusing `JobDetailView.skillRow`'s
+      capsule language for the keyword lists. Placement resolved as recommended — below the documents, above the
+      disclosures/gaps. `coverage` is `nil` (and the section simply isn't rendered) for all three empty cases: no
+      kit, no brief, or a posting with no keywords — never a misleading "0/0"; the headline falls back to the
+      all-tier count when a brief named no must-haves. Seam: **Presentation only**. On-device: n/a — local
+      rendering.
 
 - [ ] **Milestone D — Optional keyword-emphasis generation control.** An **opt-in** control telling generation
       to weave the posting's must-have keywords into the **visible** résumé **where they truthfully apply**, and

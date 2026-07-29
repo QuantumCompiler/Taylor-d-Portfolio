@@ -9,19 +9,23 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.1 — keyword match & ATS coverage (in progress) → Milestone C.** A **patch release** on
-> shipped v0.6.0, scheduled out of `PLANNED.md` (the *keyword match / ATS coverage at generation* entry, its sole
-> `Target: v0.6.1`). Four milestones **A–D**, in build order: ~~**A** (pure `KeywordCoverage` value type)~~ and
-> ~~**B** (surface the `TargetBrief`)~~ **✅ done — write-ups in `MILESTONES.md`** → **C** (the coverage panel) →
-> **D** (the optional keyword-emphasis generation control). **Pick up at Milestone C** — `ApplicationViewModel`
-> now exposes both `kit` and `brief`, which is everything the panel needs. Milestones restart at **A** and commit
-> as `v0.6.1 : Milestone X Completed`.
+> **Current focus. v0.6.1 — keyword match & ATS coverage (in progress) → Milestone D (the last one).** A **patch
+> release** on shipped v0.6.0, scheduled out of `PLANNED.md` (the *keyword match / ATS coverage at generation*
+> entry, its sole `Target: v0.6.1`). Four milestones **A–D**: ~~**A** (pure `KeywordCoverage` value type)~~,
+> ~~**B** (surface the `TargetBrief`)~~ and ~~**C** (the coverage panel)~~ **✅ done — write-ups in
+> `MILESTONES.md`** → **D** (the optional keyword-emphasis generation control). **Pick up at Milestone D** —
+> reporting is complete and shipped; D is the only part that changes what generation *produces*. Milestones
+> restart at **A** and commit as `v0.6.1 : Milestone X Completed`.
 >
 > **v0.6.0 (richer grounding, job detail & sources) shipped** — all eleven milestones **A–K** are written up
 > in `MILESTONES.md` and ticked in `ROADMAP.md`.
 >
 > **⚠️ Awaiting device checks** — carried forward; everything automatable is done and green, but these need a
 > real run (each milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.6.1**.
+> - **v0.6.1 C** — generate an application for a real posting: the **coverage panel** appears below the two
+>   documents with the covered (green) / missing (amber) keyword capsules, the must-have headline count is right,
+>   it updates on Regenerate, it **survives reopening** the saved result, and it's **absent** for a result
+>   generated before this version (a legacy record with no stored brief) and for a thin posting with no keywords.
 > - **v0.5.0** — detail + Application as separate windows; cross-window list refresh; explicit Generate + options
 >   panel (fidelity / aspects / presets / embellished disclosures / rank-target loop); Results swipe + remove-from-Tracker; no spurious Photos/Music prompts.
 > - **v0.5.1** — awesome-cv LaTeX **PDF / `.tex`** export (needs `lualatex`; item hidden when TeX is absent); résumé
@@ -65,35 +69,6 @@ single-column, selectable text (no text-in-images) — is what actually determin
 résumé at all. Natural pairing with keyword coverage, but it's an export/template concern touching
 `ExportTemplate` / `TexDocumentBuilder`, not this release. If Taylor wants it, spec it as its own `PLANNED.md`
 entry with its own `Target:`.
-
-## Milestone C — Coverage panel in the Application view
-
-**What's wanted.** Show the user, on the generated result, **"Posting keywords: X/Y covered"** with the covered
-list (green) and the missing list (amber), computed on the **visible** résumé and recomputed after every
-generate/regenerate.
-
-**Seam + files (Presentation only).**
-- A `coverage` computed property on `ApplicationViewModel` (`kit` + `brief` → `KeywordCoverage`) — because both
-  are `@Observable` state, it recomputes after generate/regenerate for free.
-- A `coverageSection` in [`ApplicationSheet`](../src/Presentation/Application/View/ApplicationSheet.swift:429),
-  rendered in `content` next to the existing result panels — `documentSection` (`:461`), `disclosuresSection`
-  (`:482`), `gapsSection` (`:502`) — as a `GroupBox` in the same visual family.
-
-**Sub-tasks.**
-- [ ] `ApplicationViewModel.coverage` (nil when either `kit` or `brief` is missing).
-- [ ] `coverageSection`: headline count + per-tier covered/missing chips (green / amber), matching the
-      `disclosuresSection` / `gapsSection` styling so it reads as part of the result, not a new UI language.
-- [ ] Place it in `content` (`:429`) — **(open call) above or below the two documents?** *Recommended:*
-      **below the documents, above the disclosures/gaps**, so the user reads the output first, then the
-      alignment report, then the honesty surfaces.
-- [ ] Empty state: no brief — a saved kit whose record predates Milestone B, so `ApplicationViewModel.brief`
-      comes back nil — → **hide** the panel rather than showing a misleading "0/0 covered".
-- [ ] Zero-keyword posting (a thin brief) → hide the panel too; don't render an empty box.
-
-**Tests.** `lib/tests/Presentation/Application/` — the VM's `coverage` is nil without a kit/brief and reflects
-kit + brief when both are present; view rendering stays untested, consistent with the rest of the codebase.
-
-**On-device.** n/a — pure local rendering over A's computation.
 
 ## Milestone D — Optional keyword-emphasis generation control
 

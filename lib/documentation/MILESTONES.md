@@ -2693,3 +2693,37 @@ calling the engine, a legacy record leaves it nil, and a failed regeneration cle
 suite green; build warning-free.
 
 **On-device.** n/a — reuses the existing stage-1 call (no extra LLM work); the added persistence is local.
+
+## Milestone C — Coverage panel in the Application view  ✅ done  (`Presentation/Application`: `ApplicationViewModel` + `ApplicationSheet`)
+
+The user-facing half of the release: on a generated result, **"Posting keywords: X/Y must-haves covered"** with the
+covered list (green) and the missing list (amber) per keyword tier — computed on the **visible** résumé and
+recomputed after every generate / regenerate. Presentation only, over Milestone A's computation and Milestone B's
+brief.
+
+- [x] **`ApplicationViewModel.coverage`.** A computed `KeywordCoverage?` from `kit` + `brief` — both `@Observable`,
+      so it recomputes after each generation with no explicit refresh and no stored state to invalidate. It returns
+      `nil` for all three "nothing honest to report" cases at once: no kit, no brief (a record predating Milestone
+      B), or a posting that yielded no keywords — so the view has a single condition to render on.
+- [x] **`coverageSection` in `ApplicationSheet`.** A `GroupBox` in the same family as `documentSection` /
+      `disclosuresSection` / `gapsSection`, listing each tier's covered and missing keywords as capsules via a
+      `keywordRow` mirroring `JobDetailView.skillRow` — so covered/missing keywords read in the app's existing
+      visual language for matched/missing skills rather than introducing a new one. A caption states the rule the
+      feature exists for: *counted in the visible résumé text — never hidden keywords.*
+- [x] **Placement (open call, resolved as recommended).** Below the two documents and above the disclosures / gaps:
+      the user reads what was produced, then how it aligns to the posting, then what's claimed about it.
+- [x] **Headline.** Leads with must-haves — what a screener actually filters on — and falls back to the all-tier
+      count when a brief named no must-haves, so the panel can never read "0/0 must-haves covered" while listing
+      keywords underneath it.
+- [x] **Hidden, not empty.** With no coverage to report the section simply isn't rendered — no "0/0 covered" box,
+      no empty group.
+
+**Tests.** `lib/tests/Presentation/Application/` — `coverage` is nil before anything is generated; after a
+generation against a keyword-bearing brief it reports the covered/missing split, the must-have headline, and the
+nice-to-have tier in the breakdown but not the headline; it's nil for a thin posting whose brief has no keywords;
+and nil for a saved record with no brief while the documents still show. The stub's résumé is deliberately Markdown
+(`- **Swift** and Metal`) so the test proves coverage reads the visible text past the syntax. Full suite green;
+build warning-free.
+
+**On-device.** n/a — pure local rendering over Milestone A's string matching. *(Visual check pending — see the
+device-checks note in `TODO.md`.)*

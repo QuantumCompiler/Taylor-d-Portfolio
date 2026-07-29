@@ -112,6 +112,21 @@ final class ApplicationViewModel {
         return (picked.profile, picked.grounding)
     }
 
+    // MARK: Keyword coverage (v0.6.1 Milestone C)
+
+    /// How well the shown résumé covers the posting's keywords, measured on its **visible**
+    /// text (v0.6.1 Milestone C). Derived from `kit` + `brief`, both `@Observable`, so it
+    /// recomputes after every generate / regenerate without an explicit refresh.
+    ///
+    /// `nil` means there is nothing honest to report, and the panel hides rather than showing a
+    /// meaningless "0/0": no generated kit, no `brief` (a saved record written before Milestone
+    /// B paired the two), or a posting that yielded no keywords at all.
+    var coverage: KeywordCoverage? {
+        guard let kit, let brief else { return nil }
+        let coverage = KeywordCoverage(brief: brief, resumeMarkdown: kit.resumeMarkdown)
+        return coverage.isEmpty ? nil : coverage
+    }
+
     /// A user-facing note about the rank-target outcome, if used.
     var rankOutcomeNote: String? {
         guard let outcome = rankOutcome else { return nil }
