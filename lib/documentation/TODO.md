@@ -9,12 +9,12 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.6.1 — keyword match & ATS coverage (in progress).** A **patch release** on shipped
-> v0.6.0, scheduled out of `PLANNED.md` (the *keyword match / ATS coverage at generation* entry, its sole
-> `Target: v0.6.1`). Four milestones **A–D**, in build order: **A** (pure `KeywordCoverage` value type) →
-> **B** (surface the `TargetBrief` so the UI has the posting's keywords) → **C** (the coverage panel) →
-> **D** (the optional keyword-emphasis generation control). **Start at Milestone A.** Milestones restart at
-> **A** and commit as `v0.6.1 : Milestone X Completed`.
+> **Current focus. v0.6.1 — keyword match & ATS coverage (in progress) → Milestone B.** A **patch release** on
+> shipped v0.6.0, scheduled out of `PLANNED.md` (the *keyword match / ATS coverage at generation* entry, its sole
+> `Target: v0.6.1`). Four milestones **A–D**, in build order: ~~**A** (pure `KeywordCoverage` value type)~~ **✅
+> done — write-up in `MILESTONES.md`** → **B** (surface the `TargetBrief` so the UI has the posting's keywords) →
+> **C** (the coverage panel) → **D** (the optional keyword-emphasis generation control). **Pick up at Milestone
+> B.** Milestones restart at **A** and commit as `v0.6.1 : Milestone X Completed`.
 >
 > **v0.6.0 (richer grounding, job detail & sources) shipped** — all eleven milestones **A–K** are written up
 > in `MILESTONES.md` and ticked in `ROADMAP.md`.
@@ -64,45 +64,6 @@ single-column, selectable text (no text-in-images) — is what actually determin
 résumé at all. Natural pairing with keyword coverage, but it's an export/template concern touching
 `ExportTemplate` / `TexDocumentBuilder`, not this release. If Taylor wants it, spec it as its own `PLANNED.md`
 entry with its own `Target:`.
-
-## Milestone A — `KeywordCoverage`: pure covered-vs-missing computation
-
-**What's wanted.** A pure, unit-testable value type that answers "how much of this posting's keyword set
-actually appears in the generated visible résumé?" — the foundation C renders and D's prompt option
-complements. Nothing here touches the LLM or the UI.
-
-**Seam + files.**
-- New `lib/src/Data/Models/KeywordCoverage.swift` (Data · Models) — `nonisolated`, `Sendable`, pure, no I/O
-  (the layer note: it may import Infrastructure's `MarkdownPlainText`, since imports point **down**).
-- Inputs: the three posting tiers from [`TargetBrief`](../src/Data/Models/TargetBrief.swift) —
-  `mustHaveKeywords` (`:27`), `niceToHaveKeywords` (`:30`), `techStack` (`:33`) — and the **visible** résumé,
-  `ApplicationKit.resumeMarkdown` reduced via
-  [`MarkdownPlainText.plainText(from:)`](../src/Infrastructure/Text/MarkdownPlainText.swift:17).
-- Output: per-tier `covered` / `missing` lists plus roll-up counts for the "X/Y covered" headline.
-
-**Sub-tasks.**
-- [ ] Add `KeywordCoverage` with a per-tier breakdown (must-have / nice-to-have / tech stack) and
-      `coveredCount` / `totalCount` roll-ups.
-- [ ] Add the matcher: **case-insensitive, word-boundary** match with light normalization (trim, collapse
-      internal whitespace, fold diacritics, strip trailing punctuation); multi-word keywords match as phrases.
-      No stemming or synonyms in this pass.
-- [ ] Add a convenience initializer taking `(brief: TargetBrief, resumeMarkdown: String)` that does the
-      Markdown→plain-text reduction, so callers never hand-roll it.
-- [ ] **(open call) Which tiers count toward the headline number?** *Recommended:* weight **must-have** for the
-      "X/Y covered" figure, but **show all three tiers** in the breakdown.
-- [ ] **(open call) De-duplicate a keyword that appears in more than one tier?** *Recommended:* yes —
-      keep its **highest** tier only (must-have > nice-to-have > tech stack), so the headline can't
-      double-count.
-- [ ] **(open call) Cross-check against `JobMatch.matchedSkills` / `missingSkills`?** *Recommended:* **no** —
-      those come from *ranking the profile*, whereas coverage is specifically *posting keyword vs. the actual
-      generated résumé text*. Keep them separate; revisit only if the two visibly disagree in use.
-
-**Tests.** `lib/tests/Data/Models/KeywordCoverageTests.swift` — exact match; case-insensitivity; the
-word-boundary guarantee (`"Go"` must **not** match `"Google"`, `"React"` must not match `"Reactive"`);
-multi-word phrase keywords; a keyword present only in the Markdown syntax (e.g. inside a `**bold**` run) still
-counts once reduced to plain text; empty tiers; empty résumé; duplicate-across-tiers handling.
-
-**On-device.** n/a — pure local string matching, no model call, no network.
 
 ## Milestone B — Surface the `TargetBrief` out of generation
 

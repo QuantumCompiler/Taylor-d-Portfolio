@@ -2097,14 +2097,17 @@ no separate Submit — it feeds the existing Generate/Regenerate.)*
 
 ---
 
-# v0.6.0 — richer grounding, job detail & sources  (in progress)
+# v0.6.0 — richer grounding, job detail & sources
 
 The theme: give ranking and — especially — tailored résumé/cover-letter generation **more real signal to work
-from**, and **more (and better-fed) sources to get it from**. Six milestones drawn from `PLANNED.md`: A–C improve
-grounding — capture and surface much more of a job posting (Milestone A), choose a profile to ground on
-(Milestone B), regenerate a saved result (Milestone C); D–F widen the pipe — user-editable API credentials
-(Milestone D), full posting text (Milestone E), multi-source search (Milestone F). Grounded-by-default and
-never-fabricate hold throughout — enrichment *structures* what a posting says, it never invents. Milestones
+from**, and **more (and better-fed) sources to get it from**. Eleven milestones (**A–K**), several drawn from
+`PLANNED.md`: A–C improve grounding — capture and surface much more of a job posting (Milestone A), choose a
+profile to ground on (Milestone B), regenerate a saved result (Milestone C); D–F widen the pipe — user-editable
+API credentials (Milestone D), full posting text (Milestone E), multi-source search (Milestone F); G–H build on
+the credential seam — per-provider setup help (Milestone G) and a Search provider selector (Milestone H), both on
+one data-driven provider registry; then supporting profile documents (Milestone I), an LLM job source
+(Milestone J), and standardized result descriptions (Milestone K). **Transparency to the user** holds throughout —
+enrichment *structures* what a posting says, and generated / LLM-sourced content is surfaced as such. Milestones
 restart at **A**; commit as `v0.6.0 : Milestone X Completed`.
 
 ## Milestone A — Richer job postings (capture & surface full posting detail)  ✅ done
@@ -2596,3 +2599,57 @@ count**, guarded by the bounded window, the cache, and progressive display (rows
 The digest **normalizes** the posting into the standard format (a normalized digest, not verbatim — consistent with
 the transparency stance). *(Open calls resolved as recommended: the recommended section order; **bounded window**
 first (no hard per-search cap); shipped with the **current `PostingDetails` fields**.)*
+
+---
+
+# v0.6.1 — keyword match & ATS coverage
+
+A **patch release** on shipped v0.6.0, scheduled out of `PLANNED.md` (its sole `Target: v0.6.1` entry). The theme:
+ATS / AI résumé screeners filter on a posting's keywords, and good candidates get auto-rejected for missing a few.
+The answer here is **visible-text-only** — explicitly **not** hidden "invisible-ink" white-text keyword stuffing,
+which backfires (ATS parse to plain text, recruiters see it, LLM screeners flag it) — so the app **shows** how well
+the generated résumé covers the posting's **real** keywords and lets the user align truthfully. Four milestones
+**A–D**; milestones restart at **A**; commit as `v0.6.1 : Milestone X Completed`.
+
+## Milestone A — `KeywordCoverage`: pure covered-vs-missing computation  ✅ done  (`Data/Models/KeywordCoverage` (new); tests in `lib/tests/Data/Models`)
+
+The foundation the rest of v0.6.1 renders (C) and complements (D): a pure, `Sendable`, unit-tested value type that
+answers *"how much of this posting's keyword set actually appears in the generated **visible** résumé?"* — no store,
+no view, no model call. Derived on demand, never persisted, and deliberately distinct from
+`JobMatch.matchedSkills` / `missingSkills`, which score the **profile** during ranking rather than the generated text.
+
+- [x] **The type.** [`KeywordCoverage`](../src/Data/Models/KeywordCoverage.swift) (Data · Models, `nonisolated` +
+      `Sendable`) with a `Tier` enum (`mustHave` / `niceToHave` / `techStack` — the three `TargetBrief` keyword
+      fields, each with a UI `label`) and a `TierCoverage` (`covered` / `missing` / `total`, `Identifiable` by tier
+      for SwiftUI). Keywords are reported **as the posting wrote them** (whitespace-trimmed only), so the UI renders
+      "C++", not a normalized form.
+- [x] **Roll-ups.** `coveredCount` / `totalCount` are the **must-have** headline (what a screener actually filters
+      on — the recommended resolution of the "which tiers count" open call), with `allCoveredCount` / `allTotalCount`
+      across every tier and `isEmpty` so C can hide the panel rather than report a meaningless "0/0 covered". A tier
+      that contributes no usable keyword is omitted from `tiers` entirely rather than rendered as an empty group.
+- [x] **Matching.** `normalized(_:)` folds case + diacritics, collapses whitespace runs (including newlines, so a
+      multi-word keyword matches across a line break), and trims **end** punctuation from a deliberately narrow set
+      (sentence + quoting marks only — never `+`, `#`, or `/`, so "C++", "C#", and "Node.js" survive). Intentionally
+      light: **no stemming, no synonyms** — over-matching would report coverage the user doesn't have.
+- [x] **Word boundaries without a regex.** `contains(_:in:)` scans hits and requires the characters either side to
+      be non-alphanumeric. This is the reason it isn't `NSRegularExpression`: `\bC\+\+\b` **never** matches "C++"
+      (no word character follows the "+"), whereas the boundary scan matches "C++", ".NET", and "Node.js" while
+      still keeping "Go" out of "Google" and "React" out of "reactive". The scan continues past a rejected hit, so a
+      bounded occurrence later in the text still counts ("go" in "logo go").
+- [x] **De-duplication.** A keyword listed in more than one tier is counted **once, in its highest tier**
+      (must-have > nice-to-have > tech stack) — as are repeats within a tier — so the headline can't double-count a
+      term the posting merely repeats. Empty / whitespace-only keywords are dropped, never counted as missing.
+- [x] **Markdown entry point.** `init(brief:resumeMarkdown:)` reduces the résumé through
+      [`MarkdownPlainText`](../src/Infrastructure/Text/MarkdownPlainText.swift) first (a legal downward Data →
+      Infrastructure use), so a keyword behind emphasis or a bullet marker counts — it's visible text either way —
+      while a keyword that appears **only** in a Markdown link target does not, since the URL was never visible.
+
+**Tests.** `lib/tests/Data/Models/KeywordCoverageTests.swift` — 24 tests: present/absent, case-insensitivity,
+diacritic folding, the word-boundary guarantees (Go/Google, React/reactive, the "logo go" continuation), keywords
+ending or leading in punctuation (C++, C#, .NET, Node.js), trailing sentence punctuation on a keyword, multi-word
+phrases (including across a line break, and scattered words *not* matching), no-stemming, Markdown reduction
+(emphasis/bullets count, link targets don't), tier ordering, empty-tier omission, cross-tier and within-tier
+de-duplication, the must-have headline vs. the all-tier breakdown, and the empty edges (no keywords, blank
+keywords, empty résumé). Full suite green; build warning-free.
+
+**On-device.** n/a — pure local string matching. No LLM call, no network, no persistence.

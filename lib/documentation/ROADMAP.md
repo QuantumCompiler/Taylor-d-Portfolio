@@ -785,13 +785,16 @@ change.** An **ATS-friendly export mode** (standard headings, single-column, sel
 companion but is **out of scope** — spec it separately if wanted. `TODO.md` has the granular breakdown +
 open calls.
 
-- [ ] **Milestone A — `KeywordCoverage`: pure covered-vs-missing computation.** A pure, `Sendable`,
-      unit-testable value type (Data · Models) that answers "how much of this posting's keyword set actually
+- [x] **Milestone A — `KeywordCoverage`: pure covered-vs-missing computation.** ✅ **Done.** A pure, `Sendable`,
+      unit-tested value type (Data · Models) that answers "how much of this posting's keyword set actually
       appears in the generated **visible** résumé?" — given `TargetBrief`'s three tiers (`mustHaveKeywords` /
       `niceToHaveKeywords` / `techStack`) and `ApplicationKit.resumeMarkdown` reduced through
-      `MarkdownPlainText.plainText(from:)` (Infrastructure — a legal downward import), it returns per-tier
-      covered/missing plus an "X/Y covered" roll-up. Matching is case-insensitive, **word-boundary** (so "Go"
-      never matches "Google"), with light normalization; stemming/synonyms are a later idea. Distinct from
+      `MarkdownPlainText.plainText(from:)` (Infrastructure — a legal downward use), it returns per-tier
+      covered/missing plus a must-have "X/Y covered" headline and all-tier roll-ups. Matching is
+      case-insensitive, diacritic-folded, whitespace-collapsed (so a phrase matches across a line break) and
+      **word-boundary** — scanned directly rather than by regex, because `\bC\+\+\b` never matches "C++", while
+      the scan keeps "Go" out of "Google". No stemming or synonyms (over-matching would report coverage the user
+      lacks); a keyword repeated across tiers counts once, in its highest tier. Distinct from
       `JobMatch.matchedSkills` / `missingSkills`, which score the *profile* rather than the generated text.
       Seam: Data (new model) only. On-device: n/a — pure local string matching, no model call.
 
