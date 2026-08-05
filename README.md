@@ -199,10 +199,13 @@ The awesome-cv PDF route had exactly one look, hardcoded down to the font size a
 - Also fixed: a stray LaTeX setting from the skills grid had been quietly compressing every section printed after
   it. *(Milestones A–F.)*
 
-**Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
-from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
-layer — or one of the unspecced ideas noted in `lib/documentation/TODO.md` (an ATS-friendly export mode, a chunked
-full tidy for long documents).
+**Next: v0.7.1 — bug fixes.** A patch release gathering **18 verified defects** found by a codebase audit, grouped
+into eight milestones by shared root cause: stale-async writes that could show one job's résumé under another job's
+header, an unstable pasted-posting id that orphaned saved materials across launches, search-goal and
+de-duplication errors, an LLM subprocess deadlock, unreachable Settings wiring, and two overflow crashes. See
+`lib/documentation/TODO.md`. The version after it isn't named yet — likely candidates come from the backlog (the
+native `LanguageModel` provider seam, on-device embedding RAG, an optional MCP tool layer) or the unspecced ideas
+noted in `TODO.md` (an ATS-friendly export mode, a chunked full tidy for long documents).
 
 ## Build & run
 
