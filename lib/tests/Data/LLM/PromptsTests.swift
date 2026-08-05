@@ -599,4 +599,36 @@ struct PromptsTests {
         #expect(!prompt.contains(long))
         #expect(prompt.contains("…"))
     }
+
+    // MARK: v0.7.1 Milestone E — decoder contract + the scorer sees the whole résumé
+
+    /// E-B: the prompt must name the `leads` wrapper key `GeneratedJobLeads` decodes — without
+    /// it the Claude engine intermittently shaped the JSON differently, and the fail-soft
+    /// composite swallowed the decode error, showing zero AI leads with no message.
+    @Test func searchJobsNamesTheLeadsWrapperKeyTheDecoderRequires() {
+        let prompt = Prompts.searchJobs(query: JobQuery(keywords: "x"), grounding: nil)
+        #expect(prompt.contains("\"leads\" array"))
+    }
+
+    /// E-C: the generated résumé reaches the scorer under the résumé-sized budget — the old
+    /// job-description cap (2 000) cut it roughly in half, so tail skills scored as "missing"
+    /// and the rank-target loop escalated fidelity to the embellished band chasing them.
+    @Test func scoreApplicationSendsALongResumeUntruncated() {
+        // Comfortably past the old description cap, but within the résumé budget.
+        let resume = "# Résumé\n" + String(repeating: "swift ", count: 600)   // ~3 600 chars
+        let kit = ApplicationKit(resumeMarkdown: resume, coverLetter: "", gapNote: "")
+        let brief = TargetBrief(company: "Acme", roleTitle: "iOS", mustHaveKeywords: [],
+                                niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+        let job = JobListing(id: "j", title: "t", company: "c", location: "l", description: "d")
+        let prompt = Prompts.scoreApplication(job: job, brief: brief, kit: kit)
+        #expect(prompt.contains(resume))          // the whole résumé, no ellipsis cut
+
+        // The budget still exists — a résumé past it is bounded, not unbounded.
+        let huge = String(repeating: "R", count: Prompts.maxPortfolioCharacters + 500)
+        let boundedPrompt = Prompts.scoreApplication(
+            job: job, brief: brief,
+            kit: ApplicationKit(resumeMarkdown: huge, coverLetter: "", gapNote: ""))
+        #expect(!boundedPrompt.contains(huge))
+        #expect(boundedPrompt.contains("…"))
+    }
 }

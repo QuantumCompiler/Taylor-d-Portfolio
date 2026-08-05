@@ -75,4 +75,23 @@ struct ResultsFilterTests {
         filter.company = "Acme"; filter.minScore = 70   // Acme AND ≥70 → only a
         #expect(filter.apply(to: jobs).map(\.id) == ["a"])
     }
+
+    // MARK: v0.7.1 Milestone H — the Min-salary field can't trap
+
+    /// The shared filter bar's parse/display round-trip: a 19+ digit entry used to store ~1e19
+    /// and the display's `Int` conversion crashed the next render — in Results *and* the
+    /// Tracker, since the bar is shared.
+    @Test func salaryInputAndDisplayAreBoundedAndNeverTrap() {
+        // Parse: digits clamp to the ceiling; junk and emptiness mean "Any".
+        #expect(ResultsFilter.salaryInput("9999999999999999999") == ResultsFilter.maxSalaryInput)
+        #expect(ResultsFilter.salaryInput("50,000") == 50_000)    // separators tolerated
+        #expect(ResultsFilter.salaryInput("") == nil)
+        #expect(ResultsFilter.salaryInput("abc") == nil)
+        #expect(ResultsFilter.salaryInput("0") == nil)
+
+        // Display: even a huge value persisted before the bound existed renders clamped.
+        #expect(ResultsFilter.salaryDisplay(1e19) == "1000000000")
+        #expect(ResultsFilter.salaryDisplay(50_000) == "50000")
+        #expect(ResultsFilter.salaryDisplay(nil) == "")
+    }
 }

@@ -36,6 +36,11 @@ final class ResultsViewModel {
     /// True while a bulk save/delete is in flight — the action bar disables itself so the
     /// same batch can't be fired twice.
     private(set) var isBulkActing = false
+    /// Called with the ids of every deletion (single or bulk). The shell wires this to prune
+    /// the same ids from the Search VM's in-memory copy of the list, so a background digest
+    /// still running over the old set can't resurrect a deleted row on screen or re-write it
+    /// to the saved-jobs store (v0.7.1 Milestone B).
+    @ObservationIgnored var onResultsRemoved: ((Set<String>) -> Void)?
     /// How many postings a bulk save enriches at once. Bulk-saving N jobs would otherwise kick
     /// off N fetch+LLM enrichments at once, so it reuses the same window as the search-side
     /// digest (`SearchAndRankUseCase.maxConcurrentSearches`).
@@ -171,6 +176,7 @@ final class ResultsViewModel {
         results.removeAll { ids.contains($0.id) }
         for id in ids { historyByID[id] = nil }
         clearSelection()
+        onResultsRemoved?(ids)
         for id in ids { try? await deleteSavedJob?(jobID: id) }
     }
 
@@ -240,6 +246,7 @@ final class ResultsViewModel {
     func delete(_ job: RankedJob) async {
         results.removeAll { $0.id == job.id }
         historyByID[job.id] = nil
+        onResultsRemoved?([job.id])
         try? await deleteSavedJob?(jobID: job.id)
     }
 

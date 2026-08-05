@@ -53,13 +53,10 @@ nonisolated struct LLMJobSource: JobSource {
         )
     }
 
-    /// A stable id derived from the normalized title/company/location (same shape as
-    /// `JobListing.fingerprint`, prefixed `ai:`).
+    /// A stable id derived from the normalized title/company/location (the shared
+    /// `JobListing.normalizedFingerprint` shape, prefixed `ai:`).
     static func identifier(for lead: GeneratedJobLead) -> String {
-        let parts = [lead.title, lead.company, lead.location]
-            .map { $0.lowercased().split(whereSeparator: \.isWhitespace).joined(separator: " ") }
-            .joined(separator: " | ")
-        return "ai:" + parts
+        "ai:" + JobListing.normalizedFingerprint(title: lead.title, company: lead.company, location: lead.location)
     }
 
     /// A web search for the role so the user can find the real posting themselves — a static host

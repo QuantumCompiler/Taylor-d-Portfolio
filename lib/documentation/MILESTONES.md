@@ -3397,3 +3397,270 @@ unblocks without touching the saved style, and the `.tex` still exports. Suite g
 warning-free.
 
 **On-device.** n/a — no model calls.
+
+---
+
+# v0.7.1 — bug fixes
+
+A **patch release**, scheduled out of `PLANNED.md`'s single `Target: v0.7.1` entry (2026-08-04): **18 verified
+defects** from the 2026-08-04 structured audit (five subsystems swept, every candidate re-verified by a pass
+instructed to refute it), grouped into Milestones **A–H** by shared root cause. Milestones restart at **A**;
+commit as `v0.7.1 : Milestone X Completed`.
+
+## Milestone A — Stale-async writes corrupt visible state  ✅ done  (`Presentation/Application` VM, `Presentation/Search` VM + view; tests in `lib/tests/Presentation`)
+
+**The defects (both re-verified against source before fixing).** **A-1 (high):** `ApplicationWindow` holds
+**one** `ApplicationViewModel` across jobs and re-targets purely via `.onChange(of: requestID) → loadSaved(for:)`
+— nothing cancels prior work — while `generate(...)` ran as an unstructured `Task` assigning `kit`/`brief`
+unconditionally on completion. Generate for job A (tens of seconds), open job B, and A's run finishing late put
+**A's résumé under B's header** — and an export **named for B containing A's content**. `loadSaved` clearing
+`isGenerating` mid-flight also re-enabled Generate, so a second run for B could be clobbered by A finishing last.
+**A-2 (low):** `search` and `fetchFromLink` both assign `results` wholesale with no guard on each other's busy
+flag, so a link-fetched job could appear in Results and **silently vanish** when an earlier search landed.
+
+**The fix, A-1 — cancel-and-replace plus a run token.** `ApplicationViewModel` now owns the in-flight generation
+(`generationTask`) and a monotonic `generationRun` token, both `@ObservationIgnored`. `generate` cancels the prior
+task, bumps the token, and runs the real work in a stored `Task` (awaited, so the sheet's `onGenerated` timing is
+unchanged). `loadSaved(for:)` cancels-and-bumps **before** touching state, which is what finally makes its
+`isGenerating = false` safe — B's Generate button usable immediately, per the open call. The token is the real
+guard, not cancellation: the underlying LLM call may not honour `Task.cancel()`, so every state write is gated on
+`run == generationRun` — the kit/brief/`rankOutcome` assignments, the `defer` that clears `isGenerating` (a
+superseded run must not re-enable Generate for the job that replaced it), and the `catch` (a dead run's failure
+isn't news about the job now shown). One deliberate asymmetry: a superseded run **still persists** its output —
+it's keyed to *its own* job's id via the shadowing parameter (persistence was never the corrupt path), and the
+generation was paid for.
+
+**The fix, A-2 — one busy flag for every entry point.** `isResultsFlowBusy` (`isSearching || isFetchingLink`)
+now gates **all four** results-producing entry points, not just the two the audit named: `canSearch` and
+`canFetchLink` cross-gate, and `performSearch` / `fetchFromLink` / `generateFromPastedText` guard at entry — which
+also covers `runSavedSearch` and direct programmatic calls. The saved-search Run and paste-generate buttons
+disable off the same flag.
+
+**Tests (5 new; suite green at 909, build warning-free).** A `GatedGenProvider` actor blocks generation until
+released — and deliberately **ignores cancellation**, so the tests prove the token guard, the stronger property:
+a stale run finishing after a re-target can't overwrite B's screen state (while A's output still persists under
+A's id); the last targeted job wins regardless of finish order; a superseded run's failure surfaces no error.
+Gated job/posting sources hold each Search flow mid-flight and assert the other's gates close, a direct call
+no-ops without reaching its source, and the gates reopen after the flow lands.
+
+**On-device.** n/a — pure state discipline, no model-behaviour change.
+
+## Milestone B — Results/search handoff in `RootView`  ✅ done  (`Presentation/App/RootView`, `Presentation/Search` VM, `Presentation/Results` VM; tests in `lib/tests/Presentation`)
+
+**The defects (all three re-verified against source).** One root cause: `RootView`'s
+`.onChange(of: search.results)` handed the Results area **wholesale ownership** of the list — plus a navigation
+jump — on **every** mutation, and the v0.6.0-K digest mutates `search.results` once per posting. So: **B-1**, the
+digest yanked the user back to Results once per digested posting (25–50 times over a minute), also resetting the
+destination area's inner sub-tab; **B-2**, a row deleted in Results popped back on the next digest swap, and the
+digest's final `persistResults()` re-wrote it to the saved-jobs store; **B-3**, the sidebar badge counted all of
+`results.results` while the list shows only `untrackedResults` — "Results 10" over a pane reading "All results
+are in your Tracker", with saved jobs counted in two areas at once.
+
+**The fix — separate "a result set landed" from "a row changed."** `SearchViewModel` gains a one-shot
+`completedSearchID`, bumped exactly once at each of the three places a **new set** lands (`performSearch`,
+`fetchFromLink`, `generateFromPastedText`) — and not on failure, so a failed fetch no longer navigates anywhere.
+`RootView` drives the wholesale hand-off + jump off that signal alone. The old `.onChange(of: search.results)`
+remains but now only **merges by id** through the existing `ResultsViewModel.applyRefreshed(_:)` path, which
+replaces in place and never inserts — a digest swap updates a surviving row live, and an update for a deleted id
+falls through. For the persistence half of B-2, deletions now flow *backwards*: `ResultsViewModel` fires
+`onResultsRemoved` with the deleted ids (single and bulk paths both), `RootView` wires it to the new
+`SearchViewModel.removeResults(_:)`, and the pruned copy means the digest's in-place swap skips the row and its
+final re-persist writes only survivors. The badge is one line: `results.untrackedResults.count`.
+
+**Tests (4 new; suite green at 913, build warning-free).** A `GatedEnrichProvider` holds the digest mid-flight
+while the test deletes a row: the id is neither resurrected on screen nor re-written to the store, while the
+surviving row still gets its standardized description. The signal fires exactly once per landed search despite
+multiple digest swaps, fires for a landed link fetch, and doesn't fire for a failed one. Deletions (single and
+bulk) notify the removal hook with exactly the deleted ids.
+
+**On-device.** n/a.
+
+## Milestone C — Stable posting identity  ✅ done  (`Data/Models/JobListing` + `ExtractedPosting`, `Data/Jobs/LLMJobSource`; tests in `lib/tests/Data/Models`)
+
+**The defect (re-verified).** A pasted posting's fallback id was
+`"pasted-posting-\(description.hashValue)"` — and Swift seeds `Hasher` **per process**, so the same posting got
+a different id every launch. That id is the persistence key everywhere (`RankedJob.id`, the saved-jobs upsert,
+status, application kit), so a relaunch **orphaned the saved kit and status**, `contains(jobID:)` never matched,
+and the store grew a **duplicate row per launch** instead of upserting. Reachable from
+`generateFromPastedText()` whenever the URL field is empty.
+
+**The fix (C-A) — one shared normalization, three users.** The fingerprint normalization existed in two copies
+(`JobListing.fingerprint` and `LLMJobSource.identifier(for:)`); it's now one static
+`JobListing.normalizedFingerprint(title:company:location:)` used by both — behavior-identical, and the existing
+tests for each confirmed it — plus the new third user: the pasted fallback id is
+`"pasted:" + normalizedFingerprint(…)`. Keying on title/company/location rather than a digest of the description
+is deliberate twice over: the description is **LLM-extracted prose** that can word itself differently run to run
+(so even a same-launch re-paste would have missed a description hash), and re-pasting the same job *should*
+upsert onto the same row — matching the `ai:` prefix precedent and cross-source dedup semantics. URL-backed
+postings still key on their URL, unchanged.
+
+**The open call (C-B) — resolved: no migration.** Old `pasted-posting-…` rows were already unreachable across
+launches; a re-keying sweep risks colliding with a record the user has since re-created. Re-pasting now lands on
+a stable id.
+
+**Tests (1 new; suite green at 914, build warning-free).** Two independently constructed postings agree on the
+id (the in-process-expressible half of launch stability) and the literal `"pasted:ios engineer | acme | remote"`
+pins the launch-stable shape itself; a reworded description upserts onto the same id while a different role
+doesn't; a URL-backed posting still keys on its URL.
+
+**On-device.** n/a.
+
+## Milestone D — Search goal & de-duplication  ✅ done  (`Business/UseCases/SearchAndRankUseCase`, `Business/Ranking/JobRanker`; tests in `lib/tests/Business/UseCases`)
+
+**The defects (all three re-verified).** **D-1 (high):** a desired-result-count goal was silently capped at 20 —
+paging dutifully gathered 50+ listings, then `ranker.rank` trimmed to its `shortlistLimit`, and the U-D shortfall
+note **never fired** because it was measured on the pre-rank pool (which met the goal) rather than what the user
+received. **D-2 (medium):** a title was kept paging only while it returned a *full* page
+(`jobs.count >= perPage`) — but JSearch honours its own ~10/page regardless of the requested size, so a
+goal-driven search fetched page 1 and stopped, implying "that's all there is" with pages 2–5 available.
+**D-3 (medium):** the multi-title merge de-duped by source-specific `id` while `CompositeJobSource` de-dupes by
+`fingerprint` — the same posting via Adzuna + JSearch/AI landed twice, saved twice, and burned two shortlist
+slots.
+
+**The fixes.** **D-A:** `JobRanker.rank` gains a `limit:` override (`nil` ⇒ the configured default — its other
+caller is untouched), and the use case passes `max(boundedGoal, shortlistLimit)`. The shortfall is now measured
+on **`ranked.count`** — the count the user actually receives, still before the U-E score filter as documented.
+**The cost guard is explicit:** a new `maxRankedResults` (default **100**) bounds both the ranking *and the
+paging* — the goal field is free text, so a typed "10000" now pages/ranks up to the ceiling and then reports the
+shortfall honestly, instead of either silently returning 20 (before) or shipping thousands of listings to the
+model (naïve fix). **D-B:** a title stays active while it returned **anything**; only an empty page retires it —
+still bounded by `maxPagesPerTitle` and the goal check. **D-C:** the merge keys on the shared
+`mergeKey(_:)` = `fingerprint`, falling back to `id` only when the fingerprint carries no alphanumeric content
+(so two degenerate empty-field listings can't collapse); each kept listing retains its own `id` for persistence.
+
+**Test-fixture ripple, embraced:** stub listings sharing title/company/location now (correctly) collapse into
+one posting, so fixtures that meant "distinct jobs" got distinct titles (`t40`, `ta`/`tb`) — the one legitimate
+behavioural break the fingerprint change surfaced, in `rerunReportsHowManyResultsAreNewSinceLastTime`.
+
+**Tests (5 new; suite green at 919, build warning-free).** A goal of 50 against a 20-shortlist ranker yields
+≥50 with no shortfall; a 60-ceiling run against a goal of 400 returns exactly 60 and reports "60 of 400"; a
+~10/page source pages on to a 30-goal; the Adzuna/JSearch duplicate collapses to one row keeping the first-seen
+id; `mergeKey` falls back to `id` for content-free listings. `pageCapBoundsTheEffort` now lifts the rank ceiling
+explicitly so it still tests the page cap.
+
+**On-device.** ⚠️ The cost profile changed as designed: a goal >20 now really ranks up to `maxRankedResults`
+(100) jobs per search — the old 20 cap was also a cost guard, and the ceiling is the deliberate replacement.
+
+## Milestone E — LLM layer correctness  ✅ done  (`Infrastructure/Process/ProcessSupport`, `Infrastructure/LLM/ClaudeProcessClient`, `Infrastructure/Tex/LaTeXProcessClient`, `Data/LLM/LLMRouter` + `Prompts`; tests in `lib/tests/Infrastructure/LLM`, `lib/tests/Data/LLM`)
+
+**The defects (all three re-verified).** **E-1:** both process clients drained stdout to EOF *before* touching
+stderr — a child that filled the ~64 KB stderr buffer while stdout was still open blocked on its write, stdout
+never hit EOF, and the LLM call **hung forever** with no timeout and no cancellation path. **E-2:** the
+`searchJobs` prompt described each lead's fields but never named the `leads` wrapper key `GeneratedJobLeads`
+decodes — the Claude engine (the default) intermittently shaped the JSON differently, and the fail-soft
+composite swallowed the decode error: zero AI leads, no message. **E-3:** `scoreApplication` truncated the
+generated résumé to the **job-description** cap (2 000 chars) — the rank-target loop under-scored its own
+output, saw tail skills as "missing", burned all 4 rounds, and escalated fidelity into the embellished band the
+user never asked for.
+
+**The fixes.** **E-A:** a shared `ProcessSupport.drainToEnd(stdout:stderr:)` reads both pipes concurrently
+(stderr on a second queue joined by a `DispatchGroup` before `waitUntilExit()`); both clients use it. The
+"consider a cancellation handler" call was taken — for the **Claude client only**, where Milestone A's
+cancel-and-replace actually cancels in-flight calls: a `ProcessHolder` bridges `withTaskCancellationHandler` to
+`Process.terminate()` (lock-guarded against the register/launch race; a cancel landing in that window is caught
+by a post-exit check rather than a kill). And because `LLMRouter` falls back on *any* error, it now **rethrows
+`CancellationError` immediately** — a cancelled call must not quietly re-run on the next engine. `lualatex`
+compiles keep drain-only (nothing cancels them today). **E-B:** the prompt now opens with *Produce a "leads"
+array — one element per suggested opening…*, the same shape as `rank`'s "matches". **E-C:** the résumé is
+truncated to `maxPortfolioCharacters` (6 000, matching the grounding injection) instead of 2 000.
+
+**Tests (5 new; suite green at 924, build warning-free).** Two launch **real scripted children**: one floods
+~130 KB to stderr then emits a valid envelope — completes in ~0.6 s where the old code deadlocked (a
+`.timeLimit` turns any regression into a failure, not a hung suite); one sleeps 30 s and is cancelled —
+terminated in ~0.6 s, well under the sleep. The router rethrows `CancellationError` without falling back to a
+Claude stub that would have succeeded. The `searchJobs` prompt contains `"leads" array`; a ~3 600-char résumé
+reaches the scorer whole while the 6 000 budget still bounds a runaway one.
+
+**On-device.** ⚠️ E-C sends up to ~4 000 more résumé characters per scoring round of the rank-target loop —
+that's the fix working (the scorer must see the whole résumé). E-A/E-B are correctness-only.
+
+## Milestone F — Settings wiring  ✅ done  (`Presentation/Settings` view + VMs, `Presentation/App/Composition`; tests in `lib/tests/Presentation/Settings`)
+
+**The defects (both re-verified).** **F-1 (high):** `DocumentStylesViewModel.reloadStyles()` **had no caller** —
+the pane opened empty every launch ("No saved styles yet…") even though styles were persisted, the default style
+never reached the editor, and Save — finding no loaded selection to match — re-created the style as a **new
+row**, filling the library with duplicates. v0.7.0's headline feature looked broken on relaunch. **F-2
+(medium):** `llmSourceAvailable` was a `let Bool` snapshotted at launch — changing the `.jobSearch` engine left
+the AI source's Configured status and Search-screen availability wrong until relaunch, including a search that
+silently returned zero results.
+
+**The fixes.** **F-A:** one line — `.task { await viewModel.reloadStyles() }` on `DocumentStylesView.body`, the
+same pattern `PortfolioView`/`SearchView` use. **F-B verified as a consequence of F-A, not a second defect:**
+`saveDraft` already updates in place whenever the selected style is present in the loaded library (the existing
+`savingWithASelectionUpdatesInPlace` test pins it); the duplicates came purely from the library never loading, so
+`existing` never matched. **F-C:** availability is now injected as a **live closure**
+(`isLLMAvailable: @Sendable () -> Bool`, pointing at `Composition.isJobSearchEngineAvailable`);
+`llmSourceAvailable` became a computed property over it, so `isConfigured(.llm)` reads live, and
+`refreshCredentialState()` — which `save()` already runs *after* persisting the engine choice — re-resolves
+`configuredProviderIDs` against the just-saved choice. The ordering matters and is what makes the flow work:
+save settings → live check reads the new choice → provider set updates → `RootView` pushes it to Search.
+
+**Tests (2 new; suite green, build warning-free).** The relaunch flow end to end at the VM level: a fresh VM
+over the same store lists the persisted library after `reloadStyles()`, opens the default style in the editor,
+and a save **updates** rather than duplicates. And the live-availability flow: with a closure reading the
+settings store (modelling the composition root's), changing the `.jobSearch` engine and saving flips
+`isConfigured(.llm)` and the provider set both off and back on — same VM, no relaunch.
+
+**On-device.** n/a.
+
+## Milestone G — Portfolio document state  ✅ done  (`Presentation/Portfolio/ViewModel/PortfolioViewModel`; tests in `lib/tests/Presentation/Portfolio`)
+
+**The defects (both re-verified).** **G-1 (medium):** ✕ Clear on the imported cover letter reset only the slot
+(`coverLetterText` + file name) — the **captured** `coverLetterSourceText`/`coverLetterReadableText` survived, so
+`grounding` kept feeding the cleared letter to the LLM as the voice/tone exemplar on every generation, and a
+save persisted it back into the record. A silent no-op for content. **G-2 (low):** `select(_:)` restored a saved
+profile's file names and captured text but never seeded the editable **slots** (`portfolioText` /
+`coverLetterText`) — a loaded profile showed "resume.pdf — 0 characters" with **Build disabled**, so rebuilding
+from the profile's own document required re-importing the file.
+
+**The fixes.** **G-A** took the first horn of the spec's either/or: `clearCoverLetter()` now clears the captured
+text too. The asymmetry with `clearDocument()` (which deliberately leaves `sourceText`/`readableText` alone) is
+kept and documented: the résumé's captured text belongs to the *profile* — it's what the profile was distilled
+from — while the letter is never distilled, so "clear the letter" must mean "stop using this letter **now**",
+not after the next build. **G-B:** `select(_:)` seeds both slots. One deliberate deviation from the spec's
+sketch: the slots get the **raw** `sourceText` first (falling back to `readableText` for partial records), not
+readable-first — the slot's semantic is "text a rebuild runs on", and tidying happens at build time; seeding the
+tidied copy would re-tidy a tidy. Companion fix: `deselect()` now clears `portfolioText` — a gap that was
+invisible while `select` never set it, but would otherwise leave the cleared profile's text in the slot.
+
+**Tests (2 new; suite green at 927, build warning-free).** G-1 end to end: build with a letter → grounding
+carries it; `clearCoverLetter()` → grounding omits it immediately; save → the persisted record has no letter
+text, readable copy, or file name. G-2: save → deselect (slot empty, Build disabled) → select → the raw source
+text is back in both slots and Build is enabled with no re-import.
+
+**On-device.** n/a.
+
+## Milestone H — Crash guards (`Double`→`Int` overflow traps)  ✅ done  (`Data/Jobs/AdzunaJobSource`, `Presentation/Results/ResultsFilter` + `Components/ListFilterBar`, `Presentation/Search` VM; tests in `lib/tests/Data/Jobs`, `lib/tests/Presentation`)
+
+**The defects (both re-verified — plus a third site the audit didn't name).** **H-1:**
+`String(Int(salaryMin))` in `AdzunaJobSource.buildURL` trapped when the typed floor exceeded `Int.max` (a
+19-digit entry parses to a huge `Int`, ranges through `Double`, and the URL builder's conversion crashes).
+**H-2:** the shared Min-salary filter field — Results *and* Tracker — stored a ~1e19 `Double` from a 19+ digit
+entry, and the display binding's `Int` conversion trapped **on the very next render**. **Found while fixing:**
+`applyRequest` had the same `String(Int($0))` on a saved search's floor, so re-running a legacy saved search
+carrying a huge value was a third trap.
+
+**The fixes — local clamps *and* the one-place bound (H-C taken as recommended).** **H-A:** the URL builder
+converts via non-trapping `Int(exactly: salaryMin.rounded())` and **drops the parameter** when out of range or
+non-positive — an absurd floor filters nothing rather than crashing the search. **H-B:** `ResultsFilter` gains
+`maxSalaryInput` (1 billion — beyond any real salary in any supported currency, comfortably inside the
+exactly-representable range) with bounded `salaryInput(_:)` / `salaryDisplay(_:)` statics; the shared bar's
+binding uses both, so even a huge value persisted *before* the bound existed renders clamped. **H-C:**
+`SearchViewModel.parsePositiveInt` clamps at the same ceiling (digits that overflow `Int` entirely clamp too —
+they're "a huge number", not "no number"), which bounds **both** free-text fields (salary floor *and* desired
+result count) at the source; `applyRequest` clamps the saved floor before its `Int` conversion.
+
+**Tests (3 new; suite green at 930, build warning-free).** `buildURL` with 1e19 and −5e18 drops `salary_min`
+while 50 000 round-trips; the filter's parse clamps a 19-digit entry to the ceiling and its display renders 1e19
+as "1000000000" instead of trapping; the Search form clamps both typed fields, and a saved search carrying a
+1e19 floor re-applies as the clamped text — the exact line that used to crash.
+
+**On-device.** n/a.
+
+---
+
+**v0.7.1 is complete and wrapped (2026-08-04): all 18 audited defects fixed across Milestones A–H**, plus two
+extra found during reproduction (the `deselect` slot gap in G, the `applyRequest` salary trap in H). Suite
+904 → 930 cases. Release hygiene done on Taylor's go-ahead — v0.7.0 was merged (PR #11), so the device-check
+gate on the version bump had cleared: `MARKETING_VERSION` is **0.7.1** (all 4 `project.pbxproj` copies), and
+the v0.7.1 summary is in `README.md`'s Version history.

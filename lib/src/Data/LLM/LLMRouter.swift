@@ -122,11 +122,16 @@ nonisolated struct LLMRouter: LLMProvider {
 
     /// Runs `operation` against each engine for `task` in order, returning the first
     /// success and falling back on error. Throws the last error if every engine fails.
+    /// **Cancellation is not an engine failure** (v0.7.1 Milestone E): a cancelled call
+    /// rethrows immediately instead of falling back — the user stopped the work, so quietly
+    /// re-running it on the next engine would be both wrong and wasteful.
     private func run<T>(_ task: LLMTask, _ operation: (any LLMProvider) async throws -> T) async throws -> T {
         var lastError: Error?
         for provider in providerOrder(for: task) {
             do {
                 return try await operation(provider)
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
                 lastError = error
             }

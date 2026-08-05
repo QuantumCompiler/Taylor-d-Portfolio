@@ -115,6 +115,33 @@ struct DocumentStylesViewModelTests {
         #expect(vm.savedStyles.first?.style.pageSize == .usLetter)
     }
 
+    /// v0.7.1 Milestone F: the relaunch flow end to end at the VM level. The pane's `.task` now
+    /// calls `reloadStyles()` on appearance — so a fresh VM over the same store (a relaunch)
+    /// lists the persisted library, opens the default style in the editor, and a save **updates**
+    /// that style instead of re-creating it as a duplicate row (the pre-fix symptom: the library
+    /// looked empty, so Save had no selection to match and inserted).
+    @Test func afterARelaunchReloadListsTheLibraryAndSaveUpdatesNotDuplicates() async {
+        let stores = makeStores()
+        let first = makePersistingVM(stores: stores, idSequence: incrementingIDs())
+        first.draftName = "Mine"
+        await first.saveDraft()
+        first.setDefault(first.savedStyles[0])
+
+        // "Relaunch": a fresh VM over the same persistence, loaded the way the pane now does.
+        let relaunched = makePersistingVM(stores: stores, idSequence: incrementingIDs())
+        #expect(relaunched.savedStyles.isEmpty)               // nothing before the load
+        await relaunched.reloadStyles()
+
+        #expect(relaunched.savedStyles.map(\.name) == ["Mine"])   // the library is listed…
+        #expect(relaunched.selectedStyleID == "id-1")             // …with the default opened
+        #expect(relaunched.draftName == "Mine")
+
+        relaunched.draft.pageSize = .usLetter
+        await relaunched.saveDraft()
+        #expect(relaunched.savedStyles.count == 1)            // updated in place, no duplicate
+        #expect(relaunched.savedStyles.first?.style.pageSize == .usLetter)
+    }
+
     @Test func savingWithABlankNameIsRefused() async {
         let vm = makePersistingVM()
         vm.draftName = "   "

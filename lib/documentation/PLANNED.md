@@ -22,7 +22,9 @@ guess. The target is the entry's *intended* release; it's distinct from being *s
 position**, not at the end — e.g. a later-added `v0.6.1` item slots **between** the `v0.6.0` group and any `v0.7.0`
 group (so the file always reads earliest-target → latest-target, top to bottom).
 
-> **No entries right now — the file is empty of unscheduled work.** The **customizable LaTeX styles** entry
+> **No entries right now — the file is empty of unscheduled work.** The **bug fixes** entry (`Target: v0.7.1`) was
+> scheduled into **v0.7.1** as **Milestones A–H** (2026-08-04) and now lives in `TODO.md` / `ROADMAP.md` — 18
+> verified defects grouped by shared root cause. The **customizable LaTeX styles** entry
 > (`Target: v0.7.0`) was scheduled into **v0.7.0** as **Milestones A–F** (2026-07-28) and now lives in `TODO.md` /
 > `ROADMAP.md`. Two known candidates are **unspecced** and need an entry here with a `Target:` before they can be
 > scheduled: the **ATS-friendly export mode** noted alongside v0.6.1, and the **chunked full tidy** noted as v0.6.2
@@ -43,5 +45,3 @@ group (so the file always reads earliest-target → latest-target, top to bottom
 >
 > Add new specced-but-unscheduled work below as it comes up in chat — each with its `Target:` release, in
 > ascending target-version order.
-
----

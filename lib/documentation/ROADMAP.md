@@ -1036,6 +1036,73 @@ and *can* affect typeset content; it can't run shell commands.) `TODO.md` has th
       writes user data into the preamble. Seam: **Infrastructure/Tex** + Presentation (manager + export banner).
       On-device: n/a.
 
+## v0.7.1 — bug fixes  (complete)
+
+A **patch release**, scheduled out of `PLANNED.md`'s single `Target: v0.7.1` entry (2026-08-04). Not a feature
+theme: a batch of **18 verified defects** on top of the shipped v0.7.0, which is exactly the `v0.x.y` case in
+`CLAUDE.md` → Versioning. They came from a structured audit — five subsystems swept (concurrency/isolation,
+persistence/`Codable`, the LLM layer, the search pipeline, Presentation), every candidate then **re-verified
+against the source by a pass instructed to refute it**; 20 survived, two pairs were the same defect found twice,
+leaving **4 high / 9 medium / 5 low**. They're grouped into eight milestones **by shared root cause**, so each is
+one coherent change. Milestones restart at **A** and commit as `v0.7.1 : Milestone X Completed`. **Not
+Presentation-only** — the fixes span all four layers. **Provenance caveat:** these are audit findings, not
+user-reported bugs — each cites a real `file:line` and survived refutation, but **reproduce before fixing**.
+`TODO.md` has the granular breakdown, the per-defect failure scenarios, and the open calls.
+
+- [x] **Milestone A — Stale-async writes corrupt visible state.** Two unstructured async flows assign into shared
+      view state with **no staleness check**. The headline: `ApplicationWindow` holds **one** `ApplicationViewModel`
+      and re-targets via `.onChange(of: requestID)`, while `generate(...)` runs as an unstructured `Task` that
+      assigns `kit`/`brief` unconditionally (`ApplicationViewModel.swift:438`) — so generating for job A and then
+      opening job B leaves the window showing **B's header with A's résumé**, and Export writes a file **named for B
+      containing A's content**. `loadSaved` also clears `isGenerating` mid-flight, re-enabling Generate. Fix with a
+      generation token + cancel-and-replace. Also cross-gate `fetchFromLink`/`search`, which race for `results`
+      (`SearchViewModel.swift:421`). Seam: Presentation. On-device: n/a.
+- [x] **Milestone B — Results/search handoff in `RootView`.** Three defects in the same `onChange` + badge block,
+      all from handing the Results list **wholesale ownership** of `search.results` on every mutation — including the
+      v0.6.0-K background digest's per-posting updates. The digest **yanks the user back to Results once per digested
+      posting** (25–50 times a minute, `RootView.swift:60`), **resurrects rows the user deleted** (and re-persists
+      them, `:59`), and the sidebar badge **counts tracked jobs the list deliberately hides** (`:121`). Fix: fire
+      auto-navigation off a one-shot search signal, merge digest updates **by id**, badge from `untrackedResults`.
+      Seam: Presentation. On-device: n/a.
+- [x] **Milestone C — Stable posting identity.** `ExtractedPosting.swift:47` builds a pasted posting's id from
+      `String.hashValue`, which Swift seeds **per process** — so the same posting gets a **different id every
+      launch**, and that id is the persistence key everywhere (`RankedJob.id`, saved-jobs upsert, status, application
+      kit). Relaunch orphans the saved kit and status, `contains(jobID:)` never matches, and the store gains a
+      **duplicate row per launch** instead of upserting. Fix: derive the fallback id deterministically (reuse the
+      `fingerprint` normalization, or a SHA-256 digest). Seam: Data. **Do it early — it touches every persistence
+      key.** On-device: n/a.
+- [x] **Milestone D — Search goal & de-duplication.** Three defects in `SearchAndRankUseCase`: the
+      **desired-result-count goal is silently capped at 20** by the ranker's shortlist and the U-D shortfall note
+      never fires (it's computed pre-rank, `:138`); **paging toward the goal never starts** when a provider returns
+      fewer listings than the requested page size (`:105`); and **cross-source duplicates leak in** because the use
+      case de-dupes by source-specific `id` while the composite de-dupes by `fingerprint` (`:104`). Seam: Business.
+      ⚠️ On-device/cost: raising the shortlist limit means **ranking more jobs per search** — the cap was also a cost
+      guard.
+- [x] **Milestone E — LLM layer correctness.** A **subprocess pipe deadlock** — stdout is drained to EOF before
+      stderr is read, so a child that fills the stderr buffer **hangs the LLM call forever** with no timeout and no
+      cancellation path (`ClaudeProcessClient.swift:169`; the same fix applies to `LaTeXProcessClient`). The
+      **`searchJobs` prompt never names the `leads` wrapper key** the decoder requires, so AI job search
+      intermittently returns nothing on the default Claude engine — and fail-soft compositing **swallows the decode
+      error entirely** (`Prompts.swift:699`). And the **generated résumé is truncated to the job-description cap
+      (2 000 chars) before scoring** (`:414`), so the rank-target loop under-scores its own output, burns all four
+      rounds, and **escalates fidelity to the embellished band** — inventing content the user never asked for. Seam:
+      Infrastructure + Data. ⚠️ A larger résumé budget means more tokens per scoring round.
+- [x] **Milestone F — Settings wiring.** `DocumentStylesView.reloadStyles()` **has no caller** (`:25`), so v0.7.0's
+      headline feature shows "No saved styles yet" on **every launch** despite styles being persisted, never opens
+      the default, and duplicates the style on Save. And `llmSourceAvailable` is a **launch-time snapshot**
+      (`SettingsViewModel.swift:38`), so changing the AI-job-search engine leaves the source's status and Search
+      availability wrong until relaunch — including a search that silently returns nothing. Fix: a `.task` reload,
+      and a live availability closure. Seam: Presentation. On-device: n/a.
+- [x] **Milestone G — Portfolio document state.** Clearing an imported **cover letter** then saving leaves the text
+      in the persisted record, and **every later generation still feeds it as the voice exemplar** — a silent no-op
+      for content (`PortfolioViewModel.swift:192`). And `select()` restores a saved profile's file names but **not**
+      its slot text (`:364`), so a loaded profile reads "0 characters" with **Build disabled**, unable to rebuild
+      from its own document. Seam: Presentation. On-device: n/a.
+- [x] **Milestone H — Crash guards.** Two `Double`→`Int` overflow **traps**: a large typed salary floor crashes
+      during Adzuna URL construction (`AdzunaJobSource.swift:61`), and a 19+ digit entry in the shared Min-salary
+      **filter** crashes in both Results and Tracker (`ListFilterBar.swift:55`). Trivial to guard, expensive to hit —
+      ship together. Seam: Data + Presentation. On-device: n/a.
+
 ## Fast follow (next up)
 
 - Export and saved/re-runnable searches shipped in **v0.3.0**; the profile-cache half of the old

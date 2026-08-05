@@ -137,49 +137,99 @@ nonisolated struct ClaudeProcessClient: TextGenerating {
         return directory
     }
 
+    /// Bridges Swift task cancellation to `Process.terminate()` (v0.7.1 Milestone E): without
+    /// it a cancelled LLM call — e.g. Milestone A's cancel-and-replace re-targeting — kept
+    /// awaiting a child that ran to completion anyway. The lock covers the register/cancel
+    /// race; a cancel that lands between `register` and `run()` is caught by the post-exit
+    /// `isCancelled` check instead of a kill.
+    private final class ProcessHolder: @unchecked Sendable {
+        private let lock = NSLock()
+        private var process: Process?
+        private var cancelled = false
+
+        /// Records the child so `cancel()` can reach it. Returns `false` when cancellation
+        /// already happened — the caller then skips launching entirely.
+        func register(_ process: Process) -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            guard !cancelled else { return false }
+            self.process = process
+            return true
+        }
+
+        var isCancelled: Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return cancelled
+        }
+
+        func cancel() {
+            lock.lock()
+            cancelled = true
+            let process = process
+            lock.unlock()
+            // Outside the lock; `terminate()` traps on a never-launched process.
+            if let process, process.isRunning { process.terminate() }
+        }
+    }
+
     private static func runProcess(executableURL: URL, arguments: [String]) async throws -> Data {
-        try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let process = Process()
-                process.executableURL = executableURL
-                process.arguments = arguments
-                // Run the child in a neutral, app-owned directory. Without this it inherits the
-                // app's working directory (the user's home for a Finder-launched app), where the
-                // Claude CLI's startup context-scan reaches TCC-protected locations (Photos,
-                // Music, Documents…). Because the app is unsandboxed, macOS attributes those
-                // accesses to this app and prompts the user for access that makes no sense for a
-                // job app. An empty Caches subdirectory has nothing to traverse into.
-                process.currentDirectoryURL = neutralWorkingDirectory()
-                // GUI apps inherit a minimal PATH; widen it so `env` can find `claude`.
-                var environment = ProcessInfo.processInfo.environment
-                environment["PATH"] = searchPATH(base: environment["PATH"], home: environment["HOME"] ?? NSHomeDirectory())
-                process.environment = environment
-                let stdout = Pipe()
-                let stderr = Pipe()
-                process.standardOutput = stdout
-                process.standardError = stderr
+        let holder = ProcessHolder()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let process = Process()
+                    process.executableURL = executableURL
+                    process.arguments = arguments
+                    // Run the child in a neutral, app-owned directory. Without this it inherits the
+                    // app's working directory (the user's home for a Finder-launched app), where the
+                    // Claude CLI's startup context-scan reaches TCC-protected locations (Photos,
+                    // Music, Documents…). Because the app is unsandboxed, macOS attributes those
+                    // accesses to this app and prompts the user for access that makes no sense for a
+                    // job app. An empty Caches subdirectory has nothing to traverse into.
+                    process.currentDirectoryURL = neutralWorkingDirectory()
+                    // GUI apps inherit a minimal PATH; widen it so `env` can find `claude`.
+                    var environment = ProcessInfo.processInfo.environment
+                    environment["PATH"] = searchPATH(base: environment["PATH"], home: environment["HOME"] ?? NSHomeDirectory())
+                    process.environment = environment
+                    let stdout = Pipe()
+                    let stderr = Pipe()
+                    process.standardOutput = stdout
+                    process.standardError = stderr
 
-                do {
-                    try process.run()
-                } catch {
-                    continuation.resume(throwing: ClaudeProcessError.launchFailed(error.localizedDescription))
-                    return
+                    guard holder.register(process) else {
+                        continuation.resume(throwing: CancellationError())
+                        return
+                    }
+                    do {
+                        try process.run()
+                    } catch {
+                        continuation.resume(throwing: ClaudeProcessError.launchFailed(error.localizedDescription))
+                        return
+                    }
+
+                    // Both pipes drained concurrently — sequential reads deadlocked when the
+                    // child filled stderr while stdout was still open (v0.7.1 Milestone E).
+                    let (outData, errData) = ProcessSupport.drainToEnd(stdout: stdout, stderr: stderr)
+                    process.waitUntilExit()
+
+                    if holder.isCancelled {
+                        continuation.resume(throwing: CancellationError())
+                        return
+                    }
+                    if process.terminationStatus != 0 {
+                        let message = String(data: errData, encoding: .utf8)?
+                            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        continuation.resume(
+                            throwing: ClaudeProcessError.nonZeroExit(code: process.terminationStatus, message: message)
+                        )
+                        return
+                    }
+                    continuation.resume(returning: outData)
                 }
-
-                let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-                let errData = stderr.fileHandleForReading.readDataToEndOfFile()
-                process.waitUntilExit()
-
-                if process.terminationStatus != 0 {
-                    let message = String(data: errData, encoding: .utf8)?
-                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                    continuation.resume(
-                        throwing: ClaudeProcessError.nonZeroExit(code: process.terminationStatus, message: message)
-                    )
-                    return
-                }
-                continuation.resume(returning: outData)
             }
+        } onCancel: {
+            holder.cancel()
         }
     }
 }

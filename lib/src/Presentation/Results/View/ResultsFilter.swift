@@ -35,6 +35,28 @@ struct ResultsFilter: Equatable, Sendable {
         case any, tracked, untracked
     }
 
+    // MARK: Bounded salary input (v0.7.1 Milestone H)
+
+    /// Ceiling on a typed salary floor — beyond any real salary in any supported currency, and
+    /// comfortably inside the range where `Double` → `Int` is exact. The bound is what makes
+    /// the field's display round-trip (`String(Int(_:))`) structurally unable to trap: a 19+
+    /// digit entry used to parse to ~1e19 and crash the very next render.
+    static let maxSalaryInput: Double = 1_000_000_000
+
+    /// Parses the Min-salary text field: digits only, positive, capped at ``maxSalaryInput``.
+    /// `nil` ⇒ no floor ("Any").
+    static func salaryInput(_ text: String) -> Double? {
+        guard let value = Double(text.filter(\.isNumber)), value >= 1 else { return nil }
+        return min(value, maxSalaryInput)
+    }
+
+    /// The field's display text for a stored floor — clamped before the `Int` conversion, so
+    /// even a value persisted before the input bound existed renders instead of trapping.
+    static func salaryDisplay(_ value: Double?) -> String {
+        guard let value, value >= 1 else { return "" }
+        return String(Int(min(value, maxSalaryInput)))
+    }
+
     /// Whether any facet is active (drives the Clear affordance).
     var isActive: Bool {
         minScore != nil

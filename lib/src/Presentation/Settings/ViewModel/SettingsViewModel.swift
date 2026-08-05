@@ -35,7 +35,10 @@ final class SettingsViewModel {
     let latexAvailable: Bool
     /// Whether the LLM job source's engine is available (Milestone J) — its "Configured" status
     /// and its inclusion in `configuredProviderIDs` are **engine-based**, not credential-based.
-    let llmSourceAvailable: Bool
+    /// A **live check**, not a launch-time snapshot (v0.7.1 Milestone F): changing the AI
+    /// job-search engine in this very pane must flip the source's status without a relaunch.
+    var llmSourceAvailable: Bool { isLLMAvailable() }
+    @ObservationIgnored private let isLLMAvailable: @Sendable () -> Bool
 
     /// The tasks to show, in display order.
     let tasks = LLMTask.allCases
@@ -58,7 +61,7 @@ final class SettingsViewModel {
         credentials: JobSourceCredentialsStore? = nil,
         adzunaConfigured: Bool = false,
         latexAvailable: Bool = false,
-        llmSourceAvailable: Bool = false
+        isLLMAvailable: @escaping @Sendable () -> Bool = { false }
     ) {
         self.store = store
         self.credentials = credentials
@@ -66,12 +69,12 @@ final class SettingsViewModel {
         // argument is a fallback for previews/tests that don't supply one.
         self.adzunaConfigured = credentials?.hasCredentials(for: .adzuna) ?? adzunaConfigured
         self.latexAvailable = latexAvailable
-        self.llmSourceAvailable = llmSourceAvailable
+        self.isLLMAvailable = isLLMAvailable
         let settings = store.load()
         self.engines = settings.engines
         self.adzunaCountry = settings.adzunaCountry
         self.savedFields = Self.storedFields(in: credentials)
-        self.configuredProviderIDs = Self.resolvedProviderIDs(credentials, adzunaFallback: self.adzunaConfigured, llmAvailable: llmSourceAvailable)
+        self.configuredProviderIDs = Self.resolvedProviderIDs(credentials, adzunaFallback: self.adzunaConfigured, llmAvailable: isLLMAvailable())
     }
 
     /// The registered providers that are currently usable. Credentialed providers need their keys

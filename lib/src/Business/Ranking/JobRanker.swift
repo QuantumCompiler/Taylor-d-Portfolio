@@ -41,8 +41,12 @@ nonisolated struct JobRanker: Sendable {
 
     /// Prefilters, re-ranks the shortlist with the LLM, pairs each score with its
     /// listing, and returns the matches sorted by descending score.
-    func rank(_ jobs: [JobListing], for profile: CandidateProfile) async throws -> [RankedJob] {
-        let shortlist = prefilter(jobs, for: profile, limit: shortlistLimit)
+    ///
+    /// `limit` overrides ``shortlistLimit`` for this call — how a desired-result-count goal
+    /// larger than the default shortlist actually reaches the ranker (v0.7.1 Milestone D);
+    /// the caller owns bounding it. `nil` ⇒ the configured default.
+    func rank(_ jobs: [JobListing], for profile: CandidateProfile, limit: Int? = nil) async throws -> [RankedJob] {
+        let shortlist = prefilter(jobs, for: profile, limit: limit ?? shortlistLimit)
         guard !shortlist.isEmpty else { return [] }
 
         let matches = try await provider.rank(jobs: shortlist, against: profile)

@@ -29,6 +29,80 @@ private actor CapturingJobSource: JobSource {
     }
 }
 
+/// A `JobSource` that **blocks until the test releases it** — the cross-gate tests
+/// (v0.7.1 Milestone A) need a search genuinely in flight while the link flow is probed.
+private actor GatedJobSource: JobSource {
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private(set) var pendingCount = 0
+    func release() {
+        let continuations = waiting
+        waiting = []
+        for continuation in continuations { continuation.resume() }
+    }
+    func search(_ query: JobQuery) async throws -> [JobListing] {
+        pendingCount += 1
+        await withCheckedContinuation { waiting.append($0) }
+        pendingCount -= 1
+        return []
+    }
+}
+
+/// A `JobPostingSource` that blocks until released, and counts calls — so a gated flow can be
+/// held mid-flight and a blocked entry point proven to have never reached its source.
+private actor GatedPostingSource: JobPostingSource {
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private(set) var pendingCount = 0
+    private(set) var calls = 0
+    private let listing = JobListing(id: "link-1", title: "t", company: "c", location: "l", description: "d")
+    func release() {
+        let continuations = waiting
+        waiting = []
+        for continuation in continuations { continuation.resume() }
+    }
+    func fetchPosting(from url: URL) async throws -> JobListing {
+        calls += 1
+        pendingCount += 1
+        await withCheckedContinuation { waiting.append($0) }
+        pendingCount -= 1
+        return listing
+    }
+    func extractPosting(fromText text: String, sourceURL: URL?) async throws -> JobListing {
+        calls += 1
+        return listing
+    }
+}
+
+/// An `LLMProvider` whose **digest** (`enrichPosting`) blocks until released — the Milestone B
+/// tests need the digest genuinely in flight while a row is deleted out from under it.
+private actor GatedEnrichProvider: LLMProvider {
+    private let matches: [JobMatch]
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private(set) var pendingCount = 0
+    init(matches: [JobMatch]) { self.matches = matches }
+    func release() {
+        let continuations = waiting
+        waiting = []
+        for continuation in continuations { continuation.resume() }
+    }
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        pendingCount += 1
+        await withCheckedContinuation { waiting.append($0) }
+        pendingCount -= 1
+        return PostingDetails(aboutRole: "Standardized.")
+    }
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { matches }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        .init(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [],
+              techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        ApplicationKit(resumeMarkdown: "", coverLetter: "", gapNote: "")
+    }
+}
+
 /// A `JobPostingSource` stub for the link/paste flow: returns a canned listing or throws.
 private struct StubPostingSource: JobPostingSource {
     var listing = JobListing(id: "link-1", title: "iOS Engineer", company: "Acme", location: "Remote", description: "Swift.")
@@ -367,6 +441,192 @@ struct SearchViewModelTests {
         #expect(vm.canFetchLink == false)
     }
 
+    // MARK: v0.7.1 Milestone A — search and link-fetch never race for `results`
+
+    /// Builds a VM with **both** flows wired to gated sources, so either can be held in flight.
+    private func makeCrossGateVM(jobSource: GatedJobSource, postingSource: GatedPostingSource) -> SearchViewModel {
+        let ranker = JobRanker(provider: PresentationStubProvider())
+        return SearchViewModel(
+            searchAndRank: SearchAndRankUseCase(jobSource: jobSource, ranker: ranker),
+            roleTitleStore: RoleTitleStore(store: PresentationMemoryStore()),
+            fetchPosting: FetchPostingUseCase(postingSource: postingSource, ranker: ranker)
+        )
+    }
+
+    /// Spins until `condition` holds (bounded, so a regression fails rather than hangs).
+    private func spinUntil(_ condition: () async -> Bool) async {
+        var spins = 0
+        while !(await condition()), spins < 10_000 {
+            spins += 1
+            await Task.yield()
+        }
+        #expect(await condition())
+    }
+
+    @Test func aRunningSearchGatesTheLinkFetchEntryPoints() async {
+        let jobSource = GatedJobSource()
+        let postingSource = GatedPostingSource()
+        let vm = makeCrossGateVM(jobSource: jobSource, postingSource: postingSource)
+        vm.profile = profile
+        vm.titleInput = "swift"
+        vm.postingURL = "https://example.com/jobs/1"
+        vm.pastedPosting = "iOS Engineer at Acme. Swift."
+        #expect(vm.canFetchLink)                          // open before the search starts
+
+        let search = Task { await vm.search() }
+        await spinUntil { await jobSource.pendingCount > 0 }
+        #expect(vm.isSearching)
+
+        #expect(vm.canFetchLink == false)                 // the button disables…
+        await vm.fetchFromLink()                          // …and a direct call no-ops
+        await vm.generateFromPastedText()
+        #expect(await postingSource.calls == 0)           // neither flow reached its source
+        #expect(vm.isFetchingLink == false)
+
+        await jobSource.release()
+        await search.value
+        #expect(vm.isSearching == false)
+        #expect(vm.canFetchLink)                          // gates reopen once the search lands
+    }
+
+    @Test func aRunningLinkFetchGatesSearchSoTheFetchedJobCannotVanish() async {
+        let jobSource = GatedJobSource()
+        let postingSource = GatedPostingSource()
+        let vm = makeCrossGateVM(jobSource: jobSource, postingSource: postingSource)
+        vm.profile = profile
+        vm.titleInput = "swift"
+        vm.postingURL = "https://example.com/jobs/1"
+        #expect(vm.canSearch)                             // open before the fetch starts
+
+        let fetch = Task { await vm.fetchFromLink() }
+        await spinUntil { await postingSource.pendingCount > 0 }
+        #expect(vm.isFetchingLink)
+
+        #expect(vm.canSearch == false)                    // the button disables…
+        await vm.search()                                 // …and a direct call no-ops
+        await vm.runSavedSearch(SavedSearch(id: "s", name: "s",
+                                            request: JobSearchRequest(titles: ["swift"]),
+                                            createdAt: Date(timeIntervalSince1970: 0)))
+        #expect(vm.isSearching == false)                  // no search snuck in behind the fetch
+
+        await postingSource.release()
+        await fetch.value
+        #expect(vm.results.map(\.id) == ["link-1"])       // the fetched job survived — B-2's twin
+        #expect(vm.canSearch)                             // gates reopen once the fetch lands
+    }
+
+    // MARK: v0.7.1 Milestone H — typed numeric fields are bounded (nothing downstream traps)
+
+    /// The one-place guard: `parsePositiveInt` clamps at a sane ceiling, so the Adzuna URL
+    /// builder and the saved-search round-trip can never be handed a trapping value — and a
+    /// legacy saved search already carrying a huge floor re-applies clamped instead of crashing.
+    @Test func typedNumericFieldsClampAndASavedHugeFloorRoundTripsSafely() async {
+        let vm = makeVM()
+        vm.profile = profile
+
+        vm.salaryText = "9999999999999999999"            // 19 nines — past Int.max
+        #expect(vm.effectiveSalaryMin == 1_000_000_000)  // clamped, not nil, not a trap
+        vm.desiredResultText = "123456789012345678901"   // past what Int can even parse
+        #expect(vm.desiredResultCount == 1_000_000_000)
+        vm.salaryText = "50000"
+        #expect(vm.effectiveSalaryMin == 50_000)         // normal values untouched
+
+        // A saved search persisted before the bound existed carries a huge floor: re-running
+        // it must repopulate the form clamped (the old `String(Int($0))` trapped here).
+        var request = JobSearchRequest(titles: ["ios"])
+        request.salaryMin = 1e19
+        let saved = SavedSearch(id: "s", name: "S", request: request,
+                                createdAt: Date(timeIntervalSince1970: 0))
+        await vm.runSavedSearch(saved)
+        #expect(vm.salaryText == "1000000000")
+    }
+
+    // MARK: v0.7.1 Milestone B — one-shot hand-off signal + deletion vs. the digest
+
+    /// The shell's auto-navigation rides `completedSearchID`, so it must fire **once** per
+    /// landed search — not once per digest swap, which mutates `results` per posting.
+    @Test func searchSignalsALandedResultSetOnceDespiteDigestUpdates() async {
+        // Distinct titles: the merge de-dupes by fingerprint (v0.7.1 Milestone D), so two
+        // fixtures sharing title/company/location would collapse into one posting.
+        let jobs = [
+            JobListing(id: "a", title: "ta", company: "c", location: "l", description: "raw a"),
+            JobListing(id: "b", title: "tb", company: "c", location: "l", description: "raw b"),
+        ]
+        let matches = [
+            JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: []),
+            JobMatch(jobId: "b", score: 60, reason: "", matchedSkills: [], missingSkills: []),
+        ]
+        let vm = makeVM(jobs: jobs, matches: matches, enrichDetails: PostingDetails(aboutRole: "Std."))
+        vm.profile = profile
+        vm.titleInput = "iOS Engineer"
+        #expect(vm.completedSearchID == 0)
+
+        await vm.search()
+
+        #expect(vm.results.count == 2)
+        #expect(vm.results.allSatisfy { $0.listing.details != nil })   // the digest really ran…
+        #expect(vm.completedSearchID == 1)                             // …but the signal fired once
+    }
+
+    @Test func fetchFromLinkSignalsALandedResultSetAndAFailureDoesNot() async {
+        let vm = makeLinkVM(postingSource: StubPostingSource())
+        vm.profile = profile
+        vm.postingURL = "https://example.com/jobs/1"
+        await vm.fetchFromLink()
+        #expect(vm.completedSearchID == 1)                // a landed fetch signals the hand-off
+
+        let failing = makeLinkVM(postingSource: StubPostingSource(error: JobPostingSourceError.unreadable))
+        failing.profile = profile
+        failing.postingURL = "https://example.com/jobs/1"
+        await failing.fetchFromLink()
+        #expect(failing.completedSearchID == 0)           // nothing landed — no navigation yank
+    }
+
+    /// The B-2 defect end to end: delete a row while the digest is standardizing it. The
+    /// pruned id must not come back — not into the list when its digest completes, and not
+    /// into the saved-jobs store when the digest's final re-persist runs.
+    @Test func aRowDeletedMidDigestIsNeitherResurrectedNorRePersisted() async throws {
+        // Distinct titles — same fingerprint-dedup consideration as above.
+        let jobs = [
+            JobListing(id: "a", title: "ta", company: "c", location: "l", description: "raw a"),
+            JobListing(id: "b", title: "tb", company: "c", location: "l", description: "raw b"),
+        ]
+        let matches = [
+            JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: []),
+            JobMatch(jobId: "b", score: 60, reason: "", matchedSkills: [], missingSkills: []),
+        ]
+        let provider = GatedEnrichProvider(matches: matches)
+        let repo = SavedJobsRepository(store: InMemoryRecordStore())
+        let vm = SearchViewModel(
+            searchAndRank: SearchAndRankUseCase(
+                jobSource: PresentationStubJobSource(jobs: jobs),
+                ranker: JobRanker(provider: provider, shortlistLimit: 10),
+                enrichPosting: EnrichPostingUseCase(provider: provider, postingSource: nil)
+            ),
+            roleTitleStore: RoleTitleStore(store: PresentationMemoryStore()),
+            saveResults: SaveResultsUseCase(repository: repo)
+        )
+        vm.profile = profile
+        vm.titleInput = "iOS Engineer"
+
+        let search = Task { await vm.search() }
+        await spinUntil { await provider.pendingCount > 0 }            // digest mid-flight
+        #expect(vm.results.map(\.id) == ["a", "b"])
+        let persisted = Set(try await repo.savedJobs().map(\.id))
+        #expect(persisted == ["a", "b"])                               // pre-digest persist
+
+        // The user deletes "a" in Results: the store row goes, and the shell prunes the copy.
+        try await repo.delete(jobID: "a")
+        vm.removeResults(["a"])
+
+        await provider.release()                                       // "a"'s digest lands late
+        await search.value
+
+        #expect(vm.results.map(\.id) == ["b"])                         // not resurrected on screen
+        #expect(try await repo.savedJobs().map(\.id) == ["b"])         // not re-written to the store
+        #expect(vm.results.first?.listing.details != nil)              // the survivor still digested
+    }
+
     @Test func generateFromPastedTextSuccessPushesResult() async {
         let vm = makeLinkVM(postingSource: StubPostingSource())
         vm.profile = profile
@@ -550,9 +810,11 @@ struct SearchViewModelTests {
     }
 
     @Test func rerunReportsHowManyResultsAreNewSinceLastTime() async throws {
+        // Distinct titles: the merge de-dupes by fingerprint (v0.7.1 Milestone D), so two
+        // fixtures sharing title/company/location would collapse into one posting.
         let jobs = [
-            JobListing(id: "a", title: "t", company: "c", location: "l", description: "d"),
-            JobListing(id: "b", title: "t", company: "c", location: "l", description: "d"),
+            JobListing(id: "a", title: "ta", company: "c", location: "l", description: "d"),
+            JobListing(id: "b", title: "tb", company: "c", location: "l", description: "d"),
         ]
         let matches = [
             JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: []),

@@ -112,6 +112,24 @@ struct ResultsViewModelTests {
         #expect(vm.supportsBulkActions == false)
     }
 
+    // MARK: v0.7.1 Milestone B — deletions notify the shell
+
+    /// Single and bulk deletes both fire `onResultsRemoved` with exactly the deleted ids — the
+    /// shell prunes the Search VM's copy off this, so a background digest can't resurrect or
+    /// re-persist a deleted row.
+    @Test func deletionsNotifyTheRemovalHookWithTheDeletedIDs() async {
+        let (vm, _, _, _) = makeRowActionVM(results: [ranked("a"), ranked("b"), ranked("c")])
+        var removed: [Set<String>] = []
+        vm.onResultsRemoved = { removed.append($0) }
+
+        await vm.delete(ranked("a"))
+        #expect(removed == [["a"]])
+
+        vm.selectedIDs = ["b", "c"]
+        await vm.deleteSelected()
+        #expect(removed == [["a"], ["b", "c"]])
+    }
+
     // MARK: Sort (v0.6.2 Milestone C)
 
     /// The sort runs **after** the filter, and the default reproduces the ranker's order — so

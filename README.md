@@ -199,10 +199,30 @@ The awesome-cv PDF route had exactly one look, hardcoded down to the font size a
 - Also fixed: a stray LaTeX setting from the skills grid had been quietly compressing every section printed after
   it. *(Milestones A–F.)*
 
-**Next:** the next version's number and theme are decided when development on it starts. Likely candidates come
-from the backlog — the native `LanguageModel` provider seam, on-device embedding RAG, or an optional MCP tool
-layer — or one of the unspecced ideas noted in `lib/documentation/TODO.md` (an ATS-friendly export mode, a chunked
-full tidy for long documents).
+### v0.7.1 — bug fixes
+A patch release fixing **18 verified defects** found by a structured codebase audit (every finding re-verified
+against the source by a pass instructed to refute it), grouped into eight milestones by shared root cause:
+- **State that stays put (A–B):** an in-flight generation can no longer write one job's résumé under another
+  job's header (or export a file named for the wrong job) — re-targeting cancels the old run, and a run token
+  guards every write. The background description digest no longer yanks navigation back to Results once per
+  posting, resurrects deleted rows, or re-persists them; the Results badge counts what the list actually shows.
+- **Identity and search correctness (C–D):** a pasted posting's id is now deterministic across launches (it was
+  seeded per process, orphaning saved materials and duplicating rows every launch). A desired-result-count goal
+  really ranks past the old silent 20 cap (bounded by an explicit cost ceiling, with an honest shortfall note),
+  short provider pages keep paging, and the same posting from two sources collapses to one row.
+- **LLM layer (E):** a subprocess pipe deadlock that could hang an LLM call forever is gone (both pipes drain
+  concurrently), task cancellation now terminates the child `claude` process and is never treated as an engine
+  failure, the AI job-search prompt names the JSON shape its decoder requires, and the rank-target loop scores
+  the **whole** résumé instead of an under-scored truncation that escalated fidelity on its own.
+- **Wiring and guards (F–H):** the Document Styles pane loads its saved library on open (no more "No saved
+  styles yet" over a full library, no duplicate rows on save), the AI source's Configured status follows the
+  engine choice live, a cleared cover letter is cleared everywhere (it silently kept steering generation), a
+  selected profile can be rebuilt without re-importing its document, and two `Double`→`Int` overflow crashes
+  (salary fields) are clamped at every layer. *(Milestones A–H; suite 904 → 930 cases.)*
+
+**Next:** not named yet — likely candidates come from the backlog (the native `LanguageModel` provider seam,
+on-device embedding RAG, an optional MCP tool layer) or the unspecced ideas noted in `TODO.md` (an ATS-friendly
+export mode, a chunked full tidy for long documents).
 
 ## Build & run
 

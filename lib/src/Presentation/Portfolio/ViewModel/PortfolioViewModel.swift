@@ -187,11 +187,18 @@ final class PortfolioViewModel {
         sourceFileName = nil
     }
 
-    /// The cover-letter equivalent. `build()` already clears the letter's captured text when
-    /// the slot is empty, so a cleared slot can't leave a stale letter on the next build.
+    /// The cover-letter equivalent — but unlike `clearDocument()`, this **also clears the
+    /// captured text** (v0.7.1 Milestone G). The asymmetry is deliberate: `sourceText` belongs
+    /// to the *profile* (it's what the profile was distilled from), while the letter is never
+    /// distilled — it's purely a generation-time voice exemplar, so "clear the letter" must
+    /// mean "stop using this letter" **now**, not after the next build. Before this,
+    /// clear-then-save persisted the stale letter and every generation kept feeding it to the
+    /// LLM — a silent no-op for content.
     func clearCoverLetter() {
         coverLetterText = ""
         coverLetterFileName = nil
+        coverLetterSourceText = ""
+        coverLetterReadableText = ""
     }
 
     private static func message(for error: DocumentExtractionError) -> String {
@@ -361,6 +368,12 @@ final class PortfolioViewModel {
 
     /// Loads a saved profile as the current profile (so it flows to Search/Results), along
     /// with the document it was built on.
+    ///
+    /// The editable **slots** are seeded too (v0.7.1 Milestone G) — mirroring what `deselect()`
+    /// clears. Without this a loaded profile showed "resume.pdf — 0 characters" and Build
+    /// stayed disabled, so the user couldn't rebuild from the profile's own document without
+    /// re-importing it. The slots get the **raw** source text (what a rebuild should run on —
+    /// tidying happens at build time), falling back to the readable copy for partial records.
     func select(_ saved: SavedProfile) {
         profile = saved.profile
         profileName = saved.name
@@ -368,9 +381,11 @@ final class PortfolioViewModel {
         sourceFileName = saved.sourceFileName
         sourceText = saved.sourceText
         readableText = saved.readableText
+        portfolioText = saved.sourceText.isEmpty ? saved.readableText : saved.sourceText
         coverLetterFileName = saved.coverLetterFileName
         coverLetterSourceText = saved.coverLetterText
         coverLetterReadableText = saved.coverLetterReadableText
+        coverLetterText = saved.coverLetterText.isEmpty ? saved.coverLetterReadableText : saved.coverLetterText
         supportingDocuments = saved.supportingDocuments
         errorMessage = nil
     }
@@ -393,6 +408,7 @@ final class PortfolioViewModel {
         sourceFileName = nil
         sourceText = ""
         readableText = ""
+        portfolioText = ""   // select() seeds the slot now, so deselect clears it (Milestone G)
         coverLetterText = ""
         coverLetterFileName = nil
         coverLetterSourceText = ""

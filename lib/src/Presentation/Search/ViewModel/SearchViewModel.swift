@@ -72,6 +72,12 @@ final class SearchViewModel {
     }
 
     private(set) var results: [RankedJob] = []
+    /// Bumped exactly once per **landed result set** — a search, link fetch, or pasted-text
+    /// generation assigning `results` wholesale (v0.7.1 Milestone B). The shell drives its
+    /// hand-off to the Results area and the jump there off this one-shot signal, **not** off
+    /// `results` mutations: the background digest (Milestone K) swaps rows in place dozens of
+    /// times per run, and each of those must never re-trigger navigation or a wholesale copy.
+    private(set) var completedSearchID = 0
     private(set) var isSearching = false
     /// Whether results are being digested into the standardized description format (Milestone K).
     /// Rows appear immediately after ranking and swap to the standardized description as each
@@ -185,7 +191,9 @@ final class SearchViewModel {
         selectedCommonTitles = []
         titleInput = ""
         location = request.location ?? ""
-        salaryText = request.salaryMin.map { String(Int($0)) } ?? ""
+        // Non-trapping (v0.7.1 Milestone H): a saved search persisted before the input bound
+        // existed can carry a floor beyond `Int.max` — show it clamped rather than crash.
+        salaryText = request.salaryMin.map { String(Int(min(max($0, 0), Double(Self.maxParsedValue)))) } ?? ""
         positionType = request.positionType
         desiredResultText = request.desiredResultCount.map(String.init) ?? ""
         minimumScore = Double(request.minimumScore ?? 0)
@@ -238,11 +246,21 @@ final class SearchViewModel {
         salaryPresetStore?.save(savedSalaries)
     }
 
-    /// Parses a positive integer from free text (digits + separators), else `nil`.
+    /// Ceiling for the free-text numeric fields (salary floor, desired result count) —
+    /// v0.7.1 Milestone H's one-place guard: no real value exceeds it, and it keeps every
+    /// downstream `Int`/`Double` conversion inside the exactly-representable range, so the
+    /// Adzuna URL builder and the saved-search round-trip can never be handed a trapping value.
+    private static let maxParsedValue = 1_000_000_000
+
+    /// Parses a positive integer from free text (digits + separators), else `nil` — clamped to
+    /// ``maxParsedValue``. Digits that overflow `Int` entirely clamp too (they're "a huge
+    /// number", not "no number").
     private static func parsePositiveInt(_ text: String) -> Int? {
         let digits = text.filter(\.isNumber)
-        guard let value = Int(digits), value > 0 else { return nil }
-        return value
+        guard !digits.isEmpty else { return nil }
+        guard let value = Int(digits) else { return maxParsedValue }
+        guard value > 0 else { return nil }
+        return min(value, maxParsedValue)
     }
 
     // MARK: Saved-profile selection
@@ -294,6 +312,15 @@ final class SearchViewModel {
         try? await saveResults(results)
     }
 
+    /// Drops `ids` from the in-memory result set (v0.7.1 Milestone B). The shell calls this
+    /// when the user deletes rows in the Results area, so a digest still running over the old
+    /// set can't resurrect them — the in-place swap skips ids no longer present, and the
+    /// digest's final `persistResults()` no longer re-writes deleted rows to the store.
+    func removeResults(_ ids: Set<String>) {
+        guard !ids.isEmpty else { return }
+        results.removeAll { ids.contains($0.id) }
+    }
+
     /// Whether the "generate from a link" affordance is wired in this build.
     var canUseLink: Bool { fetchPosting != nil }
 
@@ -324,8 +351,14 @@ final class SearchViewModel {
             : "No search source selected — pick at least one configured provider below."
     }
 
+    /// True while either results-producing flow runs. Search and link-fetch both assign
+    /// `results` wholesale, so every entry point gates on **both** flags — otherwise a
+    /// link-fetched job silently vanishes when an earlier search lands, and vice versa
+    /// (v0.7.1 Milestone A).
+    var isResultsFlowBusy: Bool { isSearching || isFetchingLink }
+
     var canSearch: Bool {
-        !activeProviderIDs.isEmpty && hasProfile && !effectiveTitles.isEmpty && !isSearching
+        !activeProviderIDs.isEmpty && hasProfile && !effectiveTitles.isEmpty && !isResultsFlowBusy
     }
 
     // MARK: Provider selection (Milestone H)
@@ -396,13 +429,14 @@ final class SearchViewModel {
 
     /// Whether the "Fetch" action can run (link wired, profile present, URL entered).
     var canFetchLink: Bool {
-        canUseLink && hasProfile && !isFetchingLink
+        canUseLink && hasProfile && !isResultsFlowBusy
             && !postingURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// Fetches a posting from `postingURL`, ranks it, and pushes it into the results
     /// flow. Independent of Adzuna (uses HTTP + the LLM, not the job search API).
     func fetchFromLink() async {
+        guard !isResultsFlowBusy else { return }   // never race a running search for `results`
         guard let fetchPosting else { return }
         guard let profile else {
             linkErrorMessage = "Build your profile on the Portfolio tab first."
@@ -419,6 +453,7 @@ final class SearchViewModel {
         defer { isFetchingLink = false }
         do {
             results = [try await fetchPosting(url: url, profile: profile)]
+            completedSearchID += 1   // one landed result set — the shell hands off + jumps once
             await persistResults()
             await digestResults()   // standardize the fetched posting too (Milestone K)
         } catch is JobPostingSourceError {
@@ -454,6 +489,7 @@ final class SearchViewModel {
     /// Extracts a posting from `pastedPosting` (the fallback for un-fetchable pages),
     /// ranks it, and pushes it into the results flow.
     func generateFromPastedText() async {
+        guard !isResultsFlowBusy else { return }   // never race a running search for `results`
         guard let fetchPosting else { return }
         guard let profile else {
             linkErrorMessage = "Build your profile on the Portfolio tab first."
@@ -471,6 +507,7 @@ final class SearchViewModel {
         do {
             let sourceURL = URL(string: postingURL.trimmingCharacters(in: .whitespacesAndNewlines))
             results = [try await fetchPosting(pastedText: text, sourceURL: sourceURL, profile: profile)]
+            completedSearchID += 1   // one landed result set — the shell hands off + jumps once
             await persistResults()
             await digestResults()   // standardize the pasted posting too (Milestone K)
         } catch is JobPostingSourceError {
@@ -515,6 +552,7 @@ final class SearchViewModel {
     /// the soft notes. On a re-run (Milestone R) it also reports how many results are new
     /// since the last search (deduped against the saved-jobs store).
     private func performSearch(_ request: JobSearchRequest, isRerun: Bool) async {
+        guard !isResultsFlowBusy else { return }   // covers search() and runSavedSearch(_:)
         guard let profile else { return }
         isSearching = true
         errorMessage = nil
@@ -525,6 +563,7 @@ final class SearchViewModel {
         do {
             let output = try await searchAndRank(request: request, profile: profile)
             results = output.rankedJobs
+            completedSearchID += 1   // one landed result set — the shell hands off + jumps once
             var notes = [Self.note(for: output, minimumScore: request.minimumScore)].compactMap { $0 }
             if isRerun, !results.isEmpty {
                 let newCount = results.filter { !priorIDs.contains($0.id) }.count

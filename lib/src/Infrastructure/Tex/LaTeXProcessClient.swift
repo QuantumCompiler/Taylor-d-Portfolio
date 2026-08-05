@@ -175,10 +175,10 @@ nonisolated struct LaTeXProcessClient: LaTeXCompiling {
                     return
                 }
 
-                // lualatex writes diagnostics to stdout; read it fully (well under the pipe buffer)
-                // before waiting so a full pipe can't deadlock the child.
-                let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-                _ = stderr.fileHandleForReading.readDataToEndOfFile()
+                // Both pipes drained concurrently (v0.7.1 Milestone E): reading stdout to EOF
+                // first deadlocked if the child filled the stderr buffer in the meantime.
+                // lualatex's diagnostics are on stdout — stderr is drained and discarded.
+                let (outData, _) = ProcessSupport.drainToEnd(stdout: stdout, stderr: stderr)
                 process.waitUntilExit()
 
                 if process.terminationStatus != 0 {

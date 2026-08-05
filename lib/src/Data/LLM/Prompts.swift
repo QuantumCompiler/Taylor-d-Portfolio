@@ -399,6 +399,11 @@ nonisolated enum Prompts {
 
     /// Scores a generated résumé against the target role, returning a `JobMatch` — the
     /// outcome the rank-target loop chases (Milestone D-F).
+    ///
+    /// The résumé gets the **résumé-sized** budget (`maxPortfolioCharacters`, matching the
+    /// grounding injection), not the job-description cap (v0.7.1 Milestone E): the 2 000-char
+    /// cap cut the scorer's view roughly in half, so tail skills scored as "missing" and the
+    /// rank-target loop burned all its rounds escalating fidelity to the embellished band.
     static func scoreApplication(job: JobListing, brief: TargetBrief, kit: ApplicationKit) -> String {
         """
         Score how strongly this tailored résumé matches the target role. Return a single JobMatch.
@@ -411,7 +416,7 @@ nonisolated enum Prompts {
         - techStack: \(brief.techStack.joined(separator: ", "))
 
         Tailored résumé:
-        \(truncate(kit.resumeMarkdown, to: maxDescriptionCharacters))
+        \(truncate(kit.resumeMarkdown, to: maxPortfolioCharacters))
 
         Produce a JobMatch:
         - jobId: \(job.id)
@@ -696,8 +701,12 @@ nonisolated enum Prompts {
             sections.append("Additional candidate background:\n" + truncate(supporting, to: maxSupportingCharacters))
         }
 
+        // Names the `leads` wrapper key the decoder requires (v0.7.1 Milestone E) — the same
+        // pattern as `rank`'s "matches" array. Without it the Claude engine intermittently
+        // shaped the JSON differently and the decode failure was swallowed by the fail-soft
+        // composite, showing zero AI leads with no error.
         sections.append("""
-        For each lead produce:
+        Produce a "leads" array — one element per suggested opening — where each element has:
         - title: the role's job title.
         - company: the hiring company.
         - location: where it's based, or "Remote".

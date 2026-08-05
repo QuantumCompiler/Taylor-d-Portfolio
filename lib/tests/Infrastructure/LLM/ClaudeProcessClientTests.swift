@@ -2,7 +2,8 @@
 //  ClaudeProcessClientTests.swift
 //  Taylor'd PortfolioTests
 //
-//  Tests · Infrastructure · LLM — pure parsing logic (no process launch).
+//  Tests · Infrastructure · LLM — pure parsing logic, plus real scripted child processes
+//  for the pipe-drain and cancellation regressions (v0.7.1 Milestone E).
 //
 
 import Testing
@@ -120,5 +121,52 @@ struct ClaudeProcessClientTests {
         #expect(throws: ClaudeProcessError.self) {
             try ClaudeProcessClient.parseResult(from: Data("not json".utf8))
         }
+    }
+
+    // MARK: v0.7.1 Milestone E — real child processes: pipe drain + cancellation
+
+    /// Writes `body` as an executable `/bin/sh` script in a temp dir and returns its path.
+    private func makeScript(_ body: String) throws -> String {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("claude-stub-\(UUID().uuidString).sh")
+        try ("#!/bin/sh\n" + body).write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+        return url.path
+    }
+
+    /// The E-1 regression: a child that floods **stderr** far past the ~64 KB pipe buffer while
+    /// stdout stays open. Sequential draining deadlocked here forever; concurrent draining
+    /// completes. The time limit turns a regression into a failure instead of a hung suite.
+    @Test(.timeLimit(.minutes(1))) func childFloodingStderrCompletesInsteadOfDeadlocking() async throws {
+        // ~130 lines × 1 KB ≈ 130 KB of stderr, then a valid envelope on stdout.
+        let script = try makeScript("""
+        i=0
+        line=$(printf 'e%.0s' $(seq 1 1024))
+        while [ $i -lt 130 ]; do
+          echo "$line" 1>&2
+          i=$((i+1))
+        done
+        printf '{"result":"OK","is_error":false}'
+        """)
+        let client = ClaudeProcessClient(launcher: .path(script))
+        let result = try await client.generate(prompt: "ignored", instructions: nil)
+        #expect(result == "OK")
+    }
+
+    /// Cancelling the awaiting task terminates the child and throws `CancellationError` —
+    /// before, a cancelled call kept awaiting a child that ran to completion anyway.
+    @Test(.timeLimit(.minutes(1))) func cancellationTerminatesTheChildPromptly() async throws {
+        let script = try makeScript("""
+        sleep 30
+        printf '{"result":"TOO LATE","is_error":false}'
+        """)
+        let client = ClaudeProcessClient(launcher: .path(script))
+        let started = Date()
+        let call = Task { try await client.generate(prompt: "ignored", instructions: nil) }
+        try await Task.sleep(for: .milliseconds(300))   // let the child launch
+        call.cancel()
+
+        await #expect(throws: (any Error).self) { try await call.value }
+        #expect(Date().timeIntervalSince(started) < 10)   // did not wait out the 30 s sleep
     }
 }
