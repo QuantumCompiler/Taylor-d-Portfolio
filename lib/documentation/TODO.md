@@ -9,13 +9,13 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.7.1 — bug fixes — Milestones A–B done; next Milestone C.** Eighteen verified defects were
+> **Current focus. v0.7.1 — bug fixes — Milestones A–C done; next Milestone D.** Eighteen verified defects were
 > scheduled out of `PLANNED.md` (2026-08-04) into the **v0.7.1 — bug fixes** section below, grouped into
-> Milestones **A–H** by shared root cause. **A (stale-async writes) and B (Results/search handoff) are
-> complete** — write-ups in `MILESTONES.md`. **C** (stable posting identity) is next and rightly so — it touches
-> every persistence key; **H** (two `Double`→`Int` overflow crashes) is nearly free if you want a quick win.
-> Every defect cites a real `file:line` — **reproduce each one before fixing it** (see the provenance note in
-> that section).
+> Milestones **A–H** by shared root cause. **A (stale-async writes), B (Results/search handoff), and C (stable
+> posting identity) are complete** — write-ups in `MILESTONES.md`. **D** (search goal & de-duplication) is next;
+> mind its cost note — raising the shortlist cap ranks more jobs per search. **H** (two `Double`→`Int` overflow
+> crashes) is nearly free if you want a quick win. Every defect cites a real `file:line` — **reproduce each one
+> before fixing it** (see the provenance note in that section).
 
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
@@ -50,29 +50,6 @@ high, 9 medium, 5 low**.
       device checks assert **Settings → About reads 0.7.0**. Bumping now would invalidate them. **Clear the v0.7.0
       device checks first, then bump.**
 - [ ] Add the v0.7.1 summary to `README.md`'s Version history when the release wraps.
-
-## Milestone C — Stable posting identity  *(high)*
-
-**What / why.** [`ExtractedPosting.swift:47`](../src/Data/Models/ExtractedPosting.swift:47) builds
-`id: sourceURL?.absoluteString ?? "pasted-posting-\(description.hashValue)"`. Swift seeds `Hasher` with a
-**per-process random value**, so the same pasted posting gets a **different id every launch** — and that id is the
-persistence key everywhere: `RankedJob.id` (`RankedJob.swift:17`), `SavedJobsRepository.save` upsert
-(`SavedJobsRepository.swift:30`), `SavedStatusRepository.save(_:forJobID:)`,
-`SavedApplicationsRepository.save(_:brief:forJobID:)`. Relaunch → the saved kit and application status are
-**orphaned**, `contains(jobID:)` never matches, and the store gains a **duplicate row per launch** instead of the
-documented upsert. Reachable via `SearchViewModel.generateFromPastedText()` (`:456–481`) whenever the URL field is
-empty. (`hashValue` is also often negative, producing ids like `pasted-posting--4471…`.)
-
-**Sub-tasks:**
-- [ ] **C-A** — Derive the fallback id **deterministically** from posting content — reuse the `JobListing.fingerprint`
-      / `LLMJobSource.identifier(for:)` normalization, or a stable digest (SHA-256 hex) of the description.
-- [ ] **C-B** — **(open call) Migrate existing orphans?** *Recommended:* **no migration** — old `pasted-posting-…`
-      records are already unreachable and re-pasting now produces a stable id. If it matters, a one-time sweep could
-      re-key them, but note the risk of colliding with a record the user re-created.
-
-**Tests.** Two independently constructed `ExtractedPosting`s with the same description produce the **equal** id
-(the launch-stability property, expressible in-process); a URL-backed posting still keys on its URL.
-**On-device.** n/a. **Do this early** — it touches every persistence key.
 
 ## Milestone D — Search goal & de-duplication  *(high + medium ×2)*
 

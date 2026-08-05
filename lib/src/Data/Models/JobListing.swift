@@ -100,6 +100,15 @@ nonisolated struct JobListing: Codable, Equatable, Sendable, Identifiable {
     /// per-source key used for persistence. Normalized: lowercased title + company + location
     /// with collapsed whitespace.
     var fingerprint: String {
+        Self.normalizedFingerprint(title: title, company: company, location: location)
+    }
+
+    /// The one normalization behind every **content-derived** identity: lowercased
+    /// title/company/location with collapsed whitespace, `" | "`-joined. Static so id-makers
+    /// that have no listing yet (`LLMJobSource.identifier(for:)`, `ExtractedPosting.toListing`)
+    /// key on exactly the same shape — deterministic across launches, unlike `hashValue`, whose
+    /// per-process seed orphaned pasted postings' saved state on relaunch (v0.7.1 Milestone C).
+    static func normalizedFingerprint(title: String, company: String, location: String) -> String {
         [title, company, location]
             .map { $0.lowercased().split(whereSeparator: \.isWhitespace).joined(separator: " ") }
             .joined(separator: " | ")

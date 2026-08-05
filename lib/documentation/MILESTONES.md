@@ -3474,3 +3474,33 @@ multiple digest swaps, fires for a landed link fetch, and doesn't fire for a fai
 bulk) notify the removal hook with exactly the deleted ids.
 
 **On-device.** n/a.
+
+## Milestone C — Stable posting identity  ✅ done  (`Data/Models/JobListing` + `ExtractedPosting`, `Data/Jobs/LLMJobSource`; tests in `lib/tests/Data/Models`)
+
+**The defect (re-verified).** A pasted posting's fallback id was
+`"pasted-posting-\(description.hashValue)"` — and Swift seeds `Hasher` **per process**, so the same posting got
+a different id every launch. That id is the persistence key everywhere (`RankedJob.id`, the saved-jobs upsert,
+status, application kit), so a relaunch **orphaned the saved kit and status**, `contains(jobID:)` never matched,
+and the store grew a **duplicate row per launch** instead of upserting. Reachable from
+`generateFromPastedText()` whenever the URL field is empty.
+
+**The fix (C-A) — one shared normalization, three users.** The fingerprint normalization existed in two copies
+(`JobListing.fingerprint` and `LLMJobSource.identifier(for:)`); it's now one static
+`JobListing.normalizedFingerprint(title:company:location:)` used by both — behavior-identical, and the existing
+tests for each confirmed it — plus the new third user: the pasted fallback id is
+`"pasted:" + normalizedFingerprint(…)`. Keying on title/company/location rather than a digest of the description
+is deliberate twice over: the description is **LLM-extracted prose** that can word itself differently run to run
+(so even a same-launch re-paste would have missed a description hash), and re-pasting the same job *should*
+upsert onto the same row — matching the `ai:` prefix precedent and cross-source dedup semantics. URL-backed
+postings still key on their URL, unchanged.
+
+**The open call (C-B) — resolved: no migration.** Old `pasted-posting-…` rows were already unreachable across
+launches; a re-keying sweep risks colliding with a record the user has since re-created. Re-pasting now lands on
+a stable id.
+
+**Tests (1 new; suite green at 914, build warning-free).** Two independently constructed postings agree on the
+id (the in-process-expressible half of launch stability) and the literal `"pasted:ios engineer | acme | remote"`
+pins the launch-stable shape itself; a reworded description upserts onto the same id while a different role
+doesn't; a URL-backed posting still keys on its URL.
+
+**On-device.** n/a.

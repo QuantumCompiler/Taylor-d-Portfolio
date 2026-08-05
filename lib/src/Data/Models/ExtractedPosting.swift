@@ -42,9 +42,17 @@ nonisolated struct ExtractedPosting: Codable, Equatable, Sendable {
     }
 
     /// Maps to a domain ``JobListing``, keyed by the source URL when there is one.
+    ///
+    /// The pasted-text fallback id is **deterministic** — the shared fingerprint normalization
+    /// with a `pasted:` prefix (v0.7.1 Milestone C). `hashValue` is seeded per process, so it
+    /// orphaned the posting's saved kit/status on every relaunch and grew a duplicate row per
+    /// launch. Keying on title/company/location (not the description) is deliberate twice over:
+    /// the description is LLM-extracted prose that can word itself differently run to run, and
+    /// re-pasting the same job *should* upsert onto the same row.
     func toListing(sourceURL: URL?) -> JobListing {
         JobListing(
-            id: sourceURL?.absoluteString ?? "pasted-posting-\(description.hashValue)",
+            id: sourceURL?.absoluteString
+                ?? "pasted:" + JobListing.normalizedFingerprint(title: title, company: company, location: location),
             title: title,
             company: company,
             location: location,

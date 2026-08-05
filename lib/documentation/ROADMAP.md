@@ -1064,7 +1064,7 @@ user-reported bugs — each cites a real `file:line` and survived refutation, bu
       them, `:59`), and the sidebar badge **counts tracked jobs the list deliberately hides** (`:121`). Fix: fire
       auto-navigation off a one-shot search signal, merge digest updates **by id**, badge from `untrackedResults`.
       Seam: Presentation. On-device: n/a.
-- [ ] **Milestone C — Stable posting identity.** `ExtractedPosting.swift:47` builds a pasted posting's id from
+- [x] **Milestone C — Stable posting identity.** `ExtractedPosting.swift:47` builds a pasted posting's id from
       `String.hashValue`, which Swift seeds **per process** — so the same posting gets a **different id every
       launch**, and that id is the persistence key everywhere (`RankedJob.id`, saved-jobs upsert, status, application
       kit). Relaunch orphans the saved kit and status, `contains(jobID:)` never matches, and the store gains a

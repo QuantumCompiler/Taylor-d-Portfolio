@@ -277,6 +277,36 @@ struct DomainModelTests {
         #expect(listing.title == "iOS Engineer")
     }
 
+    @Test func pastedPostingIDIsDeterministicAndKeysOnContentNotProse() {
+        // v0.7.1 Milestone C: the fallback id must be identical across launches — `hashValue`'s
+        // per-process seed orphaned the saved kit/status on relaunch and grew a duplicate row
+        // per launch. Two independently constructed postings agreeing is the expressible half
+        // of that property; the literal pins the launch-stable shape itself.
+        let first = ExtractedPosting(title: "iOS Engineer", company: "Acme", location: "Remote",
+                                     description: "Swift + SwiftUI.").toListing(sourceURL: nil)
+        let second = ExtractedPosting(title: "iOS Engineer", company: "Acme", location: "Remote",
+                                      description: "Swift + SwiftUI.").toListing(sourceURL: nil)
+        #expect(first.id == second.id)
+        #expect(first.id == "pasted:ios engineer | acme | remote")
+
+        // The description is LLM-extracted prose that can word itself differently run to run —
+        // a re-paste of the same job must upsert onto the same row, so the id ignores it (and
+        // normalizes case/whitespace like every fingerprint).
+        let reworded = ExtractedPosting(title: "iOS  Engineer", company: "ACME", location: "Remote",
+                                        description: "A different summary.").toListing(sourceURL: nil)
+        #expect(reworded.id == first.id)
+
+        let different = ExtractedPosting(title: "Android Engineer", company: "Acme", location: "Remote",
+                                         description: "Kotlin.").toListing(sourceURL: nil)
+        #expect(different.id != first.id)
+
+        // A URL-backed posting still keys on its URL, unchanged.
+        let url = URL(string: "https://example.com/jobs/1")!
+        let linked = ExtractedPosting(title: "iOS Engineer", company: "Acme", location: "Remote",
+                                      description: "d").toListing(sourceURL: url)
+        #expect(linked.id == url.absoluteString)
+    }
+
     @Test func applicationStatusRoundTrips() throws {
         let status = ApplicationStatus(
             stage: .interviewing,
