@@ -3659,6 +3659,8 @@ as "1000000000" instead of trapping; the Search form clamps both typed fields, a
 
 ---
 
-**v0.7.1 milestone work is complete: all 18 audited defects fixed across Milestones A–H.** Remaining before the
-release wraps (tracked in `TODO.md` → Release hygiene): clear the v0.7.0 device checks, **then** bump
-`MARKETING_VERSION` to 0.7.1, and add the v0.7.1 summary to `README.md`'s Version history.
+**v0.7.1 is complete and wrapped (2026-08-04): all 18 audited defects fixed across Milestones A–H**, plus two
+extra found during reproduction (the `deselect` slot gap in G, the `applyRequest` salary trap in H). Suite
+904 → 930 cases. Release hygiene done on Taylor's go-ahead — v0.7.0 was merged (PR #11), so the device-check
+gate on the version bump had cleared: `MARKETING_VERSION` is **0.7.1** (all 4 `project.pbxproj` copies), and
+the v0.7.1 summary is in `README.md`'s Version history.

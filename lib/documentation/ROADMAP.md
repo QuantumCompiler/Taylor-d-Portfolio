@@ -1036,7 +1036,7 @@ and *can* affect typeset content; it can't run shell commands.) `TODO.md` has th
       writes user data into the preamble. Seam: **Infrastructure/Tex** + Presentation (manager + export banner).
       On-device: n/a.
 
-## v0.7.1 — bug fixes  (in progress)
+## v0.7.1 — bug fixes  (complete)
 
 A **patch release**, scheduled out of `PLANNED.md`'s single `Target: v0.7.1` entry (2026-08-04). Not a feature
 theme: a batch of **18 verified defects** on top of the shipped v0.7.0, which is exactly the `v0.x.y` case in
