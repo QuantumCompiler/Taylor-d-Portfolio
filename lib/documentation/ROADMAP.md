@@ -1093,7 +1093,7 @@ user-reported bugs — each cites a real `file:line` and survived refutation, bu
       (`SettingsViewModel.swift:38`), so changing the AI-job-search engine leaves the source's status and Search
       availability wrong until relaunch — including a search that silently returns nothing. Fix: a `.task` reload,
       and a live availability closure. Seam: Presentation. On-device: n/a.
-- [ ] **Milestone G — Portfolio document state.** Clearing an imported **cover letter** then saving leaves the text
+- [x] **Milestone G — Portfolio document state.** Clearing an imported **cover letter** then saving leaves the text
       in the persisted record, and **every later generation still feeds it as the voice exemplar** — a silent no-op
       for content (`PortfolioViewModel.swift:192`). And `select()` restores a saved profile's file names but **not**
       its slot text (`:364`), so a loaded profile reads "0 characters" with **Build disabled**, unable to rebuild

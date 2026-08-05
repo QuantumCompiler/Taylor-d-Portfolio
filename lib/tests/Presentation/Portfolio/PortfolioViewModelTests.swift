@@ -332,6 +332,52 @@ struct PortfolioViewModelTests {
         #expect(vm.profile != nil)
     }
 
+    // MARK: v0.7.1 Milestone G — cleared letters stay cleared; selected profiles can rebuild
+
+    /// G-1: ✕ Clear on the cover letter must mean "stop using this letter" **now** — before,
+    /// the captured text survived in the saved record and every generation kept feeding it to
+    /// the LLM as the voice exemplar.
+    @Test func clearingTheCoverLetterThenSavingDropsItEverywhere() async {
+        let vm = makePersistingVM()
+        vm.portfolioText = "resume"
+        vm.coverLetterText = "my letter"
+        await vm.build()
+        vm.profileName = "Primary"
+        await vm.saveProfile()
+        #expect(vm.grounding?.coverLetterText != nil)     // the letter is in play…
+
+        vm.clearCoverLetter()
+        #expect(vm.grounding?.coverLetterText == nil)     // …gone from generation immediately
+
+        await vm.saveProfile()
+        let saved = vm.savedProfiles[0]
+        #expect(saved.coverLetterText.isEmpty)            // and the persisted record has none
+        #expect(saved.coverLetterReadableText.isEmpty)
+        #expect(saved.coverLetterFileName == nil)
+    }
+
+    /// G-2: selecting a saved profile seeds the editable slots — before, a loaded profile
+    /// showed "resume.pdf — 0 characters" with Build disabled, so rebuilding from the
+    /// profile's own document required re-importing it.
+    @Test func selectSeedsTheSlotsSoTheProfileCanBeRebuilt() async {
+        let vm = makePersistingVM()
+        vm.portfolioText = "raw resume"
+        vm.coverLetterText = "raw letter"
+        await vm.build()
+        vm.profileName = "Primary"
+        await vm.saveProfile()
+        let saved = vm.savedProfiles[0]
+
+        vm.deselect()
+        #expect(vm.portfolioText.isEmpty)                 // deselect clears the slot…
+        #expect(vm.canBuild == false)
+
+        vm.select(saved)
+        #expect(vm.portfolioText == "raw resume")         // …select seeds the raw source back
+        #expect(vm.coverLetterText == "raw letter")
+        #expect(vm.canBuild)                              // Build enabled, no re-import needed
+    }
+
     // MARK: T-A — optional cover letter
 
     @Test func importCoverLetterFillsItsOwnSlotNotThePortfolio() async {

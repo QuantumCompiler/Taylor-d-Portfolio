@@ -3602,3 +3602,30 @@ settings store (modelling the composition root's), changing the `.jobSearch` eng
 `isConfigured(.llm)` and the provider set both off and back on — same VM, no relaunch.
 
 **On-device.** n/a.
+
+## Milestone G — Portfolio document state  ✅ done  (`Presentation/Portfolio/ViewModel/PortfolioViewModel`; tests in `lib/tests/Presentation/Portfolio`)
+
+**The defects (both re-verified).** **G-1 (medium):** ✕ Clear on the imported cover letter reset only the slot
+(`coverLetterText` + file name) — the **captured** `coverLetterSourceText`/`coverLetterReadableText` survived, so
+`grounding` kept feeding the cleared letter to the LLM as the voice/tone exemplar on every generation, and a
+save persisted it back into the record. A silent no-op for content. **G-2 (low):** `select(_:)` restored a saved
+profile's file names and captured text but never seeded the editable **slots** (`portfolioText` /
+`coverLetterText`) — a loaded profile showed "resume.pdf — 0 characters" with **Build disabled**, so rebuilding
+from the profile's own document required re-importing the file.
+
+**The fixes.** **G-A** took the first horn of the spec's either/or: `clearCoverLetter()` now clears the captured
+text too. The asymmetry with `clearDocument()` (which deliberately leaves `sourceText`/`readableText` alone) is
+kept and documented: the résumé's captured text belongs to the *profile* — it's what the profile was distilled
+from — while the letter is never distilled, so "clear the letter" must mean "stop using this letter **now**",
+not after the next build. **G-B:** `select(_:)` seeds both slots. One deliberate deviation from the spec's
+sketch: the slots get the **raw** `sourceText` first (falling back to `readableText` for partial records), not
+readable-first — the slot's semantic is "text a rebuild runs on", and tidying happens at build time; seeding the
+tidied copy would re-tidy a tidy. Companion fix: `deselect()` now clears `portfolioText` — a gap that was
+invisible while `select` never set it, but would otherwise leave the cleared profile's text in the slot.
+
+**Tests (2 new; suite green at 927, build warning-free).** G-1 end to end: build with a letter → grounding
+carries it; `clearCoverLetter()` → grounding omits it immediately; save → the persisted record has no letter
+text, readable copy, or file name. G-2: save → deselect (slot empty, Build disabled) → select → the raw source
+text is back in both slots and Build is enabled with no re-import.
+
+**On-device.** n/a.

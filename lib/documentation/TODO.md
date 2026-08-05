@@ -9,13 +9,12 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.7.1 — bug fixes — Milestones A–F done; next Milestone G.** Eighteen verified defects were
-> scheduled out of `PLANNED.md` (2026-08-04) into the **v0.7.1 — bug fixes** section below, grouped into
-> Milestones **A–H** by shared root cause. **A (stale-async writes), B (Results/search handoff), C (stable
-> posting identity), D (search goal & de-duplication), E (LLM layer), and F (Settings wiring) are complete** —
-> write-ups in `MILESTONES.md`. **G** (Portfolio document state) and **H** (crash guards) close out the release.
-> Every defect cites a real `file:line` — **reproduce each one before fixing it** (see the provenance note in
-> that section).
+> **Current focus. v0.7.1 — bug fixes — Milestones A–G done; next Milestone H, the last.** Eighteen verified
+> defects were scheduled out of `PLANNED.md` (2026-08-04) into the **v0.7.1 — bug fixes** section below, grouped
+> into Milestones **A–H** by shared root cause. **A through G are complete** — write-ups in `MILESTONES.md`.
+> **H** (the two `Double`→`Int` overflow crash guards) closes out the release; after it, do the **Release
+> hygiene** items above the milestone list. Every defect cites a real `file:line` — **reproduce each one before
+> fixing it** (see the provenance note in that section).
 
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
@@ -50,29 +49,6 @@ high, 9 medium, 5 low**.
       device checks assert **Settings → About reads 0.7.0**. Bumping now would invalidate them. **Clear the v0.7.0
       device checks first, then bump.**
 - [ ] Add the v0.7.1 summary to `README.md`'s Version history when the release wraps.
-
-## Milestone G — Portfolio document state  *(medium + low)*
-
-- **G-1 (medium) — clearing an imported cover letter then saving leaves the text persisted, and still used for
-  generation** ([`PortfolioViewModel.swift:192`](../src/Presentation/Portfolio/ViewModel/PortfolioViewModel.swift:192)).
-  The ✕ Clear hides the file in the UI, but the captured text stays in the saved record and **every later generation
-  still feeds it to the LLM as the voice/tone exemplar**. A silent no-op for content.
-- **G-2 (low) — `select()` restores a saved profile's file names but not its slot text**
-  ([`PortfolioViewModel.swift:364`](../src/Presentation/Portfolio/ViewModel/PortfolioViewModel.swift:364)). A loaded
-  profile shows "resume.pdf — 0 characters" and **Build stays disabled**, so the user can't rebuild from the
-  profile's own document without re-importing it.
-
-**Sub-tasks:**
-- [ ] **G-A** — `clearCoverLetter()` must also clear `coverLetterSourceText` / `coverLetterReadableText` so the slot
-      and the persisted record stay in sync. *(If keeping the captured text until the next build is genuinely
-      intended, then `saveProfile()` must honour the cleared slot instead — **one of the two has to change**.)*
-- [ ] **G-B** — In `select(_:)`, seed the slots from the saved record:
-      `portfolioText = saved.readableText.isEmpty ? saved.sourceText : saved.readableText` (and the cover-letter
-      equivalent), mirroring what `deselect()` already clears.
-
-**Tests.** After `clearCoverLetter()` + `saveProfile()`, the persisted record carries **no** cover-letter text and
-grounding omits the exemplar; `select(_:)` leaves the Build gate enabled with a non-zero character count.
-**On-device.** n/a.
 
 ## Milestone H — Crash guards (`Double`→`Int` overflow traps)  *(low ×2)*
 
