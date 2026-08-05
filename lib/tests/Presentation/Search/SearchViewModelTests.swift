@@ -72,6 +72,37 @@ private actor GatedPostingSource: JobPostingSource {
     }
 }
 
+/// An `LLMProvider` whose **digest** (`enrichPosting`) blocks until released — the Milestone B
+/// tests need the digest genuinely in flight while a row is deleted out from under it.
+private actor GatedEnrichProvider: LLMProvider {
+    private let matches: [JobMatch]
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private(set) var pendingCount = 0
+    init(matches: [JobMatch]) { self.matches = matches }
+    func release() {
+        let continuations = waiting
+        waiting = []
+        for continuation in continuations { continuation.resume() }
+    }
+    func enrichPosting(fromPostingText postingText: String) async throws -> PostingDetails {
+        pendingCount += 1
+        await withCheckedContinuation { waiting.append($0) }
+        pendingCount -= 1
+        return PostingDetails(aboutRole: "Standardized.")
+    }
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { matches }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        .init(company: "", roleTitle: "", mustHaveKeywords: [], niceToHaveKeywords: [],
+              techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        ApplicationKit(resumeMarkdown: "", coverLetter: "", gapNote: "")
+    }
+}
+
 /// A `JobPostingSource` stub for the link/paste flow: returns a canned listing or throws.
 private struct StubPostingSource: JobPostingSource {
     var listing = JobListing(id: "link-1", title: "iOS Engineer", company: "Acme", location: "Remote", description: "Swift.")
@@ -482,6 +513,89 @@ struct SearchViewModelTests {
         await fetch.value
         #expect(vm.results.map(\.id) == ["link-1"])       // the fetched job survived — B-2's twin
         #expect(vm.canSearch)                             // gates reopen once the fetch lands
+    }
+
+    // MARK: v0.7.1 Milestone B — one-shot hand-off signal + deletion vs. the digest
+
+    /// The shell's auto-navigation rides `completedSearchID`, so it must fire **once** per
+    /// landed search — not once per digest swap, which mutates `results` per posting.
+    @Test func searchSignalsALandedResultSetOnceDespiteDigestUpdates() async {
+        let jobs = [
+            JobListing(id: "a", title: "t", company: "c", location: "l", description: "raw a"),
+            JobListing(id: "b", title: "t", company: "c", location: "l", description: "raw b"),
+        ]
+        let matches = [
+            JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: []),
+            JobMatch(jobId: "b", score: 60, reason: "", matchedSkills: [], missingSkills: []),
+        ]
+        let vm = makeVM(jobs: jobs, matches: matches, enrichDetails: PostingDetails(aboutRole: "Std."))
+        vm.profile = profile
+        vm.titleInput = "iOS Engineer"
+        #expect(vm.completedSearchID == 0)
+
+        await vm.search()
+
+        #expect(vm.results.count == 2)
+        #expect(vm.results.allSatisfy { $0.listing.details != nil })   // the digest really ran…
+        #expect(vm.completedSearchID == 1)                             // …but the signal fired once
+    }
+
+    @Test func fetchFromLinkSignalsALandedResultSetAndAFailureDoesNot() async {
+        let vm = makeLinkVM(postingSource: StubPostingSource())
+        vm.profile = profile
+        vm.postingURL = "https://example.com/jobs/1"
+        await vm.fetchFromLink()
+        #expect(vm.completedSearchID == 1)                // a landed fetch signals the hand-off
+
+        let failing = makeLinkVM(postingSource: StubPostingSource(error: JobPostingSourceError.unreadable))
+        failing.profile = profile
+        failing.postingURL = "https://example.com/jobs/1"
+        await failing.fetchFromLink()
+        #expect(failing.completedSearchID == 0)           // nothing landed — no navigation yank
+    }
+
+    /// The B-2 defect end to end: delete a row while the digest is standardizing it. The
+    /// pruned id must not come back — not into the list when its digest completes, and not
+    /// into the saved-jobs store when the digest's final re-persist runs.
+    @Test func aRowDeletedMidDigestIsNeitherResurrectedNorRePersisted() async throws {
+        let jobs = [
+            JobListing(id: "a", title: "t", company: "c", location: "l", description: "raw a"),
+            JobListing(id: "b", title: "t", company: "c", location: "l", description: "raw b"),
+        ]
+        let matches = [
+            JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: []),
+            JobMatch(jobId: "b", score: 60, reason: "", matchedSkills: [], missingSkills: []),
+        ]
+        let provider = GatedEnrichProvider(matches: matches)
+        let repo = SavedJobsRepository(store: InMemoryRecordStore())
+        let vm = SearchViewModel(
+            searchAndRank: SearchAndRankUseCase(
+                jobSource: PresentationStubJobSource(jobs: jobs),
+                ranker: JobRanker(provider: provider, shortlistLimit: 10),
+                enrichPosting: EnrichPostingUseCase(provider: provider, postingSource: nil)
+            ),
+            roleTitleStore: RoleTitleStore(store: PresentationMemoryStore()),
+            saveResults: SaveResultsUseCase(repository: repo)
+        )
+        vm.profile = profile
+        vm.titleInput = "iOS Engineer"
+
+        let search = Task { await vm.search() }
+        await spinUntil { await provider.pendingCount > 0 }            // digest mid-flight
+        #expect(vm.results.map(\.id) == ["a", "b"])
+        let persisted = Set(try await repo.savedJobs().map(\.id))
+        #expect(persisted == ["a", "b"])                               // pre-digest persist
+
+        // The user deletes "a" in Results: the store row goes, and the shell prunes the copy.
+        try await repo.delete(jobID: "a")
+        vm.removeResults(["a"])
+
+        await provider.release()                                       // "a"'s digest lands late
+        await search.value
+
+        #expect(vm.results.map(\.id) == ["b"])                         // not resurrected on screen
+        #expect(try await repo.savedJobs().map(\.id) == ["b"])         // not re-written to the store
+        #expect(vm.results.first?.listing.details != nil)              // the survivor still digested
     }
 
     @Test func generateFromPastedTextSuccessPushesResult() async {

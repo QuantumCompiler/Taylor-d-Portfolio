@@ -72,6 +72,12 @@ final class SearchViewModel {
     }
 
     private(set) var results: [RankedJob] = []
+    /// Bumped exactly once per **landed result set** — a search, link fetch, or pasted-text
+    /// generation assigning `results` wholesale (v0.7.1 Milestone B). The shell drives its
+    /// hand-off to the Results area and the jump there off this one-shot signal, **not** off
+    /// `results` mutations: the background digest (Milestone K) swaps rows in place dozens of
+    /// times per run, and each of those must never re-trigger navigation or a wholesale copy.
+    private(set) var completedSearchID = 0
     private(set) var isSearching = false
     /// Whether results are being digested into the standardized description format (Milestone K).
     /// Rows appear immediately after ranking and swap to the standardized description as each
@@ -294,6 +300,15 @@ final class SearchViewModel {
         try? await saveResults(results)
     }
 
+    /// Drops `ids` from the in-memory result set (v0.7.1 Milestone B). The shell calls this
+    /// when the user deletes rows in the Results area, so a digest still running over the old
+    /// set can't resurrect them — the in-place swap skips ids no longer present, and the
+    /// digest's final `persistResults()` no longer re-writes deleted rows to the store.
+    func removeResults(_ ids: Set<String>) {
+        guard !ids.isEmpty else { return }
+        results.removeAll { ids.contains($0.id) }
+    }
+
     /// Whether the "generate from a link" affordance is wired in this build.
     var canUseLink: Bool { fetchPosting != nil }
 
@@ -426,6 +441,7 @@ final class SearchViewModel {
         defer { isFetchingLink = false }
         do {
             results = [try await fetchPosting(url: url, profile: profile)]
+            completedSearchID += 1   // one landed result set — the shell hands off + jumps once
             await persistResults()
             await digestResults()   // standardize the fetched posting too (Milestone K)
         } catch is JobPostingSourceError {
@@ -479,6 +495,7 @@ final class SearchViewModel {
         do {
             let sourceURL = URL(string: postingURL.trimmingCharacters(in: .whitespacesAndNewlines))
             results = [try await fetchPosting(pastedText: text, sourceURL: sourceURL, profile: profile)]
+            completedSearchID += 1   // one landed result set — the shell hands off + jumps once
             await persistResults()
             await digestResults()   // standardize the pasted posting too (Milestone K)
         } catch is JobPostingSourceError {
@@ -534,6 +551,7 @@ final class SearchViewModel {
         do {
             let output = try await searchAndRank(request: request, profile: profile)
             results = output.rankedJobs
+            completedSearchID += 1   // one landed result set — the shell hands off + jumps once
             var notes = [Self.note(for: output, minimumScore: request.minimumScore)].compactMap { $0 }
             if isRerun, !results.isEmpty {
                 let newCount = results.filter { !priorIDs.contains($0.id) }.count

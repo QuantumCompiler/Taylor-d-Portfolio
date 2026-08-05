@@ -54,10 +54,17 @@ struct RootView: View {
         .onChange(of: portfolio.savedProfiles) { _, _ in
             Task { await search.reloadProfiles() }
         }
-        // …and search results flow into the Results area (and jump there).
+        // …and a **landed** search/fetch hands its result set to the Results area and jumps
+        // there — driven off the one-shot signal, not `results` mutations, so the background
+        // digest can't re-trigger the jump once per posting (v0.7.1 Milestone B).
+        .onChange(of: search.completedSearchID) { _, _ in
+            results.results = search.results
+            if !search.results.isEmpty { nav.select(.results) }
+        }
+        // Digest/enrichment swaps merge **by id** — a row the user deleted from Results is no
+        // longer in the list, so an in-flight update for it can't re-insert it.
         .onChange(of: search.results) { _, newResults in
-            results.results = newResults
-            if !newResults.isEmpty { nav.select(.results) }
+            for job in newResults { results.applyRefreshed(job) }
         }
         // Keep the shared session's profile/grounding current for the detached windows
         // (v0.5.0 Milestone B).
@@ -70,6 +77,9 @@ struct RootView: View {
         .onAppear {
             session.profile = portfolio.profile
             session.grounding = portfolio.grounding
+            // Deleting rows in Results prunes the Search VM's copy too, so the digest's final
+            // re-persist can't write them back to the store (v0.7.1 Milestone B).
+            results.onResultsRemoved = { [weak search] ids in search?.removeResults(ids) }
         }
         // A detached window mutated persistence (status/generation/save) — reload the lists.
         .onChange(of: session.revision) { _, _ in
@@ -118,7 +128,10 @@ struct RootView: View {
     /// stay clean and Results/Tracker show a count only when they have items.
     private func badgeCount(for area: MainArea) -> Int {
         switch area {
-        case .results: results.results.count
+        // Un-tracked only — what the Results list actually shows. Counting all of `results`
+        // double-counted tracked jobs (Results *and* Tracker) and read "Results 10" over a
+        // pane saying "All results are in your Tracker" (v0.7.1 Milestone B).
+        case .results: results.untrackedResults.count
         case .tracker: tracker.trackedJobs.count
         default: 0
         }

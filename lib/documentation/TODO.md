@@ -9,12 +9,13 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.7.1 — bug fixes — Milestone A done; next Milestone B.** Eighteen verified defects were
+> **Current focus. v0.7.1 — bug fixes — Milestones A–B done; next Milestone C.** Eighteen verified defects were
 > scheduled out of `PLANNED.md` (2026-08-04) into the **v0.7.1 — bug fixes** section below, grouped into
-> Milestones **A–H** by shared root cause. **A (stale-async writes) is complete** — write-up in `MILESTONES.md`.
-> Consider **C** (stable posting identity) early — it touches every persistence key; **H** (two `Double`→`Int`
-> overflow crashes) is nearly free if you want a quick win. Every defect cites a real `file:line` — **reproduce
-> each one before fixing it** (see the provenance note in that section).
+> Milestones **A–H** by shared root cause. **A (stale-async writes) and B (Results/search handoff) are
+> complete** — write-ups in `MILESTONES.md`. **C** (stable posting identity) is next and rightly so — it touches
+> every persistence key; **H** (two `Double`→`Int` overflow crashes) is nearly free if you want a quick win.
+> Every defect cites a real `file:line` — **reproduce each one before fixing it** (see the provenance note in
+> that section).
 
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
@@ -49,35 +50,6 @@ high, 9 medium, 5 low**.
       device checks assert **Settings → About reads 0.7.0**. Bumping now would invalidate them. **Clear the v0.7.0
       device checks first, then bump.**
 - [ ] Add the v0.7.1 summary to `README.md`'s Version history when the release wraps.
-
-## Milestone B — Results/search handoff in `RootView`  *(medium ×2 + low)*
-
-**What / why.** Three defects in the same `onChange` + badge block, all caused by the Results list being handed
-**wholesale ownership** of `search.results` on every mutation — including the background digest's per-posting
-updates (v0.6.0 K).
-
-- **B-1 (medium) — the digest yanks the user back to Results, repeatedly**
-  ([`RootView.swift:60`](../src/Presentation/App/RootView.swift:60)). While "Standardizing descriptions…" runs,
-  navigating to any sidebar area throws you back to Results — **once per digested posting** (25–50 times over a
-  minute), also resetting that area's inner sub-tab.
-- **B-2 (medium) — digest updates resurrect deleted rows** ([`RootView.swift:59`](../src/Presentation/App/RootView.swift:59)).
-  Delete a result while descriptions are standardizing and the row **pops back seconds later** — and is re-written
-  to the saved-jobs store even though it was deleted.
-- **B-3 (low) — the Results sidebar badge counts tracked jobs the list hides**
-  ([`RootView.swift:121`](../src/Presentation/App/RootView.swift:121)). Sidebar reads "Results 10" while the pane
-  says "All results are in your Tracker"; saved jobs are counted twice (Results **and** Tracker).
-
-**Sub-tasks:**
-- [ ] **B-A** — Auto-navigate on a **genuinely new result set** only: drive the jump off a one-shot signal from
-      `performSearch`/`fetchFromLink` (a run id / `didFinishSearch`), or compare result **id sets**, not every mutation.
-- [ ] **B-B** — Merge digest updates **by id** instead of replacing the list — never re-add an id the Results view
-      model has dropped (mirror the targeted `ResultsViewModel.applyRefreshed(_:)` path), or prune deleted ids before
-      `persistResults()`.
-- [ ] **B-C** — Badge from `results.untrackedResults.count` so it matches what the list shows.
-
-**Tests.** A digest update for an id the user deleted must not re-insert it (and must not persist it); the
-auto-navigation fires **once** per search, not once per digest update; the badge equals the visible row count.
-**On-device.** n/a.
 
 ## Milestone C — Stable posting identity  *(high)*
 

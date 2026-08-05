@@ -1057,7 +1057,7 @@ user-reported bugs — each cites a real `file:line` and survived refutation, bu
       containing A's content**. `loadSaved` also clears `isGenerating` mid-flight, re-enabling Generate. Fix with a
       generation token + cancel-and-replace. Also cross-gate `fetchFromLink`/`search`, which race for `results`
       (`SearchViewModel.swift:421`). Seam: Presentation. On-device: n/a.
-- [ ] **Milestone B — Results/search handoff in `RootView`.** Three defects in the same `onChange` + badge block,
+- [x] **Milestone B — Results/search handoff in `RootView`.** Three defects in the same `onChange` + badge block,
       all from handing the Results list **wholesale ownership** of `search.results` on every mutation — including the
       v0.6.0-K background digest's per-posting updates. The digest **yanks the user back to Results once per digested
       posting** (25–50 times a minute, `RootView.swift:60`), **resurrects rows the user deleted** (and re-persists

@@ -3444,3 +3444,33 @@ Gated job/posting sources hold each Search flow mid-flight and assert the other'
 no-ops without reaching its source, and the gates reopen after the flow lands.
 
 **On-device.** n/a — pure state discipline, no model-behaviour change.
+
+## Milestone B — Results/search handoff in `RootView`  ✅ done  (`Presentation/App/RootView`, `Presentation/Search` VM, `Presentation/Results` VM; tests in `lib/tests/Presentation`)
+
+**The defects (all three re-verified against source).** One root cause: `RootView`'s
+`.onChange(of: search.results)` handed the Results area **wholesale ownership** of the list — plus a navigation
+jump — on **every** mutation, and the v0.6.0-K digest mutates `search.results` once per posting. So: **B-1**, the
+digest yanked the user back to Results once per digested posting (25–50 times over a minute), also resetting the
+destination area's inner sub-tab; **B-2**, a row deleted in Results popped back on the next digest swap, and the
+digest's final `persistResults()` re-wrote it to the saved-jobs store; **B-3**, the sidebar badge counted all of
+`results.results` while the list shows only `untrackedResults` — "Results 10" over a pane reading "All results
+are in your Tracker", with saved jobs counted in two areas at once.
+
+**The fix — separate "a result set landed" from "a row changed."** `SearchViewModel` gains a one-shot
+`completedSearchID`, bumped exactly once at each of the three places a **new set** lands (`performSearch`,
+`fetchFromLink`, `generateFromPastedText`) — and not on failure, so a failed fetch no longer navigates anywhere.
+`RootView` drives the wholesale hand-off + jump off that signal alone. The old `.onChange(of: search.results)`
+remains but now only **merges by id** through the existing `ResultsViewModel.applyRefreshed(_:)` path, which
+replaces in place and never inserts — a digest swap updates a surviving row live, and an update for a deleted id
+falls through. For the persistence half of B-2, deletions now flow *backwards*: `ResultsViewModel` fires
+`onResultsRemoved` with the deleted ids (single and bulk paths both), `RootView` wires it to the new
+`SearchViewModel.removeResults(_:)`, and the pruned copy means the digest's in-place swap skips the row and its
+final re-persist writes only survivors. The badge is one line: `results.untrackedResults.count`.
+
+**Tests (4 new; suite green at 913, build warning-free).** A `GatedEnrichProvider` holds the digest mid-flight
+while the test deletes a row: the id is neither resurrected on screen nor re-written to the store, while the
+surviving row still gets its standardized description. The signal fires exactly once per landed search despite
+multiple digest swaps, fires for a landed link fetch, and doesn't fire for a failed one. Deletions (single and
+bulk) notify the removal hook with exactly the deleted ids.
+
+**On-device.** n/a.
