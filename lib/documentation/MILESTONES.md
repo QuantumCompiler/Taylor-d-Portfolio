@@ -3573,3 +3573,32 @@ reaches the scorer whole while the 6 000 budget still bounds a runaway one.
 
 **On-device.** ⚠️ E-C sends up to ~4 000 more résumé characters per scoring round of the rank-target loop —
 that's the fix working (the scorer must see the whole résumé). E-A/E-B are correctness-only.
+
+## Milestone F — Settings wiring  ✅ done  (`Presentation/Settings` view + VMs, `Presentation/App/Composition`; tests in `lib/tests/Presentation/Settings`)
+
+**The defects (both re-verified).** **F-1 (high):** `DocumentStylesViewModel.reloadStyles()` **had no caller** —
+the pane opened empty every launch ("No saved styles yet…") even though styles were persisted, the default style
+never reached the editor, and Save — finding no loaded selection to match — re-created the style as a **new
+row**, filling the library with duplicates. v0.7.0's headline feature looked broken on relaunch. **F-2
+(medium):** `llmSourceAvailable` was a `let Bool` snapshotted at launch — changing the `.jobSearch` engine left
+the AI source's Configured status and Search-screen availability wrong until relaunch, including a search that
+silently returned zero results.
+
+**The fixes.** **F-A:** one line — `.task { await viewModel.reloadStyles() }` on `DocumentStylesView.body`, the
+same pattern `PortfolioView`/`SearchView` use. **F-B verified as a consequence of F-A, not a second defect:**
+`saveDraft` already updates in place whenever the selected style is present in the loaded library (the existing
+`savingWithASelectionUpdatesInPlace` test pins it); the duplicates came purely from the library never loading, so
+`existing` never matched. **F-C:** availability is now injected as a **live closure**
+(`isLLMAvailable: @Sendable () -> Bool`, pointing at `Composition.isJobSearchEngineAvailable`);
+`llmSourceAvailable` became a computed property over it, so `isConfigured(.llm)` reads live, and
+`refreshCredentialState()` — which `save()` already runs *after* persisting the engine choice — re-resolves
+`configuredProviderIDs` against the just-saved choice. The ordering matters and is what makes the flow work:
+save settings → live check reads the new choice → provider set updates → `RootView` pushes it to Search.
+
+**Tests (2 new; suite green, build warning-free).** The relaunch flow end to end at the VM level: a fresh VM
+over the same store lists the persisted library after `reloadStyles()`, opens the default style in the editor,
+and a save **updates** rather than duplicates. And the live-availability flow: with a closure reading the
+settings store (modelling the composition root's), changing the `.jobSearch` engine and saving flips
+`isConfigured(.llm)` and the provider set both off and back on — same VM, no relaunch.
+
+**On-device.** n/a.

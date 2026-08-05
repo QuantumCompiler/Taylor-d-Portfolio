@@ -1087,7 +1087,7 @@ user-reported bugs — each cites a real `file:line` and survived refutation, bu
       (2 000 chars) before scoring** (`:414`), so the rank-target loop under-scores its own output, burns all four
       rounds, and **escalates fidelity to the embellished band** — inventing content the user never asked for. Seam:
       Infrastructure + Data. ⚠️ A larger résumé budget means more tokens per scoring round.
-- [ ] **Milestone F — Settings wiring.** `DocumentStylesView.reloadStyles()` **has no caller** (`:25`), so v0.7.0's
+- [x] **Milestone F — Settings wiring.** `DocumentStylesView.reloadStyles()` **has no caller** (`:25`), so v0.7.0's
       headline feature shows "No saved styles yet" on **every launch** despite styles being persisted, never opens
       the default, and duplicates the style on Save. And `llmSourceAvailable` is a **launch-time snapshot**
       (`SettingsViewModel.swift:38`), so changing the AI-job-search engine leaves the source's status and Search

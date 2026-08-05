@@ -37,7 +37,7 @@ struct SettingsViewModelTests {
         )
         // Engine available → the keyless LLM source reports Configured and is in the provider set.
         let available = SettingsViewModel(
-            store: SettingsStore(store: PresentationMemoryStore()), credentials: credentials, llmSourceAvailable: true
+            store: SettingsStore(store: PresentationMemoryStore()), credentials: credentials, isLLMAvailable: { true }
         )
         #expect(available.isConfigured(.llm))
         #expect(available.configuredProviderIDs.contains(JobProvider.llm.rawValue))
@@ -45,10 +45,38 @@ struct SettingsViewModelTests {
 
         // Engine unavailable → not configured, and excluded from the provider set.
         let unavailable = SettingsViewModel(
-            store: SettingsStore(store: PresentationMemoryStore()), credentials: credentials, llmSourceAvailable: false
+            store: SettingsStore(store: PresentationMemoryStore()), credentials: credentials, isLLMAvailable: { false }
         )
         #expect(!unavailable.isConfigured(.llm))
         #expect(!unavailable.configuredProviderIDs.contains(JobProvider.llm.rawValue))
+    }
+
+    /// v0.7.1 Milestone F: availability is a **live check**, not a launch-time snapshot — the
+    /// closure models `Composition.isJobSearchEngineAvailable`, which reads the engine choice
+    /// the pane itself just saved. No relaunch, no new view model.
+    @Test func llmAvailabilityFlipsLiveWhenTheEngineChanges() {
+        let credentials = JobSourceCredentialsStore(
+            store: PresentationMemoryStore(), config: StubConfig(adzunaAppID: nil, adzunaAppKey: nil)
+        )
+        let backing = PresentationMemoryStore()
+        let settingsStore = SettingsStore(store: backing)
+        // Live, like the composition root's: available iff the saved job-search engine is Claude.
+        let vm = SettingsViewModel(
+            store: settingsStore, credentials: credentials,
+            isLLMAvailable: { SettingsStore(store: backing).load().config(for: .jobSearch).choice == .claude }
+        )
+        #expect(vm.isConfigured(.llm))                  // default engine is Claude → available
+
+        vm.setChoice(.onDevice, for: .jobSearch)
+        vm.save()                                       // persists, then refreshes provider state
+
+        #expect(!vm.isConfigured(.llm))                 // flipped off without a new VM
+        #expect(!vm.configuredProviderIDs.contains(JobProvider.llm.rawValue))
+
+        vm.setChoice(.claude, for: .jobSearch)
+        vm.save()
+        #expect(vm.isConfigured(.llm))                  // and back on again
+        #expect(vm.configuredProviderIDs.contains(JobProvider.llm.rawValue))
     }
 
     @Test func loadsExistingSettings() {

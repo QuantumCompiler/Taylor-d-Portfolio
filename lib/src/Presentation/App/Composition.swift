@@ -314,9 +314,13 @@ struct Composition {
         )
     }
     func makeSettingsViewModel() -> SettingsViewModel {
-        .init(store: settingsStore, credentials: credentialsStore,
-              latexAvailable: LaTeXProcessClient().isAvailable,
-              llmSourceAvailable: isLLMJobSearchAvailable)
+        // A live closure, not a snapshot (v0.7.1 Milestone F): the LLM source's Configured
+        // status must flip when the user changes the `.jobSearch` engine, without a relaunch.
+        let settingsStore = self.settingsStore
+        let onDeviceClient = self.onDeviceClient
+        return .init(store: settingsStore, credentials: credentialsStore,
+                     latexAvailable: LaTeXProcessClient().isAvailable,
+                     isLLMAvailable: { Composition.isJobSearchEngineAvailable(settingsStore: settingsStore, onDeviceClient: onDeviceClient) })
     }
     /// The document-style manager (v0.7.0 Milestone E). `DefaultDocumentStyleStore` is built
     /// inline at the use site, mirroring `DefaultProfileStore` — a pointer store isn't a graph

@@ -9,12 +9,13 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.7.1 — bug fixes — Milestones A–E done; next Milestone F.** Eighteen verified defects were
+> **Current focus. v0.7.1 — bug fixes — Milestones A–F done; next Milestone G.** Eighteen verified defects were
 > scheduled out of `PLANNED.md` (2026-08-04) into the **v0.7.1 — bug fixes** section below, grouped into
 > Milestones **A–H** by shared root cause. **A (stale-async writes), B (Results/search handoff), C (stable
-> posting identity), D (search goal & de-duplication), and E (LLM layer) are complete** — write-ups in
-> `MILESTONES.md`. **F** (Settings wiring) is next; **G** and **H** close out the release. Every defect cites a
-> real `file:line` — **reproduce each one before fixing it** (see the provenance note in that section).
+> posting identity), D (search goal & de-duplication), E (LLM layer), and F (Settings wiring) are complete** —
+> write-ups in `MILESTONES.md`. **G** (Portfolio document state) and **H** (crash guards) close out the release.
+> Every defect cites a real `file:line` — **reproduce each one before fixing it** (see the provenance note in
+> that section).
 
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
@@ -49,31 +50,6 @@ high, 9 medium, 5 low**.
       device checks assert **Settings → About reads 0.7.0**. Bumping now would invalidate them. **Clear the v0.7.0
       device checks first, then bump.**
 - [ ] Add the v0.7.1 summary to `README.md`'s Version history when the release wraps.
-
-## Milestone F — Settings wiring  *(high + medium)*
-
-- **F-1 (high) — the Document Styles pane never loads the saved library: `reloadStyles()` has no caller**
-  ([`DocumentStylesView.swift:25`](../src/Presentation/Settings/View/DocumentStylesView.swift:25)). Every launch
-  shows "No saved styles yet. Edit the controls below and choose Save." **even though styles are persisted**; the
-  default style is never opened in the editor; and Save re-creates the style as a **new row**, so the library fills
-  with duplicates. This makes v0.7.0's headline feature look broken on relaunch.
-- **F-2 (medium) — `llmSourceAvailable` is a launch-time snapshot**
-  ([`SettingsViewModel.swift:38`](../src/Presentation/Settings/ViewModel/SettingsViewModel.swift:38)). Change the AI
-  job-search engine and the source's Configured status + Search-screen availability stay wrong **until relaunch** —
-  including a search that silently returns zero results with no error.
-
-**Sub-tasks:**
-- [ ] **F-A** — `.task { await viewModel.reloadStyles() }` on `DocumentStylesView.body` — the pattern `PortfolioView`
-      (`:35`) and `SearchView` (`:31`) already use.
-- [ ] **F-B** — Confirm Save **updates** the loaded style rather than inserting a duplicate once the library loads
-      (the duplicate-row symptom may be a consequence of F-A, or a second defect — verify).
-- [ ] **F-C** — Make availability a **live check**: inject `let isLLMAvailable: @Sendable () -> Bool` (pointing at
-      `Composition.isJobSearchEngineAvailable`) instead of a `Bool`, and call it from `isConfigured(_:)` /
-      `resolvedProviderIDs(...)`. `refreshCredentialState()` already runs after every save.
-
-**Tests.** The styles pane lists a persisted library on first appearance and Save updates rather than duplicates;
-availability flips when the engine choice changes, with no relaunch.
-**On-device.** n/a.
 
 ## Milestone G — Portfolio document state  *(medium + low)*
 

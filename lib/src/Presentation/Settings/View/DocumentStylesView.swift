@@ -36,6 +36,11 @@ struct DocumentStylesView: View {
             advancedSection
             previewSection
         }
+        // Load the persisted library on appearance (v0.7.1 Milestone F) — the same pattern as
+        // `PortfolioView`/`SearchView`. Without this the pane opened empty every launch, the
+        // default style never reached the editor, and Save (finding no loaded selection to
+        // match) re-created the style as a duplicate row.
+        .task { await viewModel.reloadStyles() }
     }
 
     // MARK: Library
