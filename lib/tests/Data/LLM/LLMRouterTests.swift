@@ -201,4 +201,29 @@ struct LLMRouterTests {
         let profile = try await router.buildProfile(fromPortfolio: "x")
         #expect(profile.seniority == "claude-fable-5")
     }
+
+    /// v0.7.1 Milestone E: cancellation is not an engine failure. A cancelled first engine
+    /// must rethrow immediately — falling back would quietly re-run work the user stopped.
+    @Test func cancellationRethrowsInsteadOfFallingBack() async {
+        let router = LLMRouter(
+            configFor: { _ in TaskEngineConfig(choice: .auto) },
+            onDevice: CancellingLLMProvider(),
+            makeClaude: { _ in StubLLMProvider(tag: "claude", fails: false) },   // would succeed
+            isOnDeviceAvailable: { true }
+        )
+        // If fallback happened, buildProfile would return the Claude stub's profile instead.
+        await #expect(throws: CancellationError.self) {
+            _ = try await router.buildProfile(fromPortfolio: "x")
+        }
+    }
+}
+
+/// A provider whose every call throws `CancellationError` — the cancelled-subprocess case.
+private struct CancellingLLMProvider: LLMProvider {
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile { throw CancellationError() }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { throw CancellationError() }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief { throw CancellationError() }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        throw CancellationError()
+    }
 }

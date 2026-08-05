@@ -33,6 +33,27 @@ nonisolated enum ProcessSupport {
         return ordered.joined(separator: ":")
     }
 
+    /// Reads a child's stdout and stderr pipes to EOF **concurrently**, returning both.
+    ///
+    /// Draining them one after the other deadlocked (v0.7.1 Milestone E): a pipe buffer is
+    /// ~64 KB, so a child that filled **stderr** while we were still reading stdout blocked on
+    /// its write — and stdout then never reached EOF, hanging both sides forever with no
+    /// timeout. Blocking call — invoke off the main thread; the `DispatchGroup` wait provides
+    /// the memory ordering for the box written on the second queue.
+    static func drainToEnd(stdout: Pipe, stderr: Pipe) -> (stdout: Data, stderr: Data) {
+        final class Box: @unchecked Sendable { var data = Data() }   // synchronized by group.wait()
+        let errBox = Box()
+        let group = DispatchGroup()
+        group.enter()
+        DispatchQueue.global(qos: .userInitiated).async {
+            errBox.data = stderr.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+        let outData = stdout.fileHandleForReading.readDataToEndOfFile()
+        group.wait()
+        return (outData, errBox.data)
+    }
+
     /// The first directory in `path` (colon-separated) that holds an executable named `name`,
     /// or `nil` if none does. Used to probe whether a tool (e.g. `lualatex`) is installed.
     static func locateExecutable(named name: String, inPATH path: String) -> URL? {

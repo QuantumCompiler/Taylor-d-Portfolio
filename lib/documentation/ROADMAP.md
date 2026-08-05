@@ -1078,7 +1078,7 @@ user-reported bugs — each cites a real `file:line` and survived refutation, bu
       case de-dupes by source-specific `id` while the composite de-dupes by `fingerprint` (`:104`). Seam: Business.
       ⚠️ On-device/cost: raising the shortlist limit means **ranking more jobs per search** — the cap was also a cost
       guard.
-- [ ] **Milestone E — LLM layer correctness.** A **subprocess pipe deadlock** — stdout is drained to EOF before
+- [x] **Milestone E — LLM layer correctness.** A **subprocess pipe deadlock** — stdout is drained to EOF before
       stderr is read, so a child that fills the stderr buffer **hangs the LLM call forever** with no timeout and no
       cancellation path (`ClaudeProcessClient.swift:169`; the same fix applies to `LaTeXProcessClient`). The
       **`searchJobs` prompt never names the `leads` wrapper key** the decoder requires, so AI job search

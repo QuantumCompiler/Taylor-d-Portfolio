@@ -9,14 +9,12 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.7.1 — bug fixes — Milestones A–D done; next Milestone E.** Eighteen verified defects were
+> **Current focus. v0.7.1 — bug fixes — Milestones A–E done; next Milestone F.** Eighteen verified defects were
 > scheduled out of `PLANNED.md` (2026-08-04) into the **v0.7.1 — bug fixes** section below, grouped into
 > Milestones **A–H** by shared root cause. **A (stale-async writes), B (Results/search handoff), C (stable
-> posting identity), and D (search goal & de-duplication) are complete** — write-ups in `MILESTONES.md`. **E**
-> (LLM layer: pipe deadlock, `leads` key, résumé truncation) is next; mind its cost note — E-C sends more résumé
-> tokens per scoring round. **H** (two `Double`→`Int` overflow crashes) is nearly free if you want a quick win.
-> Every defect cites a real `file:line` — **reproduce each one before fixing it** (see the provenance note in
-> that section).
+> posting identity), D (search goal & de-duplication), and E (LLM layer) are complete** — write-ups in
+> `MILESTONES.md`. **F** (Settings wiring) is next; **G** and **H** close out the release. Every defect cites a
+> real `file:line` — **reproduce each one before fixing it** (see the provenance note in that section).
 
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
@@ -51,35 +49,6 @@ high, 9 medium, 5 low**.
       device checks assert **Settings → About reads 0.7.0**. Bumping now would invalidate them. **Clear the v0.7.0
       device checks first, then bump.**
 - [ ] Add the v0.7.1 summary to `README.md`'s Version history when the release wraps.
-
-## Milestone E — LLM layer correctness  *(medium ×3)*
-
-- **E-1 — subprocess pipe deadlock: stdout is drained to EOF before stderr is read**
-  ([`ClaudeProcessClient.swift:169`](../src/Infrastructure/LLM/ClaudeProcessClient.swift:169)). If the child fills
-  the **stderr** pipe buffer while we're still reading stdout, both sides block: the LLM call **hangs forever**, with
-  no timeout and no cancellation path — neither `LLMRouter`'s fallback nor task cancellation can break out.
-- **E-2 — the `searchJobs` prompt never names the `leads` wrapper key the decoder requires**
-  ([`Prompts.swift:699`](../src/Data/LLM/Prompts.swift:699)). AI job search intermittently returns nothing on the
-  **Claude engine — the default for every task**. Because `CompositeJobSource` is fail-soft, the decode error is
-  **swallowed** whenever another provider succeeds, so the user sees zero AI leads and **no error at all**.
-- **E-3 — the generated résumé is truncated to the job-description cap (2 000 chars) before scoring**
-  ([`Prompts.swift:414`](../src/Data/LLM/Prompts.swift:414)). "Generate to target match score" **under-scores its own
-  output**: the scorer sees ~half the résumé, so tail skills come back as `missingSkills`. The loop burns all 4
-  rounds and **escalates fidelity to 1.0 (the embellished band)** — producing an invented-content draft the user
-  never asked for.
-
-**Sub-tasks:**
-- [ ] **E-A** — Drain both pipes **concurrently** (`readabilityHandler`s into locally-owned buffers resumed from
-      `terminationHandler`, or stderr on a second queue joined before `waitUntilExit()`). **Apply the same fix to
-      `LaTeXProcessClient.runProcess`.** Consider a cancellation handler while there.
-- [ ] **E-B** — Name the wrapper key the way `Prompts.rank` does: "Produce a `leads` array — one element per
-      suggested opening — where each element has: …".
-- [ ] **E-C** — Give the résumé a résumé-sized budget at `Prompts.swift:414`: `maxPortfolioCharacters` (6 000, matching
-      the grounding injection) or a dedicated `maxResumeCharacters`.
-
-**Tests.** A child process writing heavily to **stderr** completes rather than hanging (the regression test for E-A);
-the `searchJobs` prompt text contains the `leads` key the decoder expects; a long résumé reaches the scorer untruncated.
-**On-device.** ⚠️ **E-C increases tokens per scoring round.** E-A/E-B are correctness-only.
 
 ## Milestone F — Settings wiring  *(high + medium)*
 

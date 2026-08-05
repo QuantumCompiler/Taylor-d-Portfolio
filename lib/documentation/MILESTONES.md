@@ -3540,3 +3540,36 @@ explicitly so it still tests the page cap.
 
 **On-device.** ⚠️ The cost profile changed as designed: a goal >20 now really ranks up to `maxRankedResults`
 (100) jobs per search — the old 20 cap was also a cost guard, and the ceiling is the deliberate replacement.
+
+## Milestone E — LLM layer correctness  ✅ done  (`Infrastructure/Process/ProcessSupport`, `Infrastructure/LLM/ClaudeProcessClient`, `Infrastructure/Tex/LaTeXProcessClient`, `Data/LLM/LLMRouter` + `Prompts`; tests in `lib/tests/Infrastructure/LLM`, `lib/tests/Data/LLM`)
+
+**The defects (all three re-verified).** **E-1:** both process clients drained stdout to EOF *before* touching
+stderr — a child that filled the ~64 KB stderr buffer while stdout was still open blocked on its write, stdout
+never hit EOF, and the LLM call **hung forever** with no timeout and no cancellation path. **E-2:** the
+`searchJobs` prompt described each lead's fields but never named the `leads` wrapper key `GeneratedJobLeads`
+decodes — the Claude engine (the default) intermittently shaped the JSON differently, and the fail-soft
+composite swallowed the decode error: zero AI leads, no message. **E-3:** `scoreApplication` truncated the
+generated résumé to the **job-description** cap (2 000 chars) — the rank-target loop under-scored its own
+output, saw tail skills as "missing", burned all 4 rounds, and escalated fidelity into the embellished band the
+user never asked for.
+
+**The fixes.** **E-A:** a shared `ProcessSupport.drainToEnd(stdout:stderr:)` reads both pipes concurrently
+(stderr on a second queue joined by a `DispatchGroup` before `waitUntilExit()`); both clients use it. The
+"consider a cancellation handler" call was taken — for the **Claude client only**, where Milestone A's
+cancel-and-replace actually cancels in-flight calls: a `ProcessHolder` bridges `withTaskCancellationHandler` to
+`Process.terminate()` (lock-guarded against the register/launch race; a cancel landing in that window is caught
+by a post-exit check rather than a kill). And because `LLMRouter` falls back on *any* error, it now **rethrows
+`CancellationError` immediately** — a cancelled call must not quietly re-run on the next engine. `lualatex`
+compiles keep drain-only (nothing cancels them today). **E-B:** the prompt now opens with *Produce a "leads"
+array — one element per suggested opening…*, the same shape as `rank`'s "matches". **E-C:** the résumé is
+truncated to `maxPortfolioCharacters` (6 000, matching the grounding injection) instead of 2 000.
+
+**Tests (5 new; suite green at 924, build warning-free).** Two launch **real scripted children**: one floods
+~130 KB to stderr then emits a valid envelope — completes in ~0.6 s where the old code deadlocked (a
+`.timeLimit` turns any regression into a failure, not a hung suite); one sleeps 30 s and is cancelled —
+terminated in ~0.6 s, well under the sleep. The router rethrows `CancellationError` without falling back to a
+Claude stub that would have succeeded. The `searchJobs` prompt contains `"leads" array`; a ~3 600-char résumé
+reaches the scorer whole while the 6 000 budget still bounds a runaway one.
+
+**On-device.** ⚠️ E-C sends up to ~4 000 more résumé characters per scoring round of the rank-target loop —
+that's the fix working (the scorer must see the whole résumé). E-A/E-B are correctness-only.
