@@ -1098,7 +1098,7 @@ user-reported bugs — each cites a real `file:line` and survived refutation, bu
       for content (`PortfolioViewModel.swift:192`). And `select()` restores a saved profile's file names but **not**
       its slot text (`:364`), so a loaded profile reads "0 characters" with **Build disabled**, unable to rebuild
       from its own document. Seam: Presentation. On-device: n/a.
-- [ ] **Milestone H — Crash guards.** Two `Double`→`Int` overflow **traps**: a large typed salary floor crashes
+- [x] **Milestone H — Crash guards.** Two `Double`→`Int` overflow **traps**: a large typed salary floor crashes
       during Adzuna URL construction (`AdzunaJobSource.swift:61`), and a 19+ digit entry in the shared Min-salary
       **filter** crashes in both Results and Tracker (`ListFilterBar.swift:55`). Trivial to guard, expensive to hit —
       ship together. Seam: Data + Presentation. On-device: n/a.

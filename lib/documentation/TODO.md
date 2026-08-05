@@ -9,12 +9,10 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.7.1 — bug fixes — Milestones A–G done; next Milestone H, the last.** Eighteen verified
-> defects were scheduled out of `PLANNED.md` (2026-08-04) into the **v0.7.1 — bug fixes** section below, grouped
-> into Milestones **A–H** by shared root cause. **A through G are complete** — write-ups in `MILESTONES.md`.
-> **H** (the two `Double`→`Int` overflow crash guards) closes out the release; after it, do the **Release
-> hygiene** items above the milestone list. Every defect cites a real `file:line` — **reproduce each one before
-> fixing it** (see the provenance note in that section).
+> **Current focus. v0.7.1 — bug fixes — ALL MILESTONES (A–H) COMPLETE.** All 18 verified defects are fixed —
+> write-ups in `MILESTONES.md`. What remains is **Release hygiene** (below): the `MARKETING_VERSION` bump is
+> **still gated** on clearing the v0.7.0 device checks (they assert About reads 0.7.0), and the `README.md`
+> version-history entry lands when the release wraps.
 
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
@@ -49,28 +47,6 @@ high, 9 medium, 5 low**.
       device checks assert **Settings → About reads 0.7.0**. Bumping now would invalidate them. **Clear the v0.7.0
       device checks first, then bump.**
 - [ ] Add the v0.7.1 summary to `README.md`'s Version history when the release wraps.
-
-## Milestone H — Crash guards (`Double`→`Int` overflow traps)  *(low ×2)*
-
-Both are hard **crashes**, trivially guarded — ship them together.
-
-- **H-1** — `Int(salaryMin)` traps on a large typed salary floor
-  ([`AdzunaJobSource.swift:61`](../src/Data/Jobs/AdzunaJobSource.swift:61)): "Double value cannot be converted to Int
-  because the result would be greater than Int.max", during URL construction.
-- **H-2** — the Min-salary **filter** field traps on a 19+ digit entry
-  ([`ListFilterBar.swift:55`](../src/Presentation/Components/ListFilterBar.swift:55)) — in **both** Results and Tracker,
-  since it's the shared control.
-
-**Sub-tasks:**
-- [ ] **H-A** — Clamp before converting (or use non-trapping `Int(exactly:)`) in `AdzunaJobSource.buildURL`; drop the
-      parameter when out of range.
-- [ ] **H-B** — Same in `ListFilterBar` — clamp, or avoid the `Double`→`Int` round-trip entirely.
-- [ ] **H-C** — **(open call)** Bound `parsePositiveInt` / the salary fields to a sane maximum in the view model, so
-      the guard lives in one place rather than at each conversion. *Recommended:* yes, in addition to the local clamps.
-
-**Tests.** Out-of-range inputs (`1e19`, a 19-digit string) round-trip through both paths without trapping and are
-either clamped or ignored.
-**On-device.** n/a.
 
 ---
 

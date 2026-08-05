@@ -515,6 +515,32 @@ struct SearchViewModelTests {
         #expect(vm.canSearch)                             // gates reopen once the fetch lands
     }
 
+    // MARK: v0.7.1 Milestone H — typed numeric fields are bounded (nothing downstream traps)
+
+    /// The one-place guard: `parsePositiveInt` clamps at a sane ceiling, so the Adzuna URL
+    /// builder and the saved-search round-trip can never be handed a trapping value — and a
+    /// legacy saved search already carrying a huge floor re-applies clamped instead of crashing.
+    @Test func typedNumericFieldsClampAndASavedHugeFloorRoundTripsSafely() async {
+        let vm = makeVM()
+        vm.profile = profile
+
+        vm.salaryText = "9999999999999999999"            // 19 nines — past Int.max
+        #expect(vm.effectiveSalaryMin == 1_000_000_000)  // clamped, not nil, not a trap
+        vm.desiredResultText = "123456789012345678901"   // past what Int can even parse
+        #expect(vm.desiredResultCount == 1_000_000_000)
+        vm.salaryText = "50000"
+        #expect(vm.effectiveSalaryMin == 50_000)         // normal values untouched
+
+        // A saved search persisted before the bound existed carries a huge floor: re-running
+        // it must repopulate the form clamped (the old `String(Int($0))` trapped here).
+        var request = JobSearchRequest(titles: ["ios"])
+        request.salaryMin = 1e19
+        let saved = SavedSearch(id: "s", name: "S", request: request,
+                                createdAt: Date(timeIntervalSince1970: 0))
+        await vm.runSavedSearch(saved)
+        #expect(vm.salaryText == "1000000000")
+    }
+
     // MARK: v0.7.1 Milestone B — one-shot hand-off signal + deletion vs. the digest
 
     /// The shell's auto-navigation rides `completedSearchID`, so it must fire **once** per

@@ -57,8 +57,12 @@ nonisolated struct AdzunaJobSource: JobSource {
         if let location = query.location, !location.isEmpty {
             items.append(URLQueryItem(name: "where", value: location))
         }
-        if let salaryMin = query.salaryMin {
-            items.append(URLQueryItem(name: "salary_min", value: String(Int(salaryMin))))
+        // Non-trapping conversion (v0.7.1 Milestone H): `Int(salaryMin)` crashed on a typed
+        // floor beyond `Int.max`. Out-of-range or non-positive → the parameter is dropped
+        // (an absurd floor filters nothing, it doesn't crash the search).
+        if let salaryMin = query.salaryMin,
+           let value = Int(exactly: salaryMin.rounded()), value > 0 {
+            items.append(URLQueryItem(name: "salary_min", value: String(value)))
         }
         // Adzuna expresses employment type as boolean flags (full_time / part_time /
         // contract / permanent); the enum's raw value is exactly the flag name.

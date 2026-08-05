@@ -51,9 +51,12 @@ struct ListFilterBar: View {
                     optionPicker(selection: $filter.company, options: companyOptions)
                 }
                 field("Min salary") {
+                    // Bounded parse + display (v0.7.1 Milestone H): a 19+ digit entry used to
+                    // store ~1e19, and the display's `Int` conversion trapped on the next render
+                    // — in both Results and the Tracker, since this bar is shared.
                     TextField("Any", text: Binding(
-                        get: { filter.salaryMin.map { String(Int($0)) } ?? "" },
-                        set: { filter.salaryMin = Double($0.filter(\.isNumber)) }
+                        get: { ResultsFilter.salaryDisplay(filter.salaryMin) },
+                        set: { filter.salaryMin = ResultsFilter.salaryInput($0) }
                     )).textFieldStyle(.roundedBorder).frame(maxWidth: 140)
                 }
             }

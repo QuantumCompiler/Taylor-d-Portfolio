@@ -46,6 +46,26 @@ struct AdzunaJobSourceTests {
         #expect(items["results_per_page"] == "10")
     }
 
+    /// v0.7.1 Milestone H: `Int(salaryMin)` trapped on a floor beyond `Int.max`. Out-of-range
+    /// drops the parameter; a normal floor still round-trips.
+    @Test func buildURLDropsAnOutOfRangeSalaryFloorInsteadOfTrapping() throws {
+        let huge = try AdzunaJobSource.buildURL(
+            credentials: creds, query: JobQuery(keywords: "ios", salaryMin: 1e19))
+        let hugeItems = URLComponents(url: huge, resolvingAgainstBaseURL: false)!.queryItems ?? []
+        #expect(!hugeItems.contains { $0.name == "salary_min" })   // dropped, not crashed
+
+        let negative = try AdzunaJobSource.buildURL(
+            credentials: creds, query: JobQuery(keywords: "ios", salaryMin: -5e18))
+        let negativeItems = URLComponents(url: negative, resolvingAgainstBaseURL: false)!.queryItems ?? []
+        #expect(!negativeItems.contains { $0.name == "salary_min" })
+
+        let normal = try AdzunaJobSource.buildURL(
+            credentials: creds, query: JobQuery(keywords: "ios", salaryMin: 50_000))
+        let normalItems = Dictionary(uniqueKeysWithValues:
+            (URLComponents(url: normal, resolvingAgainstBaseURL: false)!.queryItems ?? []).map { ($0.name, $0.value) })
+        #expect(normalItems["salary_min"] == "50000")
+    }
+
     @Test func buildURLOmitsOptionalItemsWhenAbsent() throws {
         let query = JobQuery(keywords: "ios") // no location, no salaryMin, no positionType
         let url = try AdzunaJobSource.buildURL(credentials: creds, query: query, baseURL: AdzunaJobSource.defaultBaseURL)

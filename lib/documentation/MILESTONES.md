@@ -3629,3 +3629,36 @@ text, readable copy, or file name. G-2: save → deselect (slot empty, Build dis
 text is back in both slots and Build is enabled with no re-import.
 
 **On-device.** n/a.
+
+## Milestone H — Crash guards (`Double`→`Int` overflow traps)  ✅ done  (`Data/Jobs/AdzunaJobSource`, `Presentation/Results/ResultsFilter` + `Components/ListFilterBar`, `Presentation/Search` VM; tests in `lib/tests/Data/Jobs`, `lib/tests/Presentation`)
+
+**The defects (both re-verified — plus a third site the audit didn't name).** **H-1:**
+`String(Int(salaryMin))` in `AdzunaJobSource.buildURL` trapped when the typed floor exceeded `Int.max` (a
+19-digit entry parses to a huge `Int`, ranges through `Double`, and the URL builder's conversion crashes).
+**H-2:** the shared Min-salary filter field — Results *and* Tracker — stored a ~1e19 `Double` from a 19+ digit
+entry, and the display binding's `Int` conversion trapped **on the very next render**. **Found while fixing:**
+`applyRequest` had the same `String(Int($0))` on a saved search's floor, so re-running a legacy saved search
+carrying a huge value was a third trap.
+
+**The fixes — local clamps *and* the one-place bound (H-C taken as recommended).** **H-A:** the URL builder
+converts via non-trapping `Int(exactly: salaryMin.rounded())` and **drops the parameter** when out of range or
+non-positive — an absurd floor filters nothing rather than crashing the search. **H-B:** `ResultsFilter` gains
+`maxSalaryInput` (1 billion — beyond any real salary in any supported currency, comfortably inside the
+exactly-representable range) with bounded `salaryInput(_:)` / `salaryDisplay(_:)` statics; the shared bar's
+binding uses both, so even a huge value persisted *before* the bound existed renders clamped. **H-C:**
+`SearchViewModel.parsePositiveInt` clamps at the same ceiling (digits that overflow `Int` entirely clamp too —
+they're "a huge number", not "no number"), which bounds **both** free-text fields (salary floor *and* desired
+result count) at the source; `applyRequest` clamps the saved floor before its `Int` conversion.
+
+**Tests (3 new; suite green at 930, build warning-free).** `buildURL` with 1e19 and −5e18 drops `salary_min`
+while 50 000 round-trips; the filter's parse clamps a 19-digit entry to the ceiling and its display renders 1e19
+as "1000000000" instead of trapping; the Search form clamps both typed fields, and a saved search carrying a
+1e19 floor re-applies as the clamped text — the exact line that used to crash.
+
+**On-device.** n/a.
+
+---
+
+**v0.7.1 milestone work is complete: all 18 audited defects fixed across Milestones A–H.** Remaining before the
+release wraps (tracked in `TODO.md` → Release hygiene): clear the v0.7.0 device checks, **then** bump
+`MARKETING_VERSION` to 0.7.1, and add the v0.7.1 summary to `README.md`'s Version history.

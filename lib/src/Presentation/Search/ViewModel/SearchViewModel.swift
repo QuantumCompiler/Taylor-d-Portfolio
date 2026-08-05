@@ -191,7 +191,9 @@ final class SearchViewModel {
         selectedCommonTitles = []
         titleInput = ""
         location = request.location ?? ""
-        salaryText = request.salaryMin.map { String(Int($0)) } ?? ""
+        // Non-trapping (v0.7.1 Milestone H): a saved search persisted before the input bound
+        // existed can carry a floor beyond `Int.max` — show it clamped rather than crash.
+        salaryText = request.salaryMin.map { String(Int(min(max($0, 0), Double(Self.maxParsedValue)))) } ?? ""
         positionType = request.positionType
         desiredResultText = request.desiredResultCount.map(String.init) ?? ""
         minimumScore = Double(request.minimumScore ?? 0)
@@ -244,11 +246,21 @@ final class SearchViewModel {
         salaryPresetStore?.save(savedSalaries)
     }
 
-    /// Parses a positive integer from free text (digits + separators), else `nil`.
+    /// Ceiling for the free-text numeric fields (salary floor, desired result count) —
+    /// v0.7.1 Milestone H's one-place guard: no real value exceeds it, and it keeps every
+    /// downstream `Int`/`Double` conversion inside the exactly-representable range, so the
+    /// Adzuna URL builder and the saved-search round-trip can never be handed a trapping value.
+    private static let maxParsedValue = 1_000_000_000
+
+    /// Parses a positive integer from free text (digits + separators), else `nil` — clamped to
+    /// ``maxParsedValue``. Digits that overflow `Int` entirely clamp too (they're "a huge
+    /// number", not "no number").
     private static func parsePositiveInt(_ text: String) -> Int? {
         let digits = text.filter(\.isNumber)
-        guard let value = Int(digits), value > 0 else { return nil }
-        return value
+        guard !digits.isEmpty else { return nil }
+        guard let value = Int(digits) else { return maxParsedValue }
+        guard value > 0 else { return nil }
+        return min(value, maxParsedValue)
     }
 
     // MARK: Saved-profile selection
