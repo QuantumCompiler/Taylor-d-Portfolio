@@ -324,8 +324,14 @@ final class SearchViewModel {
             : "No search source selected — pick at least one configured provider below."
     }
 
+    /// True while either results-producing flow runs. Search and link-fetch both assign
+    /// `results` wholesale, so every entry point gates on **both** flags — otherwise a
+    /// link-fetched job silently vanishes when an earlier search lands, and vice versa
+    /// (v0.7.1 Milestone A).
+    var isResultsFlowBusy: Bool { isSearching || isFetchingLink }
+
     var canSearch: Bool {
-        !activeProviderIDs.isEmpty && hasProfile && !effectiveTitles.isEmpty && !isSearching
+        !activeProviderIDs.isEmpty && hasProfile && !effectiveTitles.isEmpty && !isResultsFlowBusy
     }
 
     // MARK: Provider selection (Milestone H)
@@ -396,13 +402,14 @@ final class SearchViewModel {
 
     /// Whether the "Fetch" action can run (link wired, profile present, URL entered).
     var canFetchLink: Bool {
-        canUseLink && hasProfile && !isFetchingLink
+        canUseLink && hasProfile && !isResultsFlowBusy
             && !postingURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// Fetches a posting from `postingURL`, ranks it, and pushes it into the results
     /// flow. Independent of Adzuna (uses HTTP + the LLM, not the job search API).
     func fetchFromLink() async {
+        guard !isResultsFlowBusy else { return }   // never race a running search for `results`
         guard let fetchPosting else { return }
         guard let profile else {
             linkErrorMessage = "Build your profile on the Portfolio tab first."
@@ -454,6 +461,7 @@ final class SearchViewModel {
     /// Extracts a posting from `pastedPosting` (the fallback for un-fetchable pages),
     /// ranks it, and pushes it into the results flow.
     func generateFromPastedText() async {
+        guard !isResultsFlowBusy else { return }   // never race a running search for `results`
         guard let fetchPosting else { return }
         guard let profile else {
             linkErrorMessage = "Build your profile on the Portfolio tab first."
@@ -515,6 +523,7 @@ final class SearchViewModel {
     /// the soft notes. On a re-run (Milestone R) it also reports how many results are new
     /// since the last search (deduped against the saved-jobs store).
     private func performSearch(_ request: JobSearchRequest, isRerun: Bool) async {
+        guard !isResultsFlowBusy else { return }   // covers search() and runSavedSearch(_:)
         guard let profile else { return }
         isSearching = true
         errorMessage = nil

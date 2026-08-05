@@ -29,6 +29,49 @@ private actor CapturingJobSource: JobSource {
     }
 }
 
+/// A `JobSource` that **blocks until the test releases it** — the cross-gate tests
+/// (v0.7.1 Milestone A) need a search genuinely in flight while the link flow is probed.
+private actor GatedJobSource: JobSource {
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private(set) var pendingCount = 0
+    func release() {
+        let continuations = waiting
+        waiting = []
+        for continuation in continuations { continuation.resume() }
+    }
+    func search(_ query: JobQuery) async throws -> [JobListing] {
+        pendingCount += 1
+        await withCheckedContinuation { waiting.append($0) }
+        pendingCount -= 1
+        return []
+    }
+}
+
+/// A `JobPostingSource` that blocks until released, and counts calls — so a gated flow can be
+/// held mid-flight and a blocked entry point proven to have never reached its source.
+private actor GatedPostingSource: JobPostingSource {
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private(set) var pendingCount = 0
+    private(set) var calls = 0
+    private let listing = JobListing(id: "link-1", title: "t", company: "c", location: "l", description: "d")
+    func release() {
+        let continuations = waiting
+        waiting = []
+        for continuation in continuations { continuation.resume() }
+    }
+    func fetchPosting(from url: URL) async throws -> JobListing {
+        calls += 1
+        pendingCount += 1
+        await withCheckedContinuation { waiting.append($0) }
+        pendingCount -= 1
+        return listing
+    }
+    func extractPosting(fromText text: String, sourceURL: URL?) async throws -> JobListing {
+        calls += 1
+        return listing
+    }
+}
+
 /// A `JobPostingSource` stub for the link/paste flow: returns a canned listing or throws.
 private struct StubPostingSource: JobPostingSource {
     var listing = JobListing(id: "link-1", title: "iOS Engineer", company: "Acme", location: "Remote", description: "Swift.")
@@ -365,6 +408,80 @@ struct SearchViewModelTests {
         let vm = makeVM()                        // no fetchPosting injected
         #expect(vm.canUseLink == false)
         #expect(vm.canFetchLink == false)
+    }
+
+    // MARK: v0.7.1 Milestone A — search and link-fetch never race for `results`
+
+    /// Builds a VM with **both** flows wired to gated sources, so either can be held in flight.
+    private func makeCrossGateVM(jobSource: GatedJobSource, postingSource: GatedPostingSource) -> SearchViewModel {
+        let ranker = JobRanker(provider: PresentationStubProvider())
+        return SearchViewModel(
+            searchAndRank: SearchAndRankUseCase(jobSource: jobSource, ranker: ranker),
+            roleTitleStore: RoleTitleStore(store: PresentationMemoryStore()),
+            fetchPosting: FetchPostingUseCase(postingSource: postingSource, ranker: ranker)
+        )
+    }
+
+    /// Spins until `condition` holds (bounded, so a regression fails rather than hangs).
+    private func spinUntil(_ condition: () async -> Bool) async {
+        var spins = 0
+        while !(await condition()), spins < 10_000 {
+            spins += 1
+            await Task.yield()
+        }
+        #expect(await condition())
+    }
+
+    @Test func aRunningSearchGatesTheLinkFetchEntryPoints() async {
+        let jobSource = GatedJobSource()
+        let postingSource = GatedPostingSource()
+        let vm = makeCrossGateVM(jobSource: jobSource, postingSource: postingSource)
+        vm.profile = profile
+        vm.titleInput = "swift"
+        vm.postingURL = "https://example.com/jobs/1"
+        vm.pastedPosting = "iOS Engineer at Acme. Swift."
+        #expect(vm.canFetchLink)                          // open before the search starts
+
+        let search = Task { await vm.search() }
+        await spinUntil { await jobSource.pendingCount > 0 }
+        #expect(vm.isSearching)
+
+        #expect(vm.canFetchLink == false)                 // the button disables…
+        await vm.fetchFromLink()                          // …and a direct call no-ops
+        await vm.generateFromPastedText()
+        #expect(await postingSource.calls == 0)           // neither flow reached its source
+        #expect(vm.isFetchingLink == false)
+
+        await jobSource.release()
+        await search.value
+        #expect(vm.isSearching == false)
+        #expect(vm.canFetchLink)                          // gates reopen once the search lands
+    }
+
+    @Test func aRunningLinkFetchGatesSearchSoTheFetchedJobCannotVanish() async {
+        let jobSource = GatedJobSource()
+        let postingSource = GatedPostingSource()
+        let vm = makeCrossGateVM(jobSource: jobSource, postingSource: postingSource)
+        vm.profile = profile
+        vm.titleInput = "swift"
+        vm.postingURL = "https://example.com/jobs/1"
+        #expect(vm.canSearch)                             // open before the fetch starts
+
+        let fetch = Task { await vm.fetchFromLink() }
+        await spinUntil { await postingSource.pendingCount > 0 }
+        #expect(vm.isFetchingLink)
+
+        #expect(vm.canSearch == false)                    // the button disables…
+        await vm.search()                                 // …and a direct call no-ops
+        await vm.runSavedSearch(SavedSearch(id: "s", name: "s",
+                                            request: JobSearchRequest(titles: ["swift"]),
+                                            createdAt: Date(timeIntervalSince1970: 0)))
+        #expect(vm.isSearching == false)                  // no search snuck in behind the fetch
+
+        await postingSource.release()
+        await fetch.value
+        #expect(vm.results.map(\.id) == ["link-1"])       // the fetched job survived — B-2's twin
+        #expect(vm.canSearch)                             // gates reopen once the fetch lands
     }
 
     @Test func generateFromPastedTextSuccessPushesResult() async {

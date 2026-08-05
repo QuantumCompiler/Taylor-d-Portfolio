@@ -3397,3 +3397,50 @@ unblocks without touching the saved style, and the `.tex` still exports. Suite g
 warning-free.
 
 **On-device.** n/a — no model calls.
+
+---
+
+# v0.7.1 — bug fixes
+
+A **patch release**, scheduled out of `PLANNED.md`'s single `Target: v0.7.1` entry (2026-08-04): **18 verified
+defects** from the 2026-08-04 structured audit (five subsystems swept, every candidate re-verified by a pass
+instructed to refute it), grouped into Milestones **A–H** by shared root cause. Milestones restart at **A**;
+commit as `v0.7.1 : Milestone X Completed`.
+
+## Milestone A — Stale-async writes corrupt visible state  ✅ done  (`Presentation/Application` VM, `Presentation/Search` VM + view; tests in `lib/tests/Presentation`)
+
+**The defects (both re-verified against source before fixing).** **A-1 (high):** `ApplicationWindow` holds
+**one** `ApplicationViewModel` across jobs and re-targets purely via `.onChange(of: requestID) → loadSaved(for:)`
+— nothing cancels prior work — while `generate(...)` ran as an unstructured `Task` assigning `kit`/`brief`
+unconditionally on completion. Generate for job A (tens of seconds), open job B, and A's run finishing late put
+**A's résumé under B's header** — and an export **named for B containing A's content**. `loadSaved` clearing
+`isGenerating` mid-flight also re-enabled Generate, so a second run for B could be clobbered by A finishing last.
+**A-2 (low):** `search` and `fetchFromLink` both assign `results` wholesale with no guard on each other's busy
+flag, so a link-fetched job could appear in Results and **silently vanish** when an earlier search landed.
+
+**The fix, A-1 — cancel-and-replace plus a run token.** `ApplicationViewModel` now owns the in-flight generation
+(`generationTask`) and a monotonic `generationRun` token, both `@ObservationIgnored`. `generate` cancels the prior
+task, bumps the token, and runs the real work in a stored `Task` (awaited, so the sheet's `onGenerated` timing is
+unchanged). `loadSaved(for:)` cancels-and-bumps **before** touching state, which is what finally makes its
+`isGenerating = false` safe — B's Generate button usable immediately, per the open call. The token is the real
+guard, not cancellation: the underlying LLM call may not honour `Task.cancel()`, so every state write is gated on
+`run == generationRun` — the kit/brief/`rankOutcome` assignments, the `defer` that clears `isGenerating` (a
+superseded run must not re-enable Generate for the job that replaced it), and the `catch` (a dead run's failure
+isn't news about the job now shown). One deliberate asymmetry: a superseded run **still persists** its output —
+it's keyed to *its own* job's id via the shadowing parameter (persistence was never the corrupt path), and the
+generation was paid for.
+
+**The fix, A-2 — one busy flag for every entry point.** `isResultsFlowBusy` (`isSearching || isFetchingLink`)
+now gates **all four** results-producing entry points, not just the two the audit named: `canSearch` and
+`canFetchLink` cross-gate, and `performSearch` / `fetchFromLink` / `generateFromPastedText` guard at entry — which
+also covers `runSavedSearch` and direct programmatic calls. The saved-search Run and paste-generate buttons
+disable off the same flag.
+
+**Tests (5 new; suite green at 909, build warning-free).** A `GatedGenProvider` actor blocks generation until
+released — and deliberately **ignores cancellation**, so the tests prove the token guard, the stronger property:
+a stale run finishing after a re-target can't overwrite B's screen state (while A's output still persists under
+A's id); the last targeted job wins regardless of finish order; a superseded run's failure surfaces no error.
+Gated job/posting sources hold each Search flow mid-flight and assert the other's gates close, a direct call
+no-ops without reaching its source, and the gates reopen after the flow lands.
+
+**On-device.** n/a — pure state discipline, no model-behaviour change.

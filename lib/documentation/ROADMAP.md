@@ -1049,7 +1049,7 @@ Presentation-only** — the fixes span all four layers. **Provenance caveat:** t
 user-reported bugs — each cites a real `file:line` and survived refutation, but **reproduce before fixing**.
 `TODO.md` has the granular breakdown, the per-defect failure scenarios, and the open calls.
 
-- [ ] **Milestone A — Stale-async writes corrupt visible state.** Two unstructured async flows assign into shared
+- [x] **Milestone A — Stale-async writes corrupt visible state.** Two unstructured async flows assign into shared
       view state with **no staleness check**. The headline: `ApplicationWindow` holds **one** `ApplicationViewModel`
       and re-targets via `.onChange(of: requestID)`, while `generate(...)` runs as an unstructured `Task` that
       assigns `kit`/`brief` unconditionally (`ApplicationViewModel.swift:438`) — so generating for job A and then

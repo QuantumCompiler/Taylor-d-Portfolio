@@ -74,6 +74,15 @@ final class ApplicationViewModel {
     /// The outcome of the last rank-target generation (Milestone D-F), if that path was used.
     private(set) var rankOutcome: GenerateToTargetUseCase.Outcome?
 
+    /// The in-flight generation, so re-targeting (`loadSaved`) or a new Generate cancels it
+    /// instead of racing it (v0.7.1 Milestone A). The window holds **one** view model across
+    /// jobs, so without this an old run finishing late writes another job's kit on screen.
+    @ObservationIgnored private var generationTask: Task<Void, Never>?
+    /// Run token: bumped by every generation start **and** every re-target. A finishing run
+    /// may only write view state while its token is still current — cancellation alone isn't
+    /// enough, because the underlying LLM call may not honour it.
+    @ObservationIgnored private var generationRun = 0
+
     private let generateApplication: GenerateApplicationUseCase
     private let generateToTarget: GenerateToTargetUseCase?
     private let saveApplication: SaveApplicationUseCase?
@@ -388,6 +397,12 @@ final class ApplicationViewModel {
     /// view never auto-generates — generation is user-initiated so options can be set first
     /// (v0.5.0).
     func loadSaved(for job: JobListing) async {
+        // Re-targeting supersedes any in-flight generation: cancel it and bump the run token
+        // so even a run that ignores cancellation can't write the old job's kit here. Only
+        // then is clearing `isGenerating` safe (v0.7.1 Milestone A).
+        generationTask?.cancel()
+        generationTask = nil
+        generationRun += 1
         latexResumePages = 0        // the advisory belongs to the kit it was measured on
         self.job = job
         errorMessage = nil
@@ -410,7 +425,21 @@ final class ApplicationViewModel {
 
     /// Generates fresh materials (also used by "Regenerate") and persists them. When a rank
     /// target is set (Milestone D-F), runs the outcome-driven loop instead of a single pass.
+    ///
+    /// Cancel-and-replace (v0.7.1 Milestone A): starting a generation supersedes any run still
+    /// in flight, and the run holds a token so a superseded run that finishes late can't write
+    /// its kit into whatever job the window shows now.
     func generate(for job: JobListing, profile: CandidateProfile, grounding: PortfolioGrounding? = nil) async {
+        generationTask?.cancel()
+        generationRun += 1
+        let run = generationRun
+        let task = Task { await performGeneration(run: run, job: job, profile: profile, grounding: grounding) }
+        generationTask = task
+        await task.value
+    }
+
+    private func performGeneration(run: Int, job: JobListing, profile: CandidateProfile, grounding: PortfolioGrounding?) async {
+        guard run == generationRun else { return }
         self.job = job
         isGenerating = true
         errorMessage = nil
@@ -418,10 +447,13 @@ final class ApplicationViewModel {
         brief = nil
         isSaved = false
         rankOutcome = nil
-        defer { isGenerating = false }
+        // A superseded run finishing late must not re-enable Generate for the job that
+        // replaced it — only the still-current run may flip the flag back.
+        defer { if run == generationRun { isGenerating = false } }
         do {
             let produced: ApplicationKit
             let producedBrief: TargetBrief
+            var producedOutcome: GenerateToTargetUseCase.Outcome?
             if let target = generationSettings.desiredRankMatch, let generateToTarget {
                 let outcome = try await generateToTarget(job: job, profile: profile, grounding: grounding,
                                                          target: target,
@@ -429,19 +461,26 @@ final class ApplicationViewModel {
                                                          emphasizeKeywords: generationSettings.emphasizeKeywords)
                 produced = outcome.kit
                 producedBrief = outcome.brief
-                rankOutcome = outcome
+                producedOutcome = outcome
             } else {
                 let outcome = try await generateApplication(job: job, profile: profile, grounding: grounding, settings: generationSettings)
                 produced = outcome.kit
                 producedBrief = outcome.brief
             }
-            kit = produced
-            brief = producedBrief
-            refreshLengthGate()
+            if run == generationRun && !Task.isCancelled {
+                kit = produced
+                brief = producedBrief
+                rankOutcome = producedOutcome
+                refreshLengthGate()
+            }
             // Best-effort persist — a storage failure shouldn't lose the generated output. The
-            // brief rides along so a reopened result can still report keyword coverage.
+            // brief rides along so a reopened result can still report keyword coverage. Runs
+            // even when superseded: the output is keyed to *this* run's job id (the shadowing
+            // `job` parameter), so a paid generation is kept rather than thrown away.
             try? await saveApplication?(produced, brief: producedBrief, forJobID: job.id)
         } catch {
+            // A superseded/cancelled run's failure isn't news about the job now shown.
+            guard run == generationRun, !Task.isCancelled else { return }
             errorMessage = Self.describe(error)
         }
     }

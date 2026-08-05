@@ -48,6 +48,44 @@ private actor CoverageStubProvider: LLMProvider {
     }
 }
 
+/// An `LLMProvider` whose generation **blocks until the test releases it** — the stale-async
+/// tests (v0.7.1 Milestone A) need a run for job A still in flight while the window re-targets
+/// to job B. Deliberately ignores cancellation: the run-token guard must hold even when the
+/// underlying LLM call doesn't honour `Task.cancel()`.
+private actor GatedGenProvider: LLMProvider {
+    var shouldThrow = false
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private(set) var pendingCount = 0
+
+    struct Boom: Error {}
+
+    func setShouldThrow(_ value: Bool) { shouldThrow = value }
+
+    /// Lets every blocked generation proceed.
+    func release() {
+        let continuations = waiting
+        waiting = []
+        for continuation in continuations { continuation.resume() }
+    }
+
+    func buildProfile(fromPortfolio portfolio: String) async throws -> CandidateProfile {
+        .init(seniority: "", yearsExperience: 0, coreSkills: [], domains: [], targetTitles: [], summary: "")
+    }
+    func rank(jobs: [JobListing], against profile: CandidateProfile) async throws -> [JobMatch] { [] }
+    func buildTargetBrief(for job: JobListing) async throws -> TargetBrief {
+        .init(company: job.company, roleTitle: job.title, mustHaveKeywords: [],
+              niceToHaveKeywords: [], techStack: [], domain: "", missionValues: "")
+    }
+    func generateApplication(for job: JobListing, profile: CandidateProfile, brief: TargetBrief) async throws -> ApplicationKit {
+        pendingCount += 1
+        await withCheckedContinuation { waiting.append($0) }
+        pendingCount -= 1
+        if shouldThrow { throw Boom() }
+        // The kit names its job, so a test can tell whose output landed on screen.
+        return ApplicationKit(resumeMarkdown: "KIT-\(job.id)", coverLetter: "", gapNote: "")
+    }
+}
+
 /// A `LaTeXCompiling` stub for the awesome-cv export path (Milestone D).
 private final class VMStubCompiler: LaTeXCompiling, @unchecked Sendable {
     let available: Bool
@@ -149,6 +187,98 @@ struct ApplicationViewModelTests {
         #expect(vm.isSaved == false)
         #expect(await provider.generateCalls == 1)
         #expect(try await repo.kit(forJobID: job.id)?.resumeMarkdown == "FRESH")   // latest-wins persisted
+    }
+
+    // MARK: v0.7.1 Milestone A — stale-async generation can't corrupt the shown job
+
+    /// Spins until the provider has `count` generations blocked (bounded, so a regression
+    /// fails the test instead of hanging it).
+    private func waitForPending(_ provider: GatedGenProvider, count: Int = 1) async {
+        var spins = 0
+        while await provider.pendingCount < count, spins < 10_000 {
+            spins += 1
+            await Task.yield()
+        }
+        #expect(await provider.pendingCount >= count)
+    }
+
+    /// The core defect: generate for job A, re-target the window to job B while A is still in
+    /// flight — A finishing late must not put its kit under B's header (an export named for B
+    /// containing A's résumé). A's output is still **persisted under A's id**: the generation
+    /// was paid for, and persistence was never the corrupt path.
+    @Test func aStaleGenerationCannotOverwriteTheRetargetedJob() async throws {
+        let repo = SavedApplicationsRepository(store: InMemoryRecordStore())
+        let jobB = JobListing(id: "b", title: "tb", company: "cb", location: "l", description: "d")
+        try await repo.save(savedKit("# Saved-B"), forJobID: jobB.id)
+        let provider = GatedGenProvider()
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: provider),
+            saveApplication: SaveApplicationUseCase(repository: repo),
+            loadApplication: LoadApplicationUseCase(repository: repo)
+        )
+
+        let generation = Task { await vm.generate(for: job, profile: profile) }   // job "a"
+        await waitForPending(provider)
+        #expect(vm.isGenerating)
+
+        await vm.loadSaved(for: jobB)                     // the user opens job B mid-flight
+        #expect(vm.kit?.resumeMarkdown == "# Saved-B")
+        #expect(vm.isGenerating == false)                 // Generate usable for B immediately
+
+        await provider.release()                          // job A's run finishes late
+        await generation.value
+
+        #expect(vm.job?.id == "b")
+        #expect(vm.kit?.resumeMarkdown == "# Saved-B")    // B's screen state survives
+        #expect(vm.isGenerating == false)
+        #expect(try await repo.kit(forJobID: "a")?.resumeMarkdown == "KIT-a")   // A's output kept
+        #expect(try await repo.kit(forJobID: "b")?.resumeMarkdown == "# Saved-B")
+    }
+
+    /// Re-target to B and generate for B while A is still in flight: the **last targeted job
+    /// wins**, no matter which run finishes last.
+    @Test func theLastTargetedJobWinsWhenAnOlderRunFinishesLast() async throws {
+        let jobB = JobListing(id: "b", title: "tb", company: "cb", location: "l", description: "d")
+        let provider = GatedGenProvider()
+        let vm = ApplicationViewModel(generateApplication: GenerateApplicationUseCase(provider: provider))
+
+        let generationA = Task { await vm.generate(for: job, profile: profile) }
+        await waitForPending(provider)
+        await vm.loadSaved(for: jobB)
+        let generationB = Task { await vm.generate(for: jobB, profile: profile) }
+        await waitForPending(provider, count: 2)
+
+        await provider.release()
+        await generationA.value
+        await generationB.value
+
+        #expect(vm.kit?.resumeMarkdown == "KIT-b")
+        #expect(vm.job?.id == "b")
+        #expect(vm.isGenerating == false)
+    }
+
+    /// A superseded run's failure isn't news about the job now shown — no error banner.
+    @Test func aSupersededRunsFailureIsNotSurfaced() async throws {
+        let repo = SavedApplicationsRepository(store: InMemoryRecordStore())
+        let jobB = JobListing(id: "b", title: "tb", company: "cb", location: "l", description: "d")
+        try await repo.save(savedKit("# Saved-B"), forJobID: jobB.id)
+        let provider = GatedGenProvider()
+        await provider.setShouldThrow(true)
+        let vm = ApplicationViewModel(
+            generateApplication: GenerateApplicationUseCase(provider: provider),
+            loadApplication: LoadApplicationUseCase(repository: repo)
+        )
+
+        let generation = Task { await vm.generate(for: job, profile: profile) }
+        await waitForPending(provider)
+        await vm.loadSaved(for: jobB)
+
+        await provider.release()                          // A's run now throws
+        await generation.value
+
+        #expect(vm.errorMessage == nil)                   // the failure died with the old run
+        #expect(vm.kit?.resumeMarkdown == "# Saved-B")
+        #expect(vm.isGenerating == false)
     }
 
     // MARK: v0.6.1 Milestone B — the brief travels with the kit

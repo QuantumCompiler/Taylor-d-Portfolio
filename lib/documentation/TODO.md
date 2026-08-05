@@ -9,93 +9,13 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.7.1 — bug fixes — scheduled, not yet started; next Milestone A.** Eighteen verified defects
-> were scheduled out of `PLANNED.md` (2026-08-04) into the **v0.7.1 — bug fixes** section below, grouped into
-> Milestones **A–H** by shared root cause. **Start with A** (stale-async writes — the highest-impact fix); **H**
-> (two `Double`→`Int` overflow crashes) is nearly free if you want a quick win first. Every defect cites a real
-> `file:line` — **reproduce each one before fixing it** (see the provenance note in that section).
->
-> **v0.7.0 (customizable LaTeX document styles) is complete and merge-ready** — all six milestones **A–F**
-> shipped (write-ups in `MILESTONES.md`, ticked in `ROADMAP.md`); docs and `README.md` are done, every
-> `MARKETING_VERSION` reads `0.7.0`, and the full suite is green (904 cases, no warnings). Only the **device
-> checks** below remain before that branch merges — **do those before bumping the version for v0.7.1** (they
-> assert About reads **0.7.0**; see the release-hygiene checkbox in the v0.7.1 section).
->
-> **⚠️ Awaiting device checks** — everything automatable is done and green; these need a real run (each
-> milestone's full write-up is in `MILESTONES.md`). Settings → About should read **0.7.0**; the v0.6.x items were
-> written against a 0.6.2 build and are carried forward unverified.
-> - **v0.7.0 A–D** — Settings gains a **Document Styles** pane. Create a style, name it, Save; **star** it as the
->   default; **duplicate** it (the copy is named "… copy"); **delete** it — and confirm deleting the default
->   un-stars everything rather than leaving a pointer behind. Quit and relaunch: the library and the default
->   survive. With no styles saved, an export must look **exactly as it did in v0.6.2**.
-> - **v0.7.0 E** — the four control groups: change the **body font**, **accent**, **page size**, **margins** and
->   the **section order / visibility / spacing**, then **Preview** (a few seconds; noticeably longer the first
->   time). Reorder so **Skills** comes first and confirm the sections after it aren't visibly compressed (the
->   `\arraystretch` fix). Hide **Other sections** and confirm the summary paragraph at the top **survives**. In a
->   job's Application window, the Export menu shows a **Style** picker under "Portfolio (LaTeX)" separate from
->   "PDF / Word template" — pick a saved style and confirm the exported PDF/`.tex` uses it; leave it on
->   **Default** and confirm it follows the starred style. Without MacTeX, Preview is **visible but disabled**
->   with an explanation.
-> - **v0.7.0 F** — under **Advanced**, switch on **"Replace the generated preamble with my own LaTeX"**: the
->   editor seeds with the real generated block, and the Template/Typography/Accent/Page controls dim while the
->   cover-letter and section controls stay live. Add
->   `\renewcommand{\pageHeader}{\name{Your}{Name}\email{you@example.com}}` and Preview — **the header should
->   read your name** (this is the reason the escape hatch exists). Then break it deliberately (e.g.
->   `\thisIsNotACommand{}`): Preview shows the **real lualatex log** in the Preview section and keeps the last
->   good render; **"Use the generated preamble"** and **"Revert to a built-in…"** each fix it *and persist* —
->   re-export from the job window without re-saving to confirm. Export the same broken style from a job: the
->   banner names the custom preamble, **"Use the built-in style for this export"** unblocks it without changing
->   the saved style, and **"Export .tex source"** still works.
-> - **v0.6.2 A** — a Tracker row shows the **Return to Results + trash icons** without hovering, matching the
->   Results rows; **right-clicking** a row offers the same two; both **swipes** still work. **Delete confirms from
->   all three paths** (and the dialog names the job), Return to Results doesn't. With a job open, the footer's
->   **Remove** menu offers both and the window **dismisses** after either. Return to Results puts the job back in
->   Results with its listing intact; Delete removes it from both tabs and its generated materials are gone.
-> - **v0.6.2 B** — **⚠️ the interaction change to check first: a single click now selects a row and opening the
->   detail is a double-click**, in **both** Results and the Tracker. Confirm ⌘-click / shift-click extend the
->   selection, the row **icons and swipes still work** while rows are selected, and the **action bar** appears with
->   the right count ("N selected"), disabling itself mid-batch. Bulk **Save to Tracker** moves them all out of
->   Results at once (and their enrichment fills in after, without freezing the list — try ~10 at once); bulk
->   **Delete** confirms with a count; the Tracker's bulk **Return to Results** puts them all back with listings
->   intact. Selecting under **All** then switching stage tabs must not let another tab act on those rows.
-> - **v0.6.2 C** — Results now has a **sort bar** (match score / company / role title / salary / date posted, both
->   directions, Reset) and the Tracker a **filter bar** (min rank / keywords / location / company / min salary — no
->   "Tracked" facet). Untouched, the Results order must look **exactly as before**. Check the Tracker filter narrows
->   **within** the open stage tab and composes with its sort; that a filter hiding every row shows "No tracked
->   applications match your filters" **with the bar still visible** and Clear working (not the "No applied
->   applications" stage-empty message); and that both tabs' filter bars look and behave identically (they're now one
->   shared control). Listings with no salary / no posted date sort **last** either direction.
-> - **v0.6.2 D** — on Portfolio → Profile, **importing** a résumé/cover letter shows only the file name + character
->   count (no "Show text", no raw editor), with **Clear** and **Replace…**; **Clear** brings the paste editor back
->   empty and pasting still builds. With **no** file imported the slot behaves exactly as before. After Build
->   Profile the tidied text still appears under **Source Documents**, and clearing the slot afterwards doesn't
->   disturb the built profile's copy.
-> - **v0.6.2 E** — a saved profile's **Source Documents** entry expands to the **whole** document, not a ~220pt
->   box; check a **long** résumé (> 12 000 characters) reads tidied to the bound and then continues **as-extracted**
->   after the "too long to tidy" notice, with **nothing missing at the end**. A normal-length résumé (well under the
->   bound) must show **no** notice and be tidied throughout — and, being over the old 6 000 cap, is the case that
->   used to lose its tail silently.
-> - **v0.6.1 C** — generate an application for a real posting: the **coverage panel** appears below the two
->   documents with the covered (green) / missing (amber) keyword capsules, the must-have headline count is right,
->   it updates on Regenerate, it **survives reopening** the saved result, and it's **absent** for a result
->   generated before this version (a legacy record with no stored brief) and for a thin posting with no keywords.
-> - **v0.6.1 D** — the **"Match the posting's must-have keywords"** checkbox: off leaves output as before; on
->   visibly raises coverage on the next Generate **without inventing** — anything unclaimable shows up in **Gaps**,
->   and no keyword list is dumped into the résumé. It stays enabled (and still applies) under a rank target, saves
->   into a preset, and a preset saved before this version still loads with it off.
-> - **v0.5.0** — detail + Application as separate windows; cross-window list refresh; explicit Generate + options
->   panel (fidelity / aspects / presets / embellished disclosures / rank-target loop); Results swipe + remove-from-Tracker; no spurious Photos/Music prompts.
-> - **v0.5.1** — awesome-cv LaTeX **PDF / `.tex`** export (needs `lualatex`; item hidden when TeX is absent); résumé
->   & cover letter export separately; Tracker **sort**; additional-context steers a regeneration; About shows LaTeX availability.
-> - **v0.6.0 A–E** — enrich-on-save (badges + structured detail); per-generation **profile picker** grounds on that
->   profile; **Regenerate result** re-scores + backfills + honours the context box; Settings → Sources credential save/lock/mask/clear + **no keychain prompt** + live banner lift; **full de-chromed** posting text vs. snippet fallback.
-> - **v0.6.0 F–H** — Adzuna **and** JSearch both return (cross-source dupes collapse; JSearch-only works); per-provider
->   "How to get a key" + Setup steps; Search **"Search sources"** selector enable/disable + saved-search source restore.
-> - **v0.6.0 I** — supporting-docs slot (add/remove, survives save + relaunch); Source Documents lists them; generation draws on the extra signal.
-> - **v0.6.0 J** — **AI job search** in Engines / Sources / selector (engine-based availability, no key); **AI-suggested**
->   leads with chip + "not verified" banner + web-search link; AI/API dupe collapses; AI-only search works with no API keys.
-> - **v0.6.0 K** — rows appear immediately, then **"Standardizing descriptions…"**; uniform **standardized Description**
->   across sources; empty digest keeps raw (no error); persisted + not re-digested; generation grounds on it.
+> **Current focus. v0.7.1 — bug fixes — Milestone A done; next Milestone B.** Eighteen verified defects were
+> scheduled out of `PLANNED.md` (2026-08-04) into the **v0.7.1 — bug fixes** section below, grouped into
+> Milestones **A–H** by shared root cause. **A (stale-async writes) is complete** — write-up in `MILESTONES.md`.
+> Consider **C** (stable posting identity) early — it touches every persistence key; **H** (two `Double`→`Int`
+> overflow crashes) is nearly free if you want a quick win. Every defect cites a real `file:line` — **reproduce
+> each one before fixing it** (see the provenance note in that section).
+
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
 down only).
@@ -129,44 +49,6 @@ high, 9 medium, 5 low**.
       device checks assert **Settings → About reads 0.7.0**. Bumping now would invalidate them. **Clear the v0.7.0
       device checks first, then bump.**
 - [ ] Add the v0.7.1 summary to `README.md`'s Version history when the release wraps.
-
-## Milestone A — Stale-async writes corrupt visible state  *(high + low)*
-
-**What / why.** Two unstructured async flows assign into shared view state with **no staleness check**, so an older
-operation can overwrite newer state.
-
-**A-1 (high) — in-flight generation writes another job's kit into the shared `ApplicationViewModel`**
-([`ApplicationViewModel.swift:438`](../src/Presentation/Application/ViewModel/ApplicationViewModel.swift:438)).
-`ApplicationWindow` holds **one** view model (`ApplicationWindow.swift:26`) and re-targets purely via
-`.onChange(of: requestID) { … loadSaved(for: job) }` (`ApplicationSheet.swift:151`); the sheet is **not** `.id`-keyed,
-so the view identity is stable and nothing cancels prior work. `generate(...)` runs as an unstructured `Task`
-(`ApplicationSheet.swift:396`) and assigns `kit = produced` / `brief = producedBrief` (`:438–439`) unconditionally.
-Sequence: Generate for job A (tens of seconds) → open job B → `loadSaved(for: B)` sets `job = B` and clears
-`isGenerating` → A's task completes and overwrites `kit`/`brief`. The window then shows **B's header with A's
-résumé**, and `exportFilenameBase` (`:376`) yields B's name while `exportData` renders A's markdown — an export
-**named for B containing A's content**. Clearing `isGenerating` in `loadSaved` also re-enables Generate mid-flight,
-so a second run for B can be clobbered by A finishing last. *(Persistence is safe — `:443` uses the shadowing `job`
-parameter, so A's kit is saved under A's id. The corruption is on-screen and in the export.)*
-
-**A-2 (low) — `fetchFromLink` and `search` race for `results`**
-([`SearchViewModel.swift:421`](../src/Presentation/Search/ViewModel/SearchViewModel.swift:421)). Neither guards on
-the other's busy flag, so a link-fetched job appears in Results and then **silently vanishes** when an earlier
-search lands.
-
-**Sub-tasks:**
-- [ ] **A-A** — Generation token in `ApplicationViewModel`: capture the target `JobListing.id` (or an incrementing
-      `generationID`) when `generate` starts; `guard` it still matches before the `kit`/`brief` assignments.
-- [ ] **A-B** — Store the in-flight `Task` and **cancel-and-replace** it in `loadSaved(for:)`, so re-targeting stops
-      the old run rather than racing it.
-- [ ] **A-C** — Don't let `loadSaved` clear `isGenerating` for a generation that's still running (or cancel first,
-      then clear) — the button must not re-enable mid-flight.
-- [ ] **A-D** — Cross-gate the Search entry points: `!isSearching` in `canFetchLink`, `!isFetchingLink` in
-      `canSearch` (matches how the saved-search Run button is already disabled, `SearchView.swift:179`).
-
-**Tests.** A stale generation completing **after** a re-target must not mutate the new job's state (assert `kit`
-still belongs to B); a cancelled generation doesn't assign at all; `canFetchLink`/`canSearch` are false while the
-other flow is busy.
-**On-device.** n/a — pure state discipline, no model-behaviour change.
 
 ## Milestone B — Results/search handoff in `RootView`  *(medium ×2 + low)*
 

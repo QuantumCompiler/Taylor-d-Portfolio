@@ -176,7 +176,7 @@ struct SearchView: View {
                     }
                     Spacer()
                     Button("Run") { Task { await viewModel.runSavedSearch(saved) } }
-                        .disabled(!viewModel.hasProfile || viewModel.isSearching)
+                        .disabled(!viewModel.hasProfile || viewModel.isResultsFlowBusy)
                         .clickableCursor()
                     Button(role: .destructive) {
                         Task { await viewModel.deleteSavedSearch(saved) }
@@ -259,7 +259,7 @@ struct SearchView: View {
                     Button("Generate from pasted text") {
                         Task { await viewModel.generateFromPastedText() }
                     }
-                    .disabled(!viewModel.hasProfile || viewModel.isFetchingLink)
+                    .disabled(!viewModel.hasProfile || viewModel.isResultsFlowBusy)
                     .clickableCursor()
                 }
             }
