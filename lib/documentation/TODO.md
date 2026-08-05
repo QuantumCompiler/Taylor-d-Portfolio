@@ -9,13 +9,14 @@ sub-part) is done, **move its write-up out of this file into `MILESTONES.md`** a
 line in `ROADMAP.md`, in the same change. This file should only ever contain work that still needs
 doing.
 
-> **Current focus. v0.7.1 — bug fixes — Milestones A–C done; next Milestone D.** Eighteen verified defects were
+> **Current focus. v0.7.1 — bug fixes — Milestones A–D done; next Milestone E.** Eighteen verified defects were
 > scheduled out of `PLANNED.md` (2026-08-04) into the **v0.7.1 — bug fixes** section below, grouped into
-> Milestones **A–H** by shared root cause. **A (stale-async writes), B (Results/search handoff), and C (stable
-> posting identity) are complete** — write-ups in `MILESTONES.md`. **D** (search goal & de-duplication) is next;
-> mind its cost note — raising the shortlist cap ranks more jobs per search. **H** (two `Double`→`Int` overflow
-> crashes) is nearly free if you want a quick win. Every defect cites a real `file:line` — **reproduce each one
-> before fixing it** (see the provenance note in that section).
+> Milestones **A–H** by shared root cause. **A (stale-async writes), B (Results/search handoff), C (stable
+> posting identity), and D (search goal & de-duplication) are complete** — write-ups in `MILESTONES.md`. **E**
+> (LLM layer: pipe deadlock, `leads` key, résumé truncation) is next; mind its cost note — E-C sends more résumé
+> tokens per scoring round. **H** (two `Double`→`Int` overflow crashes) is nearly free if you want a quick win.
+> Every defect cites a real `file:line` — **reproduce each one before fixing it** (see the provenance note in
+> that section).
 
 
 Layer dependency rule still applies (Presentation → Business → Data → Infrastructure, imports point
@@ -50,36 +51,6 @@ high, 9 medium, 5 low**.
       device checks assert **Settings → About reads 0.7.0**. Bumping now would invalidate them. **Clear the v0.7.0
       device checks first, then bump.**
 - [ ] Add the v0.7.1 summary to `README.md`'s Version history when the release wraps.
-
-## Milestone D — Search goal & de-duplication  *(high + medium ×2)*
-
-**What / why.** Three defects in [`SearchAndRankUseCase`](../src/Business/UseCases/SearchAndRankUseCase.swift).
-
-- **D-1 (high) — the desired-result-count goal is silently capped at 20 by the ranker's shortlist, and the shortfall
-  note never fires** (`:138`). Ask for 50 → get exactly 20, with **no explanation**, because the U-D shortfall note
-  is computed from `merged.count` rather than the ranked count.
-- **D-2 (medium) — paging toward the goal never starts when a provider returns fewer listings than the requested
-  page size** (`:105`). A goal-driven JSearch search fetches only page 1 (~10) and reports "that's all that's
-  available" though pages 2–5 exist.
-- **D-3 (medium) — cross-source duplicates leak in**: the use case de-dupes by source-specific `id` (`:104`) while
-  `CompositeJobSource` de-dupes by `fingerprint`. The same posting appears twice (Adzuna + JSearch/AI), saves twice,
-  and burns two of the 20 shortlist slots.
-
-**Sub-tasks:**
-- [ ] **D-A** — Make the shortlist respect the goal: give `JobRanker.rank` an explicit `limit:` and pass
-      `max(shortlistLimit, goal ?? shortlistLimit)` — **and/or** compute the shortfall from `ranked.count` so the user
-      is at least told "Found 20 of a desired 50".
-- [ ] **D-B** — Stop inferring exhaustion from a post-dedup count against a page size the source may not honour: keep
-      a title active while it returned **any** listings, bounded by `maxPagesPerTitle` + the `merged.count < goal`
-      condition (or have JSearch request a page size and the composite report raw per-provider counts).
-- [ ] **D-C** — Key the merge on `job.fingerprint` (falling back to `id` when empty), matching the composite; each
-      listing keeps its own `id` for persistence.
-
-**Tests.** A goal of 50 with 50 available yields >20 ranked (or reports the shortfall honestly); a provider returning
-fewer than the page size still pages on; the same posting arriving from two sources with different ids collapses to
-one row while each keeps its own id.
-**On-device.** ⚠️ **D-A raises LLM cost** — the shortlist cap was also a cost guard, so ranking more jobs per search
-means more model work. Consider a sane ceiling rather than an unbounded `goal`.
 
 ## Milestone E — LLM layer correctness  *(medium ×3)*
 

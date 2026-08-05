@@ -31,6 +31,11 @@ nonisolated struct SearchAndRankUseCase: Sendable {
     var maxResultsPerPage: Int
     /// Hard cap on pages fetched per title when paging toward a goal (rate-limit guard).
     var maxPagesPerTitle: Int
+    /// Ceiling on how many jobs one search will LLM-rank, however large the typed goal — the
+    /// **cost guard** (v0.7.1 Milestone D). The goal field is free text, so without this a
+    /// "10000" would send thousands of listings to the model. A goal above the ceiling still
+    /// pages/ranks up to it and then reports the shortfall honestly.
+    var maxRankedResults: Int
 
     init(
         jobSource: any JobSource,
@@ -40,7 +45,8 @@ nonisolated struct SearchAndRankUseCase: Sendable {
         maxTitles: Int = 6,
         defaultResultsPerPage: Int = 25,
         maxResultsPerPage: Int = 50,
-        maxPagesPerTitle: Int = 5
+        maxPagesPerTitle: Int = 5,
+        maxRankedResults: Int = 100
     ) {
         self.jobSource = jobSource
         self.ranker = ranker
@@ -50,6 +56,7 @@ nonisolated struct SearchAndRankUseCase: Sendable {
         self.defaultResultsPerPage = defaultResultsPerPage
         self.maxResultsPerPage = maxResultsPerPage
         self.maxPagesPerTitle = maxPagesPerTitle
+        self.maxRankedResults = maxRankedResults
     }
 
     /// How far a desired-result-count goal fell short (U-D).
@@ -97,12 +104,15 @@ nonisolated struct SearchAndRankUseCase: Sendable {
         // Round 1 (page 1) establishes each title's success/failure and seeds the results.
         let firstOutcomes = await searchAll(titles, request: request, page: 1, resultsPerPage: perPage)
         var lastError: Error?
-        var activeTitles = [String]()      // titles worth paging further (a full page came back)
+        var activeTitles = [String]()      // titles worth paging further (anything came back)
         for (index, title) in titles.enumerated() {
             switch firstOutcomes[index] {
             case .success(let jobs):
-                for job in jobs where seen.insert(job.id).inserted { merged.append(job) }
-                if jobs.count >= perPage { activeTitles.append(title) }
+                for job in jobs where seen.insert(Self.mergeKey(job)).inserted { merged.append(job) }
+                // Active while the title returned **anything** — a provider may honour a smaller
+                // page size than requested (JSearch pages ~10), so a short page proves nothing
+                // about exhaustion. Only an empty page retires a title (v0.7.1 Milestone D).
+                if !jobs.isEmpty { activeTitles.append(title) }
             case .failure(let error):
                 failedTitles.append(title)
                 lastError = error
@@ -114,17 +124,21 @@ nonisolated struct SearchAndRankUseCase: Sendable {
             throw lastError
         }
 
+        // The goal the run actually works toward: the typed goal, bounded by the rank-cost
+        // ceiling — paging past what will never be ranked is wasted quota (v0.7.1 Milestone D).
+        let boundedGoal = goal.map { min($0, maxRankedResults) }
+
         // Additional pages toward the desired-result-count goal (U-D). Round-robin a page
         // across all still-active titles, then re-check the goal — bounded by the page cap.
-        if let goal {
+        if let boundedGoal {
             var page = 2
-            while merged.count < goal, page <= pageCap, !activeTitles.isEmpty {
+            while merged.count < boundedGoal, page <= pageCap, !activeTitles.isEmpty {
                 let outcomes = await searchAll(activeTitles, request: request, page: page, resultsPerPage: perPage)
                 var stillActive = [String]()
                 for (index, title) in activeTitles.enumerated() {
                     if case .success(let jobs) = outcomes[index] {
-                        for job in jobs where seen.insert(job.id).inserted { merged.append(job) }
-                        if jobs.count >= perPage { stillActive.append(title) }
+                        for job in jobs where seen.insert(Self.mergeKey(job)).inserted { merged.append(job) }
+                        if !jobs.isEmpty { stillActive.append(title) }   // empty page = exhausted
                     }
                     // A failure on a later page just stops paging that title (best-effort).
                 }
@@ -133,13 +147,18 @@ nonisolated struct SearchAndRankUseCase: Sendable {
             }
         }
 
-        // Shortfall is measured on the fetched/ranked candidate count, *before* the U-E
-        // score filter trims what's shown (documented so the user isn't surprised).
-        let shortfall: Shortfall? = goal.flatMap {
-            merged.count < $0 ? Shortfall(found: merged.count, desired: $0) : nil
-        }
+        // Rank up to the goal (bounded by the cost ceiling) — the shortlist cap must not
+        // silently truncate a larger goal the paging just worked to satisfy.
+        let rankLimit = boundedGoal.map { max($0, ranker.shortlistLimit) }
+        let ranked = try await ranker.rank(merged, for: profile, limit: rankLimit)
 
-        let ranked = try await ranker.rank(merged, for: profile)
+        // Shortfall is measured on what the ranker actually returned — the count the user
+        // receives — *before* the U-E score filter trims what's shown (documented so the user
+        // isn't surprised). Measuring the pre-rank pool made the note unreachable whenever the
+        // pool met the goal but the shortlist cap trimmed it (v0.7.1 Milestone D).
+        let shortfall: Shortfall? = goal.flatMap {
+            ranked.count < $0 ? Shortfall(found: ranked.count, desired: $0) : nil
+        }
 
         // Minimum-rank filter (U-E): keep only scores ≥ the floor, and flag when that
         // empties a non-empty set so the UI can say "none met your minimum".
@@ -199,6 +218,21 @@ nonisolated struct SearchAndRankUseCase: Sendable {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    // MARK: Merge identity
+
+    /// The key the multi-title merge de-duplicates on: the source-agnostic
+    /// ``JobListing/fingerprint``, matching `CompositeJobSource` — keying on the per-source
+    /// `id` let the same posting from two providers (Adzuna + JSearch/AI) through as two rows,
+    /// which then saved twice and burned two shortlist slots (v0.7.1 Milestone D). Falls back
+    /// to `id` for a degenerate listing whose fingerprint carries no content, so two unrelated
+    /// empty-field listings can't collapse into one. Each kept listing retains its own `id`
+    /// for persistence.
+    static func mergeKey(_ job: JobListing) -> String {
+        let fingerprint = job.fingerprint
+        let hasContent = fingerprint.contains { $0.isLetter || $0.isNumber }
+        return hasContent ? fingerprint : job.id
     }
 
     // MARK: Bounded-concurrency fan-out

@@ -78,7 +78,10 @@ private actor CountingRankProvider: LLMProvider {
 }
 
 private func listing(_ id: String) -> JobListing {
-    JobListing(id: id, title: "t", company: "c", location: "l", description: "d")
+    // The title carries the id so every fixture is a **distinct posting**: the merge de-dupes
+    // by fingerprint (title/company/location) since v0.7.1 Milestone D, and identical-fingerprint
+    // fixtures would (correctly) collapse into one row.
+    JobListing(id: id, title: "t\(id)", company: "c", location: "l", description: "d")
 }
 
 @Suite("Use cases")
@@ -113,10 +116,7 @@ struct UseCaseTests {
     }
 
     @Test func searchAndRankSearchesThenRanks() async throws {
-        let jobs = [
-            JobListing(id: "40", title: "t", company: "c", location: "l", description: "d"),
-            JobListing(id: "80", title: "t", company: "c", location: "l", description: "d"),
-        ]
+        let jobs = [listing("40"), listing("80")]
         let ranker = JobRanker(provider: CountingRankProvider(), shortlistLimit: 10)
         let useCase = SearchAndRankUseCase(jobSource: StubJobSource(jobs: jobs), ranker: ranker)
 
@@ -203,11 +203,74 @@ struct UseCaseTests {
 
     @Test func pageCapBoundsTheEffort() async throws {
         // 5 pages × 50/page = 250 max, even though 10_000 exist and the goal is higher.
+        // (`maxRankedResults` is lifted above the cap so it's the *page* cap under test.)
         let useCase = SearchAndRankUseCase(jobSource: PagingJobSource(totalAvailable: 10_000),
-                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 100_000))
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 100_000),
+                                           maxRankedResults: 100_000)
         let output = try await useCase(request: JobSearchRequest(titles: ["ios"], desiredResultCount: 10_000), profile: profile)
         #expect(output.rankedJobs.count == 250)
         #expect(output.resultShortfall == .init(found: 250, desired: 10_000))
+    }
+
+    // MARK: v0.7.1 Milestone D — the goal survives the shortlist, short pages, and duplicates
+
+    /// D-1: a goal larger than the ranker's shortlist must reach it — before, a goal of 50
+    /// returned exactly 20 with **no shortfall note**, because the cap trimmed after paging and
+    /// the note was measured on the pre-rank pool.
+    @Test func goalBeyondTheShortlistRanksUpToTheGoal() async throws {
+        let useCase = SearchAndRankUseCase(jobSource: PagingJobSource(totalAvailable: 500),
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 20))
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"], desiredResultCount: 50), profile: profile)
+        #expect(output.rankedJobs.count >= 50)      // the default shortlist no longer trims the goal
+        #expect(output.resultShortfall == nil)
+    }
+
+    /// The cost guard: however large the typed goal (it's free text), one search ranks at most
+    /// `maxRankedResults` — and then says so, instead of silently under-delivering.
+    @Test func rankCostCeilingBoundsTheGoalAndReportsTheShortfallHonestly() async throws {
+        let useCase = SearchAndRankUseCase(jobSource: PagingJobSource(totalAvailable: 500),
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 20),
+                                           maxRankedResults: 60)
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"], desiredResultCount: 400), profile: profile)
+        #expect(output.rankedJobs.count == 60)      // ceiling, not the unbounded goal
+        #expect(output.resultShortfall == .init(found: 60, desired: 400))   // measured on ranked count
+    }
+
+    /// D-2: a provider that honours a smaller page size than requested (JSearch pages ~10) must
+    /// keep paging — a short page proves nothing about exhaustion; only an empty one does.
+    @Test func shortPagesStillPageTowardTheGoal() async throws {
+        let useCase = SearchAndRankUseCase(jobSource: SmallPageJobSource(totalAvailable: 40, pageSize: 10),
+                                           ranker: JobRanker(provider: CountingRankProvider(), shortlistLimit: 20))
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"], desiredResultCount: 30), profile: profile)
+        #expect(output.rankedJobs.count >= 30)      // pages 2–3 were fetched despite short page 1
+        #expect(output.resultShortfall == nil)
+    }
+
+    /// D-3: the same posting from two sources (different per-source ids) collapses to one row —
+    /// matching `CompositeJobSource` — and the kept row retains its own id for persistence.
+    @Test func crossSourceDuplicateCollapsesToOneRowKeepingItsOwnID() async throws {
+        let adzuna = JobListing(id: "adz-1", title: "iOS  Engineer", company: "ACME",
+                                location: "Denver, CO", description: "snippet", source: "Adzuna")
+        let jsearch = JobListing(id: "js-9", title: "ios engineer", company: "acme",
+                                 location: "denver, co", description: "richer text", source: "JSearch")
+        let other = JobListing(id: "77", title: "Android Engineer", company: "Acme",
+                               location: "Denver, CO", description: "d")
+        let useCase = SearchAndRankUseCase(jobSource: StubJobSource(jobs: [adzuna, jsearch, other]),
+                                           ranker: JobRanker(provider: CountingRankProvider()))
+        let output = try await useCase(request: JobSearchRequest(titles: ["ios"]), profile: profile)
+        #expect(output.rankedJobs.count == 2)                       // duplicate burned no slot
+        #expect(output.rankedJobs.map(\.id).contains("adz-1"))      // first-seen wins, id intact
+        #expect(!output.rankedJobs.map(\.id).contains("js-9"))
+    }
+
+    /// A degenerate listing with no title/company/location content falls back to its `id` as the
+    /// merge key — two unrelated empty-field listings must not collapse into one.
+    @Test func emptyFingerprintFallsBackToIDForMerging() {
+        let emptyA = JobListing(id: "a", title: "", company: " ", location: "", description: "d")
+        let emptyB = JobListing(id: "b", title: "", company: "", location: "  ", description: "d")
+        #expect(SearchAndRankUseCase.mergeKey(emptyA) == "a")
+        #expect(SearchAndRankUseCase.mergeKey(emptyB) == "b")
+        #expect(SearchAndRankUseCase.mergeKey(listing("1")) == listing("1").fingerprint)
     }
 
     // MARK: U-E — minimum-rank filter
@@ -440,6 +503,19 @@ struct UseCaseTests {
         var count = 0
         for await _ in useCase.digestStream([rankedFixture("a")]) { count += 1 }
         #expect(count == 0)
+    }
+}
+
+/// A `JobSource` that honours its **own** page size regardless of the requested
+/// `resultsPerPage` — how JSearch behaves (~10/page however many you ask for), for the
+/// short-page paging test (v0.7.1 Milestone D).
+private struct SmallPageJobSource: JobSource {
+    let totalAvailable: Int
+    let pageSize: Int
+    func search(_ query: JobQuery) async throws -> [JobListing] {
+        let start = (query.page - 1) * pageSize
+        guard start < totalAvailable else { return [] }
+        return (start..<min(start + pageSize, totalAvailable)).map { listing(String($0 + 1)) }
     }
 }
 

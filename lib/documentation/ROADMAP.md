@@ -1071,7 +1071,7 @@ user-reported bugs — each cites a real `file:line` and survived refutation, bu
       **duplicate row per launch** instead of upserting. Fix: derive the fallback id deterministically (reuse the
       `fingerprint` normalization, or a SHA-256 digest). Seam: Data. **Do it early — it touches every persistence
       key.** On-device: n/a.
-- [ ] **Milestone D — Search goal & de-duplication.** Three defects in `SearchAndRankUseCase`: the
+- [x] **Milestone D — Search goal & de-duplication.** Three defects in `SearchAndRankUseCase`: the
       **desired-result-count goal is silently capped at 20** by the ranker's shortlist and the U-D shortfall note
       never fires (it's computed pre-rank, `:138`); **paging toward the goal never starts** when a provider returns
       fewer listings than the requested page size (`:105`); and **cross-source duplicates leak in** because the use

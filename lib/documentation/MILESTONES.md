@@ -3504,3 +3504,39 @@ pins the launch-stable shape itself; a reworded description upserts onto the sam
 doesn't; a URL-backed posting still keys on its URL.
 
 **On-device.** n/a.
+
+## Milestone D — Search goal & de-duplication  ✅ done  (`Business/UseCases/SearchAndRankUseCase`, `Business/Ranking/JobRanker`; tests in `lib/tests/Business/UseCases`)
+
+**The defects (all three re-verified).** **D-1 (high):** a desired-result-count goal was silently capped at 20 —
+paging dutifully gathered 50+ listings, then `ranker.rank` trimmed to its `shortlistLimit`, and the U-D shortfall
+note **never fired** because it was measured on the pre-rank pool (which met the goal) rather than what the user
+received. **D-2 (medium):** a title was kept paging only while it returned a *full* page
+(`jobs.count >= perPage`) — but JSearch honours its own ~10/page regardless of the requested size, so a
+goal-driven search fetched page 1 and stopped, implying "that's all there is" with pages 2–5 available.
+**D-3 (medium):** the multi-title merge de-duped by source-specific `id` while `CompositeJobSource` de-dupes by
+`fingerprint` — the same posting via Adzuna + JSearch/AI landed twice, saved twice, and burned two shortlist
+slots.
+
+**The fixes.** **D-A:** `JobRanker.rank` gains a `limit:` override (`nil` ⇒ the configured default — its other
+caller is untouched), and the use case passes `max(boundedGoal, shortlistLimit)`. The shortfall is now measured
+on **`ranked.count`** — the count the user actually receives, still before the U-E score filter as documented.
+**The cost guard is explicit:** a new `maxRankedResults` (default **100**) bounds both the ranking *and the
+paging* — the goal field is free text, so a typed "10000" now pages/ranks up to the ceiling and then reports the
+shortfall honestly, instead of either silently returning 20 (before) or shipping thousands of listings to the
+model (naïve fix). **D-B:** a title stays active while it returned **anything**; only an empty page retires it —
+still bounded by `maxPagesPerTitle` and the goal check. **D-C:** the merge keys on the shared
+`mergeKey(_:)` = `fingerprint`, falling back to `id` only when the fingerprint carries no alphanumeric content
+(so two degenerate empty-field listings can't collapse); each kept listing retains its own `id` for persistence.
+
+**Test-fixture ripple, embraced:** stub listings sharing title/company/location now (correctly) collapse into
+one posting, so fixtures that meant "distinct jobs" got distinct titles (`t40`, `ta`/`tb`) — the one legitimate
+behavioural break the fingerprint change surfaced, in `rerunReportsHowManyResultsAreNewSinceLastTime`.
+
+**Tests (5 new; suite green at 919, build warning-free).** A goal of 50 against a 20-shortlist ranker yields
+≥50 with no shortfall; a 60-ceiling run against a goal of 400 returns exactly 60 and reports "60 of 400"; a
+~10/page source pages on to a 30-goal; the Adzuna/JSearch duplicate collapses to one row keeping the first-seen
+id; `mergeKey` falls back to `id` for content-free listings. `pageCapBoundsTheEffort` now lifts the rank ceiling
+explicitly so it still tests the page cap.
+
+**On-device.** ⚠️ The cost profile changed as designed: a goal >20 now really ranks up to `maxRankedResults`
+(100) jobs per search — the old 20 cap was also a cost guard, and the ceiling is the deliberate replacement.

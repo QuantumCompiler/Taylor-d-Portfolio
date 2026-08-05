@@ -520,9 +520,11 @@ struct SearchViewModelTests {
     /// The shell's auto-navigation rides `completedSearchID`, so it must fire **once** per
     /// landed search — not once per digest swap, which mutates `results` per posting.
     @Test func searchSignalsALandedResultSetOnceDespiteDigestUpdates() async {
+        // Distinct titles: the merge de-dupes by fingerprint (v0.7.1 Milestone D), so two
+        // fixtures sharing title/company/location would collapse into one posting.
         let jobs = [
-            JobListing(id: "a", title: "t", company: "c", location: "l", description: "raw a"),
-            JobListing(id: "b", title: "t", company: "c", location: "l", description: "raw b"),
+            JobListing(id: "a", title: "ta", company: "c", location: "l", description: "raw a"),
+            JobListing(id: "b", title: "tb", company: "c", location: "l", description: "raw b"),
         ]
         let matches = [
             JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: []),
@@ -558,9 +560,10 @@ struct SearchViewModelTests {
     /// pruned id must not come back — not into the list when its digest completes, and not
     /// into the saved-jobs store when the digest's final re-persist runs.
     @Test func aRowDeletedMidDigestIsNeitherResurrectedNorRePersisted() async throws {
+        // Distinct titles — same fingerprint-dedup consideration as above.
         let jobs = [
-            JobListing(id: "a", title: "t", company: "c", location: "l", description: "raw a"),
-            JobListing(id: "b", title: "t", company: "c", location: "l", description: "raw b"),
+            JobListing(id: "a", title: "ta", company: "c", location: "l", description: "raw a"),
+            JobListing(id: "b", title: "tb", company: "c", location: "l", description: "raw b"),
         ]
         let matches = [
             JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: []),
@@ -781,9 +784,11 @@ struct SearchViewModelTests {
     }
 
     @Test func rerunReportsHowManyResultsAreNewSinceLastTime() async throws {
+        // Distinct titles: the merge de-dupes by fingerprint (v0.7.1 Milestone D), so two
+        // fixtures sharing title/company/location would collapse into one posting.
         let jobs = [
-            JobListing(id: "a", title: "t", company: "c", location: "l", description: "d"),
-            JobListing(id: "b", title: "t", company: "c", location: "l", description: "d"),
+            JobListing(id: "a", title: "ta", company: "c", location: "l", description: "d"),
+            JobListing(id: "b", title: "tb", company: "c", location: "l", description: "d"),
         ]
         let matches = [
             JobMatch(jobId: "a", score: 70, reason: "", matchedSkills: [], missingSkills: []),
